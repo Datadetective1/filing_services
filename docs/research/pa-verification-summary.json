@@ -1,0 +1,1586 @@
+[
+ {
+  "key": "entity_types_required_statute",
+  "value": "domestic_filing_entity;domestic_llp;domestic_electing_partnership_non_lp;registered_foreign_association",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "entity_types_required",
+  "value": "business_corp;nonprofit_corp;llc;llp_llgp;electing_partnership(domestic);lp;lllp;professional_association;business_trust — domestic and foreign",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "entity_types_required_pabulletin",
+  "value": "business corporations; nonprofit corporations; LLCs; LPs; LLGPs; electing partnerships; professional associations; business trusts",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pacodeandbulletin.gov/Display/pabull?file=%2Fsecure%2Fpabulletin%2Fdata%2Fvol54%2F54-50%2F1793.html",
+  "off": true
+ },
+ {
+  "key": "lllp_included",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "entity_types_exempt",
+  "value": "fictitious_name;general_partnership_non_llp;authority;name_reservation;land_bank;financial_institution;credit_union;name_registration;trademark;insignia_mark",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "inactive_entities_exempt",
+  "value": "active_status_only",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "corp_due_date",
+  "value": "06-30",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "llc_due_date",
+  "value": "09-30",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "other_due_date",
+  "value": "12-31",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "statutory_deadlines",
+  "value": "corp<07-01; llc<10-01; other<=12-31",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "filing_window",
+  "value": "01-01..due_date",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/newsroom/department-of-state-alerts-business-owners-about-new-annual-repo",
+  "off": true
+ },
+ {
+  "key": "fee_for_profit",
+  "value": "7.00",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "fee_nonprofit",
+  "value": "0.00",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "fee_statute",
+  "value": "nonprofit=0; electronic=7; paper=7",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "fee_domestic_vs_foreign",
+  "value": "same",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "fee_form_business_trust",
+  "value": "for_profit=7; not_for_profit=0",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "fee_veteran_waiver",
+  "value": "false",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "first_required_year",
+  "value": "2025",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "statute_effective_date",
+  "value": "2024-01-03",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pacodeandbulletin.gov/Display/pabull?file=%2Fsecure%2Fpabulletin%2Fdata%2Fvol54%2F54-50%2F1793.html",
+  "off": true
+ },
+ {
+  "key": "formed_this_year_rule",
+  "value": "false",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dissolution_enforcement_start",
+  "value": "2027",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dissolution_statute_domestic",
+  "value": "due+6mo; applies to reports due >= 2027-01-04",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=81&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "foreign_termination_statute",
+  "value": "due+6mo; applies to reports due >= 2027-01-04",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=4&sctn=19&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "act20_2024_delay",
+  "value": "2026-01-03 -> 2027-01-04",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/unconsolidated/law-information/view-statute?11&iFrame=true&txtType=HTM&SessYr=2024&SessInd=0&ActNum=0020.",
+  "off": true
+ },
+ {
+  "key": "grace_period",
+  "value": "2025-2026 reports: no dissolution; 2027+: 6 months after due date (plus >=60-day notice)",
+  "sup": 0,
+  "n": 2,
+  "corr": "Transition period, then subject to dissolution/termination/cancellation six months after the due date, starting with reports due in 2027. This page says nothing about a 60-day notice or any other statutory notice period. || 2025-2026 reports: transition period, no dissolution; 2027+: subject to administrative dissolution/termination/cancellation six months after the due date. This page states no statutory notice period (no 60-day notice).",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dissolution_notice_procedure",
+  "value": "notice + 60 days",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=82&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "foreign_termination_notice",
+  "value": "notice + >=60 days; cure allowed before effective date",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=4&sctn=19&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "consequence_types",
+  "value": "domestic=dissolution; domestic_llp=cancellation; foreign=termination",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "effect_name_subsistence",
+  "value": "no_subsistence_certificate; name_released",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "effect_of_dissolution_domestic",
+  "value": "wind_up_or_reinstate_only",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=82&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "llp_cancellation_effect",
+  "value": "becomes_general_partnership",
+  "sup": 2,
+  "n": 2,
+  "corr": "Becomes a general partnership only when the LLP or electing partnership is not also a limited partnership. This page does not say anything about losing limited liability.",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=82&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "late_fee",
+  "value": "none_stated",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "reinstatement_fee",
+  "value": "online=35; paper=40; per_missing_report=15",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "reinstatement_fee_statute",
+  "value": "electronic=35; paper=40; per_report=15",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "reinstatement_process",
+  "value": "no_time_limit; same_entity_number",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "reinstatement_statute_contents",
+  "value": "attach_latest_report + all_missed_fees; DOS acts within 30 days",
+  "sup": 2,
+  "n": 2,
+  "corr": "Refinement: attaching the latest unfiled annual report plus the fee for each missed report is one of two alternatives under (a)(4). The other option is a statement that the grounds for action under section 382 did not exist. The department files the statement of reinstatement within 30 days after it receives the application, and only if the application meets subsection (a) and comes with any payment required by (a)(4)(ii). The department must also deliver a copy to the entity. Separately, the application must include the reinstatement fee required by section 153. || Attaching the most recent unfiled annual report plus the fee for each missed report is one of two alternatives under § 383(a)(4). The other, (a)(4)(i), is a statement that the grounds for the § 382 action did not exist. DOS must file the statement of reinstatement within 30 days after it receives the application, once it determines the application meets the requirements and includes the required payments.",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=83&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "reinstatement_effect",
+  "value": "retroactive_with_exceptions",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "foreign_entity_consequence",
+  "value": "must_reregister; new_entity_number; no_retroactive_cure",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "foreign_reregistration_fee",
+  "value": "250.00",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "foreign_llp_lllp_pllc_note",
+  "value": "no_retroactive_liability_shield",
+  "sup": 0,
+  "n": 2,
+  "corr": "All three foreign types (PLLC, LLLP, LLP/LLGP) cannot reinstate, and their activities during termination are not validated. However, the page limits the statement that the liability shield is not retroactively reinstated to foreign LLLPs and LLPs/LLGPs. PLLCs are not named in that sentence. || Foreign PLLCs, LLLPs and LLPs/LLGPs cannot reinstate and their activities between termination and re-registration are not validated; the non-retroactive liability shield statement applies only to foreign LLLPs and LLPs/LLGPs (PLLCs are not named in that sentence).",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "name_loss_on_dissolution",
+  "value": "name_not_reserved",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dos_notice",
+  "value": "notice >= 2 months before due date; non-receipt no excuse",
+  "sup": 0,
+  "n": 2,
+  "corr": "The statute (§146(g)) says only that the department must deliver notice each year to each association required to file, at least two months before the report is due, and that failure to deliver or receive notice does not relieve the filing obligation. It does not say how the notice is delivered (a postcard mailed to the registered office), that CROPs get Excel lists, or that courtesy emails are sent. None of that is on this page. || The statute requires only that the department 'deliver notice' to each association required to file, at least two months before the report is due, and says failure to receive notice does not relieve the filing obligation. It does not name a medium or recipient address. The postcard, registered-office mailing, CROP Excel lists and courtesy emails are not in the statute.",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "required_contents",
+  "value": "name;jurisdiction;registered_office;governor;principal_officers;principal_office;entity_number",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "info_current_as_of_filing",
+  "value": "as_of_filing_date",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?43&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "amendment_free",
+  "value": "free; until 12-31 of filing year",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "online_filing_processing",
+  "value": "online_auto_approved; no_pin; no_expedite",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "car_separate_requirement",
+  "value": "CAR due 04-15 (separate)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "decennial_repealed",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "online_filing_url",
+  "value": "https://file.dos.pa.gov/",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "online_filing_steps",
+  "value": "file.dos.pa.gov > Business Search > select entity > 'File Annual Report' icon > confirm/update > pay > My Business Work Queue",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "bfs_account_required",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "keystone_login_required",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/graphics/how%20to%20file%20an%20annual%20report.pdf",
+  "off": true
+ },
+ {
+  "key": "login_required_for_filing_action",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/programs/business/guides/Customer-Portal-Overview.pdf",
+  "off": true
+ },
+ {
+  "key": "hub_annual_report_entry_url",
+  "value": "https://hub.business.pa.gov/Home/QuickAction/882A08F5-EBEF-45C0-B804-6C53638D0094",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "hub.business.pa.gov/Home/QuickAction/882A08F5-EBEF-45C0-B804-6C53638D0094",
+  "off": true
+ },
+ {
+  "key": "pin_required_for_annual_report",
+  "value": "false",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "form_number",
+  "value": "DSCB:15-146",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "paper_form_pdf",
+  "value": "https://www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "paper_filing",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "paper_mailing_address",
+  "value": "Pennsylvania Department of State, Bureau of Corporations and Charitable Organizations, P.O. Box 8722, Harrisburg, PA 17105-8722",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "paper_payment_method",
+  "value": "check payable to PA Department of State",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "general_paper_payment_policy",
+  "value": "check or money order; no cash; no credit card (paper)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/fees-and-payments",
+  "off": true
+ },
+ {
+  "key": "fees_nonrefundable",
+  "value": "nonrefundable",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/fees-and-payments",
+  "off": true
+ },
+ {
+  "key": "payment_methods",
+  "value": "online: credit card; paper: check payable to PA Department of State",
+  "sup": 0,
+  "n": 2,
+  "corr": "The page states only online payment by credit card. It does not mention a paper payment method (check payable to the PA Department of State), and it does not say nonprofit filers skip a payment step. || online: credit card (stated); nonprofit $0 (stated); paper payment method NOT stated on this page",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "online_payment_step",
+  "value": "online payment; nonprofits skip",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/graphics/how%20to%20file%20an%20annual%20report.pdf",
+  "off": true
+ },
+ {
+  "key": "annual_report_fee",
+  "value": "7.00 (for-profit); 0.00 (nonprofit/not-for-profit)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "no_state_late_fee",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/alerts-and-notices/business-and-charities-scams",
+  "off": true
+ },
+ {
+  "key": "required_info_general",
+  "value": "name; jurisdiction of formation; registered office (or CROP + county); >=1 governor; principal officers' names/titles if any; principal office address; DOS entity number",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "required_info_statute_part1",
+  "value": "15 Pa.C.S. § 146(a)(1)-(2)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?88&iFrame=true&txtType=HTM&ttl=15&div=0&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "required_info_statute_part2",
+  "value": "15 Pa.C.S. § 146(a)(3)-(6)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?88&iFrame=true&txtType=HTM&ttl=15&div=0&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "paper_form_fields_1_5",
+  "value": "1 name; 2 jurisdiction; 3 entity number; 4 current registered office/CROP; 5 change of registered office",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "paper_form_fields_6_9",
+  "value": "6 principal office; 7 change of principal office; 8 governor(s); 9 principal officers (name/title); signature + title",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "registered_office_requirements",
+  "value": "PA street address + county OR CROP name + county",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "no_po_box_addresses",
+  "value": "no P.O. box only",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "principal_office_definition",
+  "value": "primary executive office; may be outside PA",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "required_info_corp",
+  "value": "governor = director(s); principal officers = president, secretary, treasurer (+ others)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "required_info_corp_governor",
+  "value": "director (for-profit); director/member of other body (nonprofit)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "required_info_llc",
+  "value": "governor = manager (manager-managed) or materially participating member (member-managed); officers only if any",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "llc_material_participation_undefined",
+  "value": "undefined; see operating agreement",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "principal_officers_optional_noncorp",
+  "value": "required only if association has principal officers",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "required_info_other",
+  "value": "LLP: partner; LP/LLLP: general partner; electing partnership: general partner; professional association: board of governors member; business trust: trustee",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "governor_natural_person_rules",
+  "value": "corp directors: natural person; others: natural person or association; officers: natural person except treasurer",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "info_current_as_of_filing",
+  "value": "current as of filing date",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "no_financial_info",
+  "value": "false",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "online_form_prepopulated",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "online_form_email_optin",
+  "value": "optional email address(es)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/graphics/how%20to%20file%20an%20annual%20report.pdf",
+  "off": true
+ },
+ {
+  "key": "online_esignature",
+  "value": "declarations checkbox + e-signature + signatory title + date",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/graphics/how%20to%20file%20an%20annual%20report.pdf",
+  "off": true
+ },
+ {
+  "key": "who_may_file",
+  "value": "signed by the entity; DOS does not verify signer authority",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "signature_authorized_representative",
+  "value": "authorized representative; 18 Pa.C.S. § 4904 affirmation",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "attorney_in_fact_signing",
+  "value": "attorney-in-fact/fiduciary signing permitted; no proof filed",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?88&iFrame=true&txtType=HTM&ttl=15&div=0&chpt=1&sctn=35&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "third_party_filing",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/alerts-and-notices/business-and-charities-scams",
+  "off": true
+ },
+ {
+  "key": "third_party_caution_disclosure",
+  "value": "DOS expects disclosure of direct $7/$0 option; flags over-collection of data",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/alerts-and-notices/business-and-charities-scams",
+  "off": true
+ },
+ {
+  "key": "governor_listing_not_authority",
+  "value": "not necessarily authorized",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "hub_share_access",
+  "value": "share access with representatives via Business Hub profile",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "hub.business.pa.gov/Home/QuickAction/882A08F5-EBEF-45C0-B804-6C53638D0094",
+  "off": true
+ },
+ {
+  "key": "processing_time",
+  "value": "online: automatic, within minutes; no expedite",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "no_expedite",
+  "value": "false",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "paper_processing",
+  "value": "regular queue; returned by mail",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "paper_return_contact",
+  "value": "return mailing address required; optional email return",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "paper_contact_public_record",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "processing_time_general_hub",
+  "value": "1-3 business days (general)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "hub.business.pa.gov/Home/QuickAction/882A08F5-EBEF-45C0-B804-6C53638D0094",
+  "off": true
+ },
+ {
+  "key": "processing_time_general_faq",
+  "value": "15 business days (general)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/resources/business-resources/frequently-asked-questions",
+  "off": true
+ },
+ {
+  "key": "confirmation_received",
+  "value": "filed Annual Report form + Acknowledgement Letter (download) + instruction email",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "confirmation_form_tab",
+  "value": "Form tab download",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/graphics/how%20to%20file%20an%20annual%20report.pdf",
+  "off": true
+ },
+ {
+  "key": "document_retention_60_days",
+  "value": "60 days",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "hub.business.pa.gov/Home/QuickAction/882A08F5-EBEF-45C0-B804-6C53638D0094",
+  "off": true
+ },
+ {
+  "key": "rejection_for_missing_info",
+  "value": "reject + notify + return for correction",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?88&iFrame=true&txtType=HTM&ttl=15&div=0&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "changes_via_annual_report",
+  "value": "true (registered office/CROP can be changed within the annual report)",
+  "sup": 0,
+  "n": 2,
+  "corr": "Only the statutory part is supported. Under § 146(e), a registered office address in the annual report that differs from DOS records is deemed changed as of filing. This page does not mention a CROP change, the online form's mandatory registered-office step, or paper form field 5. || § 146(e) supports the change of registered office address only. It does not mention CROPs, and this page says nothing about the online or paper forms (the 'mandatory step' or 'field 5').",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?88&iFrame=true&txtType=HTM&ttl=15&div=0&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "changes_via_annual_report_online_step",
+  "value": "change registered office in-form",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/graphics/how%20to%20file%20an%20annual%20report.pdf",
+  "off": true
+ },
+ {
+  "key": "changes_via_annual_report_other",
+  "value": "principal office editable; governors/officers add/delete",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/graphics/how%20to%20file%20an%20annual%20report.pdf",
+  "off": true
+ },
+ {
+  "key": "name_change_separate_amendment",
+  "value": "name change requires separate amendment",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20annual%20report%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "annual_report_update",
+  "value": "DSCB:15-146(f); $0; same calendar year only",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "annual_report_update_pin_required",
+  "value": "PIN access required for update",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "annual_report_update_scope",
+  "value": "registered office/CROP; principal office; governors; principal officers",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20f%20annual%20report%20update%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "annual_report_update_same_year",
+  "value": "same calendar year only",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/resources/business/forms/15-146%20f%20annual%20report%20update%20final%2012.4.2024%20with%20watermark.pdf",
+  "off": true
+ },
+ {
+  "key": "pin_request_process",
+  "value": "Request Access > verify > Request Pin > email PIN > Input PIN",
+  "sup": 0,
+  "n": 2,
+  "corr": "The PIN steps and the 11/16/2022 revision date are correct. The guide never mentions the Annual Report or an Annual Report Update. It describes itself as a guide to amend or close an existing business, with examples: Change of Registered Office, Business Name Change, Certificate of Termination, Articles of Dissolution, and Voluntary Termination/Dissolution. After entering the PIN, the user clicks File Amendment to pick a form. || Partly supported. The PIN steps (Request Access > check two verification boxes > Request Pin > get PIN from email > Input PIN > Get Access) and the 'Revised 11/16/2022' date match the guide word for word. The guide never mentions the Annual Report or an 'Annual Report Update'. It covers amending or closing an existing business, with examples: Change of Registered Office, Business Name Change, Certificate of Termination, Articles of Dissolution, Voluntary Termination/Dissolution. After access is granted, the user clicks 'File Amendment' (Step 9).",
+  "url": "www.pa.gov/content/dam/copapwp-pagov/en/dos/programs/business/guides/HowToAmendorCloseanExistingBusinessinBFS.pdf",
+  "off": true
+ },
+ {
+  "key": "business_search_url",
+  "value": "https://file.dos.pa.gov/search/business",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "active_status_determines_requirement",
+  "value": "Active = must file; Inactive = not required",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "notice_postcard_and_crop",
+  "value": "postcard to street-address registered office; Excel list to CROPs",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "email_notifications",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "first_report_timing",
+  "value": "year after formation/registration",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "car_separate_filing",
+  "value": "separate filing; due April 15",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "form_description_pa_bulletin",
+  "value": "Pa.B. Doc. No. 24-1793 (Dec. 14, 2024)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pacodeandbulletin.gov/Display/pabull?file=%2Fsecure%2Fpabulletin%2Fdata%2Fvol54%2F54-50%2F1793.html",
+  "off": true
+ },
+ {
+  "key": "notarization_required",
+  "value": "false",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/filing-guidelines",
+  "off": true
+ },
+ {
+  "key": "statute_citation",
+  "value": "15 Pa.C.S. § 146 (Annual report)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_who_must_file",
+  "value": "domestic_filing_entity|domestic_llp|domestic_electing_partnership_not_lp|registered_foreign_association",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_contents",
+  "value": "name; jurisdiction_of_formation; registered_office_address; at_least_one_governor_name",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_contents_2",
+  "value": "principal_officers_names_titles; principal_office_address; entity_number",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_information_date",
+  "value": "current_as_of_delivery_date",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_due_dates",
+  "value": "corporation:before 07-01; llc:before 10-01; other:on or before 12-31",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_due_date_corporation",
+  "value": "06-30",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_due_date_llc",
+  "value": "09-30",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_due_date_other",
+  "value": "12-31",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_section_effective_date",
+  "value": "2024-01-03",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "annual_report_first_filing_year",
+  "value": "2025",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "statute_rejection",
+  "value": "reject; notify in record form; return for correction",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_registered_office_change",
+  "value": "true",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_change_of_information_fee",
+  "value": "0",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_notice_requirement",
+  "value": "notice >= 2 months before due date; non-receipt no excuse",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=46&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_fee_section",
+  "value": "nonprofit:0; electronic:7; non_electronic:7",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_fee_amount",
+  "value": "7.00",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_fee_history",
+  "value": "Act 122 of 2022 added 153(a)(18)-(20)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_reinstatement_fee",
+  "value": "electronic:35; non_electronic:40; per_unpaid_annual_report:15",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=53&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_consequence",
+  "value": "administrative dissolution/cancellation if annual report not delivered within 6 months after due date",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=381&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_subchapter_h_enactment",
+  "value": "Act 122 of 2022",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=381&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_enforcement_effective_date",
+  "value": "2027-01-04",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=381&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_notice_before_dissolution",
+  "value": "notice to registered office and principal office",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=382&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_cure_period",
+  "value": "60 days",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=382&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_dissolution_effective_date_rule",
+  "value": ">=60 days after notice delivery",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=382&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_notice_of_action",
+  "value": "copy of statement delivered",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=382&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_effect_of_dissolution",
+  "value": "wind-up only; not subsisting",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=382&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_effect_of_cancellation",
+  "value": "reverts to general partnership",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=382&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_reinstatement",
+  "value": "application + fee + latest missing annual report + per-report fees",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=383&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_reinstatement_backfiling",
+  "value": "attach most recent unfiled annual report + fees for each missed report",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=383&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_reinstatement_department_action",
+  "value": "30 days",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=383&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_reinstatement_effect",
+  "value": "relates back",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=383&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_reinstatement_rejection",
+  "value": "notice with reasons",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=3&sctn=384&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_foreign_termination",
+  "value": "termination if annual report not filed within 6 months after due",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=4&sctn=19&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_foreign_termination_notice",
+  "value": ">=60 days after delivery of copy",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=4&sctn=19&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_foreign_cure",
+  "value": "cure before effective date",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=4&sctn=19&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "statute_foreign_enforcement_date",
+  "value": "2027-01-04",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=4&sctn=19&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "act_20_2024",
+  "value": "Act 20 of 2024; HB 1419; 2024-06-10",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/unconsolidated/law-information/view-statute?8&iFrame=true&txtType=HTM&SessYr=2024&SessInd=0&ActNum=0020.",
+  "off": true
+ },
+ {
+  "key": "act_number",
+  "value": "Act 122 of 2022; P.L. 1791; HB 2057",
+  "sup": 1,
+  "n": 2,
+  "corr": "Act No. 122 of 2022, enacted from HB 2057 on Nov. 3, 2022, effective in 60 days. The page gives no P.L. citation (P.L. 1791 is unverified) and does not mention annual reports.",
+  "url": "www.palegis.us/statutes/unconsolidated/law-information?sessYr=2022&sessInd=0&actNum=122",
+  "off": true
+ },
+ {
+  "key": "act_bill_number",
+  "value": "HB 2057",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/unconsolidated/law-information/view-statute?8&iFrame=true&txtType=HTM&SessYr=2022&SessInd=0&ActNum=0122.",
+  "off": true
+ },
+ {
+  "key": "act_effective_date",
+  "value": "60 days after 2022-11-03 (computed 2023-01-02)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/unconsolidated/law-information/view-statute?8&iFrame=true&txtType=HTM&SessYr=2022&SessInd=0&ActNum=0122.",
+  "off": true
+ },
+ {
+  "key": "definition_domestic_filing_entity",
+  "value": "domestic entity formed by public organic record filing",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/statutes/consolidated/view-statute?14&iFrame=true&txtType=HTM&ttl=15&div=00.&chpt=1&sctn=2&subsctn=0",
+  "off": true
+ },
+ {
+  "key": "fee_schedule_annual_report",
+  "value": "for_profit:7.00; nonprofit:0.00",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/fees-and-payments",
+  "off": true
+ },
+ {
+  "key": "fee_schedule_reinstatement",
+  "value": "electronic:35; paper:40; per_missing_report:15",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/fees-and-payments",
+  "off": true
+ },
+ {
+  "key": "fee_schedule_benefit_corp_annual_report",
+  "value": "70.00",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/fees-and-payments",
+  "off": true
+ },
+ {
+  "key": "dos_annual_report_fee_statement",
+  "value": "7.00",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dos_no_veteran_fee_waiver",
+  "value": "false",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dos_enforcement_start",
+  "value": "2027",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dos_foreign_no_reinstatement",
+  "value": "reregister (new Foreign Registration Statement)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dos_reinstatement_no_time_limit",
+  "value": "no time limit",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dos_name_loss",
+  "value": "name becomes available",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dos_car_not_replaced",
+  "value": "04-15 (separate CAR requirement)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "dos_excluded_filing_types",
+  "value": "excluded types list",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/annual-reports",
+  "off": true
+ },
+ {
+  "key": "pa_bulletin_annual_report_form",
+  "value": "DSCB:15-146; DSCB:15-146(f)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.pacodeandbulletin.gov/Display/pabull?file=%2Fsecure%2Fpabulletin%2Fdata%2Fvol54%2F54-50%2F1793.html",
+  "off": true
+ },
+ {
+  "key": "pending_legislation_hb2704",
+  "value": "pending (in committee)",
+  "sup": 2,
+  "n": 2,
+  "corr": "",
+  "url": "www.palegis.us/legislation/bills/2025/hb2704",
+  "off": true
+ }
+]
