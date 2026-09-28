@@ -507,7 +507,7 @@ function intakeFor(p: EntityProfile): IntakeSchema {
           {
             key: "state_notice_email",
             type: "email",
-            label: "Email for Pennsylvania's annual report notices (optional)",
+            label: "Email for Pennsylvania's annual report notices",
             help: "The Department of State can send courtesy notices to an email address on file for your business.",
             required: false,
           },
@@ -568,9 +568,11 @@ function buildRule(p: EntityProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
-    version: 1,
+    // v1 (effective 2025-01-01) published 2026-09-27. v2 is a wording-only revision of
+    // the intake schema (duplicate "(optional)" in a label); facts are unchanged.
+    version: 2,
     verificationStatus: "verified",
-    effectiveFrom: "2025-01-01",
+    effectiveFrom: "2026-09-28",
     filingName: "Annual Report",
     formNumber: "DSCB:15-146",
     dueRule: { kind: "fixed_annual", month: p.due.month, day: p.due.day },

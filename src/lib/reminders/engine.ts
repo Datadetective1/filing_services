@@ -115,6 +115,8 @@ export interface DispatchSummary {
   skipped: number;
   cancelled: number;
   failed: number;
+  /** Examined but scheduled for a later day in the state's time zone; left untouched. */
+  deferred: number;
   rolledForward: number;
   planned: number;
 }
@@ -125,7 +127,7 @@ export interface DispatchSummary {
  * overdue) and send, skip or cancel it.
  */
 export async function runReminderCycle(now = new Date()): Promise<DispatchSummary> {
-  const summary: DispatchSummary = { examined: 0, sent: 0, skipped: 0, cancelled: 0, failed: 0, rolledForward: 0, planned: 0 };
+  const summary: DispatchSummary = { examined: 0, sent: 0, skipped: 0, cancelled: 0, failed: 0, deferred: 0, rolledForward: 0, planned: 0 };
   const today = todayInTimeZone("America/New_York", now);
 
   // 1. Roll forward resolved requirements that don't yet have a successor.
@@ -180,7 +182,7 @@ export async function runReminderCycle(now = new Date()): Promise<DispatchSummar
 async function dispatchOne(
   rem: { id: string; requirement_id: string; user_id: string; business_id: string; due_date: string; offset_days: number; scheduled_for: string },
   now: Date,
-): Promise<"sent" | "skipped" | "cancelled" | "failed"> {
+): Promise<"sent" | "skipped" | "cancelled" | "failed" | "deferred"> {
   const { data: req } = await db()
     .from("filing_requirements")
     .select("id, status, due_date, rule_id, period_year, business_id")
@@ -190,7 +192,7 @@ async function dispatchOne(
   const today = stateToday(meta.state_code, now);
 
   // Do not act on reminders scheduled for tomorrow in the state's time zone.
-  if (rem.scheduled_for > today) return "skipped";
+  if (rem.scheduled_for > today) return "deferred";
 
   const [{ data: filing }, { data: profile }, { data: business }] = await Promise.all([
     db()
@@ -215,7 +217,7 @@ async function dispatchOne(
         remindersEnabled: profile?.reminder_emails_enabled ?? true,
       });
 
-  if (decision.action === "skip" && decision.reason === "not_yet_due") return "skipped";
+  if (decision.action === "skip" && decision.reason === "not_yet_due") return "deferred";
 
   if (decision.action !== "send") {
     await db()

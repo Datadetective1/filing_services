@@ -54,94 +54,110 @@ test.afterAll(async () => {
   }
 });
 
+async function lookUp(page: Page) {
+  await page.goto("/find?state=PA&entity=llc");
+  await page.getByLabel("Legal business name").fill(businessName);
+  await page.getByRole("button", { name: /see what.s due/i }).click();
+  await page.waitForURL(/\/find\/result/);
+}
+
+const tb = (page: Page, name: string) => page.getByRole("textbox", { name, exact: true });
+const saveStep = (page: Page) => page.getByRole("button", { name: "Save and continue" }).click();
+
 test("1. visitor reads the Pennsylvania page and looks up their business", async ({ page }) => {
   await page.goto("/annual-report/pennsylvania");
   await expect(page.locator("main")).toContainText("September 30");
   await expectNoSeriousA11yViolations(page);
 
-  await page.goto("/find?state=PA&entity=llc");
-  await page.getByLabel(/legal (business )?name/i).fill(businessName);
-  await page.getByRole("button", { name: /see what.s due|continue|find/i }).click();
-  await page.waitForURL(/\/find\/result/);
-
+  await lookUp(page);
   const main = page.locator("main");
-  await expect(main).toContainText(businessName);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(businessName);
   await expect(main).toContainText("Government filing fee");
   await expect(main).toContainText("Our service fee");
   await expect(main).toContainText("$7.00");
+  await expect(page.getByRole("link", { name: "Have us file it" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /file it yourself/i })).toHaveAttribute("href", /file\.dos\.pa\.gov/);
   await expectNoSeriousA11yViolations(page);
 });
 
 test("2. customer signs in, completes intake, authorizes and pays (sandbox)", async ({ page }) => {
-  // Re-create the lookup in this context (the pending lookup lives in a cookie).
-  await page.goto("/find?state=PA&entity=llc");
-  await page.getByLabel(/legal (business )?name/i).fill(businessName);
-  await page.getByRole("button", { name: /see what.s due|continue|find/i }).click();
-  await page.waitForURL(/\/find\/result/);
-
-  await page.getByRole("link", { name: "Have us file it" }).first().click();
-  await page.waitForURL(/\/login/);
+  await lookUp(page);
+  // Signed-out visitors are sent to sign up; this customer already has an account.
+  await page.goto("/login?next=/file/start");
   await signIn(page, customer);
-  await page.waitForURL(/\/file\/start/);
+  await page.waitForURL((u) => u.pathname === "/file/start");
+  await expect(page.locator("main")).toContainText(businessName);
   await page.getByRole("button", { name: /continue/i }).click();
   await page.waitForURL(/\/file\/[0-9a-f-]{36}\/details/);
   filingId = page.url().match(/\/file\/([0-9a-f-]{36})\//)![1];
 
-  // Step: business record
+  // Business record
+  await expect(page.getByRole("textbox", { name: "Legal name" })).toHaveValue(businessName);
   await page.getByLabel(/entity number/i).fill("0012345");
-  await page.getByRole("button", { name: /save|continue|next/i }).click();
+  await saveStep(page);
+  await page.waitForURL(/step=registered_office/);
 
-  // Step: registered office (street address in PA)
-  await page.getByLabel(/street address in pennsylvania/i).check();
-  await page.getByLabel(/street address/i).first().fill("100 Market Street");
-  await page.getByLabel(/^city/i).first().fill("Harrisburg");
-  await page.getByLabel(/zip/i).first().fill("17101");
-  await page.getByLabel(/county/i).first().fill("Dauphin");
-  await page.getByRole("button", { name: /save|continue|next/i }).click();
+  // Validation: the PA registered office is required.
+  await saveStep(page);
+  await expect(page.getByRole("alert").first()).toBeVisible();
+  // The form remounts from the server's response after a validation error; wait for it.
+  await expect(tb(page, "Street address")).toHaveAttribute("aria-invalid", "true");
+  await page.waitForLoadState("networkidle");
 
-  // Step: principal office
-  await page.getByLabel(/street address/i).first().fill("200 Chestnut Street");
-  await page.getByLabel(/^city/i).first().fill("Philadelphia");
-  const stateField = page.getByLabel(/^state/i).first();
-  if ((await stateField.evaluate((el) => el.tagName)) === "SELECT") await stateField.selectOption("PA");
-  else await stateField.fill("PA");
-  await page.getByLabel(/zip/i).first().fill("19106");
-  await page.getByRole("button", { name: /save|continue|next/i }).click();
+  await tb(page, "Street address").fill("100 Market Street");
+  await tb(page, "City").fill("Harrisburg");
+  await tb(page, "ZIP code").fill("17101");
+  await tb(page, "County").fill("Dauphin");
+  await saveStep(page);
+  await page.waitForURL(/step=principal_office/);
 
-  // Step: people
-  await page.getByLabel(/name/i).first().fill("Dana Whitfield");
-  await page.getByLabel(/title/i).first().fill("Managing Member");
-  await page.getByRole("button", { name: /save|continue|next/i }).click();
+  // A P.O. box alone is rejected.
+  await tb(page, "Street address").fill("PO Box 12");
+  await tb(page, "City").fill("Philadelphia");
+  await page.getByRole("combobox", { name: "State" }).selectOption("PA");
+  await tb(page, "ZIP code").fill("19106");
+  await saveStep(page);
+  await expect(page.locator("main")).toContainText(/P\.O\. box/i);
+  await expect(tb(page, "Street address")).toHaveAttribute("aria-invalid", "true");
+  await page.waitForLoadState("networkidle");
+  await tb(page, "Street address").fill("200 Chestnut Street");
+  await expect(tb(page, "City")).toHaveValue("Philadelphia");
+  await saveStep(page);
+  await page.waitForURL(/step=people/);
 
-  // Step: extras (optional) then review
-  if (await page.getByRole("button", { name: /save|continue|next/i }).isVisible().catch(() => false)) {
-    if (!/\/review/.test(page.url())) await page.getByRole("button", { name: /save|continue|next/i }).click();
-  }
+  await page.getByRole("textbox", { name: /Full name.*person 1/ }).first().fill("Dana Whitfield");
+  await page.getByRole("combobox", { name: /Title.*person 1/ }).first().fill("Managing Member");
+  await saveStep(page);
+  await page.waitForURL(/step=extras/);
+  await page.getByRole("button", { name: "Save and review" }).click();
+
   await page.waitForURL(/\/review/);
   await expect(page.locator("main")).toContainText("100 Market Street");
   await expect(page.locator("main")).toContainText("Dana Whitfield");
+  await expect(page.locator("main")).toContainText(/not a government agency/i);
 
-  await page.getByLabel(/full name/i).fill("Dana Whitfield");
-  await page.getByLabel(/title|role/i).last().fill("Managing Member");
-  await page.getByLabel(/accurate/i).check();
-  await page.getByLabel(/authorize/i).check();
-  await page.getByRole("button", { name: /authorize|continue|agree/i }).click();
+  await page.getByRole("textbox", { name: "Your full name" }).fill("Dana Whitfield");
+  await page.getByRole("combobox", { name: "Your title or role" }).fill("Managing Member");
+  await page.getByRole("checkbox", { name: /accurate and complete/i }).check();
+  await page.getByRole("checkbox", { name: /authorize/i }).check();
+  await page.getByRole("button", { name: "Sign and continue" }).click();
 
   await page.waitForURL(/\/checkout/);
   const main = page.locator("main");
   await expect(main).toContainText("Government filing fee");
   await expect(main).toContainText("Our service fee");
   await expect(main).toContainText("Total today");
-  await expect(main).toContainText(/test mode/i);
+  await expect(main).toContainText(/test mode|no real/i);
   await expectNoSeriousA11yViolations(page);
-  await page.getByRole("button", { name: /^pay/i }).click();
+  await page.getByRole("button", { name: /^pay \$/i }).click();
 
   await page.waitForURL(/\/sandbox\/checkout\//);
   await expect(page.locator("body")).toContainText(/no real (card|charge)/i);
+  await expect(page.locator("main")).toContainText("$7.00");
   await page.getByRole("button", { name: /pay \(test\)/i }).click();
 
   await page.waitForURL(/\/confirmation/);
-  await expect(page.locator("main")).toContainText(/order confirmed/i, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/order confirmed/i, { timeout: 30_000 });
 
   const { data: filing } = await backend().from("filings").select("status, order_id").eq("id", filingId).single();
   expect(filing?.status).toBe("ready_for_review");
@@ -149,6 +165,9 @@ test("2. customer signs in, completes intake, authorizes and pays (sandbox)", as
   expect(order?.status).toBe("paid");
   expect(order!.government_fee_cents).toBe(700);
   expect(order!.total_cents).toBe(order!.government_fee_cents + order!.service_fee_cents);
+  const { data: auth } = await backend().from("filing_authorizations").select("signer_name, answers_sha256").eq("filing_id", filingId).single();
+  expect(auth?.signer_name).toBe("Dana Whitfield");
+  expect(auth?.answers_sha256).toMatch(/^[0-9a-f]{64}$/);
 });
 
 test("3. duplicate and forged webhooks are harmless", async ({ request }) => {
@@ -182,20 +201,31 @@ test("4. customer dashboard shows the paid filing", async ({ browser }) => {
 
 test("5. another customer cannot see this customer's filing or documents", async ({ browser }) => {
   const page = await newSignedInPage(browser, intruder);
-  for (const url of [`/dashboard/filings/${filingId}`, `/file/${filingId}/details`, `/file/${filingId}/checkout`]) {
+  await expect(page.getByText(intruder.email).first()).toBeVisible();
+  // Streamed pages (with loading skeletons) render notFound() with HTTP 200, so the
+  // property under test is the content: the not-found UI and none of the victim's data.
+  for (const url of [`/dashboard/filings/${filingId}`, `/file/${filingId}/details`, `/file/${filingId}/checkout`, `/file/${filingId}/review`]) {
     const res = await page.goto(url);
-    expect(res?.status(), url).toBe(404);
+    expect([200, 404], url).toContain(res?.status());
+    const body = page.locator("body");
+    await expect(body, url).toContainText(/couldn.t find|not found|404/i);
+    await expect(body, url).not.toContainText(businessName);
+    await expect(body, url).not.toContainText("100 Market Street");
   }
-  const admin = await page.goto("/admin");
-  expect(admin?.status()).toBe(404);
+  await page.goto("/admin");
+  await expect(page.locator("body")).toContainText(/couldn.t find|not found|404/i);
+  await expect(page.locator("body")).not.toContainText("Audit log");
+  await page.goto("/admin/queue");
+  await expect(page.locator("body")).not.toContainText(businessName);
+  await page.context().close();
 });
 
 test("6. operator files it from the queue and packet", async ({ browser }) => {
   const page = await newSignedInPage(browser, operator, "/admin/queue");
   await page.goto("/admin/queue");
   await expect(page.locator("main")).toContainText(businessName);
-  await page.getByRole("link", { name: new RegExp(businessName) }).first().click();
-  await page.waitForURL(new RegExp(`/admin/filings/${filingId}`));
+  await page.goto(`/admin/filings/${filingId}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(businessName);
 
   await page.getByRole("button", { name: /mark ready to file/i }).click();
   await expect(page.locator("main")).toContainText(/ready to file/i);
@@ -221,7 +251,8 @@ test("6. operator files it from the queue and packet", async ({ browser }) => {
   await expect(page.locator("main")).toContainText(`E2E-${suffix}`);
 
   await page.locator('input[type="file"]').setInputFiles(path.join(__dirname, "fixtures", "test-receipt.pdf"));
-  await page.getByRole("button", { name: /upload/i }).click();
+  await page.getByRole("combobox", { name: "Document type" }).selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Upload" }).click();
   await expect(page.locator("main")).toContainText("test-receipt.pdf");
 
   await page.getByRole("button", { name: /mark accepted/i }).click();
