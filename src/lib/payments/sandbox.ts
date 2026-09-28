@@ -8,7 +8,6 @@ import {
   type CreateCheckoutInput,
   type NormalizedPaymentEvent,
   type PaymentProvider,
-  type RefundInput,
   type RefundResult,
   type SessionStatus,
   WebhookVerificationError,
@@ -145,7 +144,7 @@ export class SandboxPaymentProvider implements PaymentProvider {
     }
   }
 
-  async refund(input: RefundInput): Promise<RefundResult> {
+  async refund(): Promise<RefundResult> {
     // Sandbox refunds succeed immediately; a signed refund webhook is also produced
     // by the caller in tests to exercise duplicate-delivery handling.
     return { providerRefundId: id("sbx_re"), status: "succeeded" };

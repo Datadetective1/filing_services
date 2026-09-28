@@ -32,16 +32,6 @@ async function reminderOffsets(filingTypeCode: string, stateCode: string): Promi
   return (best?.offsets_days as number[] | undefined) ?? [...DEFAULT_REMINDER_OFFSETS];
 }
 
-interface RequirementRow {
-  id: string;
-  business_id: string;
-  owner_user_id: string;
-  rule_id: string;
-  period_year: number;
-  due_date: string;
-  status: RequirementStatus;
-}
-
 async function ruleMeta(ruleId: string) {
   const { data } = await db()
     .from("compliance_rules")

@@ -168,7 +168,7 @@ async function handle(event: NormalizedPaymentEvent): Promise<string> {
         if (payment) {
           await db
             .from("payments")
-            .update({ requires_review: true, review_reason: "refund issued outside the app — reconcile" })
+            .update({ requires_review: true, review_reason: "refund issued outside the app, reconcile it" })
             .eq("id", payment.id);
         }
         return "ignored:unmatched_refund";

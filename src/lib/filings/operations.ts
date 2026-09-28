@@ -3,7 +3,7 @@ import { trackServer } from "@/lib/analytics/server";
 import { audit } from "@/lib/audit";
 import type { StaffUser } from "@/lib/auth/session";
 import { storeFilingDocument, type DocumentKind } from "@/lib/documents/storage";
-import type { FilingStatus } from "@/lib/domain/filing-status";
+import { canTransition, type FilingStatus } from "@/lib/domain/filing-status";
 import { formatCents } from "@/lib/domain/money";
 import { getPaymentProvider } from "@/lib/payments";
 import { afterRefundSucceeded } from "@/lib/payments/process-event";
@@ -75,7 +75,7 @@ export async function markSubmitted(
   if (!confirmation || confirmation.length > 100) throw new OperationError("Enter the state confirmation number");
   const ctx = await ctxOrThrow(filingId);
   if (!["ready_to_file", "in_progress"].includes(ctx.filing.status)) {
-    throw new OperationError(`Can't mark submitted from “${ctx.filing.status}”`);
+    throw new OperationError(`Can't mark submitted from status ${ctx.filing.status}`);
   }
   const submittedAt = input.submittedAt ? new Date(input.submittedAt).toISOString() : new Date().toISOString();
   await transition(filingId, "submitted", staff, {
@@ -83,7 +83,7 @@ export async function markSubmitted(
     patch: { state_confirmation_number: confirmation, submitted_at: submittedAt },
     expectedFrom: ctx.filing.status,
   });
-  await createAdminClient().from("filing_receipts").insert({
+  const { error: receiptError } = await createAdminClient().from("filing_receipts").insert({
     filing_id: filingId,
     user_id: ctx.filing.userId,
     confirmation_number: confirmation,
@@ -92,6 +92,7 @@ export async function markSubmitted(
     recorded_by: staff.id,
     notes: input.note || null,
   });
+  if (receiptError) throw new OperationError(`Submitted, but the receipt record failed: ${receiptError.message}`);
   const fresh = await ctxOrThrow(filingId);
   await notify(fresh, "filing_submitted", confirmation);
 }
@@ -102,12 +103,10 @@ export async function markSubmitted(
  * period are closed, and next period's requirement is opened).
  */
 export async function markAccepted(staff: StaffUser, filingId: string, input: { note?: string } = {}) {
-  const ctx = await ctxOrThrow(filingId);
   await transition(filingId, "accepted", staff, { note: input.note || "Accepted by the state", expectedFrom: "submitted" });
   await completeIfReceiptOnFile(staff, filingId);
   const fresh = await ctxOrThrow(filingId);
   await notify(fresh, "filing_accepted", "accepted");
-  void ctx;
 }
 
 async function completeIfReceiptOnFile(staff: StaffUser, filingId: string) {
@@ -137,11 +136,18 @@ export async function markRejected(staff: StaffUser, filingId: string, reason: s
 
 export async function requestCustomerInformation(staff: StaffUser, filingId: string, message: string) {
   const text = message.trim();
-  if (text.length < 3 || text.length > 5000) throw new OperationError("Write a message for the customer (3–5000 characters)");
+  if (text.length < 3 || text.length > 5000) throw new OperationError("Write a message for the customer (3 to 5000 characters)");
   const ctx = await ctxOrThrow(filingId);
+  const waiting = ctx.filing.status === "needs_customer_action" || ctx.filing.status === "needs_information";
+  if (!waiting && !canTransition(ctx.filing.status, "needs_customer_action")) {
+    throw new OperationError(`Can't request information while the filing is ${ctx.filing.status}`);
+  }
   const db = createAdminClient();
-  await db.from("messages").insert({ filing_id: filingId, user_id: ctx.filing.userId, author_id: staff.id, author_type: "staff", body: text });
-  if (ctx.filing.status !== "needs_customer_action" && ctx.filing.status !== "needs_information") {
+  const { error: msgError } = await db
+    .from("messages")
+    .insert({ filing_id: filingId, user_id: ctx.filing.userId, author_id: staff.id, author_type: "staff", body: text });
+  if (msgError) throw new OperationError(msgError.message);
+  if (!waiting) {
     await transition(filingId, "needs_customer_action", staff, { note: "Information requested from customer", expectedFrom: ctx.filing.status });
   } else {
     await audit({ actorUserId: staff.id, actorType: "staff", action: "filing.information_requested", entityType: "filing", entityId: filingId, filingId });
@@ -215,6 +221,7 @@ export async function cancelFiling(staff: StaffUser, filingId: string, reason: s
 
 export async function reopenFiling(staff: StaffUser, filingId: string, note: string) {
   const ctx = await ctxOrThrow(filingId);
+  if (ctx.filing.status === "draft") throw new OperationError("Unpaid drafts can't be reopened");
   const to: FilingStatus = ctx.filing.status === "rejected" ? "ready_to_file" : "ready_for_review";
   await transition(filingId, to, staff, { note: note.trim() || "Reopened", expectedFrom: ctx.filing.status });
 }
@@ -230,7 +237,7 @@ export async function assignOperator(staff: StaffUser, filingId: string, assigne
 
 export async function addInternalNote(staff: StaffUser, filingId: string, body: string) {
   const text = body.trim();
-  if (!text || text.length > 5000) throw new OperationError("Notes must be 1–5000 characters");
+  if (!text || text.length > 5000) throw new OperationError("Notes must be 1 to 5000 characters");
   const { data, error } = await createAdminClient()
     .from("admin_notes")
     .insert({ filing_id: filingId, author_id: staff.id, body: text })
@@ -277,6 +284,9 @@ export async function refundFiling(
   if (svc > order.service_fee_cents - svcRefunded) throw new OperationError("Service fee refund exceeds what remains");
   if (!payment.provider_payment_id) throw new OperationError("Payment has no processor reference");
 
+  const provider = getPaymentProvider();
+  if (provider.name !== payment.provider) throw new OperationError("Payment was taken with a different provider");
+
   const { data: refund, error } = await db
     .from("refunds")
     .insert({
@@ -295,15 +305,21 @@ export async function refundFiling(
   if (error || !refund) throw new OperationError(error?.message ?? "Could not create refund");
   await audit({ actorUserId: admin.id, actorType: "staff", action: "refund.requested", entityType: "refund", entityId: refund.id, filingId, after: { government_fee_cents: gov, service_fee_cents: svc, reason } });
 
-  const provider = getPaymentProvider();
-  if (provider.name !== payment.provider) throw new OperationError("Payment was taken with a different provider");
-  const result = await provider.refund({
-    providerPaymentId: payment.provider_payment_id,
-    amountCents: gov + svc,
-    internalRefundId: refund.id,
-    reason,
-    idempotencyKey: `refund:${refund.id}`,
-  });
+  let result;
+  try {
+    result = await provider.refund({
+      providerPaymentId: payment.provider_payment_id,
+      amountCents: gov + svc,
+      internalRefundId: refund.id,
+      reason,
+      idempotencyKey: `refund:${refund.id}`,
+    });
+  } catch (e) {
+    // Never leave an orphaned pending refund: it would reduce the refundable balance forever.
+    await db.from("refunds").update({ status: "failed" }).eq("id", refund.id).eq("status", "pending");
+    await audit({ actorUserId: admin.id, actorType: "staff", action: "refund.failed", entityType: "refund", entityId: refund.id, filingId, metadata: { error: e instanceof Error ? e.message.slice(0, 300) : "unknown" } });
+    throw new OperationError("The payment processor rejected the refund. Nothing was refunded.");
+  }
   await db.from("refunds").update({ provider_refund_id: result.providerRefundId }).eq("id", refund.id);
 
   if (result.status !== "pending") {

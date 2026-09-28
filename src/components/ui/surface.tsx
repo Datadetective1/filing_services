@@ -11,7 +11,9 @@ export function Card({ className, ...props }: ComponentProps<"div">) {
 }
 
 export function Container({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6", className)} {...props} />;
+  // cn() does not merge conflicting utilities, so only apply the default width when none is given.
+  const hasWidth = /(^|\s)max-w-/.test(className ?? "");
+  return <div className={cn("mx-auto w-full px-4 sm:px-6", hasWidth ? null : "max-w-6xl", className)} {...props} />;
 }
 
 export function PageHeader({

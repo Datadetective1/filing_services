@@ -93,7 +93,7 @@ export const FILING_STATUS_TONES: Record<FilingStatus, StatusTone> = {
 
 /** What the operator needs to do next — the "Required action" column in the queue. */
 export const OPERATOR_NEXT_ACTION: Record<FilingStatus, string> = {
-  draft: "—",
+  draft: "No action",
   needs_information: "Waiting on customer intake",
   ready_for_review: "Review details",
   ready_to_file: "File with state",
@@ -102,9 +102,9 @@ export const OPERATOR_NEXT_ACTION: Record<FilingStatus, string> = {
   accepted: "Upload receipt & complete",
   rejected: "Resolve rejection",
   needs_customer_action: "Waiting on customer",
-  completed: "—",
+  completed: "No action",
   cancelled: "Refund if owed",
-  refunded: "—",
+  refunded: "No action",
 };
 
 /** Statuses where the filing is in our hands and paid for. */

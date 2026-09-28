@@ -66,7 +66,7 @@ export async function loadFilingContext(filingId: string): Promise<FilingContext
       filing_title: filingTitle,
       due_date: formatLongDate(data.due_date),
       status_label: FILING_STATUS_LABELS[status],
-      confirmation_number: data.state_confirmation_number ?? "—",
+      confirmation_number: data.state_confirmation_number ?? "Not yet available",
       amount: order ? formatCents(order.total_cents) : "",
     },
   };

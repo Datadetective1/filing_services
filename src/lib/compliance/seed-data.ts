@@ -122,7 +122,7 @@ export function defaultPriceRows() {
       service_fee_cents: PROVISIONAL_SERVICE_FEE_CENTS,
       approved: false,
       active: true,
-      notes: "Provisional placeholder — owner must set and approve the service fee before live payments.",
+      notes: "Provisional placeholder: owner must set and approve the service fee before live payments.",
     },
   ];
 }

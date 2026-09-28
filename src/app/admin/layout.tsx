@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const staff = await requireStaff();
   return (
     <div className="flex min-h-[100dvh] flex-col lg:flex-row">
-      <aside className="border-b border-border bg-surface lg:w-56 lg:shrink-0 lg:border-b-0 lg:border-r">
+      <aside className="no-print border-b border-border bg-surface lg:w-56 lg:shrink-0 lg:border-b-0 lg:border-r">
         <div className="flex h-16 items-center justify-between px-4">
           <Logo href="/admin" />
           <span className="rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-xs text-muted">{staff.role}</span>

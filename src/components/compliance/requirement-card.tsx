@@ -22,6 +22,7 @@ export function RequirementCard({
   actions,
   businessName,
   className,
+  headingAs = "h3",
 }: {
   rule: ComplianceRuleDef;
   period?: FilingPeriod | null;
@@ -29,7 +30,9 @@ export function RequirementCard({
   actions?: ReactNode;
   businessName?: string | null;
   className?: string;
+  headingAs?: "h2" | "h3";
 }) {
+  const Heading = headingAs;
   const state = getJurisdiction(rule.stateCode);
   const stateName = state?.name ?? rule.stateCode;
   const urgent = period && (period.phase === "overdue" || period.phase === "due_today" || period.phase === "due_soon");
@@ -42,10 +45,10 @@ export function RequirementCard({
             {businessName ? `${businessName} · ` : ""}
             {stateName} {ENTITY_TYPE_LABELS[rule.entityType]}
           </p>
-          <h3 className="text-xl font-semibold tracking-tight text-fg">
+          <Heading className="text-xl font-semibold tracking-tight text-fg">
             {stateName} {rule.filingName}
             {rule.formNumber ? <span className="ml-2 text-sm font-normal text-subtle">{rule.formNumber}</span> : null}
-          </h3>
+          </Heading>
         </div>
 
         {period ? (

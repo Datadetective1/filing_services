@@ -213,6 +213,60 @@ export async function createOrderFixture(db: Db, userId: string, filingId: strin
   return { orderId, paymentId: payment.rows[0].id };
 }
 
+// ---------------------------------------------------------------------------
+// Small helpers shared by the database test files
+// ---------------------------------------------------------------------------
+
+/** `select count(*)` over any query (runs as whoever `db` currently is). */
+export async function count(db: Db | Transaction, sql: string, params: unknown[] = []): Promise<number> {
+  const res = await db.query<{ n: number }>(`select count(*)::int as n from (${sql}) q`, params);
+  return res.rows[0].n;
+}
+
+/** Postgres array literal for a list of simple identifiers (statuses, keys). */
+export function pgTextArray(values: readonly string[]): string {
+  return `{${values.join(",")}}`;
+}
+
+export interface TransitionOptions {
+  actorUserId?: string | null;
+  actorType?: "customer" | "staff" | "system";
+  note?: string | null;
+  customerVisible?: boolean;
+  patch?: Record<string, unknown>;
+  expectedFrom?: string | null;
+}
+
+/** Call public.transition_filing() as the service role (how the server does it). */
+export async function transition(db: Db, filingId: string, to: string, opts: TransitionOptions = {}) {
+  const res = await asService(db, (tx) =>
+    tx.query<Record<string, unknown> & { status: string }>(
+      "select * from public.transition_filing($1::uuid, $2, $3::uuid, $4, $5, $6, $7::jsonb, $8)",
+      [
+        filingId,
+        to,
+        opts.actorUserId ?? null,
+        opts.actorType ?? "system",
+        opts.note ?? null,
+        opts.customerVisible ?? true,
+        JSON.stringify(opts.patch ?? {}),
+        opts.expectedFrom ?? null,
+      ],
+    ),
+  );
+  return res.rows[0];
+}
+
+/** Walk a filing through several statuses in order. */
+export async function walk(db: Db, filingId: string, statuses: readonly string[], opts: TransitionOptions = {}) {
+  for (const s of statuses) await transition(db, filingId, s, opts);
+}
+
+export async function filingStatus(db: Db, filingId: string): Promise<string> {
+  const res = await db.query<{ status: string }>("select status from public.filings where id = $1", [filingId]);
+  return res.rows[0].status;
+}
+
 export async function authorize(db: Db, userId: string, filingId: string) {
   await db.query(
     `insert into public.filing_authorizations (filing_id, user_id, signer_name, signer_title, attested_accurate, authorized_submission, terms_version, authorization_text, answers_sha256, answers_snapshot)

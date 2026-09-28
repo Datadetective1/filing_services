@@ -65,7 +65,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     category: "transactional",
     subject: "Order confirmed: {{state_name}} {{filing_title}} for {{company_name}}",
     body:
-      "Thanks — we received your order and payment of {{amount}} for {{company_name}}'s {{state_name}} {{filing_title}}.\n\n" +
+      "Thanks, we received your order and payment of {{amount}} for {{company_name}}'s {{state_name}} {{filing_title}}.\n\n" +
       "Next, we review your information and prepare the filing. We'll email you when it's submitted and when the state accepts it.",
     ctaLabel: "Track your filing",
     description: "Sent when payment succeeds.",
@@ -101,7 +101,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     category: "transactional",
     subject: "Your filing was accepted: {{state_name}} {{filing_title}}",
     body:
-      "Good news — the state accepted {{company_name}}'s {{state_name}} {{filing_title}}. Confirmation number: {{confirmation_number}}.\n\n" +
+      "Good news: the state accepted {{company_name}}'s {{state_name}} {{filing_title}}. Confirmation number: {{confirmation_number}}.\n\n" +
       "Your filed report and state receipt are saved in your dashboard.",
     ctaLabel: "Download your documents",
     description: "Sent when the filing is accepted.",
@@ -119,7 +119,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     key: "refund_issued",
     category: "transactional",
     subject: "Refund issued: {{amount}}",
-    body: "We issued a refund of {{amount}} for {{company_name}}'s {{state_name}} {{filing_title}}. It can take 5–10 business days to appear on your statement.",
+    body: "We issued a refund of {{amount}} for {{company_name}}'s {{state_name}} {{filing_title}}. It can take 5 to 10 business days to appear on your statement.",
     ctaLabel: "View order",
     description: "Sent when a refund succeeds.",
   },

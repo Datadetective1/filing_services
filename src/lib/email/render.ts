@@ -49,7 +49,7 @@ export function renderEmail(input: RenderInput): RenderedEmail {
   const body = interpolate(input.body, vars);
 
   const footerLines = [
-    `${site.name} — ${site.disclaimer}`,
+    `${site.name}. ${site.disclaimer}`,
     input.footerNote ?? null,
     input.unsubscribeUrl ? `Stop deadline reminders: ${input.unsubscribeUrl}` : null,
   ].filter(Boolean) as string[];
@@ -57,7 +57,7 @@ export function renderEmail(input: RenderInput): RenderedEmail {
   const text = [
     body,
     input.ctaLabel && input.ctaUrl ? `${input.ctaLabel}: ${input.ctaUrl}` : null,
-    "—",
+    "----",
     ...footerLines,
   ]
     .filter(Boolean)

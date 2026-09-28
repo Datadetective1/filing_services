@@ -54,7 +54,10 @@ create policy filing_types_read on public.filing_types for select to anon, authe
 create policy compliance_rules_read on public.compliance_rules for select to anon, authenticated using (true);
 create policy state_rule_versions_read on public.state_rule_versions for select to anon, authenticated
   using (publication_status <> 'draft' or (select public.is_staff()));
-create policy state_rule_sources_read on public.state_rule_sources for select to anon, authenticated using (true);
+-- Sources are visible exactly when their rule version is (the subquery is itself
+-- subject to state_rule_versions RLS), so unpublished draft research stays staff-only.
+create policy state_rule_sources_read on public.state_rule_sources for select to anon, authenticated
+  using (exists (select 1 from public.state_rule_versions v where v.id = rule_version_id));
 create policy service_prices_read on public.service_prices for select to anon, authenticated
   using (active or (select public.is_staff()));
 
@@ -183,7 +186,8 @@ create policy filing_answers_update_own on public.filing_answers for update to a
   )
   with check (user_id = (select auth.uid()));
 revoke update on public.filing_answers from anon, authenticated;
-grant update (answers, completed_steps, is_complete) on public.filing_answers to authenticated;
+-- is_complete is derived and written by the server only (it drives post-payment routing).
+grant update (answers, completed_steps) on public.filing_answers to authenticated;
 
 create policy filing_authorizations_select on public.filing_authorizations for select to authenticated
   using (user_id = (select auth.uid()) or (select public.is_staff()));
@@ -201,6 +205,9 @@ create policy messages_insert_own on public.messages for insert to authenticated
     and exists (select 1 from public.filings f
                 where f.id = filing_id and f.user_id = (select auth.uid()))
   );
+-- Column-level: customers cannot choose the id, backdate created_at or forge read receipts.
+revoke insert on public.messages from anon, authenticated;
+grant insert (filing_id, user_id, author_id, author_type, body) on public.messages to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Staff-only tables (read by staff; written by the server)
