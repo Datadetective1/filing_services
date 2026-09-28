@@ -49,6 +49,25 @@ npm run grant-staff -- you@example.com admin
 | `npm run seed` | Idempotent reference-data seed (refuses to alter a published rule version) |
 | `npm run grant-staff -- <email> <admin\|operator\|revoke>` | Staff access |
 
+## End-to-end tests
+
+The Playwright suite drives the full Pennsylvania journey (visitor → lookup → account
+→ intake → authorization → sandbox payment → operator queue → packet → submitted →
+receipt → accepted → customer notified → reminders stop) plus cross-account attacks
+and webhook forgery. It needs `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` in
+`.env.local` (test users are created with the service role).
+
+```bash
+npm run build && npm run test:e2e                      # local production build
+E2E_BASE_URL=https://<deployment>.vercel.app \
+E2E_SHARE_URL="https://<deployment>.vercel.app/?_vercel_share=<token>" \
+npm run test:e2e                                       # a protected Vercel deployment
+```
+
+`E2E_SHARE_URL` is a temporary Vercel share link (Vercel MCP `get_access_to_vercel_url`
+or the dashboard's "Share" button); the global setup visits it once and reuses the
+access cookie.
+
 ## Payments
 
 `PAYMENTS_PROVIDER=sandbox` (default) uses the built-in hosted-checkout simulator:

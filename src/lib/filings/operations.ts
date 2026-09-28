@@ -6,6 +6,7 @@ import { storeFilingDocument, type DocumentKind } from "@/lib/documents/storage"
 import { canTransition, type FilingStatus } from "@/lib/domain/filing-status";
 import { formatCents } from "@/lib/domain/money";
 import { getPaymentProvider } from "@/lib/payments";
+import { RefundRejectedError } from "@/lib/payments/types";
 import { afterRefundSucceeded } from "@/lib/payments/process-event";
 import { sendNotification } from "@/lib/notifications/send";
 import { rollForwardRequirement } from "@/lib/reminders/engine";
@@ -222,6 +223,12 @@ export async function cancelFiling(staff: StaffUser, filingId: string, reason: s
 export async function reopenFiling(staff: StaffUser, filingId: string, note: string) {
   const ctx = await ctxOrThrow(filingId);
   if (ctx.filing.status === "draft") throw new OperationError("Unpaid drafts can't be reopened");
+  const { data: order } = ctx.filing.orderId
+    ? await createAdminClient().from("orders").select("status").eq("id", ctx.filing.orderId).maybeSingle()
+    : { data: null };
+  if (!order || !["paid", "partially_refunded"].includes(order.status)) {
+    throw new OperationError("Only paid filings can be reopened. This order is unpaid or fully refunded.");
+  }
   const to: FilingStatus = ctx.filing.status === "rejected" ? "ready_to_file" : "ready_for_review";
   await transition(filingId, to, staff, { note: note.trim() || "Reopened", expectedFrom: ctx.filing.status });
 }
@@ -315,10 +322,18 @@ export async function refundFiling(
       idempotencyKey: `refund:${refund.id}`,
     });
   } catch (e) {
-    // Never leave an orphaned pending refund: it would reduce the refundable balance forever.
-    await db.from("refunds").update({ status: "failed" }).eq("id", refund.id).eq("status", "pending");
-    await audit({ actorUserId: admin.id, actorType: "staff", action: "refund.failed", entityType: "refund", entityId: refund.id, filingId, metadata: { error: e instanceof Error ? e.message.slice(0, 300) : "unknown" } });
-    throw new OperationError("The payment processor rejected the refund. Nothing was refunded.");
+    const message = e instanceof Error ? e.message.slice(0, 300) : "unknown";
+    if (e instanceof RefundRejectedError) {
+      // Definitive refusal: nothing was refunded, so release the amount for a corrected retry.
+      await db.from("refunds").update({ status: "failed" }).eq("id", refund.id).eq("status", "pending");
+      await audit({ actorUserId: admin.id, actorType: "staff", action: "refund.failed", entityType: "refund", entityId: refund.id, filingId, metadata: { error: message } });
+      throw new OperationError("The payment processor rejected the refund. Nothing was refunded.");
+    }
+    // Ambiguous (timeout, processor error): the refund may have gone through. Keep it pending
+    // (it still counts against the refundable balance, which prevents a double refund) until
+    // the processor's webhook confirms or fails it.
+    await audit({ actorUserId: admin.id, actorType: "staff", action: "refund.unconfirmed", entityType: "refund", entityId: refund.id, filingId, metadata: { error: message } });
+    throw new OperationError("The processor didn't confirm the refund. It stays pending until the processor reports the result; don't issue it again.");
   }
   await db.from("refunds").update({ provider_refund_id: result.providerRefundId }).eq("id", refund.id);
 

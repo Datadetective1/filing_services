@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { ArrowRight, CaretRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { markFiledElsewhereAction, startFilingAction } from "@/app/(app)/dashboard/actions";
 import { formatCents } from "@/lib/domain/money";
+import { formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
+import { filingWindowOpensOn, isFilingWindowOpen } from "@/lib/domain/deadlines";
 import { ButtonLink } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "@/components/ui/cn";
@@ -44,6 +46,19 @@ export function RequirementActions({
       <ButtonLink href={filingHref(filing.id)} variant="secondary" className="min-h-11 w-full sm:w-auto">
         View filing
       </ButtonLink>
+    );
+  } else if (
+    requirement.status === "open" &&
+    business.sellable &&
+    business.rule &&
+    !isFilingWindowOpen(business.rule, requirement.periodYear, requirement.dueDate, todayInTimeZone("America/New_York"))
+  ) {
+    primary = (
+      <p className="text-sm text-muted">
+        Filing for the {requirement.periodYear} report opens{" "}
+        {formatLongDate(filingWindowOpensOn(business.rule, requirement.periodYear, requirement.dueDate))}. We&apos;ll remind you
+        before it&apos;s due.
+      </p>
     );
   } else if (requirement.status === "open" && business.sellable) {
     primary = (

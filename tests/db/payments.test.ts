@@ -221,6 +221,9 @@ describe("apply_payment_success", () => {
 
   it("flags a second, different payment for an already-paid order as a duplicate to refund", async () => {
     const p = await paid();
+    // Only one pending payment per order is allowed, so a duplicate arises when the first
+    // checkout was superseded (expired in our records) yet the processor still captured it.
+    await failure(p.paymentId, "expired");
     const second = await db.query<{ id: string }>(
       "insert into public.payments (order_id, user_id, provider, mode, amount_cents, provider_session_id) values ($1, $2, 'sandbox', 'sandbox', 5600, $3) returning id",
       [p.orderId, owner, `sbx_cs_${randomUUID().replace(/-/g, "")}`],
@@ -285,6 +288,9 @@ describe("apply_refund_result", () => {
 
   it("refunding one of two captured payments (a flagged duplicate) leaves the order paid", async () => {
     const p = await paid();
+    // Only one pending payment per order is allowed, so a duplicate arises when the first
+    // checkout was superseded (expired in our records) yet the processor still captured it.
+    await failure(p.paymentId, "expired");
     const second = await db.query<{ id: string }>(
       "insert into public.payments (order_id, user_id, provider, mode, amount_cents, provider_session_id) values ($1, $2, 'sandbox', 'sandbox', 5600, $3) returning id",
       [p.orderId, owner, `sbx_cs_${randomUUID().replace(/-/g, "")}`],
@@ -310,6 +316,9 @@ describe("apply_refund_result", () => {
 
   it("refunding the original payment while a duplicate is still captured leaves the order paid", async () => {
     const p = await paid();
+    // Only one pending payment per order is allowed, so a duplicate arises when the first
+    // checkout was superseded (expired in our records) yet the processor still captured it.
+    await failure(p.paymentId, "expired");
     const second = await db.query<{ id: string }>(
       "insert into public.payments (order_id, user_id, provider, mode, amount_cents, provider_session_id) values ($1, $2, 'sandbox', 'sandbox', 5600, $3) returning id",
       [p.orderId, owner, `sbx_cs_${randomUUID().replace(/-/g, "")}`],

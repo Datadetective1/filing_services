@@ -8,7 +8,8 @@ import { stableStringify } from "@/lib/compliance/hash";
 import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { todayInTimeZone } from "@/lib/domain/dates";
-import { currentFilingPeriod, type FilingPeriod } from "@/lib/domain/deadlines";
+import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen, type FilingPeriod } from "@/lib/domain/deadlines";
+import { formatLongDate } from "@/lib/domain/dates";
 import { CUSTOMER_EDITABLE_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
 import { buildQuote, governmentFeeFor, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
 import type { EntityType } from "@/lib/domain/types";
@@ -16,6 +17,7 @@ import { validateAll, validateSection, type IntakeAnswers, type Person, type Reg
 import { getPaymentProvider } from "@/lib/payments";
 import { afterPaymentSucceeded } from "@/lib/payments/process-event";
 import { ensureRemindersForRequirement, rollForwardRequirement } from "@/lib/reminders/engine";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash, userAgent } from "@/lib/security/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -170,6 +172,13 @@ export async function startFiling(user: SessionUser, businessId: string): Promis
     .limit(1)
     .maybeSingle();
   if (!requirement) throw new FilingError("There's no open filing for this business right now.", "not_allowed");
+
+  // Never take payment for a report the state won't accept yet.
+  const today = todayInTimeZone(getJurisdiction(business.state_code)?.timezone ?? "America/New_York");
+  if (!isFilingWindowOpen(rule, requirement.period_year, requirement.due_date, today)) {
+    const opens = formatLongDate(filingWindowOpensOn(rule, requirement.period_year, requirement.due_date));
+    throw new FilingError(`Filing for the ${requirement.period_year} report opens ${opens}. We'll remind you before it's due.`, "not_allowed");
+  }
 
   const { data: existing } = await userDb
     .from("filings")
@@ -459,6 +468,9 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
     throw new FilingError("Your details changed after you signed. Review and sign again.", "invalid");
   }
 
+  const sellRule = findRule(loaded.filing.state_code, loaded.business.entity_type as EntityType, "annual_report", Boolean(loaded.business.is_foreign));
+  if (!sellRule || !isRuleSellable(sellRule)) throw new FilingError("We can't file this right now.", "unavailable");
+
   const quote = await quoteForFiling(loaded.filing, loaded.business);
   if (!quote) throw new FilingError("Pricing isn't configured for this filing yet.", "unavailable");
 
@@ -622,6 +634,9 @@ export async function markFiledElsewhere(user: SessionUser, requirementId: strin
 export async function customerReply(user: SessionUser, filingId: string, body: string) {
   const text = body.trim();
   if (!text || text.length > 5000) throw new FilingError("Messages must be 1 to 5000 characters.", "invalid");
+  if (!(await rateLimit(`message:${user.id}`, 20, 600))) {
+    throw new FilingError("You've sent a lot of messages. Wait a few minutes and try again.", "not_allowed");
+  }
   const userDb = await createClient();
   const { data: filing } = await userDb
     .from("filings")

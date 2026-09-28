@@ -53,6 +53,8 @@ const MIGRATIONS = [
   "20260927000001_schema.sql",
   "20260927000002_functions.sql",
   "20260927000003_rls.sql",
+  "20260928000005_indexes.sql",
+  "20260928000006_payment_guards.sql",
 ];
 
 export type Db = PGlite;
@@ -67,6 +69,8 @@ export async function createTestDb(): Promise<Db> {
   await db.exec(readFileSync(path.join(dir, MIGRATIONS[1]), "utf8"));
   await db.exec(POST_MIGRATION_GRANTS);
   await db.exec(readFileSync(path.join(dir, MIGRATIONS[2]), "utf8"));
+  // Later migrations (storage is skipped: PGlite has no storage schema).
+  for (const file of MIGRATIONS.slice(3)) await db.exec(readFileSync(path.join(dir, file), "utf8"));
   await seedReference(db);
   return db;
 }

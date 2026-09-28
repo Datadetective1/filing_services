@@ -1,6 +1,7 @@
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { STORAGE_STATE } from "./global-setup";
 import { backend, createConfirmedUser, deleteUser, grantStaff, uniqueSuffix } from "./support/backend";
 
 /**
@@ -26,7 +27,7 @@ async function signIn(page: Page, who: { email: string; password: string }) {
 }
 
 async function newSignedInPage(browser: Browser, who: { email: string; password: string }, next = "/dashboard") {
-  const ctx = await browser.newContext();
+  const ctx = await browser.newContext({ storageState: STORAGE_STATE });
   const page = await ctx.newPage();
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await signIn(page, who);
