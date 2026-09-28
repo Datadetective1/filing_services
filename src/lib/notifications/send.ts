@@ -88,12 +88,14 @@ export async function sendNotification(input: SendNotificationInput): Promise<Se
   const ctaUrl = input.ctaPath
     ? absoluteUrl(`/r/${notificationId}?to=${encodeURIComponent(input.ctaPath)}`)
     : null;
-  const unsubscribeUrl =
+  const unsubscribeToken =
     template.category === "reminder"
-      ? absoluteUrl(
-          `/unsubscribe?token=${encodeURIComponent(createSignedToken("unsubscribe", { uid: input.userId }, 60 * 60 * 24 * 365))}`,
-        )
+      ? encodeURIComponent(createSignedToken("unsubscribe", { uid: input.userId }, 60 * 60 * 24 * 365))
       : null;
+  // Link in the email body opens a confirmation page; the List-Unsubscribe header
+  // points at the RFC 8058 one-click POST endpoint.
+  const unsubscribeUrl = unsubscribeToken ? absoluteUrl(`/unsubscribe?token=${unsubscribeToken}`) : null;
+  const oneClickUrl = unsubscribeToken ? absoluteUrl(`/api/unsubscribe?token=${unsubscribeToken}`) : null;
 
   const rendered = renderEmail({
     subject: template.subject,
@@ -124,8 +126,8 @@ export async function sendNotification(input: SendNotificationInput): Promise<Se
       html: rendered.html,
       text: rendered.text,
       idempotencyKey: input.dedupeKey,
-      headers: unsubscribeUrl
-        ? { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" }
+      headers: oneClickUrl
+        ? { "List-Unsubscribe": `<${oneClickUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" }
         : undefined,
     });
     await db
