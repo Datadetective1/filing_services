@@ -193,7 +193,7 @@ function StatusBand({ d, today }: { d: FilingDetail; today: string }) {
       value: (
         <span className="flex flex-wrap items-center gap-1.5">
           <PaymentStatusBadge status={order?.status} />
-          <TestOrderBadge mode={order?.payment_mode} />
+          <TestOrderBadge mode={order?.payment_mode} compact />
         </span>
       ),
     },
@@ -450,7 +450,6 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
             idle ? "border-border/70 bg-bg" : "border-highlight/40 bg-highlight-soft",
           )}
         >
-          {idle ? null : <span aria-hidden className="absolute inset-y-4 left-0 w-[3px] rounded-r-full bg-highlight-strong" />}
           <p className={cn("text-xs font-semibold", idle ? "text-muted" : "text-highlight-fg")}>{idle ? "No action needed" : "Next step"}</p>
           <h2 id="actions-title" className="mt-0.5 text-[20px] font-semibold leading-snug text-fg">
             {idle ? ADMIN_STATUS_LABELS[status] : next}

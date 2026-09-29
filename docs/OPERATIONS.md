@@ -150,10 +150,15 @@ Project `tnwpcprvetxtgyjuncrl` (filewell-production, us-east-1, Pro org).
 
 1. Migrations, in order (applied 2026-09-29): `20260927000001_schema`,
    `20260927000002_functions`, `20260927000003_rls`, `20260927000004_storage` (private
-   `filing-documents` bucket), `20260928000005_indexes`, `20260928000006_payment_guards`.
+   `filing-documents` bucket), `20260928000005_indexes`, `20260928000006_payment_guards`,
+   `20260929000007_column_grants` (applied 2026-09-29 to staging and production). Schema,
+   function and policy fingerprints match staging exactly.
 2. Seed = reference data only (states, agencies, filing types, PA rules and sources,
    reminder schedule, notification templates, and a provisional unapproved PA price when
-   none exists). It is idempotent:
+   none exists). **Done 2026-09-29:** production holds 51 states, 51 agencies, 11 filing
+   types, the 8 current PA rule versions with 186 sources, the reminder schedule, the
+   provisional $49 price (not approved) and all 15 notification templates, identical to
+   the seeded staging data; 0 users, 0 orders. Re-running is idempotent:
    `CONFIRM_PRODUCTION=tnwpcprvetxtgyjuncrl npm run seed`, with the production URL and
    secret key set in that terminal only.
 3. Point the Vercel **Production** target at this project (URL, publishable key, secret
@@ -173,11 +178,27 @@ run against https://www.getfilewell.com. Never copy staging data into production
    `SUPABASE_SECRET_KEY` set for that session only:
    `CONFIRM_PRODUCTION=tnwpcprvetxtgyjuncrl npm run grant-staff -- <owner email> admin`.
    The script prints the target project and writes a `staff.granted` audit row.
+   **No-laptop alternative:** Supabase dashboard → project `filewell-production` → SQL
+   Editor → run (replace the email in both statements):
+
+   ```sql
+   insert into public.staff_members (user_id, role, active, display_name)
+   select id, 'admin', true, split_part(email, '@', 1) from auth.users where email = 'you@example.com'
+   on conflict (user_id) do update set role = 'admin', active = true;
+   insert into public.audit_logs (actor_type, action, entity_type, entity_id, after)
+   select 'system', 'staff.granted', 'staff_member', id::text, jsonb_build_object('role', 'admin')
+   from auth.users where email = 'you@example.com';
+   ```
 3. Grant staff only to real operators. Revoke with `npm run grant-staff -- <email> revoke`.
 
 ## Supabase Auth settings
 
-Production project, Authentication settings:
+Production project, Authentication settings. **Applied 2026-09-29 on the production
+project:** Site URL, redirect URLs (`https://www.getfilewell.com/**`,
+`https://getfilewell.com/**`), Confirm email ON (autoconfirm off), password policy (10+,
+lower/upper/digit), leaked-password protection ON, branded subjects ("Confirm your
+Filewell account", "Reset your Filewell password"). **Still to do by the owner:** custom
+SMTP and (optional) the branded template bodies below.
 
 - **URL configuration:** Site URL `https://www.getfilewell.com`. Redirect URLs
   `https://www.getfilewell.com/auth/confirm` and `https://www.getfilewell.com/**`. No
@@ -193,6 +214,23 @@ Production project, Authentication settings:
 - **Templates:** "Confirm signup" and "Reset password" use the brand name and the line
   "Private filing service. Not affiliated with or endorsed by any government agency."
   Keep `{{ .ConfirmationURL }}`.
+- **Paste-ready template bodies** (Authentication → Emails → Templates). Confirm signup:
+
+  ```html
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#17231d">
+  <p style="font-size:18px;font-weight:bold;margin:0 0 16px">Filewell</p>
+  <h2 style="font-size:20px;margin:0 0 12px">Confirm your email</h2>
+  <p style="font-size:15px;line-height:22px">Thanks for creating a Filewell account. Confirm your email address to finish signing up.</p>
+  <p style="margin:24px 0"><a href="{{ .ConfirmationURL }}" style="background:#1f5a43;color:#ffffff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:bold;display:inline-block">Confirm my email</a></p>
+  <p style="font-size:14px;line-height:20px;color:#4b5650">Open the link on the same device and browser you used to sign up. If you didn't create a Filewell account, you can ignore this email.</p>
+  <p style="color:#6b7280;font-size:12px;line-height:18px;margin-top:24px">Filewell is a private filing service. Not affiliated with or endorsed by any government agency. Questions? Write to support@getfilewell.com.</p>
+  </div>
+  ```
+
+  Reset password: the same block with the heading "Reset your password", the lead "We
+  received a request to reset the password for your Filewell account.", the button "Choose
+  a new password" and the note "If you didn't ask for this, you can ignore this email; your
+  password won't change."
 - **Test:** sign up and reset a password with an address outside the team. The link must
   open `https://www.getfilewell.com/auth/confirm` and land signed in.
 
