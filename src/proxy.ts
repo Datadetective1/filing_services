@@ -1,12 +1,23 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { canonicalRedirectUrl } from "@/config/environments";
+import { isProductionEnvironment } from "@/config/site";
 
 /**
- * Proxy: refreshes the Supabase session cookie and does OPTIMISTIC redirects for
- * signed-out visitors. It is not the authorization layer — every protected page,
- * server action and route handler re-checks the user (and staff role) on the server.
+ * Proxy: sends production traffic on *.vercel.app aliases to the canonical domain,
+ * refreshes the Supabase session cookie and does OPTIMISTIC redirects for signed-out
+ * visitors. It is not the authorization layer — every protected page, server action
+ * and route handler re-checks the user (and staff role) on the server.
  */
 export async function proxy(request: NextRequest) {
+  const canonical = canonicalRedirectUrl({
+    host: request.headers.get("host") ?? request.nextUrl.host,
+    pathname: request.nextUrl.pathname,
+    search: request.nextUrl.search,
+    production: isProductionEnvironment(),
+  });
+  if (canonical) return NextResponse.redirect(canonical, 308);
+
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

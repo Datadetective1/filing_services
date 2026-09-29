@@ -1,4 +1,5 @@
-import { describeDaysRemaining, formatLongDate, formatShortDate, parseISODate } from "@/lib/domain/dates";
+import { formatLongDate, formatShortDate, parseISODate } from "@/lib/domain/dates";
+import { deadlineAriaLabel, deadlineLabel } from "@/lib/domain/deadline-copy";
 import { ACTIVE_OPERATIONS_STATUSES, FILED_STATUSES } from "@/lib/domain/filing-status";
 import { cn } from "@/components/ui/cn";
 import type { RequirementView } from "@/app/(app)/dashboard/_lib/data";
@@ -13,7 +14,7 @@ export function isHandledByUs(requirement: RequirementView): boolean {
   );
 }
 
-/** Days-remaining text, calm by default; past-due gets the warning color, never red. */
+/** Days-remaining text, calm by default; a passed deadline gets the warning color, never red. */
 export function DaysRemaining({ requirement, className }: { requirement: RequirementView; className?: string }) {
   if (requirement.status !== "open") return null;
   if (isHandledByUs(requirement)) {
@@ -29,18 +30,14 @@ export function DaysRemaining({ requirement, className }: { requirement: Require
         className,
       )}
     >
-      {describeDaysRemaining(days)}
+      {deadlineLabel(days, requirement.dueDate)}
     </span>
   );
 }
 
 /** Accessible description for a countdown ring, e.g. "2 days until the September 30, 2026 deadline". */
 export function deadlineRingLabel(days: number, due: string): string {
-  const date = formatLongDate(due);
-  const n = Math.abs(days);
-  if (days < 0) return `${n} ${n === 1 ? "day" : "days"} past the ${date} deadline`;
-  if (days === 0) return `Due today, ${date}`;
-  return `${n} ${n === 1 ? "day" : "days"} until the ${date} deadline`;
+  return deadlineAriaLabel(days, due);
 }
 
 export function DueDate({ value, short = false }: { value: string; short?: boolean }) {

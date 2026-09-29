@@ -9,7 +9,7 @@ import { Section } from "@/components/marketing/section";
 import { textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { PA_URLS } from "@/lib/compliance/states/pennsylvania";
-import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
+import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -30,7 +30,7 @@ const rowLink = `${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 md
 export default function HelpPage() {
   return (
     <>
-      <JsonLd data={breadcrumbJsonLd(crumbs)} />
+      <JsonLd data={graph(breadcrumbJsonLd(crumbs))} />
       <section aria-labelledby="help-title">
         <Container className="grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
           <div className="grid content-start gap-6">

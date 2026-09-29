@@ -2,7 +2,8 @@
  * Seed reference data into Supabase (idempotent).
  *   npx tsx scripts/seed.ts
  * Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY (service role) in the
- * environment or .env.local. Never commit those values.
+ * environment or .env.local. Never commit those values. Prints the target project and
+ * refuses production unless CONFIRM_PRODUCTION=<production ref> is set.
  *
  * Rule versions are immutable: if a published (rule, version) already exists with a
  * different content hash, the seed FAILS — bump the version in the registry instead.
@@ -10,6 +11,7 @@
 import { createHash } from "node:crypto";
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
+import { assertSupabaseTargetAllowed } from "../src/config/environments";
 import {
   agencyRows,
   contentHashOf,
@@ -32,6 +34,12 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) {
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY");
+  process.exit(1);
+}
+try {
+  console.log(`Target Supabase project: ${assertSupabaseTargetAllowed(url, "seed").label}`);
+} catch (e) {
+  console.error(e instanceof Error ? e.message : e);
   process.exit(1);
 }
 const db = createClient(url, key, { auth: { persistSession: false } });

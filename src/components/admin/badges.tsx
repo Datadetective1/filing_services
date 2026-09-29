@@ -4,6 +4,7 @@ import { cn } from "@/components/ui/cn";
 import { describeDaysRemaining, daysBetween } from "@/lib/domain/dates";
 import { FILING_STATUS_TONES, isFilingStatus, type StatusTone } from "@/lib/domain/filing-status";
 import { formatDate, humanize } from "./format";
+import { isTestPayment, TEST_ORDER_LABEL } from "./operator-guidance";
 import { ADMIN_STATUS_LABELS, ORDER_STATUS_LABELS } from "./status";
 import {
   DEADLINE_SENSITIVE_STATUSES,
@@ -105,6 +106,15 @@ const GENERIC_TONES: Record<string, StatusTone> = {
 export function StatusPill({ status, tone }: { status: string; tone?: StatusTone }) {
   const label = status.replace(/_/g, " ");
   return <Badge tone={tone ?? GENERIC_TONES[status] ?? "neutral"}>{label.charAt(0).toUpperCase() + label.slice(1)}</Badge>;
+}
+
+/**
+ * Shown wherever an order is shown when its payment was not live (sandbox or test
+ * mode): no money was collected, so the order must never be filed with the state.
+ */
+export function TestOrderBadge({ mode }: { mode: string | null | undefined }) {
+  if (!isTestPayment(mode)) return null;
+  return <Badge tone="danger">{TEST_ORDER_LABEL}</Badge>;
 }
 
 const PAYMENT_DOTS: Record<string, string> = {

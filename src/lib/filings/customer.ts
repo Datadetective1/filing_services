@@ -1,6 +1,7 @@
 import "server-only";
 import { businessNow } from "@/lib/domain/clock";
 import { createHash } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { absoluteUrl } from "@/config/site";
 import { trackServer } from "@/lib/analytics/server";
 import { audit } from "@/lib/audit";
@@ -15,8 +16,12 @@ import { CUSTOMER_EDITABLE_STATUSES, type FilingStatus } from "@/lib/domain/fili
 import { buildQuote, governmentFeeFor, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
 import type { EntityType } from "@/lib/domain/types";
 import { validateAll, validateSection, type IntakeAnswers, type Person, type RegisteredOffice, type Address } from "@/lib/intake/validate";
-import { getPaymentProvider } from "@/lib/payments";
+import { getPaymentProvider, requiresApprovedPrice } from "@/lib/payments";
+import { checkoutDescription, checkoutLineItemName } from "@/lib/payments/checkout-text";
+import type { PaymentProvider, SessionStatus } from "@/lib/payments/types";
+import { LEGAL_LAST_UPDATED } from "@/lib/seo/legal";
 import { afterPaymentSucceeded } from "@/lib/payments/process-event";
+import { notifyStaffOfCustomerMessage } from "@/lib/notifications/staff";
 import { ensureRemindersForRequirement, rollForwardRequirement } from "@/lib/reminders/engine";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash, userAgent } from "@/lib/security/request";
@@ -33,13 +38,32 @@ export class FilingError extends Error {
   }
 }
 
-export const AUTHORIZATION_TERMS_VERSION = "2026-09-27.v1";
+/**
+ * Version of the signed wording: `<legal documents date>.v<template revision>`. The text
+ * names the Terms/Refund Policy date, so the date part follows LEGAL_LAST_UPDATED
+ * automatically; bump the `.vN` suffix whenever the template wording below changes.
+ * Stored rows keep their own text and version.
+ */
+export const AUTHORIZATION_TERMS_VERSION = `${LEGAL_LAST_UPDATED}.v2`;
+
+/**
+ * The business name the authorization names: the legal name being filed (the validated
+ * intake answer), falling back to the business record. businesses.legal_name is only
+ * updated after signing, so it can still hold the name typed at lookup. The Review page
+ * must use this too, so the text shown before signing is the text stored.
+ */
+export function authorizationBusinessName(business: { legal_name?: unknown } | null | undefined, answers: IntakeAnswers): string {
+  const answered = typeof answers.legal_name === "string" ? answers.legal_name.replace(/\s+/g, " ").trim() : "";
+  if (answered) return answered;
+  return typeof business?.legal_name === "string" ? business.legal_name.trim() : "";
+}
 
 export function authorizationText(input: { businessName: string; stateName: string; filingName: string; brand: string }) {
   return (
     `I confirm that I am authorized to act on behalf of ${input.businessName}. ` +
-    `I authorize ${input.brand} and its personnel to act as the business's authorized representative for the limited purpose of preparing, electronically signing and submitting the ${input.stateName} ${input.filingName} described above, using the information I provided, and to pay the state filing fee on the business's behalf from the amount I pay today. ` +
-    `I attest that the information I provided is true, correct and complete to the best of my knowledge. I understand that ${input.brand} is a private filing service, is not a government agency, does not provide legal advice, and that I could instead file directly with the state.`
+    `I authorize ${input.brand} and its personnel to act as the business's authorized representative for the limited purpose of preparing, electronically signing and submitting the ${input.stateName} ${input.filingName} described above, using the information I provided, and to pay the state filing fee on the business's behalf from the amount I pay for this order. ` +
+    `I attest that the information I provided is true, correct and complete to the best of my knowledge. I understand that ${input.brand} is a private filing service, is not a government agency, does not provide legal advice, and that I could instead file directly with the state. ` +
+    `I agree to ${input.brand}'s Terms of Service and Refund Policy, last updated ${formatLongDate(LEGAL_LAST_UPDATED)}.`
   );
 }
 
@@ -333,7 +357,7 @@ export async function authorizeFiling(
   const snapshot = all.values;
   const sha = createHash("sha256").update(stableStringify(snapshot)).digest("hex");
   const text = authorizationText({
-    businessName: loaded.business?.legal_name ?? String(snapshot.legal_name ?? ""),
+    businessName: authorizationBusinessName(loaded.business, snapshot),
     stateName,
     filingName: String((loaded.filing.rule_snapshot as Record<string, unknown>).filing_name ?? "Annual Report"),
     brand: input.brand,
@@ -368,7 +392,13 @@ export async function authorizeFiling(
     entityType: "filing_authorization",
     entityId: auth.id,
     filingId,
-    after: { answers_sha256: sha, terms_version: AUTHORIZATION_TERMS_VERSION, signer_title: signerTitle },
+    after: {
+      answers_sha256: sha,
+      terms_version: AUTHORIZATION_TERMS_VERSION,
+      // Terms of Service and Refund Policy version the customer agreed to (also named in the stored text).
+      legal_documents_version: LEGAL_LAST_UPDATED,
+      signer_title: signerTitle,
+    },
   });
 
   // If already paid and waiting on the customer, put it back in the review queue.
@@ -476,29 +506,40 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
   if (!quote) throw new FilingError("Pricing isn't configured for this filing yet.", "unavailable");
 
   const provider = getPaymentProvider();
-  if (provider.mode === "live" && !quote.servicePriceApproved) {
-    throw new FilingError("This price has not been approved for live payments.", "unavailable");
+  if (requiresApprovedPrice(provider.mode) && !quote.servicePriceApproved) {
+    throw new FilingError("Online payment isn't open yet for this filing. Nothing has been charged, and your details are saved.", "unavailable");
   }
 
-  // Reuse the pending order if one exists; expire any older open sessions so a
-  // customer can never pay twice for the same filing.
+  // Reuse the pending order if one exists. Older checkout sessions are settled first
+  // so a customer can never pay twice for the same filing: one already paid (the
+  // webhook hasn't landed yet) is applied instead of replaced, and open ones are
+  // expired. The order is replaced when its total or payment mode no longer matches
+  // (e.g. created under the sandbox, paid live), so a real charge is never recorded
+  // as a test.
   let orderId: string | null = loaded.order?.status === "pending_payment" || loaded.order?.status === "payment_failed" || loaded.order?.status === "expired" ? loaded.order.id : null;
-  if (orderId && loaded.order && loaded.order.total_cents !== quote.totalCents) {
-    await db.from("orders").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", orderId);
-    orderId = null;
-  }
   if (orderId) {
     const { data: openPayments } = await db
       .from("payments")
-      .select("id, provider_session_id")
+      .select("id, order_id, provider, mode, provider_session_id, created_at")
       .eq("order_id", orderId)
       .eq("status", "pending");
-    for (const p of openPayments ?? []) {
-      if (p.provider_session_id) await provider.expireSession(p.provider_session_id);
-      await db.rpc("apply_payment_failure", { p_payment_id: p.id, p_status: "expired", p_reason: "superseded by a new checkout", p_event_at: new Date().toISOString() });
+    let paidSessionId: string | null = null;
+    for (const p of (openPayments ?? []) as OpenPayment[]) {
+      const settled = await settleSupersededPayment(db, provider, p, filingId, user.id);
+      if (settled.paid) paidSessionId = settled.sessionId;
     }
-    await db.from("orders").update({ status: "pending_payment" }).eq("id", orderId);
-  } else {
+    if (paidSessionId) {
+      // Already paid: show the confirmation instead of opening a second checkout.
+      return { url: absoluteUrl(`/file/${filingId}/confirmation?session_id=${encodeURIComponent(paidSessionId)}`) };
+    }
+    if (loaded.order && (loaded.order.total_cents !== quote.totalCents || loaded.order.payment_mode !== provider.mode)) {
+      await db.from("orders").update({ status: "cancelled", cancelled_at: new Date().toISOString() }).eq("id", orderId);
+      orderId = null;
+    } else {
+      await db.from("orders").update({ status: "pending_payment" }).eq("id", orderId);
+    }
+  }
+  if (!orderId) {
     const { data: order, error } = await db
       .from("orders")
       .insert({
@@ -529,15 +570,18 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
     .single();
   if (payError || !payment) throw new FilingError(`Could not start payment: ${payError?.message}`);
 
-  const stateName = getJurisdiction(loaded.filing.state_code)?.name ?? loaded.filing.state_code;
+  const jurisdiction = getJurisdiction(loaded.filing.state_code);
+  const stateName = jurisdiction?.name ?? loaded.filing.state_code;
+  const agencyName = jurisdiction?.agency.name.split(" - ")[0] ?? `${stateName} state`;
+  const filingName = String((loaded.filing.rule_snapshot as Record<string, unknown> | null)?.filing_name ?? "Annual Report");
   const session = await provider.createCheckoutSession({
     orderId: orderId!,
     paymentId: payment.id,
-    lineItems: quote.lineItems.map((li) => ({ kind: li.kind, name: li.description, amountCents: li.amountCents })),
+    lineItems: quote.lineItems.map((li) => ({ kind: li.kind, name: checkoutLineItemName(li.kind, agencyName), amountCents: li.amountCents })),
     totalCents: quote.totalCents,
     currency: "usd",
     customerEmail: user.email,
-    description: `${stateName} Annual Report, ${loaded.business?.legal_name ?? ""}`.slice(0, 200),
+    description: checkoutDescription({ stateName, filingName, businessName: String(loaded.business?.legal_name ?? "") }),
     successUrl: absoluteUrl(`/file/${filingId}/confirmation`),
     cancelUrl: absoluteUrl(`/file/${filingId}/checkout?cancelled=1`),
     idempotencyKey: `checkout:${payment.id}`,
@@ -565,23 +609,97 @@ export async function reconcileCheckoutReturn(user: SessionUser, filingId: strin
     .eq("provider_session_id", sessionId)
     .maybeSingle();
   if (!payment || payment.user_id !== user.id || payment.order_id !== loaded.filing.order_id) return loaded;
-  const provider = getPaymentProvider();
+  let provider;
+  try {
+    provider = getPaymentProvider();
+  } catch {
+    return loaded; // Payments switched off since checkout started: the webhook remains the source of truth.
+  }
   if (provider.name !== payment.provider) return loaded;
   const session = await provider.retrieveSession(sessionId);
   if (session?.paid && session.paymentId === payment.id) {
-    const { data } = await db.rpc("apply_payment_success", {
-      p_payment_id: payment.id,
-      p_provider_payment_id: session.providerPaymentId,
-      p_receipt_url: null,
-      p_amount_cents: session.amountCents,
-      p_currency: session.currency,
-      p_event_at: new Date().toISOString(),
-    });
-    const res = data as { applied?: boolean; filing_id?: string } | null;
-    if (res?.applied) await afterPaymentSucceeded(res.filing_id ?? filingId, payment.order_id, user.id);
+    await applyVerifiedPayment(db, payment, session, filingId, user.id);
     return getCustomerFiling(filingId);
   }
   return loaded;
+}
+
+/**
+ * Apply a session the provider reports as paid, through the same idempotent
+ * apply_payment_success path the webhook uses, so a later webhook is harmless.
+ */
+async function applyVerifiedPayment(
+  db: SupabaseClient,
+  payment: { id: string; order_id: string },
+  session: SessionStatus,
+  filingId: string,
+  userId: string,
+): Promise<void> {
+  const { data, error } = await db.rpc("apply_payment_success", {
+    p_payment_id: payment.id,
+    p_provider_payment_id: session.providerPaymentId,
+    p_receipt_url: null,
+    p_amount_cents: session.amountCents,
+    p_currency: session.currency,
+    p_event_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(`apply_payment_success: ${error.message}`);
+  const res = data as { applied?: boolean; filing_id?: string } | null;
+  if (res?.applied) await afterPaymentSucceeded(res.filing_id ?? filingId, payment.order_id, userId);
+}
+
+interface OpenPayment {
+  id: string;
+  order_id: string;
+  provider: string;
+  mode: string;
+  provider_session_id: string | null;
+  created_at: string;
+}
+
+/** No hosted checkout session stays payable longer than this (Stripe's maximum lifetime). */
+const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Settle an older pending payment before a new checkout replaces it. The provider is
+ * asked, never assumed: a session the customer already paid is applied instead of
+ * expired, so a second click on Pay can't charge them twice. An open session is
+ * expired and then checked again, in case it was paid in between. When its state
+ * can't be confirmed, no new checkout is opened.
+ */
+async function settleSupersededPayment(
+  db: SupabaseClient,
+  provider: PaymentProvider,
+  p: OpenPayment,
+  filingId: string,
+  userId: string,
+): Promise<{ paid: true; sessionId: string } | { paid: false }> {
+  const release = async (): Promise<{ paid: false }> => {
+    await db.rpc("apply_payment_failure", { p_payment_id: p.id, p_status: "expired", p_reason: "superseded by a new checkout", p_event_at: new Date().toISOString() });
+    return { paid: false };
+  };
+  // No session was ever created, or the current provider can't reach it (another
+  // provider or mode; the sandbox and test mode move no real money).
+  if (!p.provider_session_id || p.provider !== provider.name || p.mode !== provider.mode) return release();
+
+  const sessionId = p.provider_session_id;
+  let session = await provider.retrieveSession(sessionId);
+  if (session?.status === "open" && !session.paid) {
+    await provider.expireSession(sessionId);
+    session = await provider.retrieveSession(sessionId);
+  }
+  if (session?.paid && session.paymentId === p.id) {
+    await applyVerifiedPayment(db, p, session, filingId, userId);
+    return { paid: true, sessionId };
+  }
+  if (session && !session.paid && session.status === "expired") return release();
+  if (!session && Date.now() - new Date(p.created_at).getTime() > SESSION_MAX_AGE_MS) return release();
+  // Still open, paid under another reference, complete but not yet paid, or unreachable:
+  // it might still take money, so don't open a second checkout.
+  throw new FilingError(
+    "We couldn't confirm the status of your earlier checkout, so we haven't opened a new one. Nothing new has been charged. Please try again in a few minutes.",
+    "unavailable",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -646,7 +764,11 @@ export async function customerReply(user: SessionUser, filingId: string, body: s
     .eq("user_id", user.id)
     .maybeSingle();
   if (!filing) throw new FilingError("Filing not found", "not_found");
-  const { error } = await userDb.from("messages").insert({ filing_id: filingId, user_id: user.id, author_id: user.id, author_type: "customer", body: text });
+  const { data: message, error } = await userDb
+    .from("messages")
+    .insert({ filing_id: filingId, user_id: user.id, author_id: user.id, author_type: "customer", body: text })
+    .select("id")
+    .single();
   if (error) throw new FilingError(`Could not send: ${error.message}`);
   await audit({ actorUserId: user.id, actorType: "customer", action: "message.sent", entityType: "filing", entityId: filingId, filingId });
   if (filing.status === "needs_customer_action") {
@@ -661,4 +783,6 @@ export async function customerReply(user: SessionUser, filingId: string, body: s
       p_expected_from: "needs_customer_action",
     });
   }
+  // Staff alert (at most one per filing per hour); never throws, so it cannot fail the customer's reply.
+  if (message?.id) await notifyStaffOfCustomerMessage(filingId, message.id as string);
 }

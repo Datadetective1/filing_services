@@ -3,10 +3,12 @@
  *   npx tsx scripts/grant-staff.ts someone@example.com admin
  *   npx tsx scripts/grant-staff.ts someone@example.com operator
  *   npx tsx scripts/grant-staff.ts someone@example.com revoke
- * The user must already have signed up.
+ * The user must already have signed up. Prints the target project and refuses
+ * production unless CONFIRM_PRODUCTION=<production ref> is set.
  */
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
+import { assertSupabaseTargetAllowed } from "../src/config/environments";
 
 config({ path: ".env.local" });
 config();
@@ -16,7 +18,19 @@ if (!email || !["admin", "operator", "revoke"].includes(role ?? "")) {
   console.error("Usage: tsx scripts/grant-staff.ts <email> <admin|operator|revoke>");
   process.exit(1);
 }
-const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)!, {
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!url || !key) {
+  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY");
+  process.exit(1);
+}
+try {
+  console.log(`Target Supabase project: ${assertSupabaseTargetAllowed(url, "grant-staff").label}`);
+} catch (e) {
+  console.error(e instanceof Error ? e.message : e);
+  process.exit(1);
+}
+const db = createClient(url, key, {
   auth: { persistSession: false },
 });
 

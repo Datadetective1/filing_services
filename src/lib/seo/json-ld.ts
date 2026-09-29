@@ -1,9 +1,9 @@
-import { absoluteUrl, site } from "@/config/site";
+import { absoluteUrl, site, siteUrl } from "@/config/site";
 import type { FaqItem } from "@/lib/compliance/types";
 import type { Quote } from "@/lib/domain/pricing";
 
 /**
- * schema.org structured data. Filewell is described as a private Organization that
+ * schema.org structured data. The brand is described as a private Organization that
  * offers a Service. Never GovernmentService, GovernmentOrganization or ratings.
  */
 
@@ -13,7 +13,7 @@ export const organizationId = () => absoluteUrl("/#organization");
 export const websiteId = () => absoluteUrl("/#website");
 
 function organizationRef(): Json {
-  return { "@type": "Organization", "@id": organizationId(), name: site.name, url: absoluteUrl("/") };
+  return { "@type": "Organization", "@id": organizationId(), name: site.name, url: siteUrl() };
 }
 
 export function organizationJsonLd(): Json {
@@ -21,8 +21,9 @@ export function organizationJsonLd(): Json {
     "@type": "Organization",
     "@id": organizationId(),
     name: site.name,
-    url: absoluteUrl("/"),
+    url: siteUrl(),
     description: `${site.description} ${site.disclaimer}`,
+    contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: site.supportEmail, availableLanguage: "en" },
   };
 }
 
@@ -31,7 +32,7 @@ export function websiteJsonLd(): Json {
     "@type": "WebSite",
     "@id": websiteId(),
     name: site.name,
-    url: absoluteUrl("/"),
+    url: siteUrl(),
     description: site.description,
     inLanguage: "en-US",
     publisher: { "@id": organizationId() },

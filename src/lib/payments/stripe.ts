@@ -147,17 +147,11 @@ export class StripePaymentProvider implements PaymentProvider {
         const s = evt.data.object;
         return { ...base, type: "checkout.expired", sessionId: s.id, internalPaymentId: s.metadata?.payment_id ?? null };
       }
-      case "payment_intent.payment_failed": {
-        const pi = evt.data.object;
-        return {
-          ...base,
-          type: "payment.failed",
-          providerPaymentId: pi.id,
-          orderId: pi.metadata?.order_id ?? null,
-          internalPaymentId: pi.metadata?.payment_id ?? null,
-          failureReason: pi.last_payment_error?.code ?? pi.last_payment_error?.message ?? "payment_failed",
-        };
-      }
+      // A declined card inside hosted Checkout is not final: the session stays open and
+      // the customer can try another card. Final failures arrive as
+      // checkout.session.async_payment_failed or checkout.session.expired.
+      case "payment_intent.payment_failed":
+        return { ...base, type: "ignored" };
       case "refund.created":
       case "refund.updated": {
         const r = evt.data.object;

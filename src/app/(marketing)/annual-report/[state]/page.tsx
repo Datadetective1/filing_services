@@ -56,7 +56,9 @@ import { breadcrumbJsonLd, faqJsonLd, graph, serviceJsonLd } from "@/lib/seo/jso
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const dynamicParams = false;
-export const revalidate = 3600;
+// The status panel counts days to the next deadline: render per request so a cached
+// (stale-while-revalidate) copy never shows yesterday's countdown.
+export const revalidate = 0;
 
 export function generateStaticParams() {
   return listJurisdictions().map((j) => ({ state: j.slug }));

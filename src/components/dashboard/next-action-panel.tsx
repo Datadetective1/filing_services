@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarBlank, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { formatLongDate, parseISODate } from "@/lib/domain/dates";
+import { deadlineCopy } from "@/lib/domain/deadline-copy";
 import { FILED_STATUSES } from "@/lib/domain/filing-status";
 import { CountdownRing } from "@/components/visual/countdown-ring";
 import { DaysRemaining, deadlineRingLabel, DueDate } from "./due-info";
@@ -16,14 +17,21 @@ function byMonthDay(iso: string): string {
 }
 
 function copyFor(item: FocusItem): { title: string; body: string } {
-  const { action, requirement } = item;
+  const { action, business, requirement } = item;
   const filing = `${requirement.periodYear} ${requirement.filingName.toLowerCase()}`;
   if (action.kind === "continue") return { title: action.step.title, body: action.step.body };
   if (action.kind === "start") {
-    return {
-      title: requirement.daysRemaining < 0 ? `The ${filing} is past due` : `File the ${filing} by ${byMonthDay(requirement.dueDate)}`,
-      body: "Have us file it, or file it yourself with the state. Already done? Tell us and the reminders stop.",
-    };
+    const deadline = deadlineCopy(requirement.daysRemaining, requirement.dueDate, {
+      rule: requirement.rule ?? business.rule,
+      stateName: business.stateName,
+    });
+    const body = "Have us file it, or file it yourself with the state. Already done? Tell us and the reminders stop.";
+    return deadline.passed
+      ? {
+          title: `The ${byMonthDay(requirement.dueDate)} deadline for the ${filing} has passed`,
+          body: `${deadline.note ?? "It can still be filed."} ${body}`,
+        }
+      : { title: `File the ${filing} by ${byMonthDay(requirement.dueDate)}`, body };
   }
   return {
     title: `File the ${filing} with the state`,

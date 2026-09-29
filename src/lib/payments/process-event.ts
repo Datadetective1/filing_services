@@ -1,8 +1,10 @@
 import "server-only";
+import { isProductionEnvironment } from "@/config/site";
 import { trackServer } from "@/lib/analytics/server";
 import { loadFilingContext } from "@/lib/filings/context";
 import { formatCents } from "@/lib/domain/money";
 import { sendNotification } from "@/lib/notifications/send";
+import { notifyStaff } from "@/lib/notifications/staff";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { NormalizedPaymentEvent } from "./types";
 
@@ -193,12 +195,35 @@ async function handle(event: NormalizedPaymentEvent): Promise<string> {
 export async function afterPaymentSucceeded(filingId: string | null, orderId: string, userId: string) {
   const ctx = filingId ? await loadFilingContext(filingId) : null;
   if (!ctx) return;
+  const { data: order, error: orderError } = await createAdminClient()
+    .from("orders")
+    .select("government_fee_cents, service_fee_cents, total_cents, payment_mode")
+    .eq("id", orderId)
+    .single();
+  if (orderError || !order) throw new Error(`order lookup failed: ${orderError?.message ?? "not found"}`);
+  // The state's fee and our service fee are always shown as separate lines.
+  const feeVars = {
+    government_fee: formatCents(order.government_fee_cents),
+    service_fee: formatCents(order.service_fee_cents),
+    amount: formatCents(order.total_cents),
+  };
   await sendNotification({
     userId,
     templateKey: "order_confirmed",
     dedupeKey: `order_confirmed:${orderId}`,
-    vars: ctx.vars,
+    vars: { ...ctx.vars, ...feeVars },
     ctaPath: `/dashboard/filings/${ctx.filing.id}`,
+    filingId: ctx.filing.id,
+    businessId: ctx.filing.businessId,
+    // Production never tells a customer a test-mode payment was received (no money moved).
+    suppressReason: isProductionEnvironment() && order.payment_mode !== "live" ? "test-mode payment (no real charge)" : null,
+  });
+  // Staff alert; notifyStaff never throws, so it cannot break payment processing.
+  await notifyStaff({
+    templateKey: "staff_new_paid_order",
+    vars: { ...ctx.vars, ...feeVars, payment_mode: order.payment_mode },
+    dedupeKey: `staff_new_paid_order:${orderId}`,
+    ctaPath: `/admin/filings/${ctx.filing.id}`,
     filingId: ctx.filing.id,
     businessId: ctx.filing.businessId,
   });
@@ -215,7 +240,7 @@ export async function afterRefundSucceeded(refundId: string) {
   const db = createAdminClient();
   const { data: refund } = await db
     .from("refunds")
-    .select("id, order_id, user_id, amount_cents")
+    .select("id, order_id, user_id, amount_cents, government_fee_cents, service_fee_cents")
     .eq("id", refundId)
     .maybeSingle();
   if (!refund) return;
@@ -226,7 +251,12 @@ export async function afterRefundSucceeded(refundId: string) {
     userId: refund.user_id,
     templateKey: "refund_issued",
     dedupeKey: `refund_issued:${refund.id}`,
-    vars: { ...ctx.vars, amount: formatCents(refund.amount_cents) },
+    vars: {
+      ...ctx.vars,
+      amount: formatCents(refund.amount_cents),
+      government_fee: formatCents(refund.government_fee_cents),
+      service_fee: formatCents(refund.service_fee_cents),
+    },
     ctaPath: `/dashboard/filings/${ctx.filing.id}`,
     filingId: ctx.filing.id,
     businessId: ctx.filing.businessId,

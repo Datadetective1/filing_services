@@ -69,7 +69,10 @@ export async function requireAdmin(): Promise<StaffUser> {
   return staff;
 }
 
-/** Validate a post-login redirect target: same-origin relative paths only. */
+/**
+ * Validate a post-login redirect target: same-origin relative paths only.
+ * Returns the NORMALIZED path (dot segments resolved), never the raw input.
+ */
 export function safeNextPath(next: string | null | undefined, fallback = "/dashboard"): string {
   if (!next || typeof next !== "string") return fallback;
   if (next.length > 300) return fallback;
@@ -77,11 +80,17 @@ export function safeNextPath(next: string | null | undefined, fallback = "/dashb
   // so reject every control character, all whitespace and any backslash outright.
   if (/[\u0000-\u001F\u007F\s\\]/.test(next)) return fallback;
   if (!next.startsWith("/") || next.startsWith("//")) return fallback;
-  const base = "https://same-origin.invalid";
+  const base = "https://x.invalid";
+  let url: URL;
   try {
-    if (new URL(next, base).origin !== base) return fallback;
+    url = new URL(next, base);
   } catch {
     return fallback;
   }
-  return next;
+  if (url.origin !== base) return fallback;
+  // Dot segments, plain or percent-encoded ("/.//evil.com", "/a/..//evil.com", "/%2e//evil.com"),
+  // resolve to a pathname starting with "//". Next's router turns that into a protocol-relative
+  // URL (another origin), so anything that does not normalize to a single leading "/" is refused.
+  if (!url.pathname.startsWith("/") || url.pathname.startsWith("//")) return fallback;
+  return `${url.pathname}${url.search}${url.hash}`;
 }

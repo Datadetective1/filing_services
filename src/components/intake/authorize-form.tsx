@@ -85,10 +85,14 @@ export function AuthorizeForm({
           Read the full{" "}
           <Link href="/legal/filing-authorization" target="_blank" rel="noopener" className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
             filing authorization
-          </Link>{" "}
-          and{" "}
+          </Link>
+          ,{" "}
           <Link href="/legal/terms" target="_blank" rel="noopener" className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
             terms of service
+          </Link>{" "}
+          and{" "}
+          <Link href="/legal/refunds" target="_blank" rel="noopener" className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
+            refund policy
           </Link>
           <span className="sr-only"> (open in a new tab)</span>.
         </p>
@@ -127,7 +131,10 @@ export function AuthorizeForm({
               aria-describedby={[state.errors.authorize ? `${fieldId("authorize")}-error` : "", "authorization-text"].filter(Boolean).join(" ")}
               className="mt-1"
             />
-            <span>I authorize {site.name} to prepare and submit this filing on the business&apos;s behalf.</span>
+            <span>
+              I authorize {site.name} to act for the business as described in the authorization above, and I agree to the Terms
+              of Service and Refund Policy.
+            </span>
           </label>
           <FieldError id={`${fieldId("authorize")}-error`}>{state.errors.authorize}</FieldError>
         </div>

@@ -12,6 +12,7 @@ generated filing packet.
 - Architecture and conventions: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Operator runbook (manual Pennsylvania filing): [docs/OPERATIONS.md](docs/OPERATIONS.md)
 - Launch checklist: [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md)
+- Production environment, bootstrap and incident runbook: [docs/OPERATIONS.md#production](docs/OPERATIONS.md#production)
 - Official-source research + verification log: [docs/research/](docs/research/)
 
 ## Local development
@@ -29,6 +30,11 @@ npm run dev
 
 `npx supabase status` prints the local URL and keys for `.env.local`
 (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`).
+`.env.local` only ever points at local or staging; production credentials never go there.
+
+Brand, support address, legal entity and postal address come from `NEXT_PUBLIC_*`
+variables read in `src/config/site.ts` (see `.env.example`); change them in Vercel and
+redeploy, not in code. Production links always use https://www.getfilewell.com.
 
 Create an operator: sign up through the app, then
 
@@ -66,7 +72,10 @@ npm run test:e2e                                       # a protected Vercel depl
 
 `E2E_SHARE_URL` is a temporary Vercel share link (Vercel MCP `get_access_to_vercel_url`
 or the dashboard's "Share" button); the global setup visits it once and reuses the
-access cookie.
+access cookie. `VERCEL_AUTOMATION_BYPASS_SECRET`, if set, is sent as the protection-bypass
+header instead. Playwright loads `.env.local`, then `.env.e2e` (overriding it). E2E never
+uses the production Supabase project, and against a production host only
+`tests/e2e/public.spec.ts` runs.
 
 ## Payments
 
@@ -76,16 +85,24 @@ no card fields, no money, signed webhooks through the same processing path as St
 `PAYMENTS_LIVE_ENABLED=true`, and live checkout refuses service prices an admin has not
 approved in `/admin/pricing`.
 
+The production deployment refuses the sandbox and Stripe test keys. Nothing stops a
+Preview given live keys and `PAYMENTS_LIVE_ENABLED=true` from charging cards, so those
+go on the Vercel Production target only, never "All environments".
+
 Stripe webhook endpoint: `POST /api/webhooks/payments/stripe` (events:
 `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
 `checkout.session.async_payment_failed`, `checkout.session.expired`,
-`payment_intent.payment_failed`, `refund.created`, `refund.updated`).
+`refund.created`, `refund.updated`; `payment_intent.payment_failed` is ignored).
 
 ## Email
 
 `EMAIL_PROVIDER=outbox` records every email in the `notifications` table (visible at
 `/admin/notifications`) without sending. `EMAIL_PROVIDER=resend` sends through Resend
-from `EMAIL_FROM` (requires a verified sending domain for this product).
+from `EMAIL_FROM` (default `Filewell <filings@getfilewell.com>`, a Resend-verified domain).
+Resend delivers only on the production deployment; set `RESEND_API_KEY` on the Vercel
+Production target only. Previews and local runs stay on the outbox unless
+`EMAIL_PROVIDER=resend` and `EMAIL_DELIVERY_OUTSIDE_PRODUCTION=true` (a deliberate staging
+deliverability check); tests always do.
 
 ## Reminders
 

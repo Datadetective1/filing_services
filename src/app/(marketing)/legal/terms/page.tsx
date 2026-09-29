@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { LegalPage } from "@/components/marketing/legal-page";
+import { legalEntityText, postalAddressText } from "@/lib/seo/legal";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -26,7 +27,7 @@ export default function TermsPage() {
     >
       <h2>1. Who we are</h2>
       <p>
-        These terms are an agreement between you and {site.legalEntity} (&ldquo;{brand}&rdquo;, &ldquo;we&rdquo;,
+        These terms are an agreement between you and {legalEntityText()} (&ldquo;{brand}&rdquo;, &ldquo;we&rdquo;,
         &ldquo;us&rdquo;), which operates this website and the filing service described here. By creating an account or ordering
         a filing, you agree to these terms.
       </p>
@@ -49,7 +50,7 @@ export default function TermsPage() {
       <p>
         {brand} helps businesses see which filings a state requires, when they are due and what they cost, sends deadline
         reminders, and, when you order it, prepares and submits a specific filing for your business. Today we file annual reports
-        in the states marked &ldquo;Supported&rdquo; on our site.
+        only in Pennsylvania, shown as &ldquo;Filing supported&rdquo; on our site.
       </p>
       <p>
         Requirement summaries on our site come from official government publications, with links to those sources and the date
@@ -83,11 +84,14 @@ export default function TermsPage() {
 
       <h2>5. Authorization to act for your business</h2>
       <p>
-        When you order a filing, you authorize {brand} and its personnel to act as your business&apos;s authorized representative
-        for the limited purpose of preparing, electronically signing and submitting that specific filing, using the information
-        you provided, and paying the state filing fee on your business&apos;s behalf from the amount you pay. This authorization
-        covers only that filing. It does not make us your registered agent, and it ends when the filing is completed, cancelled
-        or refunded. The exact wording you agree to at checkout is on the{" "}
+        When you sign the authorization on the Review and sign step, before payment, you authorize {brand} and its personnel to
+        act as your business&apos;s authorized representative for the limited purpose of preparing, electronically signing and
+        submitting that specific filing, using the information you provided, and paying the state filing fee on your
+        business&apos;s behalf from the amount you pay for that order. This authorization covers only that filing and does not
+        make us your registered agent. It ends when the filing is completed, cancelled or refunded, except that, for a filing we
+        have submitted, it continues to cover correcting and resubmitting it if the state rejects it or we find an error. A
+        cancelled order is never filed without a new authorization. If the information to be filed changes, we will ask you to
+        sign again. The exact wording you sign is on the{" "}
         <Link href="/legal/filing-authorization">filing authorization</Link> page.
       </p>
 
@@ -103,8 +107,8 @@ export default function TermsPage() {
         </li>
       </ul>
       <p>
-        Payments are processed by our payment processor. We do not receive or store your full card number. Prices can change,
-        but the price shown at checkout is the price for that order.
+        Card payments are processed by our payment processor, Stripe, on its secure checkout page. We do not receive or store
+        your full card number. Prices can change, but the price shown at checkout is the price for that order.
       </p>
 
       <h2>7. Refunds</h2>
@@ -165,26 +169,32 @@ export default function TermsPage() {
 
       <h2>15. Ending the agreement</h2>
       <p>
-        You can stop using the service and close your account at any time. We may suspend or close an account that breaks these
-        terms. Orders already in progress are handled under the refund policy. Sections that by their nature should continue,
-        such as fees owed, disclaimers and limitation of liability, survive.
+        You can stop using the service at any time. To close your account, email{" "}
+        <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a> from the address on your account. We will close it: you
+        will no longer be able to sign in and we stop reminder emails. Filing, authorization, payment and message records are
+        kept as described in our <Link href="/legal/privacy">privacy policy</Link>, and you can ask us to delete other
+        information as described there. We may suspend or close an account that breaks these terms. Orders
+        already in progress are handled under the refund policy. Sections that by their nature should continue, such as fees
+        owed, disclaimers and limitation of liability, survive.
       </p>
 
       <h2>16. Changes to these terms</h2>
       <p>
         We may update these terms. If a change is material, we will tell you by email or on the site before it takes effect. The
-        terms in effect when you place an order apply to that order.
+        terms in effect when you place an order apply to that order. When you sign a filing authorization, we record the date of
+        the terms and refund policy you agreed to.
       </p>
 
       <h2>17. Governing law</h2>
       <p>
-        These terms are governed by the laws of [State of incorporation], without regard to its conflict-of-law rules. [Dispute
-        resolution terms to be confirmed.]
+        These terms are governed by the laws of [state of formation of the operating company, to be confirmed], without regard
+        to its conflict-of-law rules. [Dispute resolution terms to be confirmed.]
       </p>
 
       <h2>18. Contact</h2>
       <p>
-        Questions about these terms: <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>.
+        Questions about these terms: <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>, or send us a message from
+        a filing&apos;s page in your dashboard. Postal address for legal notices: {postalAddressText()}.
       </p>
     </LegalPage>
   );

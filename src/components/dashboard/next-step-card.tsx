@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarBlank, CheckCircle, Clock, WarningCircle } from "@phosphor-icons/react/dist/ssr";
-import { describeDaysRemaining, formatLongDate } from "@/lib/domain/dates";
+import { formatLongDate } from "@/lib/domain/dates";
+import { deadlineLabel } from "@/lib/domain/deadline-copy";
 import type { FilingStatus } from "@/lib/domain/filing-status";
 import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
@@ -124,7 +125,7 @@ export function NextStepCard({
                   ·
                 </span>
                 <span className={cn("tnum font-semibold", ring.days < 0 ? "text-warning" : "text-fg")}>
-                  {describeDaysRemaining(ring.days)}
+                  {deadlineLabel(ring.days, ring.due)}
                 </span>
               </span>
             </p>

@@ -1,9 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { isProductionSupabaseUrl, PRODUCTION_SUPABASE_REF } from "../../../src/config/environments";
 
 /**
  * Test-only backend helpers (service role). Used to create confirmed test users and
- * staff, and to assert database state the UI doesn't expose. Never used by the app.
+ * staff, and to assert database state the UI doesn't expose. Never used by the app,
+ * and never pointed at the production project.
  */
 let db: SupabaseClient | null = null;
 
@@ -12,6 +14,11 @@ export function backend(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("E2E requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY");
+  if (isProductionSupabaseUrl(url)) {
+    throw new Error(
+      `E2E refuses to use the production Supabase project (${PRODUCTION_SUPABASE_REF}). Point NEXT_PUBLIC_SUPABASE_URL at staging or a local stack.`,
+    );
+  }
   db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   return db;
 }

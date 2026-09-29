@@ -4,7 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
-import { describeDaysRemaining, formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
+import { formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
+import { deadlineLabel } from "@/lib/domain/deadline-copy";
 import type { FilingPeriod } from "@/lib/domain/deadlines";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
 import { periodFor } from "@/lib/filings/customer";
@@ -124,7 +125,7 @@ export default async function FileStartPage({ searchParams }: PageProps<"/file/s
                       period.phase === "overdue" ? "font-medium text-warning" : "text-muted",
                     )}
                   >
-                    {describeDaysRemaining(period.daysRemaining)}
+                    {deadlineLabel(period.daysRemaining, period.dueDate)}
                   </span>
                 </p>
               )}

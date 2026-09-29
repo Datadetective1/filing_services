@@ -1,6 +1,7 @@
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { isProductionHost, isProductionSupabaseUrl } from "../../src/config/environments";
 import { STORAGE_STATE } from "./global-setup";
 import { backend, createConfirmedUser, deleteUser, grantStaff, uniqueSuffix } from "./support/backend";
 
@@ -10,6 +11,10 @@ import { backend, createConfirmedUser, deleteUser, grantStaff, uniqueSuffix } fr
  * -> admin queue -> packet -> submitted -> receipt -> accepted -> customer notified
  * -> reminders stop -> next period opened. Plus cross-account attacks and webhook replay.
  */
+
+// Never run the journey against production: it creates users, grants staff and places orders.
+const productionTarget = isProductionHost(process.env.E2E_BASE_URL) || isProductionSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+test.skip(productionTarget, "Never run the journey against production (www.getfilewell.com, getfilewell.com, filewell.vercel.app).");
 
 test.describe.configure({ mode: "serial" });
 
@@ -42,6 +47,7 @@ async function expectNoSeriousA11yViolations(page: Page) {
 }
 
 test.beforeAll(async () => {
+  if (productionTarget) return;
   customer = await createConfirmedUser("customer");
   intruder = await createConfirmedUser("intruder");
   operator = await createConfirmedUser("operator");
@@ -49,6 +55,14 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  if (productionTarget) return;
+  // The test operator never keeps admin rights after the run, locally or on staging.
+  if (operator) {
+    await backend().from("staff_members").update({ active: false }).eq("user_id", operator.id);
+    await backend()
+      .from("audit_logs")
+      .insert({ actor_type: "system", action: "staff.revoked", entity_type: "staff_member", entity_id: operator.id, metadata: { reason: "e2e journey finished" } });
+  }
   // Test data is left in place for inspection on staging; users are removed locally.
   if (!process.env.E2E_BASE_URL) {
     for (const u of [customer, intruder, operator]) if (u) await deleteUser(u.id);
@@ -223,10 +237,19 @@ test("5. another customer cannot see this customer's filing or documents", async
 
 test("6. operator files it from the queue and packet", async ({ browser }) => {
   const page = await newSignedInPage(browser, operator, "/admin/queue");
+
+  // Today lists the next step per paid order. Staging keeps every run's data, so this row may be
+  // past the list's cut-off: check the list is there, and check this order's step on its own page.
+  await page.goto("/admin");
+  await expect(page.locator("#next-steps").getByRole("heading", { name: "Your next step for each paid customer" })).toBeVisible();
+
   await page.goto("/admin/queue");
   await expect(page.locator("main")).toContainText(businessName);
   await page.goto(`/admin/filings/${filingId}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(businessName);
+  // The same next-step wording as Today, and a clear sign that no real money was taken.
+  await expect(page.locator('section[aria-labelledby="actions-title"]')).toContainText("Review the details, then click Mark ready to file");
+  await expect(page.locator("main")).toContainText(/TEST: no money collected/);
 
   await page.getByRole("button", { name: /mark ready to file/i }).click();
   await expect(page.locator("main")).toContainText(/ready to file/i);
@@ -259,9 +282,54 @@ test("6. operator files it from the queue and packet", async ({ browser }) => {
   await page.getByRole("button", { name: /mark accepted/i }).click();
   await expect(page.locator("main")).toContainText(/completed/i);
 
-  const { data: filing } = await backend().from("filings").select("status, requirement_id, state_confirmation_number").eq("id", filingId).single();
+  const { data: filing } = await backend().from("filings").select("status, requirement_id, state_confirmation_number, order_id").eq("id", filingId).single();
   expect(filing?.status).toBe("completed");
   expect(filing?.state_confirmation_number).toBe(`E2E-${suffix}`);
+
+  // Every step above is in the audit log (public.audit_logs; see supabase/migrations).
+  type AuditRow = {
+    action: string;
+    actor_type: string;
+    actor_user_id: string | null;
+    entity_type: string;
+    entity_id: string | null;
+    after: Record<string, unknown> | null;
+    metadata: Record<string, unknown> | null;
+  };
+  const { data: filingAudit, error: auditError } = await backend()
+    .from("audit_logs")
+    .select("action, actor_type, actor_user_id, entity_type, entity_id, after, metadata")
+    .eq("filing_id", filingId)
+    .order("id", { ascending: true });
+  expect(auditError).toBeNull();
+  const rows = (filingAudit ?? []) as AuditRow[];
+
+  const authorized = rows.find((r) => r.action === "filing.authorized");
+  expect(authorized?.actor_type).toBe("customer");
+  expect(authorized?.actor_user_id).toBe(customer.id);
+
+  const { data: paidAudit } = await backend()
+    .from("audit_logs")
+    .select("action, entity_type, entity_id")
+    .eq("action", "order.paid")
+    .eq("entity_id", filing!.order_id);
+  expect(paidAudit ?? []).toHaveLength(1);
+
+  const transitions = rows.filter((r) => r.action === "filing.status_changed");
+  expect(transitions.map((r) => r.after?.status)).toEqual(["ready_for_review", "ready_to_file", "in_progress", "submitted", "accepted", "completed"]);
+  expect(transitions[0].actor_type).toBe("system");
+  for (const r of transitions.slice(1)) {
+    expect(r.actor_type).toBe("staff");
+    expect(r.actor_user_id).toBe(operator.id);
+  }
+  const submitted = transitions.find((r) => r.after?.status === "submitted");
+  expect((submitted?.metadata?.patch as Record<string, unknown> | undefined)?.state_confirmation_number).toBe(`E2E-${suffix}`);
+
+  const uploaded = rows.find((r) => r.action === "document.uploaded");
+  expect(uploaded?.actor_user_id).toBe(operator.id);
+  expect(uploaded?.entity_type).toBe("filing_document");
+  expect(uploaded?.after?.kind).toBe("filed_report");
+  expect(uploaded?.after?.visible_to_customer).toBe(true);
 });
 
 test("7. customer is notified, can download the receipt, and reminders stop", async ({ browser }) => {
@@ -288,7 +356,7 @@ test("7. customer is notified, can download the receipt, and reminders stop", as
   const { data: filing } = await db.from("filings").select("requirement_id, business_id").eq("id", filingId).single();
   const { data: notes } = await db.from("notifications").select("template_key, status").eq("filing_id", filingId);
   const keys = (notes ?? []).map((n) => n.template_key);
-  expect(keys).toEqual(expect.arrayContaining(["order_confirmed", "filing_submitted", "filing_accepted"]));
+  expect(keys).toEqual(expect.arrayContaining(["order_confirmed", "filing_submitted", "document_ready", "filing_accepted"]));
 
   const { data: pending } = await db.from("reminders").select("id").eq("requirement_id", filing!.requirement_id).eq("status", "scheduled");
   expect(pending ?? []).toHaveLength(0);
