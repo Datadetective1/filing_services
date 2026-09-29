@@ -94,6 +94,14 @@ export class WebhookVerificationError extends Error {
   }
 }
 
+/** The processor definitively refused the refund (nothing was refunded). */
+export class RefundRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RefundRejectedError";
+  }
+}
+
 export class PaymentConfigurationError extends Error {
   constructor(message: string) {
     super(message);

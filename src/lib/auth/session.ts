@@ -72,7 +72,16 @@ export async function requireAdmin(): Promise<StaffUser> {
 /** Validate a post-login redirect target: same-origin relative paths only. */
 export function safeNextPath(next: string | null | undefined, fallback = "/dashboard"): string {
   if (!next || typeof next !== "string") return fallback;
-  if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
   if (next.length > 300) return fallback;
+  // Browsers and the WHATWG URL parser strip ASCII tab/CR/LF ("/\t/evil.com" becomes "//evil.com"),
+  // so reject every control character, all whitespace and any backslash outright.
+  if (/[\u0000-\u001F\u007F\s\\]/.test(next)) return fallback;
+  if (!next.startsWith("/") || next.startsWith("//")) return fallback;
+  const base = "https://same-origin.invalid";
+  try {
+    if (new URL(next, base).origin !== base) return fallback;
+  } catch {
+    return fallback;
+  }
   return next;
 }

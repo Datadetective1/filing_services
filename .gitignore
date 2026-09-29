@@ -49,3 +49,6 @@ next-env.d.ts
 # supabase local
 supabase/.temp
 supabase/.branches
+
+# e2e browser state (may hold deployment access cookies)
+tests/e2e/.auth/

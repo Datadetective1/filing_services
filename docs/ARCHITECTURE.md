@@ -24,7 +24,7 @@ Automation replaces individual steps later without changing the data model.
 ## Directory map
 
 ```
-src/app/(marketing)/   public pages: home, /annual-report/*, /states/*, /pricing, /legal/*, /find, /unsubscribe
+src/app/(marketing)/   public pages: home, /annual-report/*, /states/*, /pricing, /help, /credits, /legal/*, /find, /unsubscribe
 src/app/(auth)/        /login /signup /forgot-password /reset-password /check-email
 src/app/(app)/         signed-in customer area: /dashboard/*, /file/* (layout calls requireUser)
 src/app/admin/         operations console (layout calls requireStaff)
@@ -37,6 +37,8 @@ src/lib/payments/      provider abstraction, sandbox, stripe, webhook processing
 src/lib/email/ notifications/ reminders/ documents/ analytics/ security/ auth/ supabase/
 src/components/ui/     design-system primitives
 src/components/compliance/  RequirementCard, PriceBreakdown, OfficialSource
+src/components/visual/ media/  receipts, countdowns, timelines, document sheets, photos
+src/assets/photos/     licensed photography (see CREDITS.md)
 supabase/migrations/   schema, controlled functions, RLS, storage
 tests/unit tests/db tests/e2e
 ```
@@ -104,12 +106,25 @@ filing closes its reminders and opens next year's requirement.
 
 ## UI conventions
 
-- Tokens: `bg-bg` page, `bg-surface` cards, `bg-surface-2` subtle fills, `border-border`,
-  `text-fg` / `text-muted` / `text-subtle`, one accent `bg-accent text-accent-fg`,
-  semantic `warning` / `danger` / `info` (+ `-soft` backgrounds). Dark mode is automatic.
-- Radius: controls `rounded-[var(--radius-control)]` (8px), surfaces
-  `rounded-[var(--radius-surface)]` (12px).
-- Typography: Geist. Money/dates use class `tnum`.
+- Direction: warm, calm, human, photography-led; an American small-business service, not
+  enterprise SaaS. Light only (no automatic dark mode). The admin console uses dark `ink`
+  surfaces for its sidebar.
+- Tokens (`src/app/globals.css`): `bg-bg` page, `bg-surface` cards, `bg-surface-2` stone
+  bands, `border-border`, `text-fg` / `text-muted` / `text-subtle`. Pine is the action and
+  brand color (`bg-accent text-accent-fg`, `bg-accent-soft`). Marigold is the single
+  highlight accent (`bg-highlight`, `bg-highlight-soft`, `.mark-highlight`) and is never
+  used for body text. Semantic `warning` / `danger` / `info` (+ `-soft`).
+- Shape: buttons are pills; controls `rounded-[var(--radius-control)]` (10px); cards and
+  panels `rounded-[var(--radius-surface)]` (18px); photos `rounded-[var(--radius-photo)]` (22px).
+- Typography: Bricolage Grotesque for every h1-h3 (and `font-display`), Figtree for body,
+  Geist Mono for confirmation numbers. Money/dates use class `tnum`.
+- Photography: licensed Unsplash images stored in `src/assets/photos/` (credits in
+  `CREDITS.md` there and on `/credits`), registered with alt text and crop focus points in
+  `src/lib/media/photos.ts`, rendered with `<Photo>` (`src/components/media/photo.tsx`).
+  Never caption them as customers.
+- Visual objects (`src/components/visual/`): `CountdownRing`, `ReminderTimeline`,
+  `Receipt`, `DocumentSheet`/`DocumentTile`, and the `/states` tile map. Money is shown as
+  a receipt, documents as paper, deadlines as countdowns, progress as step trackers.
 - Icons: Phosphor only. Server components import from `@phosphor-icons/react/dist/ssr`,
   client components from `@phosphor-icons/react`.
 - Primitives: `Button`/`ButtonLink`/`buttonClasses`, `Field`/`Input`/`Select`/`Textarea`/
@@ -118,5 +133,6 @@ filing closes its reminders and opens next year's requirement.
   `SectionTitle`, table primitives (`TableScroll`, `Table`, `THead`, `TH`, `TR`, `TD`).
 - Copy: plain and factual. Separate FACT ("Based on the Department of State's published
   requirements…") from SERVICE OFFER. No legal advice. No fake testimonials, logos,
-  counts or countdown pressure. No em dashes in visible copy. Every page that sells shows
+  counts or manufactured urgency (a countdown only ever shows a real, verified due date).
+  No em dashes in visible copy. Every page that sells shows
   the disclaimer and the option to file directly with the state.

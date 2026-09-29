@@ -167,14 +167,14 @@ export function validateAll(schema: IntakeSchema, answers: IntakeAnswers) {
 }
 
 export function formatAddress(a: Partial<Address> | undefined | null): string {
-  if (!a) return "—";
+  if (!a) return "Not provided";
   const line = [a.line1, a.line2].filter(Boolean).join(", ");
   const cityLine = [a.city, [a.region, a.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-  return [line, cityLine].filter(Boolean).join(", ") || "—";
+  return [line, cityLine].filter(Boolean).join(", ") || "Not provided";
 }
 
 export function formatRegisteredOffice(r: RegisteredOffice | undefined | null): string {
-  if (!r) return "—";
+  if (!r) return "Not provided";
   if (r.mode === "crop") return `${r.crop_name} (commercial registered office provider), ${r.county} County`;
-  return `${formatAddress(r)} — ${r.county} County`;
+  return `${formatAddress(r)}, ${r.county} County`;
 }

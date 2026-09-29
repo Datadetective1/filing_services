@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import type { ServicePrice } from "@/lib/domain/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -50,7 +51,7 @@ function mapPrice(row: Record<string, unknown>): ServicePrice {
 }
 
 /** Active service prices (public read). Returns [] if the database is unreachable. */
-export async function listActivePrices(): Promise<ServicePrice[]> {
+export const listActivePrices = cache(async (): Promise<ServicePrice[]> => {
   try {
     const db = createAnonClient();
     if (!db) return [];
@@ -59,7 +60,7 @@ export async function listActivePrices(): Promise<ServicePrice[]> {
   } catch {
     return [];
   }
-}
+});
 
 export async function listActivePricesAdmin(): Promise<ServicePrice[]> {
   const { data } = await createAdminClient().from("service_prices").select("*").eq("active", true);

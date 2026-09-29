@@ -15,7 +15,6 @@ const CLIENT_EVENTS = [
   "lookup_started",
   "lookup_completed",
   "filing_cta_clicked",
-  "intake_started",
   "checkout_cancelled",
 ] as const satisfies readonly AnalyticsEvent[];
 
@@ -47,6 +46,8 @@ export async function POST(request: NextRequest) {
     path: parsed.data.path?.split("?")[0] ?? null,
     stateCode: parsed.data.stateCode ?? null,
     entityType: parsed.data.entityType ?? null,
+    // Browser-reported and unauthenticated: the funnel can tell these apart from server-attested steps.
+    properties: { source: "client" },
   });
   return new NextResponse(null, { status: 204 });
 }

@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const DOCUMENT_BUCKET = "filing-documents";
-export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+/** Vercel caps function request bodies at 4.5 MB; state receipts are far smaller. */
+export const MAX_DOCUMENT_BYTES = 4 * 1024 * 1024;
 export const SIGNED_URL_TTL_SECONDS = 60;
 
 export type DocumentKind = "state_receipt" | "filed_report" | "acknowledgement" | "filing_packet" | "customer_upload" | "other";
@@ -39,7 +40,7 @@ export async function storeFilingDocument(input: {
   visibleToCustomer: boolean;
 }): Promise<{ id: string; storagePath: string; sha256: string }> {
   if (!(input.file instanceof File) || input.file.size === 0) throw new DocumentValidationError("Choose a file to upload");
-  if (input.file.size > MAX_DOCUMENT_BYTES) throw new DocumentValidationError("Files must be 10 MB or smaller");
+  if (input.file.size > MAX_DOCUMENT_BYTES) throw new DocumentValidationError("Files must be 4 MB or smaller");
   const bytes = new Uint8Array(await input.file.arrayBuffer());
   const mime = sniffMime(bytes);
   if (!mime) throw new DocumentValidationError("Only PDF, PNG and JPEG files are accepted");

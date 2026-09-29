@@ -53,6 +53,8 @@ const MIGRATIONS = [
   "20260927000001_schema.sql",
   "20260927000002_functions.sql",
   "20260927000003_rls.sql",
+  "20260928000005_indexes.sql",
+  "20260928000006_payment_guards.sql",
 ];
 
 export type Db = PGlite;
@@ -67,6 +69,8 @@ export async function createTestDb(): Promise<Db> {
   await db.exec(readFileSync(path.join(dir, MIGRATIONS[1]), "utf8"));
   await db.exec(POST_MIGRATION_GRANTS);
   await db.exec(readFileSync(path.join(dir, MIGRATIONS[2]), "utf8"));
+  // Later migrations (storage is skipped: PGlite has no storage schema).
+  for (const file of MIGRATIONS.slice(3)) await db.exec(readFileSync(path.join(dir, file), "utf8"));
   await seedReference(db);
   return db;
 }
@@ -211,6 +215,60 @@ export async function createOrderFixture(db: Db, userId: string, filingId: strin
     [orderId, userId, totals.gov + totals.svc, `sbx_cs_${randomUUID().replace(/-/g, "")}`],
   );
   return { orderId, paymentId: payment.rows[0].id };
+}
+
+// ---------------------------------------------------------------------------
+// Small helpers shared by the database test files
+// ---------------------------------------------------------------------------
+
+/** `select count(*)` over any query (runs as whoever `db` currently is). */
+export async function count(db: Db | Transaction, sql: string, params: unknown[] = []): Promise<number> {
+  const res = await db.query<{ n: number }>(`select count(*)::int as n from (${sql}) q`, params);
+  return res.rows[0].n;
+}
+
+/** Postgres array literal for a list of simple identifiers (statuses, keys). */
+export function pgTextArray(values: readonly string[]): string {
+  return `{${values.join(",")}}`;
+}
+
+export interface TransitionOptions {
+  actorUserId?: string | null;
+  actorType?: "customer" | "staff" | "system";
+  note?: string | null;
+  customerVisible?: boolean;
+  patch?: Record<string, unknown>;
+  expectedFrom?: string | null;
+}
+
+/** Call public.transition_filing() as the service role (how the server does it). */
+export async function transition(db: Db, filingId: string, to: string, opts: TransitionOptions = {}) {
+  const res = await asService(db, (tx) =>
+    tx.query<Record<string, unknown> & { status: string }>(
+      "select * from public.transition_filing($1::uuid, $2, $3::uuid, $4, $5, $6, $7::jsonb, $8)",
+      [
+        filingId,
+        to,
+        opts.actorUserId ?? null,
+        opts.actorType ?? "system",
+        opts.note ?? null,
+        opts.customerVisible ?? true,
+        JSON.stringify(opts.patch ?? {}),
+        opts.expectedFrom ?? null,
+      ],
+    ),
+  );
+  return res.rows[0];
+}
+
+/** Walk a filing through several statuses in order. */
+export async function walk(db: Db, filingId: string, statuses: readonly string[], opts: TransitionOptions = {}) {
+  for (const s of statuses) await transition(db, filingId, s, opts);
+}
+
+export async function filingStatus(db: Db, filingId: string): Promise<string> {
+  const res = await db.query<{ status: string }>("select status from public.filings where id = $1", [filingId]);
+  return res.rows[0].status;
 }
 
 export async function authorize(db: Db, userId: string, filingId: string) {

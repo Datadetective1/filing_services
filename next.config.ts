@@ -38,6 +38,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // Receipt uploads (<= 4 MB) go through server actions; Vercel allows 4.5 MB bodies.
+    serverActions: { bodySizeLimit: "4.5mb" },
+    proxyClientMaxBodySize: "4.5mb",
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

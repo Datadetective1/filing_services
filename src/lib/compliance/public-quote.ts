@@ -1,4 +1,5 @@
 import "server-only";
+import { isIndexable } from "@/config/site";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { buildQuote, governmentFeeFor, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
@@ -17,6 +18,8 @@ export async function publicQuote(rule: ComplianceRuleDef, opts: { isNonprofit?:
     entityType: rule.entityType,
   });
   if (!price) return null;
+  // A provisional (unapproved) price may be previewed on staging, never advertised in production.
+  if (!price.approved && isIndexable()) return null;
   return buildQuote({
     stateName: getJurisdiction(rule.stateCode)?.name ?? rule.stateCode,
     filingName: rule.filingName,

@@ -80,12 +80,12 @@ export function buildQuote(input: {
     lineItems: [
       {
         kind: "government_fee",
-        description: `${input.stateName} ${input.filingName} — state filing fee (paid to the state)`,
+        description: `${input.stateName} ${input.filingName}: state filing fee, paid to the state`,
         amountCents: governmentFeeCents,
       },
       {
         kind: "service_fee",
-        description: `Filing service fee — preparation and submission`,
+        description: `Filing service fee: preparation and submission`,
         amountCents: price.serviceFeeCents,
       },
     ],

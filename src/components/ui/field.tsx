@@ -2,14 +2,14 @@ import type { ComponentProps, ReactNode } from "react";
 import { cn } from "./cn";
 
 const control =
-  "block w-full rounded-[var(--radius-control)] border border-border-strong bg-surface px-3 text-[15px] text-fg placeholder:text-subtle transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring/25 disabled:bg-surface-2 disabled:text-muted aria-[invalid=true]:border-danger";
+  "block w-full rounded-[var(--radius-control)] border border-border-strong bg-surface px-3.5 text-base text-fg shadow-[0_1px_0_rgb(23_35_29/0.03)] placeholder:text-subtle transition-[border-color,box-shadow] duration-150 hover:border-fg/35 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15 disabled:bg-surface-2 disabled:text-muted aria-[invalid=true]:border-danger aria-[invalid=true]:ring-danger/15";
 
 export function Label({ className, ...props }: ComponentProps<"label">) {
-  return <label className={cn("text-sm font-medium text-fg", className)} {...props} />;
+  return <label className={cn("text-[15px] font-semibold text-fg", className)} {...props} />;
 }
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
-  return <input className={cn(control, "h-11", className)} {...props} />;
+  return <input className={cn(control, "h-12", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
@@ -18,7 +18,7 @@ export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
 
 export function Select({ className, children, ...props }: ComponentProps<"select">) {
   return (
-    <select className={cn(control, "h-11 pr-8", className)} {...props}>
+    <select className={cn(control, "h-12 pr-9", className)} {...props}>
       {children}
     </select>
   );
@@ -76,7 +76,7 @@ export function Checkbox({ className, ...props }: ComponentProps<"input">) {
   return (
     <input
       type="checkbox"
-      className={cn("mt-0.5 size-4 shrink-0 rounded border-border-strong accent-[var(--accent)]", className)}
+      className={cn("mt-0.5 size-5 shrink-0 rounded border-border-strong accent-[var(--accent)]", className)}
       {...props}
     />
   );

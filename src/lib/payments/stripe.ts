@@ -8,6 +8,7 @@ import {
   type PaymentProvider,
   PaymentConfigurationError,
   type RefundInput,
+  RefundRejectedError,
   type RefundResult,
   type SessionStatus,
   WebhookVerificationError,
@@ -176,7 +177,9 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   async refund(input: RefundInput): Promise<RefundResult> {
-    const r = await this.stripe.refunds.create(
+    let r: Stripe.Refund;
+    try {
+      r = await this.stripe.refunds.create(
       {
         payment_intent: input.providerPaymentId,
         amount: input.amountCents,
@@ -184,7 +187,16 @@ export class StripePaymentProvider implements PaymentProvider {
         metadata: { internal_refund_id: input.internalRefundId, note: input.reason.slice(0, 450) },
       },
       { idempotencyKey: input.idempotencyKey },
-    );
+      );
+    } catch (e) {
+      // Definitive refusals (bad request, card/permission errors) mean nothing was refunded.
+      // Anything else (network, 5xx) is ambiguous: the caller keeps the refund pending.
+      const type = (e as { type?: string })?.type ?? "";
+      if (["StripeInvalidRequestError", "StripeCardError", "StripePermissionError", "StripeAuthenticationError"].includes(type)) {
+        throw new RefundRejectedError(e instanceof Error ? e.message : "refund rejected");
+      }
+      throw e;
+    }
     return {
       providerRefundId: r.id,
       status: r.status === "succeeded" ? "succeeded" : r.status === "failed" || r.status === "canceled" ? "failed" : "pending",

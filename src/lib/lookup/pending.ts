@@ -17,16 +17,15 @@ export const lookupSchema = z.object({
   entityType: z.enum(ENTITY_TYPES),
   legalName: z.string().trim().min(1, "Enter your business's legal name").max(300),
   formationDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .nullable()
-    .optional()
+    .preprocess((v) => (v === "" ? null : v), z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional())
     .transform((v) => v || null),
   entityNumber: z
     .string()
     .trim()
     .max(30)
     .regex(/^[A-Za-z0-9-]*$/, "Use letters, numbers and dashes only")
+    // Nullable: the stored (already-parsed) value is null when empty and is re-parsed on read.
+    .nullable()
     .optional()
     .transform((v) => v || null),
   isForeign: z.boolean().default(false),

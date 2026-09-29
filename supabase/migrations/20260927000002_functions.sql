@@ -392,6 +392,7 @@ declare
   v_refund public.refunds;
   v_payment public.payments;
   v_total_refunded int;
+  v_net_captured bigint;
 begin
   if p_status not in ('succeeded', 'failed') then
     raise exception 'invalid refund status %', p_status using errcode = 'check_violation';
@@ -409,14 +410,23 @@ begin
    where id = p_refund_id;
 
   if p_status = 'succeeded' then
+    perform 1 from public.orders where id = v_refund.order_id for update;
     select * into v_payment from public.payments where id = v_refund.payment_id for update;
     v_total_refunded := v_payment.amount_refunded_cents + v_refund.amount_cents;
     update public.payments
        set amount_refunded_cents = v_total_refunded,
            status = case when v_total_refunded >= amount_cents then 'refunded' else 'partially_refunded' end
      where id = v_payment.id;
+    -- The order's status follows what it still holds across ALL captured payments:
+    -- an order can have a flagged duplicate payment, and refunding one of the two
+    -- must not mark an order that is still fully paid as refunded.
+    select coalesce(sum(amount_cents - amount_refunded_cents), 0) into v_net_captured
+      from public.payments
+     where order_id = v_refund.order_id and status in ('succeeded', 'partially_refunded', 'refunded');
     update public.orders
-       set status = case when v_total_refunded >= total_cents then 'refunded' else 'partially_refunded' end
+       set status = case when v_net_captured <= 0 then 'refunded'
+                         when v_net_captured < total_cents then 'partially_refunded'
+                         else status end
      where id = v_refund.order_id;
   end if;
 

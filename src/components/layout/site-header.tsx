@@ -1,40 +1,37 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth/session";
 import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
+import { AccountLink } from "./account-link";
 import { Logo } from "./logo";
+import { MobileMenu } from "./mobile-menu";
+import { SITE_NAV } from "./site-nav";
 
-export async function SiteHeader() {
-  let signedIn = false;
-  try {
-    signedIn = Boolean(await getCurrentUser());
-  } catch {
-    signedIn = false;
-  }
+/** Static header (no per-request auth lookup) so marketing and SEO pages can be prerendered. */
+export function SiteHeader() {
   return (
-    <header className="border-b border-border bg-bg/90 backdrop-blur supports-[backdrop-filter]:bg-bg/75">
-      <Container className="flex h-16 items-center justify-between gap-4">
-        <Logo />
-        <nav aria-label="Main" className="flex items-center gap-1 text-sm">
-          <Link href="/annual-report" className="hidden rounded-[var(--radius-control)] px-3 py-2 text-muted hover:text-fg sm:inline-block">
-            Annual reports
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/90 backdrop-blur-md supports-[backdrop-filter]:bg-bg/80">
+      <Container className="relative flex h-[68px] items-center justify-between gap-4">
+        <div className="flex items-center gap-8">
+          <Logo />
+          <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+            {SITE_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-full px-3.5 py-2 text-[15px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <AccountLink className="max-lg:hidden" />
+          <Link href="/find" className={buttonClasses("primary", "sm", "px-4 max-[369px]:hidden sm:px-5")}>
+            Find my business
           </Link>
-          <Link href="/states" className="hidden rounded-[var(--radius-control)] px-3 py-2 text-muted hover:text-fg sm:inline-block">
-            States
-          </Link>
-          <Link href="/pricing" className="hidden rounded-[var(--radius-control)] px-3 py-2 text-muted hover:text-fg md:inline-block">
-            Pricing
-          </Link>
-          {signedIn ? (
-            <Link href="/dashboard" className={buttonClasses("secondary", "sm", "ml-2")}>
-              Dashboard
-            </Link>
-          ) : (
-            <Link href="/login" className={buttonClasses("secondary", "sm", "ml-2")}>
-              Sign in
-            </Link>
-          )}
-        </nav>
+          <MobileMenu />
+        </div>
       </Container>
     </header>
   );

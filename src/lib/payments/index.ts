@@ -1,4 +1,5 @@
 import "server-only";
+import { isIndexable } from "@/config/site";
 import { env } from "@/lib/env";
 import { isTestRunner } from "@/lib/runtime";
 import { SandboxPaymentProvider } from "./sandbox";
@@ -17,6 +18,10 @@ export function getPaymentProvider(): PaymentProvider {
   const forceSandbox = isTestRunner() && process.env.ALLOW_REAL_PAYMENTS_IN_TESTS !== "true";
 
   if (forceSandbox || e.PAYMENTS_PROVIDER === "sandbox") {
+    // The simulator marks orders paid without money moving: never on the public production site.
+    if (!forceSandbox && isIndexable() && process.env.ALLOW_SANDBOX_IN_PRODUCTION !== "true") {
+      throw new PaymentConfigurationError("The sandbox payment provider is disabled on the production site. Configure Stripe.");
+    }
     if (!e.SANDBOX_WEBHOOK_SECRET) throw new PaymentConfigurationError("SANDBOX_WEBHOOK_SECRET is not set");
     return new SandboxPaymentProvider(e.SANDBOX_WEBHOOK_SECRET);
   }

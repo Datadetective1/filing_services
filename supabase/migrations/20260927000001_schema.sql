@@ -157,6 +157,11 @@ begin
   end if;
 
   if old.publication_status <> 'draft' then
+    -- A published version can never be un-published back to an editable draft.
+    if new.publication_status = 'draft' then
+      raise exception 'published rule versions cannot return to draft (rule_version %)', old.id
+        using errcode = 'check_violation';
+    end if;
     -- Only lifecycle columns may change once published.
     if (to_jsonb(new) - 'publication_status' - 'effective_to')
        is distinct from (to_jsonb(old) - 'publication_status' - 'effective_to') then

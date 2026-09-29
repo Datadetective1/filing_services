@@ -8,7 +8,8 @@ import { stableStringify } from "@/lib/compliance/hash";
 import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { todayInTimeZone } from "@/lib/domain/dates";
-import { currentFilingPeriod, type FilingPeriod } from "@/lib/domain/deadlines";
+import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen, type FilingPeriod } from "@/lib/domain/deadlines";
+import { formatLongDate } from "@/lib/domain/dates";
 import { CUSTOMER_EDITABLE_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
 import { buildQuote, governmentFeeFor, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
 import type { EntityType } from "@/lib/domain/types";
@@ -16,6 +17,7 @@ import { validateAll, validateSection, type IntakeAnswers, type Person, type Reg
 import { getPaymentProvider } from "@/lib/payments";
 import { afterPaymentSucceeded } from "@/lib/payments/process-event";
 import { ensureRemindersForRequirement, rollForwardRequirement } from "@/lib/reminders/engine";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash, userAgent } from "@/lib/security/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -150,6 +152,7 @@ export async function startFiling(user: SessionUser, businessId: string): Promis
     .from("businesses")
     .select("id, legal_name, state_code, entity_type, is_foreign, is_nonprofit, state_entity_number, home_jurisdiction")
     .eq("id", businessId)
+    .eq("owner_user_id", user.id) // RLS also admits staff; customer actions act only on the caller's own rows
     .maybeSingle();
   if (!business) throw new FilingError("Business not found", "not_found");
 
@@ -162,6 +165,7 @@ export async function startFiling(user: SessionUser, businessId: string): Promis
     .from("filing_requirements")
     .select("id, period_year, due_date, status")
     .eq("business_id", businessId)
+    .eq("owner_user_id", user.id)
     .eq("rule_id", current.ruleId)
     .eq("status", "open")
     .order("period_year", { ascending: true })
@@ -169,10 +173,18 @@ export async function startFiling(user: SessionUser, businessId: string): Promis
     .maybeSingle();
   if (!requirement) throw new FilingError("There's no open filing for this business right now.", "not_allowed");
 
+  // Never take payment for a report the state won't accept yet.
+  const today = todayInTimeZone(getJurisdiction(business.state_code)?.timezone ?? "America/New_York");
+  if (!isFilingWindowOpen(rule, requirement.period_year, requirement.due_date, today)) {
+    const opens = formatLongDate(filingWindowOpensOn(rule, requirement.period_year, requirement.due_date));
+    throw new FilingError(`Filing for the ${requirement.period_year} report opens ${opens}. We'll remind you before it's due.`, "not_allowed");
+  }
+
   const { data: existing } = await userDb
     .from("filings")
     .select("id, status")
     .eq("requirement_id", requirement.id)
+    .eq("user_id", user.id)
     .not("status", "in", "(cancelled,refunded)")
     .maybeSingle();
   if (existing) return existing.id;
@@ -282,9 +294,12 @@ export async function saveIntakeSection(user: SessionUser, filingId: string, sec
   const userDb = await createClient();
   const { error } = await userDb
     .from("filing_answers")
-    .update({ answers, completed_steps: completed, is_complete: all.ok })
-    .eq("filing_id", filingId);
+    .update({ answers, completed_steps: completed })
+    .eq("filing_id", filingId)
+    .eq("user_id", user.id);
   if (error) throw new FilingError(`Could not save: ${error.message}`);
+  // Completeness is derived by the server, never accepted from the client (no column grant).
+  await createAdminClient().from("filing_answers").update({ is_complete: all.ok }).eq("filing_id", filingId).eq("user_id", user.id);
   if (all.ok) {
     await trackServer("intake_completed", { userId: user.id, stateCode: loaded.filing.state_code, filingTypeCode: "annual_report", dedupeKey: `intake_completed:${filingId}` });
   }
@@ -440,11 +455,21 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
   if (!validateAll(loaded.schema, loaded.answers).ok) throw new FilingError("Finish your details before checkout.", "invalid");
 
   const db = createAdminClient();
-  const { count: authCount } = await db
+  const { data: latestAuth } = await db
     .from("filing_authorizations")
-    .select("id", { count: "exact", head: true })
-    .eq("filing_id", filingId);
-  if (!authCount) throw new FilingError("Review and authorize the filing before checkout.", "invalid");
+    .select("answers_sha256")
+    .eq("filing_id", filingId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!latestAuth) throw new FilingError("Review and authorize the filing before checkout.", "invalid");
+  const currentSha = createHash("sha256").update(stableStringify(validateAll(loaded.schema, loaded.answers).values)).digest("hex");
+  if (currentSha !== latestAuth.answers_sha256) {
+    throw new FilingError("Your details changed after you signed. Review and sign again.", "invalid");
+  }
+
+  const sellRule = findRule(loaded.filing.state_code, loaded.business.entity_type as EntityType, "annual_report", Boolean(loaded.business.is_foreign));
+  if (!sellRule || !isRuleSellable(sellRule)) throw new FilingError("We can't file this right now.", "unavailable");
 
   const quote = await quoteForFiling(loaded.filing, loaded.business);
   if (!quote) throw new FilingError("Pricing isn't configured for this filing yet.", "unavailable");
@@ -511,7 +536,7 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
     totalCents: quote.totalCents,
     currency: "usd",
     customerEmail: user.email,
-    description: `${stateName} Annual Report — ${loaded.business?.legal_name ?? ""}`.slice(0, 200),
+    description: `${stateName} Annual Report, ${loaded.business?.legal_name ?? ""}`.slice(0, 200),
     successUrl: absoluteUrl(`/file/${filingId}/confirmation`),
     cancelUrl: absoluteUrl(`/file/${filingId}/checkout?cancelled=1`),
     idempotencyKey: `checkout:${payment.id}`,
@@ -564,7 +589,12 @@ export async function reconcileCheckoutReturn(user: SessionUser, filingId: strin
 
 export async function markFiledElsewhere(user: SessionUser, requirementId: string) {
   const userDb = await createClient();
-  const { data: req } = await userDb.from("filing_requirements").select("id, status").eq("id", requirementId).maybeSingle();
+  const { data: req } = await userDb
+    .from("filing_requirements")
+    .select("id, status")
+    .eq("id", requirementId)
+    .eq("owner_user_id", user.id)
+    .maybeSingle();
   if (!req) throw new FilingError("Not found", "not_found");
   if (req.status !== "open") return;
   const { data: activeFiling } = await userDb
@@ -576,6 +606,25 @@ export async function markFiledElsewhere(user: SessionUser, requirementId: strin
   if (activeFiling) throw new FilingError("We're already handling this filing for you.", "not_allowed");
 
   const db = createAdminClient();
+  const { data: draft } = await userDb
+    .from("filings")
+    .select("id")
+    .eq("requirement_id", requirementId)
+    .eq("user_id", user.id)
+    .eq("status", "draft")
+    .maybeSingle();
+  if (draft) {
+    await db.rpc("transition_filing", {
+      p_filing_id: draft.id,
+      p_to_status: "cancelled",
+      p_actor_user_id: user.id,
+      p_actor_type: "customer",
+      p_note: "Filed elsewhere by the customer",
+      p_customer_visible: true,
+      p_patch: {},
+      p_expected_from: "draft",
+    });
+  }
   await db.from("filing_requirements").update({ status: "filed_elsewhere", resolved_at: new Date().toISOString() }).eq("id", requirementId).eq("status", "open");
   await db.from("reminders").update({ status: "cancelled", skip_reason: "filed_elsewhere", processed_at: new Date().toISOString() }).eq("requirement_id", requirementId).eq("status", "scheduled");
   await audit({ actorUserId: user.id, actorType: "customer", action: "requirement.filed_elsewhere", entityType: "filing_requirement", entityId: requirementId });
@@ -584,9 +633,17 @@ export async function markFiledElsewhere(user: SessionUser, requirementId: strin
 
 export async function customerReply(user: SessionUser, filingId: string, body: string) {
   const text = body.trim();
-  if (!text || text.length > 5000) throw new FilingError("Messages must be 1–5000 characters.", "invalid");
+  if (!text || text.length > 5000) throw new FilingError("Messages must be 1 to 5000 characters.", "invalid");
+  if (!(await rateLimit(`message:${user.id}`, 20, 600))) {
+    throw new FilingError("You've sent a lot of messages. Wait a few minutes and try again.", "not_allowed");
+  }
   const userDb = await createClient();
-  const { data: filing } = await userDb.from("filings").select("id, status, user_id").eq("id", filingId).maybeSingle();
+  const { data: filing } = await userDb
+    .from("filings")
+    .select("id, status, user_id")
+    .eq("id", filingId)
+    .eq("user_id", user.id)
+    .maybeSingle();
   if (!filing) throw new FilingError("Filing not found", "not_found");
   const { error } = await userDb.from("messages").insert({ filing_id: filingId, user_id: user.id, author_id: user.id, author_type: "customer", body: text });
   if (error) throw new FilingError(`Could not send: ${error.message}`);

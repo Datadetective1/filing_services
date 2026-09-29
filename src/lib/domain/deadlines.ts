@@ -1,5 +1,5 @@
 import type { DueRule, FirstDueRule } from "@/lib/compliance/types";
-import { daysBetween, isISODate, lastDayOfMonth, parseISODate, toISODate } from "./dates";
+import { addDays, daysBetween, isISODate, lastDayOfMonth, parseISODate, toISODate } from "./dates";
 import type { ISODate } from "./types";
 
 /**
@@ -107,4 +107,21 @@ export function nextFilingPeriod(rule: DeadlineRule, periodYear: number, formati
     if (due) return { periodYear: year, dueDate: due };
   }
   return null;
+}
+
+/**
+ * Whether a report can be filed yet. Fixed-date annual reports open January 1 of the
+ * report year (Pennsylvania: "The filing window is based on the entity type:
+ * corporations Jan. 1 – June 30 ..."). Anniversary-based rules are treated as open
+ * within 90 days of the due date until a state's window is modeled explicitly.
+ */
+export function isFilingWindowOpen(rule: Pick<DeadlineRule, "dueRule">, periodYear: number, dueDate: ISODate, today: ISODate): boolean {
+  if (rule.dueRule.kind === "fixed_annual") return parseISODate(today).year >= periodYear;
+  return daysBetween(today, dueDate) <= 90;
+}
+
+/** The first day a report can be filed (for "opens on" messaging). */
+export function filingWindowOpensOn(rule: Pick<DeadlineRule, "dueRule">, periodYear: number, dueDate: ISODate): ISODate {
+  if (rule.dueRule.kind === "fixed_annual") return toISODate(periodYear, 1, 1);
+  return addDays(dueDate, -90);
 }

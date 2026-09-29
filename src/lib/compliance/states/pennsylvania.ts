@@ -248,6 +248,8 @@ interface EntityProfile {
   stateFeeCents: number;
   nonprofitStateFeeCents: number | null;
   governorLabel: string;
+  /** Singular noun phrase for "at least one ___". */
+  governorSingular: string;
   governorHelp: string;
   governorTitles: string[];
   officersMin: number;
@@ -266,6 +268,7 @@ const PROFILES: EntityProfile[] = [
     stateFeeCents: 700,
     nonprofitStateFeeCents: 0,
     governorLabel: "Managers or managing members",
+    governorSingular: "manager or managing member",
     governorHelp:
       "List at least one: a manager (if the LLC is manager-managed) or a member who has the right to participate materially in management (if member-managed).",
     governorTitles: ["Member", "Managing Member", "Manager"],
@@ -284,6 +287,7 @@ const PROFILES: EntityProfile[] = [
     stateFeeCents: 700,
     nonprofitStateFeeCents: null,
     governorLabel: "Directors",
+    governorSingular: "director",
     governorHelp: "List at least one director. Directors of a corporation must be natural persons.",
     governorTitles: ["Director"],
     officersMin: 1,
@@ -300,6 +304,7 @@ const PROFILES: EntityProfile[] = [
     stateFeeCents: 0,
     nonprofitStateFeeCents: 0,
     governorLabel: "Directors",
+    governorSingular: "director",
     governorHelp:
       "List at least one director (or a member of another body that performs the functions of a board of directors).",
     governorTitles: ["Director", "Trustee"],
@@ -317,6 +322,7 @@ const PROFILES: EntityProfile[] = [
     stateFeeCents: 700,
     nonprofitStateFeeCents: 0,
     governorLabel: "General partners",
+    governorSingular: "general partner",
     governorHelp: "List at least one general partner. A general partner may be a person or a company.",
     governorTitles: ["General Partner"],
     officersMin: 0,
@@ -333,6 +339,7 @@ const PROFILES: EntityProfile[] = [
     stateFeeCents: 700,
     nonprofitStateFeeCents: null,
     governorLabel: "Partners",
+    governorSingular: "partner",
     governorHelp: "List at least one partner.",
     governorTitles: ["Partner", "Managing Partner"],
     officersMin: 0,
@@ -349,6 +356,7 @@ const PROFILES: EntityProfile[] = [
     stateFeeCents: 700,
     nonprofitStateFeeCents: null,
     governorLabel: "General partners",
+    governorSingular: "general partner",
     governorHelp: "List at least one general partner.",
     governorTitles: ["General Partner"],
     officersMin: 0,
@@ -364,6 +372,7 @@ const PROFILES: EntityProfile[] = [
     stateFeeCents: 700,
     nonprofitStateFeeCents: null,
     governorLabel: "Members of the board of governors",
+    governorSingular: "member of the board of governors",
     governorHelp: "List at least one member of the board of governors.",
     governorTitles: ["Governor", "Board Member"],
     officersMin: 0,
@@ -379,6 +388,7 @@ const PROFILES: EntityProfile[] = [
     stateFeeCents: 700,
     nonprofitStateFeeCents: null,
     governorLabel: "Trustees",
+    governorSingular: "trustee",
     governorHelp: "List at least one trustee.",
     governorTitles: ["Trustee"],
     officersMin: 0,
@@ -497,7 +507,7 @@ function intakeFor(p: EntityProfile): IntakeSchema {
           {
             key: "state_notice_email",
             type: "email",
-            label: "Email for Pennsylvania's annual report notices (optional)",
+            label: "Email for Pennsylvania's annual report notices",
             help: "The Department of State can send courtesy notices to an email address on file for your business.",
             required: false,
           },
@@ -558,9 +568,11 @@ function buildRule(p: EntityProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
-    version: 1,
+    // v1 (effective 2025-01-01) published 2026-09-27. v2 is a wording-only revision of
+    // the intake schema (duplicate "(optional)" in a label); facts are unchanged.
+    version: 2,
     verificationStatus: "verified",
-    effectiveFrom: "2025-01-01",
+    effectiveFrom: "2026-09-28",
     filingName: "Annual Report",
     formNumber: "DSCB:15-146",
     dueRule: { kind: "fixed_annual", month: p.due.month, day: p.due.day },
@@ -577,7 +589,7 @@ function buildRule(p: EntityProfile): ComplianceRuleDef {
       "Legal name and jurisdiction of formation",
       "Pennsylvania entity number",
       "Registered office in Pennsylvania, or a commercial registered office provider (CROP) and county",
-      `At least one ${p.governorLabel.toLowerCase().replace(/s$/, "")}`,
+      `The name of at least one ${p.governorSingular}`,
       p.officersMin > 0 ? "Names and titles of principal officers" : "Names and titles of principal officers, if any",
       "Principal office address (may be outside Pennsylvania; no P.O. boxes)",
     ],
