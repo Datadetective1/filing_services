@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { firstParam, isoDaysAgo } from "@/components/admin/format";
-import { Panel } from "@/components/admin/layout-bits";
+import { ConsoleHeader, Panel, Stat, StatStrip } from "@/components/admin/layout-bits";
 import { cn } from "@/components/ui/cn";
-import { Notice, PageHeader } from "@/components/ui/surface";
+import { Notice } from "@/components/ui/surface";
 import { FUNNEL_STEPS, type AnalyticsEvent } from "@/lib/analytics/events";
 import { requireStaff } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -81,20 +81,20 @@ export default async function AnalyticsPage(props: PageProps<"/admin/analytics">
   const abandoned = [...started].filter((a) => !paid.has(a)).length;
 
   return (
-    <div className="grid gap-5">
-      <PageHeader
+    <div className="grid grid-cols-1 gap-6">
+      <ConsoleHeader
         title="Funnel"
         description={`Conversion over the last ${days} days. Each step counts distinct visitors: by account when signed in, otherwise by an anonymous browser ID.`}
         actions={
-          <nav aria-label="Date range" className="inline-flex rounded-[var(--radius-control)] border border-border bg-surface p-0.5">
+          <nav aria-label="Date range" className="inline-flex rounded-full border border-border bg-surface p-1 shadow-[0_1px_2px_rgb(23_35_29/0.04)]">
             {RANGES.map((r) => (
               <Link
                 key={r}
                 href={r === 7 ? "/admin/analytics" : `/admin/analytics?range=${r}`}
                 aria-current={r === days ? "page" : undefined}
                 className={cn(
-                  "inline-flex min-h-11 items-center rounded-[6px] px-3 text-sm",
-                  r === days ? "bg-surface-2 font-medium text-fg" : "text-muted hover:text-fg",
+                  "inline-flex min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors",
+                  r === days ? "bg-ink text-ink-fg" : "text-muted hover:text-fg",
                 )}
               >
                 Last {r} days
@@ -115,7 +115,7 @@ export default async function AnalyticsPage(props: PageProps<"/admin/analytics">
         </Notice>
       ) : null}
 
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-surface)] border border-border bg-border md:grid-cols-4">
+      <StatStrip cols={4}>
         <Stat label="Overall conversion" value={pct(last, first)} hint={`${FUNNEL_STEPS[0].label} to ${FUNNEL_STEPS[FUNNEL_STEPS.length - 1].label.toLowerCase()}`} />
         <Stat label="Abandoned checkouts" value={abandoned.toLocaleString("en-US")} hint={`${pct(abandoned, started.size)} of ${started.size} who started checkout`} />
         <Stat
@@ -124,25 +124,29 @@ export default async function AnalyticsPage(props: PageProps<"/admin/analytics">
           hint={`${(eventCounts.get("reminder_clicked") ?? 0).toLocaleString("en-US")} clicks in total`}
         />
         <Stat label="Events counted" value={rows.length.toLocaleString("en-US")} hint={unattributed ? `${unattributed} without a visitor ID` : "All attributed"} />
-      </dl>
+      </StatStrip>
 
-      <Panel title="Conversion funnel" bodyClassName="p-0">
-        <ol className="divide-y divide-border">
+      <Panel title="Conversion funnel" description="Distinct visitors at each step. The percentage is the share kept from the step before." bodyClassName="p-0">
+        <ol className="divide-y divide-border/70">
           {steps.map((s, i) => {
             const prev = i > 0 ? steps[i - 1].count : null;
             const width = (s.count / max) * 100;
+            const kept = prev ? s.count / prev : null;
             return (
-              <li key={s.event} className="grid gap-2 px-4 py-3 sm:grid-cols-[14rem_1fr_9rem] sm:items-center sm:gap-4">
-                <span className="text-sm text-fg">
-                  <span className="tnum mr-2 text-subtle">{i + 1}.</span>
+              <li key={s.event} className="grid gap-2 px-5 py-3.5 sm:grid-cols-[15rem_minmax(0,1fr)_10rem] sm:items-center sm:gap-5">
+                <span className="flex items-center gap-2.5 text-sm font-medium text-fg">
+                  <span className="tnum grid size-6 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-semibold text-muted">{i + 1}</span>
                   {s.label}
                 </span>
-                <span className="flex items-center" aria-hidden>
-                  <span className="block h-2.5 rounded-full bg-accent" style={{ width: `${Math.max(width, s.count ? 1 : 0)}%` }} />
+                <span className="relative flex h-3 items-center rounded-full bg-surface-2" aria-hidden>
+                  <span className="block h-3 rounded-full bg-accent" style={{ width: `${Math.max(width, s.count ? 1 : 0)}%` }} />
                 </span>
                 <span className="tnum flex items-baseline justify-between gap-3 text-sm sm:justify-end">
-                  <span className="font-semibold text-fg">{s.count.toLocaleString("en-US")}</span>
-                  <span className="w-16 text-right text-muted" title={prev === null ? undefined : "Conversion from the previous step"}>
+                  <span className="font-display text-base font-semibold text-fg">{s.count.toLocaleString("en-US")}</span>
+                  <span
+                    className={cn("w-16 text-right", kept !== null && kept < 0.5 ? "font-semibold text-warning" : "text-muted")}
+                    title={prev === null ? undefined : "Conversion from the previous step"}
+                  >
                     {prev === null ? "" : pct(s.count, prev)}
                   </span>
                 </span>
@@ -160,12 +164,3 @@ export default async function AnalyticsPage(props: PageProps<"/admin/analytics">
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="grid gap-1 bg-surface px-4 py-3">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="tnum text-xl font-semibold text-fg">{value}</dd>
-      {hint ? <dd className="text-xs text-subtle">{hint}</dd> : null}
-    </div>
-  );
-}

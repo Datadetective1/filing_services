@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { opsButton } from "@/components/admin/button-classes";
 import { firstParam, formatDateTime, humanize, isUuid, shortId } from "@/components/admin/format";
-import { JsonDetails, Pagination, tableLink } from "@/components/admin/layout-bits";
+import { ConsoleHeader, JsonDetails, Pagination, tableLink } from "@/components/admin/layout-bits";
+import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table";
 import { Input, Label, Select } from "@/components/ui/field";
-import { Notice, PageHeader } from "@/components/ui/surface";
-import { Table, TableScroll, TD, TH, THead, TR } from "@/components/ui/table";
+import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { profilesByIds, staffDirectory, staffLabel } from "../_lib/data";
@@ -66,31 +66,31 @@ export default async function AuditPage(props: PageProps<"/admin/audit">) {
   };
 
   return (
-    <div className="grid gap-4">
-      <PageHeader title="Audit log" description="Append-only record of every important action, newest first." />
+    <div className="grid grid-cols-1 gap-5">
+      <ConsoleHeader title="Audit log" description="Append-only record of every important action, newest first." />
 
-      <form method="get" action="/admin/audit" className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-3">
-        <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
+      <form method="get" action="/admin/audit" aria-label="Filter the audit log" className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-[0_1px_2px_rgb(23_35_29/0.04)] sm:p-5">
+        <div className="grid grid-cols-1 gap-x-3 gap-y-4 min-[480px]:grid-cols-2 lg:grid-cols-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="a-action" className="text-xs font-medium text-muted">
+            <Label htmlFor="a-action" className="text-[13px] font-semibold text-muted">
               Action contains
             </Label>
             <Input id="a-action" name="action" defaultValue={action} placeholder="filing.status_changed" autoComplete="off" />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="a-entity" className="text-xs font-medium text-muted">
+            <Label htmlFor="a-entity" className="text-[13px] font-semibold text-muted">
               Entity type
             </Label>
             <Input id="a-entity" name="entity" defaultValue={entity} placeholder="filing" autoComplete="off" />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="a-filing" className="text-xs font-medium text-muted">
+            <Label htmlFor="a-filing" className="text-[13px] font-semibold text-muted">
               Filing ID
             </Label>
             <Input id="a-filing" name="filing" defaultValue={filing} className="font-mono text-sm" autoComplete="off" />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="a-actor" className="text-xs font-medium text-muted">
+            <Label htmlFor="a-actor" className="text-[13px] font-semibold text-muted">
               Actor type
             </Label>
             <Select id="a-actor" name="actor" defaultValue={actor}>
@@ -103,7 +103,7 @@ export default async function AuditPage(props: PageProps<"/admin/audit">) {
             </Select>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 border-t border-border/70 pt-4">
           <button type="submit" className={opsButton("primary")}>
             Filter
           </button>
@@ -134,13 +134,13 @@ export default async function AuditPage(props: PageProps<"/admin/audit">) {
           <tbody>
             {rows.map((r) => (
               <TR key={r.id}>
-                <TD className="tnum whitespace-nowrap py-2">{formatDateTime(r.created_at)}</TD>
-                <TD className="py-2 font-mono text-xs">{r.action}</TD>
-                <TD className="whitespace-nowrap py-2">
+                <TD valign="top" className="tnum whitespace-nowrap">{formatDateTime(r.created_at)}</TD>
+                <TD valign="top" className="font-mono text-xs">{r.action}</TD>
+                <TD valign="top" className="whitespace-nowrap">
                   {actorName(r)}
                   <span className="block text-xs text-muted">{humanize(r.actor_type)}</span>
                 </TD>
-                <TD className="py-2">
+                <TD valign="top">
                   {r.entity_type}
                   {r.entity_id ? (
                     <span className="block font-mono text-xs text-muted" title={r.entity_id}>
@@ -148,7 +148,7 @@ export default async function AuditPage(props: PageProps<"/admin/audit">) {
                     </span>
                   ) : null}
                 </TD>
-                <TD className="py-2">
+                <TD valign="top">
                   {r.filing_id ? (
                     <Link className={`${tableLink} font-mono text-xs`} href={`/admin/filings/${r.filing_id}`}>
                       {shortId(r.filing_id)}
@@ -157,8 +157,8 @@ export default async function AuditPage(props: PageProps<"/admin/audit">) {
                     <span className="text-muted">None</span>
                   )}
                 </TD>
-                <TD className="py-2">
-                  <div className="grid gap-1">
+                <TD valign="top">
+                  <div className="flex flex-wrap items-start gap-x-4">
                     <JsonDetails label="Before" value={r.before} />
                     <JsonDetails label="After" value={r.after} />
                     <JsonDetails label="Metadata" value={r.metadata} />
@@ -168,7 +168,7 @@ export default async function AuditPage(props: PageProps<"/admin/audit">) {
             ))}
             {!rows.length ? (
               <TR>
-                <TD colSpan={6} className="py-6 text-center text-muted">
+                <TD colSpan={6} className="py-10 text-center text-muted">
                   No audit entries match.
                 </TD>
               </TR>

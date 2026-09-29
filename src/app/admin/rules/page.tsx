@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, humanize } from "@/components/admin/format";
-import { tableLink } from "@/components/admin/layout-bits";
-import { Notice, PageHeader } from "@/components/ui/surface";
-import { Table, TableScroll, TD, TH, THead, TR } from "@/components/ui/table";
+import { ConsoleHeader, tableLink } from "@/components/admin/layout-bits";
+import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table";
+import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
 import { listJurisdictions } from "@/lib/compliance/registry";
 import { createClient } from "@/lib/supabase/server";
@@ -67,8 +67,8 @@ export default async function RulesPage() {
       });
 
   return (
-    <div className="grid gap-4">
-      <PageHeader
+    <div className="grid grid-cols-1 gap-5">
+      <ConsoleHeader
         title="State rules"
         description="Read-only. Rules change only through versioned code and the seed script, and each published version is immutable."
       />
@@ -77,10 +77,15 @@ export default async function RulesPage() {
           Showing the code registry. Run the seed script to load states, agencies and rule versions.
         </Notice>
       ) : null}
-      <p className="text-sm text-muted">
-        {verifiedStates.size} of {states.length} jurisdictions have verified rules. Every other state is unverified: the product shows only the official agency
-        link there and makes no claims.
-      </p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[var(--radius-surface)] border border-border bg-surface px-5 py-4 shadow-[0_1px_2px_rgb(23_35_29/0.04)]">
+        <p className="tnum font-display text-[28px] font-semibold leading-none text-fg">
+          {verifiedStates.size}
+          <span className="text-lg text-muted"> of {states.length}</span>
+        </p>
+        <p className="max-w-[70ch] flex-1 text-sm text-muted">
+          jurisdictions have verified rules. Every other state is unverified: the product shows only the official agency link there and makes no claims.
+        </p>
+      </div>
       <TableScroll>
         <Table className="min-w-[56rem]">
           <THead>
@@ -97,22 +102,25 @@ export default async function RulesPage() {
               const verified = verifiedStates.has(s.code);
               return (
                 <TR key={s.code}>
-                  <TD className="py-2">
+                  <TD>
                     <Link className={tableLink} href={`/admin/rules/${s.code}`}>
                       {s.name}
                     </Link>
                     <span className="ml-2 font-mono text-xs text-subtle">{s.code}</span>
                   </TD>
-                  <TD className="py-2">{humanize(s.supportLevel)}</TD>
-                  <TD className="py-2">{s.filingEnabled ? <Badge tone="success">Enabled</Badge> : <span className="text-muted">No</span>}</TD>
-                  <TD className="py-2">
+                  <TD>{humanize(s.supportLevel)}</TD>
+                  <TD>{s.filingEnabled ? <Badge tone="success">Enabled</Badge> : <span className="text-muted">No</span>}</TD>
+                  <TD>
                     {verified ? (
                       <Badge tone="success">Verified ({ruleCounts.get(s.code) ?? 0} rules)</Badge>
                     ) : (
-                      <Badge tone="warning">UNVERIFIED, no rules loaded</Badge>
+                      <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium text-warning">
+                        <span aria-hidden className="size-1.5 rounded-full bg-highlight-strong" />
+                        UNVERIFIED, no rules loaded
+                      </span>
                     )}
                   </TD>
-                  <TD className="py-2">
+                  <TD>
                     {s.agency ? (
                       <span className="grid gap-0.5">
                         <span className="flex flex-wrap items-center gap-2">

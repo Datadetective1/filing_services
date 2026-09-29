@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { IntakeField, IntakeSchema } from "@/lib/compliance/types";
 import { formatAddress, formatRegisteredOffice, type Address, type RegisteredOffice } from "@/lib/intake/validate";
 
-const NOT_PROVIDED = <span className="text-subtle">Not provided</span>;
+const NOT_PROVIDED = <span className="font-normal text-subtle">Not provided</span>;
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return Boolean(v) && typeof v === "object" && !Array.isArray(v);
@@ -42,13 +42,13 @@ function renderValue(field: IntakeField, value: unknown): ReactNode {
       const people = Array.isArray(value)
         ? value.filter(isRecord).filter((p) => text(p.name) || text(p.title))
         : [];
-      if (people.length === 0) return field.required ? NOT_PROVIDED : <span className="text-subtle">None listed</span>;
+      if (people.length === 0) return field.required ? NOT_PROVIDED : <span className="font-normal text-subtle">None listed</span>;
       return (
         <ul className="grid gap-1">
           {people.map((p, i) => (
             <li key={i}>
               {text(p.name)}
-              {text(p.title) ? <span className="text-muted">, {text(p.title)}</span> : null}
+              {text(p.title) ? <span className="font-normal text-muted">, {text(p.title)}</span> : null}
             </li>
           ))}
         </ul>
@@ -63,17 +63,21 @@ function renderValue(field: IntakeField, value: unknown): ReactNode {
  */
 export function AnswersSummary({ schema, answers }: { schema: IntakeSchema; answers: Record<string, unknown> }) {
   return (
-    <div className="grid gap-6">
+    <div className="grid divide-y divide-border">
       {schema.sections.map((section) => (
-        <section key={section.key} aria-labelledby={`answers-${section.key}`} className="grid gap-3">
-          <h3 id={`answers-${section.key}`} className="text-sm font-semibold text-fg">
+        <section
+          key={section.key}
+          aria-labelledby={`answers-${section.key}`}
+          className="grid gap-3 py-5 first:pt-0 last:pb-0 md:grid-cols-[minmax(9rem,12rem)_minmax(0,1fr)] md:gap-6"
+        >
+          <h3 id={`answers-${section.key}`} className="text-[15px] font-semibold text-fg">
             {section.title}
           </h3>
-          <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-[minmax(10rem,14rem)_1fr]">
+          <dl className="grid gap-3">
             {section.fields.map((field) => (
-              <div key={field.key} className="contents">
-                <dt className="text-sm text-muted">{field.label}</dt>
-                <dd className="break-words text-[15px] text-fg">{renderValue(field, answers[field.key])}</dd>
+              <div key={field.key} className="grid gap-0.5">
+                <dt className="text-[13px] font-medium text-muted">{field.label}</dt>
+                <dd className="break-words text-[15px] font-medium text-fg">{renderValue(field, answers[field.key])}</dd>
               </div>
             ))}
           </dl>

@@ -47,7 +47,7 @@ export default function FilingAuthorizationPage() {
 
       <h3>Example</h3>
       <p>For a Pennsylvania annual report for a business named Example Bakery LLC, the text reads:</p>
-      <blockquote className="mt-4 border-l-2 border-border-strong pl-4 text-[15px] leading-7">{example}</blockquote>
+      <blockquote className="mt-4 rounded-[var(--radius-control)] border border-border bg-surface-2/60 px-4 py-3 text-[15px] leading-7">{example}</blockquote>
 
       <h2>What it means</h2>
       <ul>

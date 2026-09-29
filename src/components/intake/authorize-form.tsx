@@ -1,5 +1,6 @@
 "use client";
 
+import { PenNib } from "@phosphor-icons/react";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { useActionState } from "react";
@@ -38,12 +39,12 @@ export function AuthorizeForm({
   const hasErrors = Object.keys(state.errors).length > 0 || Boolean(state.formError);
 
   return (
-    <form key={state.nonce} action={formAction} noValidate className="grid gap-6">
+    <form key={state.nonce} action={formAction} noValidate className="grid gap-7">
       {hasErrors ? (
         <ErrorSummary errors={state.errors} formError={state.formError} describe={(k) => LABELS[k] ?? ""} focusKey={state.nonce} />
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-5 sm:grid-cols-2">
         <LabeledInput
           name="signerName"
           label="Your full name"
@@ -71,21 +72,22 @@ export function AuthorizeForm({
         </datalist>
       </div>
 
-      <div className="grid gap-2">
-        <h3 className="text-sm font-medium text-fg">Authorization</h3>
+      <div className="grid gap-2.5">
+        <h3 className="text-[15px] font-semibold text-fg">What you&apos;re authorizing</h3>
         <p
           id="authorization-text"
-          className="max-h-64 overflow-y-auto rounded-[var(--radius-control)] border border-border bg-surface-2 px-4 py-3 text-sm leading-relaxed text-fg"
+          tabIndex={0}
+          className="max-h-64 overflow-y-auto rounded-[var(--radius-control)] border border-border bg-surface px-4 py-3.5 text-[15px] leading-7 text-fg shadow-[0_1px_2px_rgb(23_35_29/0.04)] outline-none focus-visible:ring-4 focus-visible:ring-accent/15"
         >
           {authorizationText}
         </p>
-        <p className="text-sm text-muted">
+        <p className="text-sm leading-6 text-muted">
           Read the full{" "}
-          <Link href="/legal/filing-authorization" target="_blank" rel="noopener" className="font-medium text-fg underline underline-offset-4">
+          <Link href="/legal/filing-authorization" target="_blank" rel="noopener" className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
             filing authorization
           </Link>{" "}
           and{" "}
-          <Link href="/legal/terms" target="_blank" rel="noopener" className="font-medium text-fg underline underline-offset-4">
+          <Link href="/legal/terms" target="_blank" rel="noopener" className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
             terms of service
           </Link>
           <span className="sr-only"> (open in a new tab)</span>.
@@ -96,7 +98,7 @@ export function AuthorizeForm({
         <div className="grid gap-1.5">
           <label
             htmlFor={fieldId("attest")}
-            className="flex min-h-11 cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-border bg-surface px-3.5 py-3 text-[15px] text-fg has-[:checked]:border-accent"
+            className="flex min-h-12 cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-border-strong bg-surface px-4 py-3.5 text-[15px] text-fg transition-[border-color,box-shadow] hover:border-fg/35 has-[:checked]:border-accent has-[:checked]:ring-1 has-[:checked]:ring-accent"
           >
             <Checkbox
               id={fieldId("attest")}
@@ -114,7 +116,7 @@ export function AuthorizeForm({
         <div className="grid gap-1.5">
           <label
             htmlFor={fieldId("authorize")}
-            className="flex min-h-11 cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-border bg-surface px-3.5 py-3 text-[15px] text-fg has-[:checked]:border-accent"
+            className="flex min-h-12 cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-border-strong bg-surface px-4 py-3.5 text-[15px] text-fg transition-[border-color,box-shadow] hover:border-fg/35 has-[:checked]:border-accent has-[:checked]:ring-1 has-[:checked]:ring-accent"
           >
             <Checkbox
               id={fieldId("authorize")}
@@ -131,8 +133,9 @@ export function AuthorizeForm({
         </div>
       </div>
 
-      <div className="border-t border-border pt-6">
-        <SubmitButton size="lg" pendingLabel="Saving…" className="w-full sm:w-auto">
+      <div className="border-t border-border-strong/60 pt-6">
+        <SubmitButton size="lg" pendingLabel="Saving…" className="w-full sm:w-auto sm:px-7">
+          <PenNib size={18} weight="fill" aria-hidden />
           {submitLabel}
         </SubmitButton>
       </div>

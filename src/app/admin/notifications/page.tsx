@@ -3,10 +3,10 @@ import Link from "next/link";
 import { StatusPill } from "@/components/admin/badges";
 import { opsButton } from "@/components/admin/button-classes";
 import { firstParam, formatDateTime } from "@/components/admin/format";
-import { Pagination, tableLink } from "@/components/admin/layout-bits";
+import { ConsoleHeader, Pagination, tableLink } from "@/components/admin/layout-bits";
+import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table";
 import { Label, Select } from "@/components/ui/field";
-import { Notice, PageHeader } from "@/components/ui/surface";
-import { Table, TableScroll, TD, TH, THead, TR } from "@/components/ui/table";
+import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
 import { DEFAULT_TEMPLATES } from "@/lib/email/templates";
 import { createClient } from "@/lib/supabase/server";
@@ -46,15 +46,15 @@ export default async function NotificationsPage(props: PageProps<"/admin/notific
   const rows = (data ?? []) as NotificationRow[];
 
   return (
-    <div className="grid gap-4">
-      <PageHeader title="Emails" description="Every email the system has rendered, newest first." />
+    <div className="grid grid-cols-1 gap-5">
+      <ConsoleHeader title="Emails" description="Every email the system has rendered, newest first." />
       <Notice tone="info" title="About the outbox">
         With EMAIL_PROVIDER=outbox, emails are recorded here and not delivered to anyone. Rows with provider &ldquo;outbox&rdquo; were never sent.
       </Notice>
 
-      <form method="get" action="/admin/notifications" className="flex flex-wrap items-end gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-3">
-        <div className="grid min-w-44 gap-1.5">
-          <Label htmlFor="n-status" className="text-xs font-medium text-muted">
+      <form method="get" action="/admin/notifications" aria-label="Filter emails" className="flex flex-wrap items-end gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-[0_1px_2px_rgb(23_35_29/0.04)] sm:p-5">
+        <div className="grid min-w-44 flex-1 gap-1.5 sm:flex-none">
+          <Label htmlFor="n-status" className="text-[13px] font-semibold text-muted">
             Status
           </Label>
           <Select id="n-status" name="status" defaultValue={status}>
@@ -66,8 +66,8 @@ export default async function NotificationsPage(props: PageProps<"/admin/notific
             ))}
           </Select>
         </div>
-        <div className="grid min-w-56 gap-1.5">
-          <Label htmlFor="n-template" className="text-xs font-medium text-muted">
+        <div className="grid min-w-56 flex-1 gap-1.5 sm:flex-none">
+          <Label htmlFor="n-template" className="text-[13px] font-semibold text-muted">
             Template
           </Label>
           <Select id="n-template" name="template" defaultValue={template}>
@@ -107,25 +107,25 @@ export default async function NotificationsPage(props: PageProps<"/admin/notific
           </THead>
           <tbody>
             {rows.map((n) => (
-              <TR key={n.id} className="hover:bg-surface-2/60">
-                <TD className="tnum whitespace-nowrap py-2">{formatDateTime(n.created_at)}</TD>
-                <TD className="py-2 font-mono text-xs">{n.template_key}</TD>
-                <TD className="max-w-56 truncate py-2 text-muted">{n.to_address}</TD>
-                <TD className="max-w-96 py-2">
+              <TR key={n.id}>
+                <TD className="tnum whitespace-nowrap">{formatDateTime(n.created_at)}</TD>
+                <TD className="font-mono text-xs">{n.template_key}</TD>
+                <TD className="max-w-56 truncate text-muted">{n.to_address}</TD>
+                <TD className="max-w-96">
                   <Link className={tableLink} href={`/admin/notifications/${n.id}`}>
                     {n.subject}
                   </Link>
                   {n.error ? <span className="block text-xs text-danger">{n.error}</span> : null}
                 </TD>
-                <TD className="py-2">
+                <TD>
                   <StatusPill status={n.status} />
                 </TD>
-                <TD className="py-2 text-muted">{n.provider ?? "None"}</TD>
+                <TD className="text-muted">{n.provider ?? "None"}</TD>
               </TR>
             ))}
             {!rows.length ? (
               <TR>
-                <TD colSpan={6} className="py-6 text-center text-muted">
+                <TD colSpan={6} className="py-10 text-center text-muted">
                   No emails match.
                 </TD>
               </TR>

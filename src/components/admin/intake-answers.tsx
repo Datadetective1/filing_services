@@ -50,21 +50,24 @@ export function IntakeAnswersView({ schema, answers }: { schema: IntakeSchema | 
     return <p className="text-sm text-muted">This filing has no intake schema in its rule snapshot.</p>;
   }
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-6">
       {schema.sections.map((section) => (
-        <div key={section.key} className="grid gap-1.5">
-          <h3 className="text-sm font-semibold text-fg">{section.title}</h3>
-          <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[minmax(8rem,14rem)_1fr]">
+        <div key={section.key} className="grid gap-2">
+          <h3 className="text-[13px] font-semibold text-subtle">{section.title}</h3>
+          <dl className="grid text-sm">
             {section.fields.map((field) => {
               const value = answers[field.key];
               const missing = value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
               return (
-                <div key={field.key} className="contents">
+                <div
+                  key={field.key}
+                  className="grid gap-0.5 border-t border-border/60 py-2.5 first:border-t-0 first:pt-0 last:pb-0 sm:grid-cols-[minmax(8rem,14rem)_minmax(0,1fr)] sm:gap-4"
+                >
                   <dt className="text-muted">
                     {field.label}
                     {field.required ? null : <span className="text-subtle"> (optional)</span>}
                   </dt>
-                  <dd className={missing && field.required ? "font-medium text-danger" : "min-w-0 break-words text-fg"}>
+                  <dd className={missing && field.required ? "font-semibold text-danger" : "min-w-0 break-words text-fg"}>
                     {field.type === "people" && Array.isArray(value) ? (
                       <PeopleList people={value as Person[]} />
                     ) : missing && field.required ? (

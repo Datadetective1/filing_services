@@ -1,13 +1,16 @@
+import { SealCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import { site } from "@/config/site";
-import { listJurisdictions } from "@/lib/compliance/registry";
+import { findRule, getJurisdiction, listJurisdictions } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
+import { verifiedText } from "@/lib/compliance/view";
 import { todayInTimeZone } from "@/lib/domain/dates";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPES, isEntityType } from "@/lib/domain/types";
 import { readPendingLookup } from "@/lib/lookup/pending";
 import { LookupForm } from "@/components/funnel/lookup-form";
 import type { LookupJurisdictionOption, LookupValues } from "@/components/funnel/types";
-import { Card, Container, Notice } from "@/components/ui/surface";
+import { Photo } from "@/components/media/photo";
+import { Container, Notice } from "@/components/ui/surface";
 import { submitLookup } from "./actions";
 import { readLookupHomeJurisdiction } from "./lookup-extras";
 
@@ -53,36 +56,67 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
 
   const entityOptions = ENTITY_TYPES.map((t) => ({ value: t, label: ENTITY_TYPE_LABELS[t] }));
 
+  // The trust note on the photo cites the verified Pennsylvania rules and when they were last checked.
+  const pa = getJurisdiction("PA");
+  const paRule = findRule("PA", "llc");
+  const agency = pa?.agency.name.split(" - ")[0] ?? "Pennsylvania Department of State";
+
   return (
-    <Container className="max-w-2xl py-10 sm:py-16">
-      <div className="grid gap-3">
-        <h1 className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl">Find your business</h1>
-        <p className="max-w-[58ch] text-[17px] leading-relaxed text-muted">
-          Tell us about your business and we&apos;ll show what it needs to file, when it&apos;s due and what it costs. We
-          currently prepare and file Pennsylvania annual reports. For other states we&apos;ll point you to the official
-          agency.
-        </p>
-      </div>
+    <section aria-labelledby="find-title" className="overflow-hidden">
+      <Container className="grid gap-10 pb-16 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-14 lg:pb-24 lg:pt-14">
+        <div className="grid min-w-0 content-start gap-7 sm:gap-8">
+          <div className="grid gap-3">
+            <h1
+              id="find-title"
+              className="text-[36px] font-semibold leading-[1.04] tracking-[-0.03em] text-fg sm:text-[52px]"
+            >
+              Find out <span className="mark-highlight">what&apos;s due</span>.
+            </h1>
+            <p className="max-w-[44ch] text-[17px] leading-relaxed text-muted sm:text-lg">
+              Your deadline, the state fee and the official source, in about a minute. No account needed.
+            </p>
+          </div>
 
-      {one(sp.missing) === "1" ? (
-        <Notice tone="info" role="status" title="Let's pick up where you left off" className="mt-6">
-          We couldn&apos;t find the details you entered earlier in this browser. Enter them again to continue.
-        </Notice>
-      ) : null}
+          {one(sp.missing) === "1" ? (
+            <Notice tone="info" role="status" title="Let's pick up where you left off">
+              We couldn&apos;t find the details you entered earlier in this browser. Enter them again to continue.
+            </Notice>
+          ) : null}
 
-      <Card className="mt-8 p-5 sm:p-8">
-        <LookupForm
-          action={submitLookup}
-          jurisdictions={options}
-          entityOptions={entityOptions}
-          defaults={defaults}
-          maxDate={todayInTimeZone("America/New_York")}
-        />
-      </Card>
+          <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
+            <LookupForm
+              action={submitLookup}
+              jurisdictions={options}
+              entityOptions={entityOptions}
+              defaults={defaults}
+              maxDate={todayInTimeZone("America/New_York")}
+            />
+          </div>
 
-      <p className="mt-6 text-sm leading-relaxed text-muted">
-        {site.disclaimer} You can always file directly with your state for the state fee alone.
-      </p>
-    </Container>
+          <p className="max-w-[62ch] text-sm leading-6 text-subtle">
+            {site.disclaimer} You can always file directly with your state for the state fee alone.
+          </p>
+        </div>
+
+        <div className="relative max-lg:hidden lg:sticky lg:top-[92px] lg:self-start">
+          <Photo
+            photo="cafeLaptop"
+            priority
+            sizes="(min-width: 1024px) 42vw, 1px"
+            className="aspect-[4/5] max-h-[calc(100dvh-8rem)] min-h-[34rem] w-full"
+            focus="50% 28%"
+          />
+          {paRule ? (
+            <div className="absolute inset-x-5 bottom-5 flex items-start gap-3 rounded-[var(--radius-surface)] bg-surface/95 p-4 shadow-lift backdrop-blur-sm">
+              <SealCheck size={22} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
+              <p className="text-[15px] leading-6 text-fg">
+                <span className="font-semibold">Pennsylvania deadlines and fees come from the {agency}.</span>{" "}
+                <span className="text-muted">Last checked {verifiedText(paRule.lastVerifiedAt)}.</span>
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </Container>
+    </section>
   );
 }

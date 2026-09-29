@@ -1,11 +1,11 @@
-import { CheckCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, Flask, XCircle } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
 import { formatCents } from "@/lib/domain/money";
 import { ButtonLink } from "@/components/ui/button";
-import { Card, Notice } from "@/components/ui/surface";
+import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cancelTest, declineTest, payTest } from "./actions";
 import { SANDBOX_SESSION_RE, lineItemsOf, loadOwnedSession, localPath, sandboxProvider } from "./session";
@@ -30,14 +30,25 @@ export default async function SandboxCheckoutPage({ params, searchParams }: Page
 
   return (
     <div className="w-full max-w-md">
-      <Card className="overflow-hidden shadow-card">
-        <div className="grid gap-1 border-b border-border px-5 py-5 sm:px-6">
-          <p className="text-sm text-muted">Pay {site.name}</p>
-          <p className="tnum text-3xl font-semibold tracking-tight text-fg">{formatCents(session.amount_cents)}</p>
-          {session.customer_email ? <p className="text-sm text-subtle [overflow-wrap:anywhere]">{session.customer_email}</p> : null}
+      <div className="overflow-hidden rounded-[var(--radius-surface)] border-2 border-dashed border-warning/40 bg-surface shadow-card">
+        <div className="grid gap-1 border-b border-dashed border-border-strong px-5 py-6 sm:px-7">
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-mono text-[11px] uppercase leading-5 tracking-wider text-subtle">
+              Simulated checkout
+              <span className="block">Pay {site.name}</span>
+            </p>
+            <span
+              aria-hidden
+              className="shrink-0 rotate-[6deg] rounded-[4px] border-2 border-warning px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-warning"
+            >
+              Test only
+            </span>
+          </div>
+          <p className="tnum mt-2 font-display text-[40px] font-semibold leading-none tracking-tight text-fg">{formatCents(session.amount_cents)}</p>
+          {session.customer_email ? <p className="mt-1 text-sm text-subtle [overflow-wrap:anywhere]">{session.customer_email}</p> : null}
         </div>
 
-        <div className="px-5 py-5 sm:px-6">
+        <div className="px-5 py-5 sm:px-7">
           <h1 className="sr-only">Test checkout</h1>
           <ul className="grid gap-3 text-[15px]">
             {items.map((item, i) => (
@@ -48,12 +59,12 @@ export default async function SandboxCheckoutPage({ params, searchParams }: Page
             ))}
           </ul>
           <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-border pt-4">
-            <span className="font-medium text-fg">Total</span>
+            <span className="font-semibold text-fg">Total</span>
             <span className="tnum text-lg font-semibold text-fg">{formatCents(session.amount_cents)}</span>
           </div>
         </div>
 
-        <div className="grid gap-3 border-t border-border bg-surface-2/60 px-5 py-5 sm:px-6">
+        <div className="grid gap-3 border-t border-border bg-warning-soft/50 px-5 py-5 sm:px-7">
           {sp.error === "1" ? (
             <Notice tone="danger" role="alert" title="The simulated payment couldn't be processed">
               Check the server logs, then try again.
@@ -62,7 +73,8 @@ export default async function SandboxCheckoutPage({ params, searchParams }: Page
 
           {session.status === "open" ? (
             <>
-              <p className="text-sm text-muted">
+              <p className="flex items-start gap-2 text-sm leading-6 text-fg">
+                <Flask size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-warning" />
                 This page simulates a hosted checkout. There are no card fields and nothing is charged.
               </p>
               <form action={payTest.bind(null, session.id)}>
@@ -103,7 +115,7 @@ export default async function SandboxCheckoutPage({ params, searchParams }: Page
             </>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

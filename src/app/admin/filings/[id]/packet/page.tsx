@@ -7,6 +7,7 @@ import { opsButton } from "@/components/admin/button-classes";
 import { formatDate, formatDateTime, money, opsToday } from "@/components/admin/format";
 import { answerText } from "@/components/admin/intake-answers";
 import { PrintButton } from "@/components/admin/print-button";
+import { cn } from "@/components/ui/cn";
 import { site } from "@/config/site";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import { PA_URLS } from "@/lib/compliance/states/pennsylvania";
@@ -60,171 +61,185 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
   const days = daysBetween(today, filing.due_date);
 
   return (
-    <article className="packet mx-auto grid max-w-3xl gap-6 text-fg print:max-w-none print:gap-4">
+    <article className="packet mx-auto grid max-w-3xl gap-5 text-fg print:max-w-none print:gap-0">
       {/* Hide the console chrome when printing. */}
       <style>{`@media print { aside, nav[aria-label="Operations"] { display: none !important; } main { padding: 0 !important; } .packet section { break-inside: avoid; } }`}</style>
 
       <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
-        <Link href={`/admin/filings/${filing.id}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted hover:text-fg">
+        <Link href={`/admin/filings/${filing.id}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-control)] text-sm font-medium text-muted hover:text-fg">
           <ArrowLeft size={16} aria-hidden />
           Back to the order
         </Link>
         <PrintButton label="Print packet" />
       </div>
 
-      <header className="grid gap-2 border-b border-border pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        <p className="text-[15px] text-muted">
-          {legalName} · {filing.period_year} report · Prepared {formatDateTime(new Date().toISOString())}
-        </p>
-        <p className="text-xs text-subtle">
-          Internal working document for {site.name} staff. {site.name} is a private filing service, not a government agency.
-        </p>
-      </header>
+      <div className="overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface shadow-card print:overflow-visible print:rounded-none print:border-0 print:shadow-none">
+        <header className="grid gap-2 border-b-2 border-fg/80 px-5 pb-5 pt-6 sm:px-8 print:px-0">
+          <p className="text-[13px] font-semibold text-subtle">
+            {site.name} filing packet · Internal
+          </p>
+          <h1 className="text-[26px] font-semibold leading-tight sm:text-[30px]">{title}</h1>
+          <p className="text-[15px] text-muted">
+            <span className="font-semibold text-fg">{legalName}</span> · {filing.period_year} report · Prepared {formatDateTime(new Date().toISOString())}
+          </p>
+          <p className="text-xs text-subtle">
+            Internal working document for {site.name} staff. {site.name} is a private filing service, not a government agency.
+          </p>
+        </header>
 
-      {!authorization ? (
-        <Warn title="No customer authorization is recorded">Do not file. Ask the customer to review and authorize the filing first.</Warn>
-      ) : null}
-      {d.answersChangedSinceAuthorization ? (
-        <Warn title="Answers changed after the customer authorized them">
-          Do not file from this packet until the customer authorizes the current information again.
-        </Warn>
-      ) : null}
-      {snapshot.verification_status !== "verified" ? <Warn title="This filing's rule is not verified">Escalate before filing.</Warn> : null}
+        {!authorization || d.answersChangedSinceAuthorization || snapshot.verification_status !== "verified" ? (
+          <div className="grid gap-3 border-b border-border px-5 py-5 sm:px-8 print:px-0">
+            {!authorization ? (
+              <Warn title="No customer authorization is recorded">Do not file. Ask the customer to review and authorize the filing first.</Warn>
+            ) : null}
+            {d.answersChangedSinceAuthorization ? (
+              <Warn title="Answers changed after the customer authorized them">
+                Do not file from this packet until the customer authorizes the current information again.
+              </Warn>
+            ) : null}
+            {snapshot.verification_status !== "verified" ? <Warn title="This filing's rule is not verified">Escalate before filing.</Warn> : null}
+          </div>
+        ) : null}
 
-      <PacketSection title="Deadline">
-        <Rows
-          rows={[
-            ["Due date", <span key="due" className="tnum">{formatLongDate(filing.due_date)}</span>],
-            ["Days remaining", <span key="days" className={days < 0 ? "tnum font-semibold text-danger" : "tnum"}>{describeDaysRemaining(days)}</span>],
-          ]}
-        />
-      </PacketSection>
-
-      <PacketSection title="Information to enter">
-        <Rows
-          rows={[
-            ["Legal name", <Copyable key="name">{legalName}</Copyable>],
-            [
-              "Entity number",
-              entityNumber ? (
-                <Copyable key="num" mono>
-                  {entityNumber}
-                </Copyable>
-              ) : searchUrl ? (
-                <a key="num" href={searchUrl} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4">
-                  Look up on the official business search
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
-              ) : (
-                "Not provided"
-              ),
-            ],
-            ["Jurisdiction of formation", str(answers.jurisdiction_of_formation) || "Not provided"],
-            ["Registered office", registeredOfficeText(answers.registered_office)],
-            ["Principal office", principalOfficeText(answers.principal_office)],
-            ["Governors", <PeopleLines key="gov" people={governors} />],
-            ["Principal officers", <PeopleLines key="off" people={officers} emptyText="None listed" />],
-            ["State notice email", noticeEmail || <span key="email" className="text-muted">Not provided (optional)</span>],
-            ["Customer's note on changes", changes || <span key="chg" className="text-muted">No answer</span>],
-          ]}
-        />
-      </PacketSection>
-
-      <PacketSection title="State fee and official site">
-        <div className="grid gap-4">
+        <PacketSection n={1} title="Deadline">
           <Rows
             rows={[
-              ["Government fee to pay on the state site", <span key="fee" className="tnum text-lg font-semibold">{money(governmentFeeCents)}</span>],
-              ["Official filing URL", snapshot.official_filing_url ? <span key="url" className="break-all">{snapshot.official_filing_url}</span> : "Not recorded"],
+              ["Due date", <span key="due" className="tnum font-semibold">{formatLongDate(filing.due_date)}</span>],
+              [
+                "Days remaining",
+                <span key="days" className={days < 0 ? "tnum font-semibold text-danger" : days <= 3 ? "tnum font-semibold text-warning" : "tnum"}>
+                  {describeDaysRemaining(days)}
+                </span>,
+              ],
             ]}
           />
-          {snapshot.official_filing_url ? (
-            <a href={snapshot.official_filing_url} target="_blank" rel="noopener noreferrer" className={opsButton("primary", "w-full sm:w-auto print:hidden")}>
-              Open official filing site
-              <ArrowSquareOut size={18} aria-hidden />
-              <span className="sr-only">(opens in a new tab)</span>
-            </a>
-          ) : null}
-        </div>
-      </PacketSection>
+        </PacketSection>
 
-      <PacketSection title="Official process">
-        <div className="grid gap-4 text-[15px] leading-relaxed">
-          {snapshot.filing_method_summary ? (
-            <p>
-              Based on the {agencyName}&apos;s published requirements: {snapshot.filing_method_summary}
+        <PacketSection n={2} title="Information to enter" hint="Copy each value exactly as shown.">
+          <Rows
+            rows={[
+              ["Legal name", <Copyable key="name">{legalName}</Copyable>],
+              [
+                "Entity number",
+                entityNumber ? (
+                  <Copyable key="num" mono>
+                    {entityNumber}
+                  </Copyable>
+                ) : searchUrl ? (
+                  <a key="num" href={searchUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline underline-offset-4">
+                    Look up on the official business search
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                ) : (
+                  "Not provided"
+                ),
+              ],
+              ["Jurisdiction of formation", str(answers.jurisdiction_of_formation) || "Not provided"],
+              ["Registered office", registeredOfficeText(answers.registered_office)],
+              ["Principal office", principalOfficeText(answers.principal_office)],
+              ["Governors", <PeopleLines key="gov" people={governors} />],
+              ["Principal officers", <PeopleLines key="off" people={officers} emptyText="None listed" />],
+              ["State notice email", noticeEmail || <span key="email" className="text-muted">Not provided (optional)</span>],
+              ["Customer's note on changes", changes || <span key="chg" className="text-muted">No answer</span>],
+            ]}
+          />
+        </PacketSection>
+
+        <PacketSection n={3} title="State fee and official site">
+          <div className="grid gap-4">
+            <Rows
+              rows={[
+                ["Government fee to pay on the state site", <span key="fee" className="tnum font-display text-xl font-semibold">{money(governmentFeeCents)}</span>],
+                ["Official filing URL", snapshot.official_filing_url ? <span key="url" className="break-all font-mono text-sm">{snapshot.official_filing_url}</span> : "Not recorded"],
+              ]}
+            />
+            {snapshot.official_filing_url ? (
+              <a href={snapshot.official_filing_url} target="_blank" rel="noopener noreferrer" className={opsButton("primary", "w-full sm:w-fit print:hidden")}>
+                Open official filing site
+                <ArrowSquareOut size={18} aria-hidden />
+                <span className="sr-only">(opens in a new tab)</span>
+              </a>
+            ) : null}
+          </div>
+        </PacketSection>
+
+        <PacketSection n={4} title="Official process">
+          <div className="grid gap-4 text-[15px] leading-relaxed">
+            {snapshot.filing_method_summary ? (
+              <p>
+                Based on the {agencyName}&apos;s published requirements: {snapshot.filing_method_summary}
+              </p>
+            ) : (
+              <p className="text-muted">No filing method is recorded for this rule version.</p>
+            )}
+            {isPA ? (
+              <div className="grid gap-3">
+                <h3 className="text-[15px] font-semibold">Pennsylvania checklist</h3>
+                <ol className="grid gap-2.5">
+                  <Step n={1}>
+                    Log in to{" "}
+                    <a href={PA_URLS.onlineFiling} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline underline-offset-4">
+                      file.dos.pa.gov
+                    </a>{" "}
+                    with the {site.name} Business Filing Services account.
+                  </Step>
+                  <Step n={2}>Use Business Search to find the entity{entityNumber ? ` (entity number ${entityNumber})` : " by its exact legal name"}.</Step>
+                  <Step n={3}>Choose &ldquo;File Annual Report&rdquo;.</Step>
+                  <Step n={4}>Confirm or update each field against the information in this packet.</Step>
+                  <Step n={5}>E-sign with the signatory and title in the signature block below.</Step>
+                  <Step n={6}>Pay the state fee of {money(governmentFeeCents)}.</Step>
+                  <Step n={7}>
+                    Download the filed form and the Acknowledgement Letter immediately. The Department of State keeps them in the portal for only 60 days.
+                  </Step>
+                  <Step n={8}>Record the confirmation number and upload both documents on the order page.</Step>
+                </ol>
+              </div>
+            ) : null}
+          </div>
+        </PacketSection>
+
+        <PacketSection n={5} title="Signature block">
+          <div className="grid gap-2">
+            <p className="rounded-[var(--radius-control)] border border-border-strong bg-bg p-4 font-mono text-[14px] leading-relaxed print:bg-white">
+              Signed by: {site.name} by {signerOperator}, Authorized Representative, per customer authorization recorded{" "}
+              {authorization ? formatDateTime(authorization.created_at) : "(none recorded)"}
+              {authorization ? ` (signer: ${authorization.signer_name}, ${authorization.signer_title})` : ""}
             </p>
-          ) : (
-            <p className="text-muted">No filing method is recorded for this rule version.</p>
-          )}
-          {isPA ? (
-            <div className="grid gap-2">
-              <h3 className="text-[15px] font-semibold">Pennsylvania checklist</h3>
-              <ol className="grid list-decimal gap-2 pl-5 marker:text-muted">
-                <Step>
-                  Log in to{" "}
-                  <a href={PA_URLS.onlineFiling} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
-                    file.dos.pa.gov
-                  </a>{" "}
-                  with the {site.name} Business Filing Services account.
-                </Step>
-                <Step>Use Business Search to find the entity{entityNumber ? ` (entity number ${entityNumber})` : " by its exact legal name"}.</Step>
-                <Step>Choose &ldquo;File Annual Report&rdquo;.</Step>
-                <Step>Confirm or update each field against the information in this packet.</Step>
-                <Step>E-sign with the signatory and title in the signature block below.</Step>
-                <Step>Pay the state fee of {money(governmentFeeCents)}.</Step>
-                <Step>
-                  Download the filed form and the Acknowledgement Letter immediately. The Department of State keeps them in the portal for only 60 days.
-                </Step>
-                <Step>Record the confirmation number and upload both documents on the order page.</Step>
-              </ol>
-            </div>
-          ) : null}
-        </div>
-      </PacketSection>
+            <p className="text-xs text-muted">Signature wording pending counsel review.</p>
+          </div>
+        </PacketSection>
 
-      <PacketSection title="Signature block">
-        <div className="grid gap-2">
-          <p className="rounded-[var(--radius-control)] border border-border-strong bg-surface-2 p-3 text-[15px] leading-relaxed print:bg-white">
-            Signed by: {site.name} by {signerOperator}, Authorized Representative, per customer authorization recorded{" "}
-            {authorization ? formatDateTime(authorization.created_at) : "(none recorded)"}
-            {authorization ? ` (signer: ${authorization.signer_name}, ${authorization.signer_title})` : ""}
-          </p>
-          <p className="text-xs text-muted">Signature wording pending counsel review.</p>
-        </div>
-      </PacketSection>
+        <PacketSection n={6} title="Customer authorization">
+          <Rows
+            rows={[
+              ["Recorded", authorization ? "Yes" : <span key="no" className="font-semibold text-danger">No</span>],
+              ["Recorded at", authorization ? formatDateTime(authorization.created_at) : "Not recorded"],
+              ["Signer", authorization ? `${authorization.signer_name}, ${authorization.signer_title}` : "Not recorded"],
+              ["Answers hash", authorization ? <span key="hash" className="break-all font-mono text-xs">{authorization.answers_sha256}</span> : "Not recorded"],
+              ["Terms version", authorization?.terms_version ?? "Not recorded"],
+            ]}
+          />
+        </PacketSection>
 
-      <PacketSection title="Customer authorization">
-        <Rows
-          rows={[
-            ["Recorded", authorization ? "Yes" : <span key="no" className="font-semibold text-danger">No</span>],
-            ["Recorded at", authorization ? formatDateTime(authorization.created_at) : "Not recorded"],
-            ["Signer", authorization ? `${authorization.signer_name}, ${authorization.signer_title}` : "Not recorded"],
-            ["Answers hash", authorization ? <span key="hash" className="break-all font-mono text-xs">{authorization.answers_sha256}</span> : "Not recorded"],
-            ["Terms version", authorization?.terms_version ?? "Not recorded"],
-          ]}
-        />
-      </PacketSection>
+        <PacketSection n={7} title="Rule">
+          <Rows
+            rows={[
+              ["Rule version", <span key="rv" className="break-all font-mono text-xs">{filing.rule_version_id}</span>],
+              ["Version", snapshot.version ? `v${snapshot.version}, effective ${formatDate(snapshot.effective_from)}` : "Unknown"],
+              ["Last verified", snapshot.last_verified_at ? formatDate(snapshot.last_verified_at) : "Unknown"],
+              ["Verification", snapshot.verification_status === "verified" ? "Verified" : "Not verified"],
+            ]}
+          />
+        </PacketSection>
 
-      <PacketSection title="Rule">
-        <Rows
-          rows={[
-            ["Rule version", <span key="rv" className="break-all font-mono text-xs">{filing.rule_version_id}</span>],
-            ["Version", snapshot.version ? `v${snapshot.version}, effective ${formatDate(snapshot.effective_from)}` : "Unknown"],
-            ["Last verified", snapshot.last_verified_at ? formatDate(snapshot.last_verified_at) : "Unknown"],
-            ["Verification", snapshot.verification_status === "verified" ? "Verified" : "Not verified"],
-          ]}
-        />
-      </PacketSection>
-
-      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-sm text-muted">
-        <Link href={`/admin/filings/${filing.id}`} className="inline-flex min-h-11 items-center gap-1.5 hover:text-fg print:hidden">
-          <ArrowLeft size={16} aria-hidden />
-          Back to the order
-        </Link>
-        <span className="tnum">Order {filing.id}</span>
-      </footer>
+        <footer className="flex flex-wrap items-center justify-between gap-2 bg-bg px-5 py-4 text-sm text-muted sm:px-8 print:bg-white print:px-0">
+          <Link href={`/admin/filings/${filing.id}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-control)] hover:text-fg print:hidden">
+            <ArrowLeft size={16} aria-hidden />
+            Back to the order
+          </Link>
+          <span className="tnum break-all font-mono text-xs">Order {filing.id}</span>
+        </footer>
+      </div>
     </article>
   );
 }
@@ -250,10 +265,21 @@ function principalOfficeText(value: unknown): string {
   return a.county ? `${formatAddress(a)} (${a.county} County)` : formatAddress(a);
 }
 
-function PacketSection({ title, children }: { title: string; children: ReactNode }) {
+function PacketSection({ n, title, hint, children }: { n: number; title: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:p-5 print:rounded-none print:border-x-0 print:border-b-0 print:px-0">
-      <h2 className="text-base font-semibold tracking-tight">{title}</h2>
+    <section className="grid gap-4 border-b border-border px-5 py-5 last:border-b-0 sm:px-8 sm:py-6 print:px-0 print:py-4">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="tnum grid size-7 shrink-0 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent-soft-fg print:border print:border-black print:bg-white print:text-black"
+        >
+          {n}
+        </span>
+        <div className="grid">
+          <h2 className="text-[17px] font-semibold leading-snug">{title}</h2>
+          {hint ? <p className="text-xs text-muted print:hidden">{hint}</p> : null}
+        </div>
+      </div>
       {children}
     </section>
   );
@@ -261,9 +287,9 @@ function PacketSection({ title, children }: { title: string; children: ReactNode
 
 function Rows({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="grid divide-y divide-border text-[15px]">
+    <dl className="grid divide-y divide-border/70 text-[15px]">
       {rows.map(([term, value]) => (
-        <div key={term} className="grid gap-1 py-2 first:pt-0 last:pb-0 sm:grid-cols-[14rem_1fr] sm:gap-4">
+        <div key={term} className="grid gap-1 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-4">
           <dt className="text-sm text-muted">{term}</dt>
           <dd className="min-w-0 break-words">{value}</dd>
         </div>
@@ -273,7 +299,16 @@ function Rows({ rows }: { rows: [string, ReactNode][] }) {
 }
 
 function Copyable({ children, mono }: { children: ReactNode; mono?: boolean }) {
-  return <span className={mono ? "select-all font-mono text-[15px] font-medium" : "select-all font-medium"}>{children}</span>;
+  return (
+    <span
+      className={cn(
+        "select-all rounded-[6px] bg-highlight-soft/60 px-1.5 py-0.5 font-semibold [box-decoration-break:clone] print:bg-transparent print:px-0",
+        mono ? "font-mono text-[15px]" : "",
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 function PeopleLines({ people, emptyText = "None listed" }: { people: Person[]; emptyText?: string }) {
@@ -282,7 +317,7 @@ function PeopleLines({ people, emptyText = "None listed" }: { people: Person[]; 
     <ul className="grid gap-1">
       {people.map((p, i) => (
         <li key={`${p.name}-${i}`}>
-          <span className="font-medium">{p.name}</span>
+          <span className="font-semibold">{p.name}</span>
           <span className="text-muted">, {p.title}</span>
         </li>
       ))}
@@ -290,13 +325,20 @@ function PeopleLines({ people, emptyText = "None listed" }: { people: Person[]; 
   );
 }
 
-function Step({ children }: { children: ReactNode }) {
-  return <li className="pl-1">{children}</li>;
+function Step({ n, children }: { n: number; children: ReactNode }) {
+  return (
+    <li className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2">
+      <span aria-hidden className="tnum mt-0.5 grid size-6 place-items-center rounded-full border border-border-strong text-xs font-semibold text-muted">
+        {n}
+      </span>
+      <span>{children}</span>
+    </li>
+  );
 }
 
 function Warn({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div role="alert" className="flex gap-3 rounded-[var(--radius-surface)] border border-danger/30 bg-danger-soft px-4 py-3 text-sm">
+    <div role="alert" className="flex gap-3 rounded-[var(--radius-control)] border border-danger/30 bg-danger-soft px-4 py-3 text-sm print:border-black print:bg-white">
       <Warning size={20} weight="fill" className="mt-0.5 shrink-0 text-danger" aria-hidden />
       <div>
         <p className="font-semibold text-fg">{title}</p>

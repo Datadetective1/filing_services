@@ -42,13 +42,14 @@ export default async function NotificationDetailPage(props: PageProps<"/admin/no
   const n = data as NotificationDetail;
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-5">
-      <Link href="/admin/notifications" className="inline-flex min-h-11 w-fit items-center gap-1.5 text-sm text-muted hover:text-fg">
+    <div className="mx-auto grid max-w-5xl grid-cols-1 gap-5">
+      <Link href="/admin/notifications" className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-[var(--radius-control)] text-sm font-medium text-muted hover:text-fg">
         <ArrowLeft size={16} aria-hidden />
         Emails
       </Link>
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-fg">{n.subject}</h1>
+        <p className="text-[13px] font-semibold text-subtle">Email</p>
+        <h1 className="text-[26px] font-semibold leading-tight text-fg sm:text-[30px]">{n.subject}</h1>
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <StatusPill status={n.status} />
           <span>

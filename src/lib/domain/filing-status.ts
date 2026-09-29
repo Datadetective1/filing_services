@@ -44,7 +44,7 @@ export function isFilingStatus(value: unknown): value is FilingStatus {
 }
 
 export const FILING_STATUS_LABELS: Record<FilingStatus, string> = {
-  draft: "Not started",
+  draft: "Draft",
   needs_information: "Needs information",
   ready_for_review: "Ready for review",
   ready_to_file: "Ready to file",

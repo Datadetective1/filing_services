@@ -17,6 +17,7 @@ export function ActionForm({
   hidden,
   errorTitle = "We couldn't continue",
   className,
+  buttonClassName = "w-full",
   footer,
 }: {
   action: (state: ActionMessageState, formData: FormData) => Promise<ActionMessageState>;
@@ -25,6 +26,8 @@ export function ActionForm({
   hidden?: Record<string, string>;
   errorTitle?: string;
   className?: string;
+  /** Presentation only: width/placement of the submit button. */
+  buttonClassName?: string;
   footer?: ReactNode;
 }) {
   const [state, formAction] = useActionState(action, {});
@@ -36,14 +39,14 @@ export function ActionForm({
           <p>{state.error}</p>
           {state.href ? (
             <p className="mt-2">
-              <Link href={state.href} className="font-medium text-fg underline underline-offset-4">
+              <Link href={state.href} className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
                 {state.hrefLabel ?? "Continue"}
               </Link>
             </p>
           ) : null}
         </Notice>
       ) : null}
-      <SubmitButton size="lg" pendingLabel={pendingLabel} className="w-full">
+      <SubmitButton size="lg" pendingLabel={pendingLabel} className={buttonClassName}>
         {label}
       </SubmitButton>
       {footer}

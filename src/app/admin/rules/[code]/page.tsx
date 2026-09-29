@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { StatusPill } from "@/components/admin/badges";
 import { formatDate, humanize, money } from "@/components/admin/format";
-import { EmptyRow, KeyValues, Panel, tableLink } from "@/components/admin/layout-bits";
-import { Notice, PageHeader } from "@/components/ui/surface";
+import { ConsoleHeader, EmptyRow, KeyValues, Panel, tableLink } from "@/components/admin/layout-bits";
+import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import { ENTITY_TYPE_LABELS, isEntityType } from "@/lib/domain/types";
@@ -78,12 +78,12 @@ export default async function StateRulesPage(props: PageProps<"/admin/rules/[cod
   const sources = (sourcesData ?? []) as SourceRow[];
 
   return (
-    <div className="grid gap-5">
-      <Link href="/admin/rules" className="inline-flex min-h-11 w-fit items-center gap-1.5 text-sm text-muted hover:text-fg">
+    <div className="grid grid-cols-1 gap-5">
+      <Link href="/admin/rules" className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-[var(--radius-control)] text-sm font-medium text-muted hover:text-fg">
         <ArrowLeft size={16} aria-hidden />
         State rules
       </Link>
-      <PageHeader
+      <ConsoleHeader
         title={`${jurisdiction.name} rules`}
         description={`${jurisdiction.agency.name}. Support level: ${humanize(jurisdiction.supportLevel).toLowerCase()}. Filing ${jurisdiction.filingEnabled ? "enabled" : "not enabled"}.`}
       />
@@ -143,7 +143,7 @@ export default async function StateRulesPage(props: PageProps<"/admin/rules/[cod
                   {ruleSources.length ? (
                     <ul className="grid divide-y divide-border rounded-[var(--radius-control)] border border-border">
                       {ruleSources.map((s) => (
-                        <li key={s.id} className="grid gap-1 px-3 py-2 text-sm">
+                        <li key={s.id} className="grid gap-1 px-4 py-3 text-sm">
                           <div className="flex flex-wrap items-baseline justify-between gap-2">
                             <a className={tableLink} href={s.url} target="_blank" rel="noopener noreferrer">
                               {s.title ?? s.url}

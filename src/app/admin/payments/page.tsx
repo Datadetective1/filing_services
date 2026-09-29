@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { StatusPill } from "@/components/admin/badges";
 import { formatDateTime, humanize, isoDaysAgo, money, shortId } from "@/components/admin/format";
-import { EmptyRow, JsonDetails, Panel, ScrollArea, tableLink } from "@/components/admin/layout-bits";
+import { ConsoleHeader, EmptyRow, JsonDetails, Panel, ScrollArea, SectionNav, Stat, StatStrip, tableLink } from "@/components/admin/layout-bits";
+import { Table, TD, TH, THead, TR } from "@/components/admin/table";
 import { PaymentStatusBadge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/ui/surface";
-import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireStaff } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { filingIdsByOrder, profilesByIds, type ProfileEntry } from "../_lib/data";
@@ -52,14 +51,6 @@ interface EventRow {
   payload: unknown;
 }
 
-const SECTIONS = [
-  { id: "review", label: "Needs review" },
-  { id: "failed", label: "Failed" },
-  { id: "recent", label: "Recent" },
-  { id: "refunds", label: "Refunds" },
-  { id: "webhooks", label: "Webhook errors" },
-];
-
 export default async function PaymentsPage() {
   await requireStaff();
   const db = await createClient();
@@ -94,24 +85,27 @@ export default async function PaymentsPage() {
   ]);
 
   return (
-    <div className="grid gap-5">
-      <PageHeader title="Payments" description="Payment attempts, refunds and processor webhooks. Rows link to their filing where one exists." />
+    <div className="grid grid-cols-1 gap-6">
+      <ConsoleHeader title="Payments" description="Payment attempts, refunds and processor webhooks. Rows link to their filing where one exists." />
 
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-surface)] border border-border bg-border md:grid-cols-5">
-        <Stat label="Needs review" value={review.length} danger={review.length > 0} />
-        <Stat label="Failed, last 30 days" value={failed.length} danger={failed.length > 0} />
-        <Stat label="Unresolved webhook errors" value={errorCountRes.count ?? 0} danger={(errorCountRes.count ?? 0) > 0} />
+      <StatStrip cols={5}>
+        <Stat label="Needs review" value={review.length} tone={review.length > 0 ? "danger" : "neutral"} />
+        <Stat label="Failed, last 30 days" value={failed.length} tone={failed.length > 0 ? "danger" : "neutral"} />
+        <Stat label="Unresolved webhook errors" value={errorCountRes.count ?? 0} tone={(errorCountRes.count ?? 0) > 0 ? "danger" : "neutral"} />
         <Stat label="Redelivered events" value={redeliveredRes.count ?? 0} hint="Attempted more than once. Repeats of processed events are ignored." />
-        <Stat label="Recent refunds" value={refunds.length} />
-      </dl>
+        <Stat label="Recent refunds" value={refunds.length} className="max-md:col-span-2" />
+      </StatStrip>
 
-      <nav aria-label="Sections" className="flex flex-wrap gap-1 text-sm">
-        {SECTIONS.map((s) => (
-          <a key={s.id} href={`#${s.id}`} className="inline-flex min-h-11 items-center rounded-[var(--radius-control)] px-3 text-muted hover:bg-surface-2 hover:text-fg">
-            {s.label}
-          </a>
-        ))}
-      </nav>
+      <SectionNav
+        label="Sections"
+        items={[
+          { id: "review", label: "Needs review", count: review.length, alert: true },
+          { id: "failed", label: "Failed", count: failed.length, alert: true },
+          { id: "recent", label: "Recent" },
+          { id: "refunds", label: "Refunds" },
+          { id: "webhooks", label: "Webhook errors", count: errorCountRes.count ?? 0, alert: true },
+        ]}
+      />
 
       <Panel id="review" title="Payments requiring review" description="Amount or currency mismatches and other anomalies flagged while processing." bodyClassName="p-0">
         <PaymentsTable rows={review} links={filingLinks} customers={customers} empty="No payments need review." showReason />
@@ -162,7 +156,7 @@ export default async function PaymentsPage() {
             </Table>
           </ScrollArea>
         ) : (
-          <div className="px-4 py-3">
+          <div className="px-5 py-4">
             <EmptyRow>No refunds yet.</EmptyRow>
           </div>
         )}
@@ -189,16 +183,20 @@ export default async function PaymentsPage() {
               <tbody>
                 {events.map((e) => (
                   <TR key={e.id}>
-                    <TD className="tnum whitespace-nowrap">{formatDateTime(e.received_at)}</TD>
-                    <TD>
+                    <TD valign="top" className="tnum whitespace-nowrap">
+                      {formatDateTime(e.received_at)}
+                    </TD>
+                    <TD valign="top">
                       <span className="font-mono text-xs">{e.event_type}</span>
                       <span className="block text-xs text-muted">
                         {humanize(e.provider)} {e.provider_event_id}
                       </span>
                     </TD>
-                    <TD>{e.processed_at ? <StatusPill status="resolved" tone="success" /> : <StatusPill status="unresolved" tone="danger" />}</TD>
-                    <TD className="tnum text-right">{e.attempts}</TD>
-                    <TD className="max-w-96">
+                    <TD valign="top">{e.processed_at ? <StatusPill status="resolved" tone="success" /> : <StatusPill status="unresolved" tone="danger" />}</TD>
+                    <TD valign="top" className="tnum text-right">
+                      {e.attempts}
+                    </TD>
+                    <TD valign="top" className="max-w-96">
                       <p className="text-danger">{e.processing_error}</p>
                       <JsonDetails label="Payload" value={e.payload} />
                     </TD>
@@ -208,21 +206,11 @@ export default async function PaymentsPage() {
             </Table>
           </ScrollArea>
         ) : (
-          <div className="px-4 py-3">
+          <div className="px-5 py-4">
             <EmptyRow>No webhook processing errors.</EmptyRow>
           </div>
         )}
       </Panel>
-    </div>
-  );
-}
-
-function Stat({ label, value, hint, danger }: { label: string; value: number; hint?: string; danger?: boolean }) {
-  return (
-    <div className="grid gap-1 bg-surface px-4 py-3">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className={danger ? "tnum text-xl font-semibold text-danger" : "tnum text-xl font-semibold text-fg"}>{value}</dd>
-      {hint ? <dd className="text-xs text-subtle">{hint}</dd> : null}
     </div>
   );
 }
@@ -251,7 +239,7 @@ function PaymentsTable({
 }) {
   if (!rows.length) {
     return (
-      <div className="px-4 py-3">
+      <div className="px-5 py-4">
         <EmptyRow>{empty}</EmptyRow>
       </div>
     );

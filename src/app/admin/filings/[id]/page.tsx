@@ -2,20 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { ArrowLeft, ArrowSquareOut, FileText } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, ArrowSquareOut, CaretDown, DownloadSimple, FileText, ShieldCheck, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 import { ActionForm } from "@/components/admin/action-form";
 import { AdminStatusBadge, DeadlineText, StatusPill, UrgencyBadge } from "@/components/admin/badges";
 import { opsButton } from "@/components/admin/button-classes";
+import { FilingProgress } from "@/components/admin/filing-progress";
 import { centsToDollarsInput, formatDate, formatDateTime, humanize, money, opsToday, shortId } from "@/components/admin/format";
 import { IntakeAnswersView, PeopleList } from "@/components/admin/intake-answers";
-import { EmptyRow, JsonDetails, KeyValues, Panel, tableLink } from "@/components/admin/layout-bits";
+import { EmptyRow, JsonDetails, KeyValues, Panel, SectionNav, tableLink } from "@/components/admin/layout-bits";
 import { ADMIN_STATUS_LABELS, DOCUMENT_KIND_LABELS } from "@/components/admin/status";
+import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table";
+import { DEADLINE_SENSITIVE_STATUSES } from "@/components/admin/urgency";
 import { PaymentStatusBadge } from "@/components/ui/badge";
+import { cn } from "@/components/ui/cn";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
-import { Table, TableScroll, TD, TH, THead, TR } from "@/components/ui/table";
+import { CountdownRing } from "@/components/visual/countdown-ring";
+import { DocumentSheet } from "@/components/visual/document-tile";
 import { requireStaff } from "@/lib/auth/session";
-import { canTransition, isFilingStatus, type FilingStatus } from "@/lib/domain/filing-status";
+import { daysBetween, describeDaysRemaining, formatLongDate } from "@/lib/domain/dates";
+import { canTransition, isFilingStatus, OPERATOR_NEXT_ACTION, type FilingStatus } from "@/lib/domain/filing-status";
 import { ENTITY_TYPE_LABELS, isEntityType } from "@/lib/domain/types";
 import { formatAddress } from "@/lib/intake/validate";
 import { staffLabel, type ProfileEntry } from "../../_lib/data";
@@ -51,23 +57,26 @@ export default async function FilingDetailPage(props: PageProps<"/admin/filings/
   const assigned = filing.assigned_to ? d.staff.get(filing.assigned_to) : null;
 
   return (
-    <div className="mx-auto grid max-w-[88rem] gap-5">
+    <div className="mx-auto grid max-w-[88rem] grid-cols-1 gap-6">
       <div className="grid gap-3">
-        <Link href="/admin/queue" className="inline-flex min-h-11 w-fit items-center gap-1.5 text-sm text-muted hover:text-fg">
+        <Link href="/admin/queue" className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-[var(--radius-control)] text-sm font-medium text-muted hover:text-fg">
           <ArrowLeft size={16} aria-hidden />
           Queue
         </Link>
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="grid gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-fg">{business?.legal_name ?? "Unknown business"}</h1>
-            <p className="text-[15px] text-muted">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="grid min-w-0 gap-2">
+            <p className="text-[13px] font-semibold text-subtle">
               {d.stateName} {filingName}
-              {snapshot.form_number ? ` (${snapshot.form_number})` : ""} · {filing.period_year} report · Order {shortId(filing.id)}
+              {snapshot.form_number ? ` (${snapshot.form_number})` : ""} · {filing.period_year} report · Order{" "}
+              <span className="font-mono font-medium">{shortId(filing.id)}</span>
             </p>
-            <div className="flex flex-wrap items-center gap-2">
+            <h1 className="break-words text-[28px] font-semibold leading-[1.1] text-fg sm:text-[34px]">{business?.legal_name ?? "Unknown business"}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               <AdminStatusBadge status={filing.status} />
               <UrgencyBadge dueDate={filing.due_date} today={today} status={filing.status} />
-              <span className="text-sm text-muted">Assigned: {staffLabel(assigned)}</span>
+              <span className="text-sm text-muted">
+                Assigned: <span className="font-medium text-fg">{staffLabel(assigned)}</span>
+              </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -86,7 +95,7 @@ export default async function FilingDetailPage(props: PageProps<"/admin/filings/
         </div>
       </div>
 
-      <SummaryStrip d={d} today={today} />
+      <StatusBand d={d} today={today} />
 
       {filing.status === "rejected" && filing.rejection_reason ? (
         <Notice tone="danger" role="alert" title="Rejected by the state">
@@ -94,12 +103,31 @@ export default async function FilingDetailPage(props: PageProps<"/admin/filings/
         </Notice>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-        <aside aria-label="Actions" className="grid content-start gap-4 lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:p-0.5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
+        <aside
+          aria-label="Actions"
+          className="grid min-w-0 grid-cols-1 content-start gap-4 lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:p-0.5"
+        >
           <ActionsPanel d={d} isAdmin={staff.role === "admin"} today={today} />
         </aside>
 
-        <div className="grid min-w-0 gap-5 lg:col-start-1 lg:row-start-1">
+        <div className="grid min-w-0 grid-cols-1 gap-6 lg:col-start-1 lg:row-start-1">
+          <SectionNav
+            label="Order sections"
+            items={[
+              { id: "customer", label: "Customer" },
+              { id: "business", label: "Business" },
+              { id: "answers", label: "Answers" },
+              { id: "authorization", label: "Authorization" },
+              { id: "payment", label: "Payment" },
+              { id: "rule", label: "Rule" },
+              { id: "documents", label: "Documents", count: d.documents.length },
+              { id: "messages", label: "Messages", count: d.messages.length },
+              { id: "notes", label: "Notes", count: d.notes.length },
+              { id: "history", label: "History" },
+              { id: "audit", label: "Audit" },
+            ]}
+          />
           <CustomerPanel customer={d.customer} userId={filing.user_id} />
           <BusinessPanel d={d} />
           <Panel
@@ -108,7 +136,7 @@ export default async function FilingDetailPage(props: PageProps<"/admin/filings/
             description="What the customer entered, in the order of the intake form frozen with this filing's rule."
           >
             {!d.answersComplete ? (
-              <Notice tone="warning" className="mb-3" title="Intake is incomplete">
+              <Notice tone="warning" className="mb-4" title="Intake is incomplete">
                 Some required answers are missing or invalid. Request information before filing.
               </Notice>
             ) : null}
@@ -132,28 +160,55 @@ export default async function FilingDetailPage(props: PageProps<"/admin/filings/
 // Summary
 // ---------------------------------------------------------------------------
 
-function SummaryStrip({ d, today }: { d: FilingDetail; today: string }) {
+function StatusBand({ d, today }: { d: FilingDetail; today: string }) {
   const { filing, order } = d;
-  const items: { label: string; value: ReactNode }[] = [
-    { label: "Deadline", value: <DeadlineText dueDate={filing.due_date} today={today} status={filing.status} /> },
+  const sensitive = DEADLINE_SENSITIVE_STATUSES.includes(filing.status);
+  const days = daysBetween(today, filing.due_date);
+  const items: { label: string; value: ReactNode; className?: string }[] = [
+    {
+      label: "Deadline",
+      className: "col-span-2 sm:col-span-1",
+      value: (
+        <span className="flex items-center gap-3">
+          {sensitive ? (
+            <CountdownRing
+              days={days}
+              size={52}
+              label={`${describeDaysRemaining(days)}. Due ${formatLongDate(filing.due_date)}.`}
+            />
+          ) : null}
+          <DeadlineText dueDate={filing.due_date} today={today} status={filing.status} />
+        </span>
+      ),
+    },
     { label: "Government fee", value: <span className="tnum">{money(order?.government_fee_cents)}</span> },
     { label: "Service fee", value: <span className="tnum">{money(order?.service_fee_cents)}</span> },
-    { label: "Total", value: <span className="tnum font-semibold">{money(order?.total_cents)}</span> },
+    { label: "Total", value: <span className="tnum font-display text-lg font-semibold">{money(order?.total_cents)}</span> },
     { label: "Payment", value: <PaymentStatusBadge status={order?.status} /> },
     {
       label: "Confirmation",
-      value: filing.state_confirmation_number ? <span className="tnum break-all">{filing.state_confirmation_number}</span> : <span className="text-muted">Not submitted</span>,
+      className: "col-span-2 sm:col-span-1",
+      value: filing.state_confirmation_number ? (
+        <span className="break-all font-mono text-[15px] font-medium">{filing.state_confirmation_number}</span>
+      ) : (
+        <span className="text-muted">Not submitted</span>
+      ),
     },
   ];
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-surface)] border border-border bg-border sm:grid-cols-3 xl:grid-cols-6">
-      {items.map((item) => (
-        <div key={item.label} className="grid content-start gap-1 bg-surface px-4 py-3">
-          <dt className="text-xs text-muted">{item.label}</dt>
-          <dd className="text-sm text-fg">{item.value}</dd>
-        </div>
-      ))}
-    </dl>
+    <section aria-label="Filing summary" className="overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface shadow-card">
+      <div className="px-4 py-5 sm:px-6">
+        <FilingProgress status={filing.status} />
+      </div>
+      <dl className="grid grid-cols-2 gap-px border-t border-border bg-border sm:grid-cols-3 xl:grid-cols-6">
+        {items.map((item) => (
+          <div key={item.label} className={cn("grid content-start gap-1.5 bg-surface px-5 py-4", item.className)}>
+            <dt className="text-[13px] font-medium text-muted">{item.label}</dt>
+            <dd className="flex min-h-7 items-center text-[15px] text-fg">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -204,7 +259,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
         <ActionForm action={markSubmittedAction} submitLabel="Mark submitted" variant={status === "in_progress" ? "primary" : "secondary"} pendingLabel="Saving...">
           {hidden}
           <Field label="State confirmation number" htmlFor="sub-conf">
-            <Input id="sub-conf" name="confirmationNumber" required maxLength={100} autoComplete="off" />
+            <Input id="sub-conf" name="confirmationNumber" required maxLength={100} autoComplete="off" className="font-mono" />
           </Field>
           <Field label="Submitted on" htmlFor="sub-date" hint="Today records the current time.">
             <Input id="sub-date" name="submittedDate" type="date" required defaultValue={today} max={today} />
@@ -236,7 +291,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
         description="Requires the state receipt, filed report or acknowledgement uploaded and visible to the customer."
       >
         {d.hasReceiptDocument ? null : (
-          <Notice tone="warning" className="mb-2">
+          <Notice tone="warning" className="mb-1">
             No customer-visible receipt yet. Upload it under Documents first.
           </Notice>
         )}
@@ -301,7 +356,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
   if (canRefund) {
     destructive.push(
       <Disclosure key="refund" summary="Refund (admin)">
-        <p className="mb-2 text-sm text-muted">
+        <p className="mb-3 text-sm text-muted">
           Already refunded: government fee {money(d.refundedGov)}, service fee {money(d.refundedSvc)}. Remaining: {money(remainingGov)} and{" "}
           {money(remainingSvc)}.
         </p>
@@ -323,12 +378,37 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
     );
   }
 
+  const next = OPERATOR_NEXT_ACTION[status];
+  const idle = next === "No action";
+
   return (
     <>
-      <Panel title="Actions" description={`Status: ${ADMIN_STATUS_LABELS[status]}. Only actions valid for this status are shown.`} bodyClassName="grid gap-0 divide-y divide-border p-0">
-        {primary.length ? primary : <p className="px-4 py-3 text-sm text-muted">No status actions available.</p>}
-        {destructive.length ? <div className="grid gap-2 px-4 py-3">{destructive}</div> : null}
-      </Panel>
+      <section aria-labelledby="actions-title" className="rounded-[var(--radius-surface)] border border-border bg-surface shadow-card">
+        <div
+          className={cn(
+            "relative rounded-t-[var(--radius-surface)] border-b px-5 py-4",
+            idle ? "border-border/70 bg-bg" : "border-highlight/40 bg-highlight-soft",
+          )}
+        >
+          {idle ? null : <span aria-hidden className="absolute inset-y-4 left-0 w-[3px] rounded-r-full bg-highlight-strong" />}
+          <p className={cn("text-xs font-semibold", idle ? "text-muted" : "text-highlight-fg")}>{idle ? "No action needed" : "Next step"}</p>
+          <h2 id="actions-title" className="mt-0.5 text-[20px] font-semibold leading-snug text-fg">
+            {idle ? ADMIN_STATUS_LABELS[status] : next}
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Status: {ADMIN_STATUS_LABELS[status]}. Only actions valid for this status are shown.
+          </p>
+        </div>
+        <div className="divide-y divide-border/70">
+          {primary.length ? primary : <p className="px-5 py-4 text-sm text-muted">No status actions available.</p>}
+        </div>
+        {destructive.length ? (
+          <div className="grid gap-2 rounded-b-[var(--radius-surface)] border-t border-border/70 bg-bg/60 px-5 py-4">
+            <p className="text-xs font-semibold text-muted">Other actions</p>
+            {destructive}
+          </div>
+        ) : null}
+      </section>
       <Panel title="Assigned operator">
         <ActionForm action={assignAction} submitLabel="Save assignment" pendingLabel="Saving..." resetOnSuccess={false}>
           {hidden}
@@ -350,9 +430,9 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
 
 function ActionBlock({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
-    <div className="grid gap-2 px-4 py-3">
-      <div>
-        <h3 className="text-sm font-semibold text-fg">{title}</h3>
+    <div className="grid gap-3 px-5 py-4">
+      <div className="grid gap-0.5">
+        <h3 className="text-[15px] font-semibold text-fg">{title}</h3>
         {description ? <p className="text-sm text-muted">{description}</p> : null}
       </div>
       {children}
@@ -362,9 +442,12 @@ function ActionBlock({ title, description, children }: { title: string; descript
 
 function Disclosure({ summary, children }: { summary: string; children: ReactNode }) {
   return (
-    <details className="group rounded-[var(--radius-control)] border border-border">
-      <summary className="flex min-h-11 cursor-pointer select-none items-center px-3 text-sm font-medium text-danger">{summary}</summary>
-      <div className="border-t border-border px-3 py-3">{children}</div>
+    <details className="group rounded-[var(--radius-control)] border border-border bg-surface open:border-danger/30">
+      <summary className="flex min-h-11 cursor-pointer select-none list-none items-center justify-between gap-2 rounded-[var(--radius-control)] px-3.5 text-sm font-semibold text-danger [&::-webkit-details-marker]:hidden">
+        {summary}
+        <CaretDown size={14} weight="bold" className="transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="border-t border-border px-3.5 py-3.5">{children}</div>
     </details>
   );
 }
@@ -429,9 +512,9 @@ function BusinessPanel({ d }: { d: FilingDetail }) {
     <Panel id="business" title="Business" description="The customer's business profile. The filing uses the submitted information below.">
       <KeyValues
         items={[
-          { term: "Legal name", value: b.legal_name },
+          { term: "Legal name", value: <span className="font-medium">{b.legal_name}</span> },
           { term: "Entity type", value: isEntityType(b.entity_type) ? ENTITY_TYPE_LABELS[b.entity_type] : b.entity_type },
-          { term: "Entity number", value: b.state_entity_number ?? <span className="text-muted">Not provided</span> },
+          { term: "Entity number", value: b.state_entity_number ? <span className="font-mono">{b.state_entity_number}</span> : <span className="text-muted">Not provided</span> },
           { term: "Formed", value: b.formation_date ? formatDate(b.formation_date) : <span className="text-muted">Unknown</span> },
           { term: "Domestic or foreign", value: b.is_foreign ? `Foreign (formed in ${b.home_jurisdiction ?? "unknown"})` : "Domestic" },
           { term: "Not-for-profit", value: b.is_nonprofit ? "Yes" : "No" },
@@ -460,21 +543,28 @@ function AuthorizationPanel({ d }: { d: FilingDetail }) {
           Do not file without the customer&apos;s recorded authorization.
         </Notice>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           {d.answersChangedSinceAuthorization ? (
             <Notice tone="warning" role="alert" title="Answers changed after authorization">
               The current answers no longer match the snapshot the customer authorized. Ask the customer to review and authorize again before filing.
             </Notice>
           ) : null}
+          <div className="flex items-start gap-3 rounded-[var(--radius-control)] border border-accent/20 bg-accent-soft/60 px-4 py-3">
+            <ShieldCheck size={22} weight="fill" className="mt-0.5 shrink-0 text-accent" aria-hidden />
+            <p className="text-sm text-fg">
+              <span className="font-semibold">
+                Signed by {a.signer_name}, {a.signer_title}
+              </span>
+              <span className="block text-muted">Recorded {formatDateTime(a.created_at)}</span>
+            </p>
+          </div>
           <KeyValues
             items={[
-              { term: "Signer", value: `${a.signer_name}, ${a.signer_title}` },
-              { term: "Recorded", value: formatDateTime(a.created_at) },
               { term: "Terms version", value: <span className="font-mono text-xs">{a.terms_version}</span> },
               {
                 term: "Answers hash",
                 value: (
-                  <span className="font-mono text-xs break-all" title={a.answers_sha256}>
+                  <span className="break-all font-mono text-xs" title={a.answers_sha256}>
                     {a.answers_sha256}
                   </span>
                 ),
@@ -482,9 +572,12 @@ function AuthorizationPanel({ d }: { d: FilingDetail }) {
               ...(d.authorizationCount > 1 ? [{ term: "History", value: `${d.authorizationCount} authorizations recorded. Showing the latest.` }] : []),
             ]}
           />
-          <details>
-            <summary className="flex min-h-11 cursor-pointer select-none items-center text-sm font-medium text-fg">Full authorization text</summary>
-            <p className="max-w-[70ch] whitespace-pre-wrap rounded-[var(--radius-control)] bg-surface-2 p-3 text-sm leading-relaxed text-fg">
+          <details className="group">
+            <summary className="inline-flex min-h-11 cursor-pointer select-none list-none items-center gap-2 rounded-[var(--radius-control)] text-sm font-semibold text-fg [&::-webkit-details-marker]:hidden">
+              <CaretDown size={14} weight="bold" className="-rotate-90 transition-transform group-open:rotate-0" aria-hidden />
+              Full authorization text
+            </summary>
+            <p className="max-w-[70ch] whitespace-pre-wrap rounded-[var(--radius-control)] border border-border bg-bg p-4 text-sm leading-relaxed text-fg">
               {a.authorization_text}
             </p>
           </details>
@@ -505,25 +598,38 @@ function PaymentPanel({ d }: { d: FilingDetail }) {
       {!order ? (
         <EmptyRow>No order yet. The customer has not checked out.</EmptyRow>
       ) : (
-        <div className="grid gap-4">
-          <KeyValues
-            items={[
-              { term: "Government fee", value: <span className="tnum">{money(order.government_fee_cents)}</span> },
-              { term: "Service fee", value: <span className="tnum">{money(order.service_fee_cents)}</span> },
-              { term: "Total", value: <span className="tnum font-semibold">{money(order.total_cents)}</span> },
-              { term: "Order status", value: <PaymentStatusBadge status={order.status} /> },
-              { term: "Payment mode", value: humanize(order.payment_mode) },
-              { term: "Paid", value: order.paid_at ? formatDateTime(order.paid_at) : <span className="text-muted">Not paid</span> },
-              {
-                term: "Refunded",
-                value: (
-                  <span className="tnum">
-                    Government {money(d.refundedGov)} · Service {money(d.refundedSvc)}
-                  </span>
-                ),
-              },
-            ]}
-          />
+        <div className="grid gap-5">
+          <div className="grid gap-5 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] md:items-start">
+            <dl className="tnum grid gap-2 rounded-[var(--radius-control)] border border-border bg-bg px-4 py-3.5 text-sm">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted">Government fee</dt>
+                <dd className="text-fg">{money(order.government_fee_cents)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted">Service fee</dt>
+                <dd className="text-fg">{money(order.service_fee_cents)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 border-t border-dashed border-border-strong pt-2">
+                <dt className="font-semibold text-fg">Total</dt>
+                <dd className="font-display text-lg font-semibold text-fg">{money(order.total_cents)}</dd>
+              </div>
+            </dl>
+            <KeyValues
+              items={[
+                { term: "Order status", value: <PaymentStatusBadge status={order.status} /> },
+                { term: "Payment mode", value: humanize(order.payment_mode) },
+                { term: "Paid", value: order.paid_at ? formatDateTime(order.paid_at) : <span className="text-muted">Not paid</span> },
+                {
+                  term: "Refunded",
+                  value: (
+                    <span className="tnum">
+                      Government {money(d.refundedGov)} · Service {money(d.refundedSvc)}
+                    </span>
+                  ),
+                },
+              ]}
+            />
+          </div>
           {d.payments.some((p) => p.requires_review) ? (
             <Notice tone="danger" role="alert" title="A payment needs review">
               {d.payments
@@ -532,91 +638,97 @@ function PaymentPanel({ d }: { d: FilingDetail }) {
                 .join(" ")}
             </Notice>
           ) : null}
-          <TableScroll>
-            <Table>
-              <THead>
-                <tr>
-                  <TH>Payment</TH>
-                  <TH>Status</TH>
-                  <TH>Provider</TH>
-                  <TH className="text-right">Amount</TH>
-                  <TH className="text-right">Refunded</TH>
-                  <TH>Created</TH>
-                  <TH>Receipt</TH>
-                </tr>
-              </THead>
-              <tbody>
-                {d.payments.map((p) => (
-                  <TR key={p.id}>
-                    <TD className="font-mono text-xs">{shortId(p.id)}</TD>
-                    <TD>
-                      <div className="grid gap-1">
-                        <PaymentStatusBadge status={p.status} />
-                        {p.requires_review ? <span className="text-xs font-medium text-danger">Needs review</span> : null}
-                        {p.failure_reason ? <span className="text-xs text-muted">{p.failure_reason}</span> : null}
-                      </div>
-                    </TD>
-                    <TD className="whitespace-nowrap">
-                      {humanize(p.provider)} <span className="text-muted">({p.mode})</span>
-                    </TD>
-                    <TD className="tnum text-right">{money(p.amount_cents)}</TD>
-                    <TD className="tnum text-right">{money(p.amount_refunded_cents)}</TD>
-                    <TD className="tnum whitespace-nowrap">{formatDateTime(p.created_at)}</TD>
-                    <TD>
-                      {p.receipt_url ? (
-                        <a className={tableLink} href={p.receipt_url} target="_blank" rel="noopener noreferrer">
-                          Receipt
-                        </a>
-                      ) : (
-                        <span className="text-muted">None</span>
-                      )}
-                    </TD>
-                  </TR>
-                ))}
-                {!d.payments.length ? (
-                  <TR>
-                    <TD colSpan={7} className="text-muted">
-                      No payment attempts.
-                    </TD>
-                  </TR>
-                ) : null}
-              </tbody>
-            </Table>
-          </TableScroll>
-          {d.refunds.length ? (
-            <TableScroll>
-              <Table>
+          <div className="grid gap-2">
+            <h3 className="text-sm font-semibold text-fg">Payment attempts</h3>
+            <TableScroll variant="inset">
+              <Table className="min-w-[44rem]">
                 <THead>
                   <tr>
-                    <TH>Refund</TH>
+                    <TH>Payment</TH>
                     <TH>Status</TH>
-                    <TH className="text-right">Government</TH>
-                    <TH className="text-right">Service</TH>
-                    <TH className="text-right">Total</TH>
-                    <TH>Reason</TH>
-                    <TH>Requested</TH>
+                    <TH>Provider</TH>
+                    <TH className="text-right">Amount</TH>
+                    <TH className="text-right">Refunded</TH>
+                    <TH>Created</TH>
+                    <TH>Receipt</TH>
                   </tr>
                 </THead>
                 <tbody>
-                  {d.refunds.map((r) => (
-                    <TR key={r.id}>
-                      <TD className="font-mono text-xs">{shortId(r.id)}</TD>
+                  {d.payments.map((p) => (
+                    <TR key={p.id}>
+                      <TD className="font-mono text-xs">{shortId(p.id)}</TD>
                       <TD>
-                        <StatusPill status={r.status} />
+                        <div className="grid justify-items-start gap-1">
+                          <PaymentStatusBadge status={p.status} />
+                          {p.requires_review ? <span className="text-xs font-semibold text-danger">Needs review</span> : null}
+                          {p.failure_reason ? <span className="text-xs text-muted">{p.failure_reason}</span> : null}
+                        </div>
                       </TD>
-                      <TD className="tnum text-right">{money(r.government_fee_cents)}</TD>
-                      <TD className="tnum text-right">{money(r.service_fee_cents)}</TD>
-                      <TD className="tnum text-right font-medium">{money(r.amount_cents)}</TD>
-                      <TD className="max-w-64">{r.reason}</TD>
-                      <TD className="tnum whitespace-nowrap">
-                        {formatDateTime(r.created_at)}
-                        <span className="block text-xs text-muted">{d.people.get(r.requested_by ?? "")?.email ?? ""}</span>
+                      <TD className="whitespace-nowrap">
+                        {humanize(p.provider)} <span className="text-muted">({p.mode})</span>
+                      </TD>
+                      <TD className="tnum text-right">{money(p.amount_cents)}</TD>
+                      <TD className="tnum text-right">{money(p.amount_refunded_cents)}</TD>
+                      <TD className="tnum whitespace-nowrap">{formatDateTime(p.created_at)}</TD>
+                      <TD>
+                        {p.receipt_url ? (
+                          <a className={tableLink} href={p.receipt_url} target="_blank" rel="noopener noreferrer">
+                            Receipt
+                          </a>
+                        ) : (
+                          <span className="text-muted">None</span>
+                        )}
                       </TD>
                     </TR>
                   ))}
+                  {!d.payments.length ? (
+                    <TR>
+                      <TD colSpan={7} className="text-muted">
+                        No payment attempts.
+                      </TD>
+                    </TR>
+                  ) : null}
                 </tbody>
               </Table>
             </TableScroll>
+          </div>
+          {d.refunds.length ? (
+            <div className="grid gap-2">
+              <h3 className="text-sm font-semibold text-fg">Refunds</h3>
+              <TableScroll variant="inset">
+                <Table className="min-w-[44rem]">
+                  <THead>
+                    <tr>
+                      <TH>Refund</TH>
+                      <TH>Status</TH>
+                      <TH className="text-right">Government</TH>
+                      <TH className="text-right">Service</TH>
+                      <TH className="text-right">Total</TH>
+                      <TH>Reason</TH>
+                      <TH>Requested</TH>
+                    </tr>
+                  </THead>
+                  <tbody>
+                    {d.refunds.map((r) => (
+                      <TR key={r.id}>
+                        <TD className="font-mono text-xs">{shortId(r.id)}</TD>
+                        <TD>
+                          <StatusPill status={r.status} />
+                        </TD>
+                        <TD className="tnum text-right">{money(r.government_fee_cents)}</TD>
+                        <TD className="tnum text-right">{money(r.service_fee_cents)}</TD>
+                        <TD className="tnum text-right font-semibold">{money(r.amount_cents)}</TD>
+                        <TD className="max-w-64">{r.reason}</TD>
+                        <TD className="tnum whitespace-nowrap">
+                          {formatDateTime(r.created_at)}
+                          <span className="block text-xs text-muted">{d.people.get(r.requested_by ?? "")?.email ?? ""}</span>
+                        </TD>
+                      </TR>
+                    ))}
+                  </tbody>
+                </Table>
+              </TableScroll>
+            </div>
           ) : null}
         </div>
       )}
@@ -633,7 +745,7 @@ function RulePanel({ d }: { d: FilingDetail }) {
   const newer = d.rule?.current_version_id && s.id && d.rule.current_version_id !== s.id;
   return (
     <Panel id="rule" title="Rule used" description="Frozen when the filing was created. Later rule versions never change this order.">
-      <div className="grid gap-3">
+      <div className="grid gap-4">
         {newer ? (
           <Notice tone="info" title="A newer rule version exists">
             This order stays on the version below. Check the State rules page before filing if the change matters.
@@ -646,7 +758,7 @@ function RulePanel({ d }: { d: FilingDetail }) {
         ) : null}
         <KeyValues
           items={[
-            { term: "Rule version ID", value: <span className="font-mono text-xs break-all">{d.filing.rule_version_id}</span> },
+            { term: "Rule version ID", value: <span className="break-all font-mono text-xs">{d.filing.rule_version_id}</span> },
             { term: "Rule", value: d.rule?.rule_key ?? "Unknown" },
             { term: "Filing", value: `${s.filing_name ?? "Annual Report"}${s.form_number ? ` (${s.form_number})` : ""}` },
             { term: "Version", value: s.version ? `v${s.version}` : "Unknown" },
@@ -657,12 +769,17 @@ function RulePanel({ d }: { d: FilingDetail }) {
             ...(s.notes ? [{ term: "Operator note", value: s.notes }] : []),
           ]}
         />
-        <div className="grid gap-2">
-          <h3 className="text-sm font-semibold text-fg">Official sources</h3>
-          {d.sources.length ? (
-            <ul className="grid divide-y divide-border rounded-[var(--radius-control)] border border-border">
+        {d.sources.length ? (
+          <details className="group rounded-[var(--radius-control)] border border-border">
+            <summary className="flex min-h-11 cursor-pointer select-none list-none items-center justify-between gap-2 rounded-[var(--radius-control)] px-4 text-sm font-semibold text-fg [&::-webkit-details-marker]:hidden">
+              <span>
+                Official sources <span className="tnum font-medium text-muted">({d.sources.length})</span>
+              </span>
+              <CaretDown size={14} weight="bold" className="text-muted transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <ul className="grid divide-y divide-border border-t border-border">
               {d.sources.map((src) => (
-                <li key={src.id} className="grid gap-1 px-3 py-2 text-sm">
+                <li key={src.id} className="grid gap-1 px-4 py-3 text-sm">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <a className={tableLink} href={src.url} target="_blank" rel="noopener noreferrer">
                       {src.title ?? src.url}
@@ -676,10 +793,10 @@ function RulePanel({ d }: { d: FilingDetail }) {
                 </li>
               ))}
             </ul>
-          ) : (
-            <EmptyRow>No sources recorded for this rule version.</EmptyRow>
-          )}
-        </div>
+          </details>
+        ) : (
+          <EmptyRow>No sources recorded for this rule version.</EmptyRow>
+        )}
       </div>
     </Panel>
   );
@@ -693,48 +810,42 @@ function DocumentsPanel({ d }: { d: FilingDetail }) {
   const id = d.filing.id;
   return (
     <Panel id="documents" title="Documents and receipts">
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {d.documents.length ? (
-          <TableScroll>
-            <Table>
-              <THead>
-                <tr>
-                  <TH>File</TH>
-                  <TH>Type</TH>
-                  <TH>Customer</TH>
-                  <TH className="text-right">Size</TH>
-                  <TH>Uploaded</TH>
-                </tr>
-              </THead>
-              <tbody>
-                {d.documents.map((doc) => (
-                  <TR key={doc.id}>
-                    <TD>
-                      <a className={tableLink} href={`/api/documents/${doc.id}`}>
-                        {doc.file_name}
-                      </a>
-                      <span className="block font-mono text-[11px] text-subtle" title={doc.sha256}>
-                        sha256 {doc.sha256.slice(0, 12)}
-                      </span>
-                    </TD>
-                    <TD className="whitespace-nowrap">{DOCUMENT_KIND_LABELS[doc.kind] ?? humanize(doc.kind)}</TD>
-                    <TD>{doc.visible_to_customer ? <StatusPill status="visible" tone="success" /> : <StatusPill status="internal" />}</TD>
-                    <TD className="tnum text-right">{(doc.size_bytes / 1024).toFixed(0)} KB</TD>
-                    <TD className="tnum whitespace-nowrap">
-                      {formatDateTime(doc.created_at)}
-                      <span className="block text-xs text-muted">{d.people.get(doc.uploaded_by ?? "")?.email ?? ""}</span>
-                    </TD>
-                  </TR>
-                ))}
-              </tbody>
-            </Table>
-          </TableScroll>
+          <ul className="grid divide-y divide-border rounded-[var(--radius-control)] border border-border">
+            {d.documents.map((doc) => (
+              <li key={doc.id} className="flex items-start gap-3.5 px-4 py-3">
+                <DocumentSheet title={doc.file_name} size="xs" className="mt-0.5 shadow-none" />
+                <div className="grid min-w-0 flex-1 gap-1">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+                    <a className={`${tableLink} break-all`} href={`/api/documents/${doc.id}`}>
+                      {doc.file_name}
+                    </a>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[13px] font-medium text-muted">{DOCUMENT_KIND_LABELS[doc.kind] ?? humanize(doc.kind)}</span>
+                      {doc.visible_to_customer ? <StatusPill status="visible" tone="success" /> : <StatusPill status="internal" />}
+                    </span>
+                  </div>
+                  <p className="tnum text-xs text-muted">
+                    {(doc.size_bytes / 1024).toFixed(0)} KB · {formatDateTime(doc.created_at)}
+                    {d.people.get(doc.uploaded_by ?? "")?.email ? ` · ${d.people.get(doc.uploaded_by ?? "")?.email}` : ""}
+                  </p>
+                  <p className="font-mono text-[11px] text-subtle" title={doc.sha256}>
+                    sha256 {doc.sha256.slice(0, 12)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : (
           <EmptyRow>No documents yet.</EmptyRow>
         )}
 
-        <div className="rounded-[var(--radius-control)] border border-border p-3">
-          <h3 className="mb-2 text-sm font-semibold text-fg">Upload a document</h3>
+        <div className="rounded-[var(--radius-control)] border border-dashed border-border-strong bg-bg p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-fg">
+            <UploadSimple size={16} weight="bold" className="text-accent" aria-hidden />
+            Upload a document
+          </h3>
           <ActionForm action={uploadDocumentAction} submitLabel="Upload" pendingLabel="Uploading...">
             <input type="hidden" name="filingId" value={id} />
             <div className="grid gap-3 sm:grid-cols-2">
@@ -760,41 +871,31 @@ function DocumentsPanel({ d }: { d: FilingDetail }) {
         <div className="grid gap-2">
           <h3 className="text-sm font-semibold text-fg">Receipts</h3>
           {d.receipts.length ? (
-            <TableScroll>
-              <Table>
-                <THead>
-                  <tr>
-                    <TH>Confirmation</TH>
-                    <TH className="text-right">State fee paid</TH>
-                    <TH>Submitted</TH>
-                    <TH>Document</TH>
-                    <TH>Recorded by</TH>
-                  </tr>
-                </THead>
-                <tbody>
-                  {d.receipts.map((r) => (
-                    <TR key={r.id}>
-                      <TD className="tnum break-all">{r.confirmation_number ?? <span className="text-muted">None</span>}</TD>
-                      <TD className="tnum text-right">{money(r.state_fee_paid_cents)}</TD>
-                      <TD className="tnum whitespace-nowrap">{r.submitted_at ? formatDateTime(r.submitted_at) : <span className="text-muted">Not recorded</span>}</TD>
-                      <TD>
-                        {r.document_id ? (
-                          <a className={tableLink} href={`/api/documents/${r.document_id}`}>
-                            Download
-                          </a>
-                        ) : (
-                          <span className="text-warning">Missing</span>
-                        )}
-                      </TD>
-                      <TD className="text-xs text-muted">
-                        {d.people.get(r.recorded_by ?? "")?.email ?? ""}
-                        {r.notes ? <span className="block text-fg">{r.notes}</span> : null}
-                      </TD>
-                    </TR>
-                  ))}
-                </tbody>
-              </Table>
-            </TableScroll>
+            <ul className="grid divide-y divide-border rounded-[var(--radius-control)] border border-border">
+              {d.receipts.map((r) => (
+                <li key={r.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+                  <div className="grid min-w-0 gap-0.5">
+                    <p className="text-xs font-medium text-muted">Confirmation</p>
+                    <p className="break-all font-mono text-[15px] font-medium text-fg">{r.confirmation_number ?? <span className="font-sans text-muted">None</span>}</p>
+                    <p className="tnum text-xs text-muted">
+                      State fee paid {money(r.state_fee_paid_cents)} · {r.submitted_at ? `Submitted ${formatDateTime(r.submitted_at)}` : "Submission time not recorded"}
+                      {d.people.get(r.recorded_by ?? "")?.email ? ` · Recorded by ${d.people.get(r.recorded_by ?? "")?.email}` : ""}
+                    </p>
+                    {r.notes ? <p className="text-sm text-fg">{r.notes}</p> : null}
+                  </div>
+                  <div>
+                    {r.document_id ? (
+                      <a className={opsButton("secondary", "px-4")} href={`/api/documents/${r.document_id}`}>
+                        <DownloadSimple size={16} weight="bold" aria-hidden />
+                        Download
+                      </a>
+                    ) : (
+                      <span className="text-sm font-semibold text-warning">Document missing</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           ) : (
             <EmptyRow>No receipts recorded. Marking the filing submitted records one.</EmptyRow>
           )}
@@ -819,25 +920,27 @@ function authorName(d: FilingDetail, authorId: string | null, authorType: string
 function MessagesPanel({ d }: { d: FilingDetail }) {
   return (
     <Panel id="messages" title="Messages" description="Shared with the customer in their dashboard.">
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {d.messages.length ? (
-          <ol className="grid gap-2">
-            {d.messages.map((m) => (
-              <li
-                key={m.id}
-                className={
-                  m.author_type === "customer"
-                    ? "rounded-[var(--radius-control)] border border-border bg-surface-2 px-3 py-2"
-                    : "rounded-[var(--radius-control)] border border-border px-3 py-2"
-                }
-              >
-                <p className="flex flex-wrap justify-between gap-2 text-xs text-muted">
-                  <span className="font-medium text-fg">{authorName(d, m.author_id, m.author_type)}</span>
-                  <span className="tnum">{formatDateTime(m.created_at)}</span>
-                </p>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-fg">{m.body}</p>
-              </li>
-            ))}
+          <ol className="grid gap-2.5">
+            {d.messages.map((m) => {
+              const fromCustomer = m.author_type === "customer";
+              return (
+                <li
+                  key={m.id}
+                  className={cn(
+                    "max-w-[92%] rounded-[var(--radius-control)] border px-4 py-3",
+                    fromCustomer ? "border-border bg-surface-2" : "justify-self-end border-accent/15 bg-accent-soft/50",
+                  )}
+                >
+                  <p className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 text-xs text-muted">
+                    <span className="font-semibold text-fg">{authorName(d, m.author_id, m.author_type)}</span>
+                    <span className="tnum">{formatDateTime(m.created_at)}</span>
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-fg">{m.body}</p>
+                </li>
+              );
+            })}
           </ol>
         ) : (
           <EmptyRow>No messages yet.</EmptyRow>
@@ -863,7 +966,7 @@ function MessagesPanel({ d }: { d: FilingDetail }) {
 function NotesPanel({ d }: { d: FilingDetail }) {
   return (
     <Panel id="notes" title="Internal notes" description="Staff only. Never shown to the customer.">
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         <ActionForm action={addNoteAction} submitLabel="Add note" pendingLabel="Saving...">
           <input type="hidden" name="filingId" value={d.filing.id} />
           <Field label="Note" htmlFor="note-body">
@@ -871,11 +974,11 @@ function NotesPanel({ d }: { d: FilingDetail }) {
           </Field>
         </ActionForm>
         {d.notes.length ? (
-          <ol className="grid divide-y divide-border rounded-[var(--radius-control)] border border-border">
+          <ol className="grid divide-y divide-highlight/30 rounded-[var(--radius-control)] border border-highlight/40 bg-highlight-soft/40">
             {d.notes.map((n) => (
-              <li key={n.id} className="px-3 py-2">
-                <p className="flex flex-wrap justify-between gap-2 text-xs text-muted">
-                  <span className="font-medium text-fg">{authorName(d, n.author_id, "staff")}</span>
+              <li key={n.id} className="px-4 py-3">
+                <p className="flex flex-wrap justify-between gap-x-3 gap-y-0.5 text-xs text-muted">
+                  <span className="font-semibold text-fg">{authorName(d, n.author_id, "staff")}</span>
                   <span className="tnum">{formatDateTime(n.created_at)}</span>
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-fg">{n.body}</p>
@@ -908,33 +1011,31 @@ function actorName(d: FilingDetail, actorId: string | null, actorType: string): 
 
 function HistoryPanel({ d }: { d: FilingDetail }) {
   return (
-    <Panel id="history" title="Status history" description="Every status change, including internal ones the customer does not see.">
+    <Panel id="history" title="Status history" description="Every status change, including internal ones the customer does not see. Newest first.">
       {d.history.length ? (
-        <TableScroll>
-          <Table>
-            <THead>
-              <tr>
-                <TH>When</TH>
-                <TH>Change</TH>
-                <TH>By</TH>
-                <TH>Note</TH>
-              </tr>
-            </THead>
-            <tbody>
-              {d.history.map((h) => (
-                <TR key={h.id}>
-                  <TD className="tnum whitespace-nowrap">{formatDateTime(h.created_at)}</TD>
-                  <TD className="whitespace-nowrap">
-                    {statusName(h.from_status)} <span className="text-subtle">to</span> <span className="font-medium">{statusName(h.to_status)}</span>
-                    {!h.customer_visible ? <span className="ml-2 text-xs text-muted">(internal)</span> : null}
-                  </TD>
-                  <TD className="whitespace-nowrap">{actorName(d, h.actor_user_id, h.actor_type)}</TD>
-                  <TD className="max-w-80 text-muted">{h.note}</TD>
-                </TR>
-              ))}
-            </tbody>
-          </Table>
-        </TableScroll>
+        <ol className="grid">
+          {d.history.map((h, i) => (
+            <li key={h.id} className="relative grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3 pb-5 last:pb-0">
+              {i < d.history.length - 1 ? <span aria-hidden className="absolute bottom-0 left-[9px] top-5 w-[2px] bg-border" /> : null}
+              <span
+                aria-hidden
+                className={cn("relative mt-1 size-5 rounded-full border-[5px]", i === 0 ? "border-accent bg-surface" : "border-border-strong bg-surface")}
+              />
+              <div className="grid min-w-0 gap-0.5">
+                <p className="text-sm text-fg">
+                  {statusName(h.from_status)} <span className="text-muted">to</span> <span className="font-semibold">{statusName(h.to_status)}</span>
+                  {!h.customer_visible ? (
+                    <span className="ml-2 inline-flex rounded-full bg-surface-2 px-2 py-0.5 align-middle text-[11px] font-semibold text-muted">Internal</span>
+                  ) : null}
+                </p>
+                <p className="tnum text-xs text-muted">
+                  {formatDateTime(h.created_at)} · {actorName(d, h.actor_user_id, h.actor_type)}
+                </p>
+                {h.note ? <p className="mt-1 max-w-[70ch] text-sm text-muted">{h.note}</p> : null}
+              </div>
+            </li>
+          ))}
+        </ol>
       ) : (
         <EmptyRow>No status changes yet.</EmptyRow>
       )}
@@ -954,8 +1055,8 @@ function AuditPanel({ d }: { d: FilingDetail }) {
       }
     >
       {d.auditRows.length ? (
-        <TableScroll>
-          <Table>
+        <TableScroll variant="inset">
+          <Table className="min-w-[40rem]">
             <THead>
               <tr>
                 <TH>When</TH>
@@ -967,17 +1068,21 @@ function AuditPanel({ d }: { d: FilingDetail }) {
             <tbody>
               {d.auditRows.map((a) => (
                 <TR key={a.id}>
-                  <TD className="tnum whitespace-nowrap">{formatDateTime(a.created_at)}</TD>
-                  <TD>
+                  <TD valign="top" className="tnum whitespace-nowrap">
+                    {formatDateTime(a.created_at)}
+                  </TD>
+                  <TD valign="top">
                     <span className="font-mono text-xs">{a.action}</span>
                     <span className="block text-xs text-muted">
                       {a.entity_type}
                       {a.entity_id ? ` ${shortId(a.entity_id)}` : ""}
                     </span>
                   </TD>
-                  <TD className="whitespace-nowrap">{actorName(d, a.actor_user_id, a.actor_type)}</TD>
-                  <TD>
-                    <div className="grid gap-1">
+                  <TD valign="top" className="whitespace-nowrap">
+                    {actorName(d, a.actor_user_id, a.actor_type)}
+                  </TD>
+                  <TD valign="top">
+                    <div className="flex flex-wrap items-start gap-x-4">
                       <JsonDetails label="Before" value={a.before} />
                       <JsonDetails label="After" value={a.after} />
                       <JsonDetails label="Metadata" value={a.metadata} />
@@ -995,4 +1100,3 @@ function AuditPanel({ d }: { d: FilingDetail }) {
     </Panel>
   );
 }
-

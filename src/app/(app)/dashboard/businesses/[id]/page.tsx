@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CaretRight } from "@phosphor-icons/react/dist/ssr";
+import type { ReactNode } from "react";
+import { ArrowLeft, ArrowRight, CaretRight, Info, MapPin } from "@phosphor-icons/react/dist/ssr";
 import { requireUser } from "@/lib/auth/session";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import { formatLongDate, isISODate } from "@/lib/domain/dates";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { formatAddress } from "@/lib/intake/validate";
 import { Badge, FilingStatusBadge, PaymentStatusBadge } from "@/components/ui/badge";
-import { Card, Container, Facts, PageHeader } from "@/components/ui/surface";
+import { cn } from "@/components/ui/cn";
+import { Container } from "@/components/ui/surface";
+import { DocumentSheet } from "@/components/visual/document-tile";
 import { OfficialSource } from "@/components/compliance/official-source";
-import { StatusPair, businessMeta } from "@/components/dashboard/business-row";
-import { DaysRemaining, DueDate } from "@/components/dashboard/due-info";
+import { businessMeta } from "@/components/dashboard/business-row";
+import { BusinessMark, businessInitials } from "@/components/dashboard/business-mark";
+import { DueDate } from "@/components/dashboard/due-info";
 import { formatTimestampDate, requirementStatusLabel, standingText } from "@/components/dashboard/format";
 import { DashboardNotices } from "@/components/dashboard/notices";
-import { FileDirectlyNote, RequirementActions } from "@/components/dashboard/requirement-actions";
-import { backLinkClass, DashboardSection, quietLinkClass } from "@/components/dashboard/section";
+import { OpenRequirement } from "@/components/dashboard/open-requirement";
+import { backLinkClass, DashboardSection, QuietEmpty, quietLinkClass } from "@/components/dashboard/section";
 import { filingHref } from "@/components/dashboard/steps";
 import { loadBusinessDetail, type AddressView, type BusinessView, type PersonView } from "../../_lib/data";
 
@@ -55,16 +59,26 @@ function governorLabel(business: BusinessView): string {
   return field?.label ?? "Governors";
 }
 
+const notProvided = <span className="font-normal text-subtle">Not provided</span>;
+
 function PeopleGroup({ title, people }: { title: string; people: PersonView[] }) {
   return (
-    <div className="grid gap-1.5">
-      <p className="text-sm text-muted">{title}</p>
+    <div className="grid content-start gap-2.5">
+      <p className="text-[13px] font-medium text-muted">{title}</p>
       {people.length > 0 ? (
-        <ul className="grid gap-1 text-[15px] text-fg">
+        <ul className="grid gap-2.5">
           {people.map((p) => (
-            <li key={p.id}>
-              {p.fullName}
-              <span className="text-muted">, {p.title}</span>
+            <li key={p.id} className="flex items-center gap-3">
+              <span
+                aria-hidden
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-bold text-fg"
+              >
+                {businessInitials(p.fullName)}
+              </span>
+              <span className="grid min-w-0 leading-snug">
+                <span className="break-words text-[15px] font-semibold text-fg">{p.fullName}</span>
+                <span className="text-sm text-muted">{p.title}</span>
+              </span>
             </li>
           ))}
         </ul>
@@ -93,217 +107,236 @@ export default async function BusinessPage(props: PageProps<"/dashboard/business
   const governors = people.filter((p) => p.roleKind === "governor" || p.roleKind === "governor_and_officer");
   const officers = people.filter((p) => p.roleKind === "officer" || p.roleKind === "governor_and_officer");
 
-  return (
-    <Container className="grid gap-10 py-8 sm:py-12">
-      <div className="grid gap-4">
-        <Link href="/dashboard" className={backLinkClass}>
-          <ArrowLeft size={16} aria-hidden />
-          All businesses
-        </Link>
-        <PageHeader title={<span className="break-words">{business.legalName}</span>} description={businessMeta(business)} />
-      </div>
-
-      <DashboardNotices searchParams={searchParams} addedMessage="Business added. We'll remind you before it's due." />
-
-      <DashboardSection id="open-filings" title={openRequirements.length > 1 ? "Open filings" : "Next filing"}>
-        {openRequirements.length > 0 ? (
-          <div className="grid gap-4">
-            {openRequirements.map((req) => (
-              <Card key={req.id} className="overflow-hidden">
-                <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-                  <div className="grid gap-3">
-                    <div className="grid gap-0.5">
-                      <h3 className="text-lg font-semibold tracking-tight text-fg">
-                        {req.periodYear} {business.stateName} {req.filingName}
-                      </h3>
-                      <p className="text-[15px] text-fg">
-                        Due <DueDate value={req.dueDate} />
-                        <span aria-hidden className="mx-1.5 text-subtle">
-                          ·
-                        </span>
-                        <DaysRemaining requirement={req} />
-                      </p>
-                    </div>
-                    <StatusPair filing={req.activeFiling} />
-                  </div>
-                  <RequirementActions business={business} requirement={req} returnTo={returnTo} className="md:justify-items-end" />
-                </div>
-                {business.rule && (!req.activeFiling || req.activeFiling.status === "draft") ? (
-                  <div className="border-t border-border bg-surface-2/50 px-5 py-3 sm:px-6">
-                    <FileDirectlyNote business={business} />
-                  </div>
-                ) : null}
-              </Card>
-            ))}
-          </div>
+  const record: { term: string; value: ReactNode; wide?: "always" | "mobile" }[] = [
+    { term: "Legal name", value: <span className="break-words">{business.legalName}</span>, wide: "always" },
+    { term: "State", value: business.stateName },
+    { term: "Entity type", value: ENTITY_TYPE_LABELS[business.entityType] },
+    {
+      term: "Entity number",
+      value: business.entityNumber ? <span className="tnum">{business.entityNumber}</span> : notProvided,
+    },
+    {
+      term: "Formation date",
+      value:
+        business.formationDate && isISODate(business.formationDate) ? (
+          <span className="tnum">{formatLongDate(business.formationDate)}</span>
         ) : (
-          <Card className="p-5 sm:p-6">
-            <p className="font-medium text-fg">Nothing open right now</p>
-            <p className="mt-1 text-sm text-muted">
+          notProvided
+        ),
+    },
+    {
+      term: "Domestic or foreign",
+      value: business.isForeign
+        ? `Foreign, formed in ${business.homeJurisdiction ?? "another jurisdiction"}`
+        : `Domestic, formed in ${business.stateName}`,
+      wide: "mobile",
+    },
+    { term: "Not-for-profit purpose", value: business.isNonprofit ? "Yes" : "No" },
+    { term: "Standing", value: standingText(business.standing, business.standingSource), wide: "always" },
+  ];
+
+  return (
+    <Container className="py-8 sm:py-12">
+      <Link href="/dashboard" className={backLinkClass}>
+        <ArrowLeft size={16} weight="bold" aria-hidden className="transition-transform group-hover:-translate-x-0.5" />
+        All businesses
+      </Link>
+
+      <header className="mt-4 flex items-center gap-4 sm:gap-5">
+        <BusinessMark id={business.id} name={business.legalName} size="lg" />
+        <div className="grid min-w-0 gap-1">
+          <h1 className="break-words text-[28px] font-semibold leading-[1.1] tracking-[-0.025em] text-fg sm:text-[40px]">
+            {business.legalName}
+          </h1>
+          <p className="text-[15px] text-muted">{businessMeta(business)}</p>
+        </div>
+      </header>
+
+      <DashboardNotices
+        searchParams={searchParams}
+        addedMessage="Business added. We'll remind you before it's due."
+        className="mt-6"
+      />
+
+      <div className="mt-10 grid gap-14">
+        <DashboardSection id="open-filings" title={openRequirements.length > 1 ? "Open filings" : "Next filing"}>
+          {openRequirements.length > 0 ? (
+            <div className="grid gap-4">
+              {openRequirements.map((req) => (
+                <OpenRequirement key={req.id} business={business} requirement={req} returnTo={returnTo} />
+              ))}
+            </div>
+          ) : (
+            <QuietEmpty>
+              <span className="block font-semibold text-fg">Nothing open right now</span>
               {business.rule
                 ? "When the next filing period opens, it will appear here and we'll remind you before it's due."
                 : "We don't track filings for this state and entity type yet."}
-            </p>
-          </Card>
-        )}
+            </QuietEmpty>
+          )}
 
-        {business.rule ? (
-          <div className="grid gap-2 text-sm text-muted">
-            <p className="max-w-[70ch]">
-              Based on the {agency}&apos;s published requirements: {business.rule.customerSummary}
-            </p>
-            <OfficialSource href={business.rule.officialInfoUrl} agency={agency} lastVerifiedAt={business.rule.lastVerifiedAt} />
-          </div>
-        ) : null}
-      </DashboardSection>
-
-      <div className="grid gap-10 lg:grid-cols-2 lg:gap-8">
-        <DashboardSection id="record" title="Business record">
-          <Card className="grid gap-5 p-5 sm:p-6">
-            <Facts
-              items={[
-                { term: "Legal name", value: <span className="break-words">{business.legalName}</span> },
-                { term: "State", value: business.stateName },
-                { term: "Entity type", value: ENTITY_TYPE_LABELS[business.entityType] },
-                {
-                  term: "Entity number",
-                  value: business.entityNumber ? (
-                    <span className="tnum">{business.entityNumber}</span>
-                  ) : (
-                    <span className="text-subtle">Not provided</span>
-                  ),
-                },
-                {
-                  term: "Formation date",
-                  value:
-                    business.formationDate && isISODate(business.formationDate) ? (
-                      <span className="tnum">{formatLongDate(business.formationDate)}</span>
-                    ) : (
-                      <span className="text-subtle">Not provided</span>
-                    ),
-                },
-                {
-                  term: "Domestic or foreign",
-                  value: business.isForeign
-                    ? `Foreign, formed in ${business.homeJurisdiction ?? "another jurisdiction"}`
-                    : `Domestic, formed in ${business.stateName}`,
-                },
-                { term: "Not-for-profit purpose", value: business.isNonprofit ? "Yes" : "No" },
-                { term: "Standing", value: standingText(business.standing, business.standingSource) },
-              ]}
-            />
-            <p className="border-t border-border pt-4 text-sm text-muted">
-              These details come from what you told us. They update each time you authorize a filing with us.
-            </p>
-          </Card>
+          {business.rule ? (
+            <div className="grid max-w-[72ch] gap-2 text-sm leading-6 text-muted">
+              <p>
+                Based on the {agency}&apos;s published requirements: {business.rule.customerSummary}
+              </p>
+              <OfficialSource href={business.rule.officialInfoUrl} agency={agency} lastVerifiedAt={business.rule.lastVerifiedAt} />
+            </div>
+          ) : null}
         </DashboardSection>
 
-        <DashboardSection id="addresses-people" title="Addresses and people">
-          <Card className="grid gap-6 p-5 sm:p-6">
-            {addresses.length > 0 ? (
-              <dl className="grid gap-4">
-                {addresses.map((a) => (
-                  <div key={a.kind} className="grid gap-1">
-                    <dt className="text-sm text-muted">{ADDRESS_LABELS[a.kind] ?? "Address"}</dt>
-                    <dd className="break-words text-[15px] text-fg">{addressText(a)}</dd>
+        <div className="grid gap-14 lg:grid-cols-2 lg:gap-8">
+          <DashboardSection id="record" title="Business record">
+            <div className="grid gap-5 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+                {record.map((item) => (
+                  <div key={item.term} className={cn(
+                      "grid min-w-0 content-start gap-0.5",
+                      item.wide === "always" && "col-span-2",
+                      item.wide === "mobile" && "col-span-2 sm:col-span-1",
+                    )}>
+                    <dt className="text-[13px] font-medium text-muted">{item.term}</dt>
+                    <dd className="text-[15px] font-semibold text-fg">{item.value}</dd>
                   </div>
                 ))}
               </dl>
-            ) : (
-              <p className="text-sm text-muted">No addresses on file yet. We&apos;ll save them when you complete a filing.</p>
-            )}
-            <div className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-              <PeopleGroup title={governorLabel(business)} people={governors} />
-              <PeopleGroup title="Principal officers" people={officers} />
+              <p className="flex items-start gap-2 border-t border-border pt-4 text-sm leading-6 text-muted">
+                <Info size={17} aria-hidden className="mt-0.5 shrink-0 text-subtle" />
+                These details come from what you told us. They update each time you authorize a filing with us.
+              </p>
             </div>
-          </Card>
-        </DashboardSection>
-      </div>
+          </DashboardSection>
 
-      <DashboardSection
-        id="periods"
-        title="Filing periods"
-        description="Every report period we track for this business."
-      >
-        {requirements.length > 0 ? (
-          <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface">
-            {requirements.map((req) => {
-              const linkedFiling = req.activeFiling ?? filings.find((f) => f.requirementId === req.id) ?? null;
-              return (
-                <li key={req.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
-                  <div className="grid min-w-0 flex-1 gap-0.5">
-                    <p className="font-medium text-fg">
-                      {req.periodYear} {req.filingName}
-                    </p>
-                    <p className="text-sm text-muted">
-                      Due <DueDate value={req.dueDate} short />
-                    </p>
-                  </div>
-                  <Badge
-                    tone={
-                      req.status === "filed_with_us" ? "success" : req.status === "open" ? "info" : "neutral"
-                    }
-                  >
-                    {requirementStatusLabel(req.status)}
-                  </Badge>
-                  {linkedFiling ? (
-                    <Link href={filingHref(linkedFiling.id)} className={`${quietLinkClass} text-sm`}>
-                      View filing
-                      <span className="sr-only">
-                        {" "}
-                        for {req.periodYear}
+          <DashboardSection id="addresses-people" title="Addresses and people">
+            <div className="grid gap-6 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
+              {addresses.length > 0 ? (
+                <ul className="grid gap-4">
+                  {addresses.map((a) => (
+                    <li key={a.kind} className="flex items-start gap-3">
+                      <span
+                        aria-hidden
+                        className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent"
+                      >
+                        <MapPin size={17} weight="fill" />
                       </span>
+                      <div className="grid min-w-0 gap-0.5">
+                        <p className="text-[13px] font-medium text-muted">{ADDRESS_LABELS[a.kind] ?? "Address"}</p>
+                        <p className="break-words text-[15px] font-semibold leading-snug text-fg">{addressText(a)}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[15px] text-muted">No addresses on file yet. We&apos;ll save them when you complete a filing.</p>
+              )}
+              <div className="grid gap-6 border-t border-border pt-5 sm:grid-cols-2">
+                <PeopleGroup title={governorLabel(business)} people={governors} />
+                <PeopleGroup title="Principal officers" people={officers} />
+              </div>
+            </div>
+          </DashboardSection>
+        </div>
+
+        <div className="grid gap-14 lg:grid-cols-2 lg:gap-8">
+          <DashboardSection id="periods" title="Filing years" description="Every report period we track for this business.">
+            {requirements.length > 0 ? (
+              <ol className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
+                {requirements.map((req, i) => {
+                  const linkedFiling = req.activeFiling ?? filings.find((f) => f.requirementId === req.id) ?? null;
+                  const last = i === requirements.length - 1;
+                  const done = req.status === "filed_with_us" || req.status === "filed_elsewhere";
+                  return (
+                    <li key={req.id} className="relative grid grid-cols-[3.25rem_1.25rem_minmax(0,1fr)] gap-x-3 pb-6 last:pb-0">
+                      <span className="tnum pt-px font-display text-lg font-semibold leading-6 text-fg">{req.periodYear}</span>
+                      <span aria-hidden className="relative flex justify-center">
+                        {!last ? <span className="absolute top-6 bottom-[-1.5rem] w-0.5 bg-border" /> : null}
+                        <span
+                          className={cn(
+                            "relative mt-1 size-4 rounded-full border-2",
+                            done
+                              ? "border-accent bg-accent"
+                              : req.status === "open"
+                                ? "border-highlight-strong bg-highlight-soft"
+                                : "border-border-strong bg-surface",
+                          )}
+                        />
+                      </span>
+                      <div className="grid min-w-0 gap-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                          <p className="font-semibold text-fg">{req.filingName}</p>
+                          <Badge
+                            tone={req.status === "filed_with_us" ? "success" : req.status === "open" ? "info" : "neutral"}
+                          >
+                            {requirementStatusLabel(req.status)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted">
+                          Due <DueDate value={req.dueDate} short />
+                        </p>
+                        {linkedFiling ? (
+                          <Link href={filingHref(linkedFiling.id)} className={`${quietLinkClass} justify-self-start text-sm`}>
+                            View filing
+                            <span className="sr-only"> for {req.periodYear}</span>
+                            <ArrowRight size={14} weight="bold" aria-hidden />
+                          </Link>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <QuietEmpty>No filing periods yet.</QuietEmpty>
+            )}
+          </DashboardSection>
+
+          <DashboardSection id="history" title="Filing history" description="Filings you've started with us, newest first.">
+            {filings.length > 0 ? (
+              <ul className="grid gap-3">
+                {filings.map((f) => (
+                  <li key={f.id}>
+                    <Link
+                      href={filingHref(f.id)}
+                      className="group flex items-center gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-4 transition-[border-color,box-shadow] hover:border-accent/40 hover:shadow-card"
+                    >
+                      <DocumentSheet
+                        title={`${f.periodYear} ${f.filingName}`}
+                        size="sm"
+                        stamp={f.status === "accepted" || f.status === "completed" ? "Filed" : undefined}
+                        className="max-sm:hidden"
+                      />
+                      <div className="grid min-w-0 flex-1 gap-1.5">
+                        <p className="font-semibold text-fg group-hover:text-accent">
+                          {f.periodYear} {f.filingName}
+                        </p>
+                        <p className="tnum text-sm text-muted">Started {formatTimestampDate(f.createdAt)}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <FilingStatusBadge status={f.status} />
+                          <PaymentStatusBadge status={f.orderStatus} />
+                        </div>
+                      </div>
+                      <CaretRight size={18} weight="bold" className="shrink-0 text-subtle group-hover:text-accent" aria-hidden />
                     </Link>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted">No filing periods yet.</p>
-        )}
-      </DashboardSection>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <QuietEmpty>No filings yet. When you have us file a report, it will be listed here with its receipt.</QuietEmpty>
+            )}
+          </DashboardSection>
+        </div>
 
-      <DashboardSection id="history" title="Filing history">
-        {filings.length > 0 ? (
-          <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface">
-            {filings.map((f) => (
-              <li key={f.id}>
-                <Link
-                  href={filingHref(f.id)}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4 transition-colors hover:bg-surface-2"
-                >
-                  <div className="grid min-w-0 flex-1 gap-0.5">
-                    <p className="font-medium text-fg">
-                      {f.periodYear} {f.filingName}
-                    </p>
-                    <p className="tnum text-sm text-muted">Started {formatTimestampDate(f.createdAt)}</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <FilingStatusBadge status={f.status} />
-                    <PaymentStatusBadge status={f.orderStatus} />
-                  </div>
-                  <CaretRight size={16} className="text-subtle" aria-hidden />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="rounded-[var(--radius-surface)] border border-dashed border-border-strong px-4 py-6 text-sm text-muted">
-            No filings yet. When you have us file a report, it will be listed here with its receipt.
+        {rulesHref ? (
+          <p className="text-sm text-muted">
+            <Link href={rulesHref} className={quietLinkClass}>
+              {business.rule
+                ? `Read about the ${business.stateName} ${ENTITY_TYPE_LABELS[business.entityType]} annual report`
+                : `About filings in ${business.stateName}`}
+              <ArrowRight size={14} weight="bold" aria-hidden />
+            </Link>
           </p>
-        )}
-      </DashboardSection>
-
-      {rulesHref ? (
-        <p className="text-sm text-muted">
-          <Link href={rulesHref} className={quietLinkClass}>
-            {business.rule
-              ? `Read about the ${business.stateName} ${ENTITY_TYPE_LABELS[business.entityType]} annual report`
-              : `About filings in ${business.stateName}`}
-          </Link>
-        </p>
-      ) : null}
+        ) : null}
+      </div>
     </Container>
   );
 }

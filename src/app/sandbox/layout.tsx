@@ -15,14 +15,14 @@ export default function SandboxLayout({ children }: LayoutProps<"/sandbox">) {
     <div className="flex min-h-[100dvh] flex-col bg-surface-2">
       <div
         role="note"
-        className="border-b border-warning/30 bg-warning-soft px-4 py-2.5 text-center text-sm font-medium text-fg"
+        className="border-b border-warning/30 bg-warning-soft px-4 py-3 text-center text-sm font-semibold text-fg"
       >
         <span className="inline-flex items-center gap-2">
-          <Flask size={18} weight="bold" className="text-warning" aria-hidden />
+          <Flask size={18} weight="fill" className="shrink-0 text-warning" aria-hidden />
           Test checkout. Sandbox mode. No real card, no real charge.
         </span>
       </div>
-      <main className="flex flex-1 items-start justify-center px-4 py-8 sm:py-14">{children}</main>
+      <main className="flex flex-1 items-start justify-center px-4 py-8 sm:py-16">{children}</main>
       <footer className="px-4 pb-6 text-center text-xs text-subtle">
         Payment simulator for development and testing. No payment processor is contacted.
       </footer>

@@ -1,4 +1,13 @@
-import { ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowRight,
+  ArrowSquareOut,
+  ArrowUpRight,
+  CaretDown,
+  Info,
+  ProhibitInset,
+  SealCheck,
+  ShieldCheck,
+} from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,28 +18,37 @@ import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
+import { GuideSection, GuideText } from "@/components/marketing/guide-section";
 import { JsonLd } from "@/components/marketing/json-ld";
-import { PageIntro, Section, SectionHeading } from "@/components/marketing/section";
+import { OnThisPageAside, OnThisPageDisclosure } from "@/components/marketing/on-this-page";
+import { PhotoHero } from "@/components/marketing/photo-hero";
+import { RequiredInfoSheet } from "@/components/marketing/required-info-sheet";
 import { SourceList } from "@/components/marketing/source-list";
-import { WaitlistForm } from "@/components/marketing/waitlist-form";
-import { DirectoryListing } from "@/components/marketing/directory-listing";
-import { Table, TableScroll, TD, TH, THead, TR } from "@/components/ui/table";
+import { StateStatusPanel } from "@/components/marketing/state-status-panel";
+import { UnverifiedStatePanel } from "@/components/marketing/unverified-state-panel";
+import { UnverifiedStateSections } from "@/components/marketing/unverified-state-sections";
+import { buttonClasses } from "@/components/ui/button";
+import { Container } from "@/components/ui/surface";
+import { CalendarDate } from "@/components/visual/calendar-date";
+import { FilingYearChart } from "@/components/visual/filing-year-chart";
+import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { getJurisdictionBySlug, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef, FaqItem, JurisdictionDef } from "@/lib/compliance/types";
-import { lateFeeText, verifiedText } from "@/lib/compliance/view";
+import { lateFeeText, stateFeeText, verifiedText } from "@/lib/compliance/view";
+import { todayInTimeZone } from "@/lib/domain/dates";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import {
   agencyShortName,
   commonRequiredInfo,
   dueDayText,
+  dueGroups,
   dueSummary,
-  dueTableRows,
   feeSummary,
+  filingWindowText,
   groupSources,
   latestVerified,
-  sortByDue,
   stateFaq,
 } from "@/lib/seo/content";
 import { ENTITY_COPY, joinList } from "@/lib/seo/entities";
@@ -113,6 +131,15 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
   const noLateFee = rules.every((r) => r.lateFeeCents === null);
   const lateSentence = noLateFee ? "there is no state late fee" : "a state late fee applies";
   const firstReportYearAfter = rules.every((r) => r.firstDueRule.kind === "year_after_formation");
+  const feeText = facts?.directFilingFeeText ?? feeSummary(rules);
+  const feeAmount = /^\$\d+(?:\.\d+)?/.exec(feeText)?.[0] ?? feeText;
+  const feeNote = /\((.+)\)$/.exec(feeText)?.[1] ?? null;
+  const filingHost = new URL(first.officialFilingUrl).host;
+  const groups = dueGroups(rules);
+  const today = todayInTimeZone(j.timezone);
+  const chartRows = groups.every((g) => g.month && g.dayOfMonth)
+    ? groups.map((g) => ({ label: g.who, month: g.month as number, day: g.dayOfMonth as number }))
+    : null;
 
   const crumbs = [
     { name: "Home", path: "/" },
@@ -147,6 +174,12 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
       : [];
   });
 
+  const officialLinks = [
+    { href: first.officialFilingUrl, label: "Official online filing" },
+    { href: facts?.businessSearchUrl ?? j.agency.businessSearchUrl, label: "Official business search" },
+    { href: first.officialInfoUrl, label: `${agency}: annual reports` },
+  ].filter((l): l is { href: string; label: string } => Boolean(l.href));
+
   return (
     <>
       <TrackView event="state_page_viewed" stateCode={j.code} />
@@ -164,265 +197,344 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
         )}
       />
 
-      <PageIntro
+      <PhotoHero
+        id="state-title"
         breadcrumbs={<Breadcrumbs items={crumbs} />}
-        title={`${j.name} annual report`}
+        title={
+          <>
+            {j.name} <span className="mark-highlight">annual report</span>
+          </>
+        }
         lede={
           <p>
-            Based on the {agency}&apos;s published requirements, most domestic and foreign entities registered in {j.name} must
-            file an annual report every year: {dueSummary(rules)}. The state fee is{" "}
-            {facts?.directFilingFeeText ?? feeSummary(rules)}, and {lateSentence}.
+            {facts ? `Since ${facts.firstRequiredYear}, most` : "Most"} businesses registered in {j.name} file one every
+            year. The due date depends on the type of entity.
           </p>
         }
-      >
-        <dl className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-surface)] border border-border bg-border sm:grid-cols-4">
-          {[
-            { term: "Due", value: [...new Set(sortByDue(rules).map((r) => dueDayText(r)))].join(", ") },
-            { term: "State fee", value: facts?.directFilingFeeText ?? feeSummary(rules) },
-            { term: "Late fee", value: noLateFee ? "None" : "Yes" },
-            { term: "Form", value: first.formNumber ?? first.filingName },
-          ].map((f) => (
-            <div key={f.term} className="grid content-start gap-1 bg-surface px-4 py-3.5">
-              <dt className="text-xs text-muted">{f.term}</dt>
-              <dd className="tnum text-[15px] font-medium text-fg">{f.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </PageIntro>
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code}>
+              Have us file it
+              <ArrowRight size={18} weight="bold" aria-hidden />
+            </FilingCtaLink>
+            <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
+              File it yourself
+              <ArrowSquareOut size={18} aria-hidden />
+              <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
+            </a>
+          </div>
+        }
+        note={
+          <p className="flex max-w-[46ch] items-start gap-2 text-sm leading-6 text-muted">
+            <ShieldCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
+            <span>
+              Filing it yourself at {filingHost} costs only the state fee: {feeText}.
+            </span>
+          </p>
+        }
+        photo="storefrontAwning"
+        focus="50% 38%"
+        focusWide="42% 50%"
+        panel={<StateStatusPanel j={j} rules={rules} feeText={facts?.directFilingFeeText} />}
+      />
 
-      <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-16">
-        <div className="grid min-w-0 gap-16 py-12 sm:py-16">
+      <Container className="grid grid-cols-1 gap-12 pb-20 lg:grid-cols-[minmax(0,1fr)_13.5rem] lg:gap-16">
+        <div className="grid min-w-0 content-start gap-20 pt-4 sm:gap-24">
+          <OnThisPageDisclosure items={TOC} className="-mb-8" />
+
           {/* Due dates */}
-          <section id="due-dates" aria-labelledby="due-dates-title" className="grid scroll-mt-24 gap-6">
-            <SectionHeading
-              id="due-dates-title"
-              title="Due dates by entity type"
-              lede={`The due date depends on the type of entity. The filing window opens January 1 of the report year.`}
-            />
-            <TableScroll>
-              <Table>
-                <THead>
-                  <tr>
-                    <TH>Entity type</TH>
-                    <TH>Due</TH>
-                    <TH>Filing window</TH>
-                    <TH>State fee</TH>
-                  </tr>
-                </THead>
-                <tbody>
-                  {dueTableRows(rules).map((row) => (
-                    <TR key={row.rule.ruleKey}>
-                      <TD>
-                        <Link
-                          href={`${path}/${ENTITY_TYPE_SLUGS[row.rule.entityType]}`}
-                          className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
-                        >
-                          {row.label}
-                        </Link>
-                      </TD>
-                      <TD className="tnum whitespace-nowrap">{row.due.replace(" each year", "")}</TD>
-                      <TD className="tnum whitespace-nowrap">
-                        <span className="text-muted">{row.window ?? "Varies"}</span>
-                      </TD>
-                      <TD className="tnum">{row.fee}</TD>
-                    </TR>
-                  ))}
-                </tbody>
-              </Table>
-            </TableScroll>
+          <GuideSection
+            id="due-dates"
+            title="Due dates by entity type"
+            lede={
+              <p>
+                Based on the {agency}&apos;s published requirements, most domestic and foreign entities registered in {j.name}{" "}
+                must file an annual report every year: {dueSummary(rules)}. The state fee is {feeText}, and {lateSentence}. The
+                filing window opens January 1 of the report year.
+              </p>
+            }
+          >
+            {chartRows ? <FilingYearChart rows={chartRows} today={today} /> : null}
+
+            <div className="divide-y divide-border overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface">
+              {groups.map((g) => {
+                const window = filingWindowText(g.rules[0]);
+                return (
+                  <div key={g.day} className="grid gap-3 p-4 sm:p-5 md:grid-cols-[16rem_minmax(0,1fr)] md:gap-8">
+                    <div className="flex items-center gap-3.5 md:items-start">
+                      <CalendarDate month={g.month} day={g.dayOfMonth} />
+                      <div className="grid gap-0.5">
+                        <p className="font-display text-lg font-semibold leading-tight text-fg">Due {g.day}</p>
+                        <p className="tnum text-[13px] leading-5 text-muted">
+                          Filing window: {window ?? "Varies"}
+                        </p>
+                      </div>
+                    </div>
+                    <ul className="grid">
+                      {g.rules.map((r) => (
+                        <li key={r.ruleKey} className="border-b border-dashed border-border last:border-b-0">
+                          <Link
+                            href={`${path}/${ENTITY_TYPE_SLUGS[r.entityType]}`}
+                            className="group grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-2"
+                          >
+                            <span className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                              <span className="font-semibold text-fg underline decoration-transparent underline-offset-4 transition-colors group-hover:text-accent group-hover:decoration-accent/40">
+                                {ENTITY_TYPE_LABELS[r.entityType]}
+                              </span>
+                              <span className="tnum text-[14px] text-muted">
+                                {r.stateFeeCents === 0 ? stateFeeText(r) : `State fee ${stateFeeText(r)}`}
+                              </span>
+                            </span>
+                            <ArrowRight size={14} weight="bold" aria-hidden className="text-subtle group-hover:text-accent" />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+
             {firstReportYearAfter ? (
-              <p className="text-[15px] leading-7 text-muted">
-                A business files its first report in the calendar year after it forms in {j.name} or first registers there as a
-                foreign entity. A business formed this year has nothing to file until next year.
+              <p className="flex max-w-[68ch] items-start gap-2.5 text-[15px] leading-7 text-muted">
+                <Info size={18} aria-hidden className="mt-1 shrink-0 text-accent" />
+                <span>
+                  A business files its first report in the calendar year after it forms in {j.name} or first registers there
+                  as a foreign entity. A business formed this year has nothing to file until next year.
+                </span>
               </p>
             ) : null}
-          </section>
+          </GuideSection>
 
           {/* Who must file */}
-          <section id="who-files" aria-labelledby="who-files-title" className="grid scroll-mt-24 gap-5">
-            <SectionHeading id="who-files-title" title="Who must file" />
-            <div className="grid max-w-[68ch] gap-4 text-[15px] leading-7 text-muted sm:text-base">
-              <p>
-                Based on the {agency}&apos;s published requirements, every active domestic and foreign{" "}
-                {joinList(rules.map((r) => ENTITY_COPY[r.entityType].singular))} registered with the {agency} files an annual
-                report.
-                {facts ? ` The requirement began in ${facts.firstRequiredYear}.` : null}
-              </p>
+          <GuideSection id="who-files" title="Who must file">
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-10">
+              <GuideText>
+                <p>
+                  Based on the {agency}&apos;s published requirements, every active domestic and foreign{" "}
+                  {joinList(rules.map((r) => ENTITY_COPY[r.entityType].singular))} registered with the {agency} files an
+                  annual report.
+                  {facts ? ` The requirement began in ${facts.firstRequiredYear}.` : null}
+                </p>
+                {carNotes.length ? (
+                  <details className="group rounded-[var(--radius-control)] border border-border bg-surface">
+                    <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[15px] font-semibold text-fg [&::-webkit-details-marker]:hidden">
+                      A separate filing some entities also make
+                      <CaretDown size={16} weight="bold" aria-hidden className="shrink-0 text-muted transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className="border-t border-border px-4 pb-4 pt-3 text-[15px] leading-7">
+                      <ul className="grid list-disc gap-1.5 pl-5">
+                        {carNotes.map((note) => (
+                          <li key={note}>{note}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-sm">The annual report does not replace it.</p>
+                    </div>
+                  </details>
+                ) : null}
+              </GuideText>
               {facts ? (
-                <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:p-5">
-                  <p className="font-medium text-fg">Not required to file</p>
-                  <p className="mt-1">{facts.exemptTypes}</p>
-                </div>
-              ) : null}
-              {carNotes.length ? (
-                <div>
-                  <p className="font-medium text-fg">A separate filing some entities also make</p>
-                  <ul className="mt-2 grid list-disc gap-1.5 pl-5">
-                    {carNotes.map((note) => (
-                      <li key={note}>{note}</li>
-                    ))}
-                  </ul>
-                  <p className="mt-2 text-sm">The annual report does not replace it.</p>
+                <div className="grid content-start gap-2 rounded-[var(--radius-surface)] bg-surface-2 p-5">
+                  <p className="flex items-center gap-2 font-display text-lg font-semibold text-fg">
+                    <ProhibitInset size={20} weight="duotone" aria-hidden className="text-muted" />
+                    Not required to file
+                  </p>
+                  <p className="text-[15px] leading-7 text-muted">{facts.exemptTypes}</p>
                 </div>
               ) : null}
             </div>
-          </section>
+          </GuideSection>
 
           {/* Fees */}
-          <section id="fees" aria-labelledby="fees-title" className="grid scroll-mt-24 gap-5">
-            <SectionHeading id="fees-title" title="State fees" />
-            <div className="grid max-w-[68ch] gap-4 text-[15px] leading-7 text-muted sm:text-base">
-              <p>
-                Based on the {agency}&apos;s published requirements, the state fee is {feeSummary(rules)}. The fee is paid to the
-                state when the report is filed. The table above lists the fee for each entity type.
-              </p>
-              <p>
-                If you have us file it, we pass the state fee through at cost and show our service fee as a separate line before
-                you pay.
-              </p>
+          <GuideSection id="fees" title="State fees">
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-start md:gap-10">
+              <GuideText>
+                <p>
+                  Based on the {agency}&apos;s published requirements, the state fee is {feeSummary(rules)}. The fee is paid to
+                  the state when the report is filed. The due-date list above shows the fee for each entity type.
+                </p>
+                <p>
+                  If you have us file it, we pass the state fee through at cost and show our service fee as a separate line
+                  before you pay.
+                </p>
+              </GuideText>
+              <div className="grid gap-2 rounded-[var(--radius-surface)] border border-border bg-surface p-5">
+                <p className="text-[12px] font-semibold uppercase tracking-wider text-subtle">State fee</p>
+                <p className="tnum font-display text-[44px] font-semibold leading-none text-fg">{feeAmount}</p>
+                {feeNote ? <p className="text-[15px] font-semibold text-fg">{feeNote}</p> : null}
+                <p className="text-[14px] leading-6 text-muted">Paid to {j.name} when the report is filed.</p>
+              </div>
             </div>
-          </section>
+          </GuideSection>
 
           {/* Late filing */}
-          <section id="late" aria-labelledby="late-title" className="grid scroll-mt-24 gap-5">
-            <SectionHeading id="late-title" title="Late fee and consequences" />
-            <div className="grid max-w-[68ch] gap-4 text-[15px] leading-7 text-muted sm:text-base">
-              <p>{lateFeeText(first)}</p>
-              <p>{first.consequenceSummary}</p>
+          <GuideSection id="late" title="Late fee and consequences">
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-10">
+              <GuideText>
+                <p>{lateFeeText(first)}</p>
+                <p>{first.consequenceSummary}</p>
+                {facts ? (
+                  <p className="font-semibold text-fg">
+                    Enforcement starts with reports due in {facts.enforcementStartsWithReportsDueIn}.
+                  </p>
+                ) : null}
+              </GuideText>
               {facts ? (
-                <p className="rounded-[var(--radius-surface)] border border-border bg-surface p-4 font-medium text-fg sm:p-5">
-                  Enforcement starts with reports due in {facts.enforcementStartsWithReportsDueIn}.
-                </p>
+                <ol aria-label="What happens after a missed due date" className="grid content-start gap-5 rounded-[var(--radius-surface)] border border-border bg-surface p-5">
+                  <li className="relative flex gap-3.5">
+                    <span aria-hidden className="absolute -bottom-5 left-[11px] top-7 w-0.5 bg-border-strong" />
+                    <span aria-hidden className="relative z-10 mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border-2 border-highlight-strong bg-highlight" />
+                    <div className="grid gap-0.5">
+                      <p className="font-semibold text-fg">The due date passes</p>
+                      <p className="text-[14px] leading-6 text-muted">{noLateFee ? "No state late fee." : lateFeeText(first)}</p>
+                    </div>
+                  </li>
+                  <li className="relative flex gap-3.5">
+                    <span aria-hidden className="relative z-10 mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border-2 border-danger/60 bg-danger-soft" />
+                    <div className="grid gap-0.5">
+                      <p className="font-semibold text-fg">Six months after the due date</p>
+                      <p className="text-[14px] leading-6 text-muted">
+                        The entity becomes subject to dissolution, cancellation or termination of its registration.
+                      </p>
+                    </div>
+                  </li>
+                  <li className="rounded-[var(--radius-control)] bg-warning-soft px-3.5 py-2.5 text-[13px] font-semibold text-warning">
+                    Applies to reports due in {facts.enforcementStartsWithReportsDueIn} and later
+                  </li>
+                </ol>
               ) : null}
             </div>
-          </section>
+          </GuideSection>
 
-          {/* CTA */}
-          <section aria-labelledby="cta-title" className="grid gap-6 rounded-[var(--radius-surface)] border border-border bg-surface p-6 shadow-card sm:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] md:gap-10">
-            <div className="grid content-start gap-4">
-              <h2 id="cta-title" className="text-2xl font-semibold tracking-tight text-fg">
+          {/* Have us file it */}
+          <section
+            aria-labelledby="cta-title"
+            className="grid gap-8 overflow-hidden rounded-[28px] bg-accent p-6 sm:p-10 md:grid-cols-[minmax(0,1fr)_minmax(0,21rem)] md:items-center md:gap-12"
+          >
+            <div className="grid content-start gap-5">
+              <h2 id="cta-title" className="text-[30px] font-semibold leading-[1.08] text-accent-fg sm:text-[38px]">
                 Have us file it
               </h2>
-              <p className="text-[15px] leading-7 text-muted">
-                Answer a short form, review everything, and authorize the filing. We prepare it, submit it to the {agency}, and
-                send you the state&apos;s confirmation.
+              <p className="max-w-[44ch] text-[16px] leading-7 text-accent-fg/85">
+                Answer a short form, review everything, and authorize the filing. We prepare it, submit it to the {agency},
+                and send you the state&apos;s confirmation.
               </p>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code} variant="inverse">
                   Have us file it
                 </FilingCtaLink>
                 <Link
                   href="/pricing"
-                  className="inline-flex min-h-12 items-center justify-center gap-1.5 px-2 text-[15px] font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 px-2 text-[15px] font-semibold text-accent-fg underline decoration-accent-fg/40 decoration-2 underline-offset-4 hover:decoration-accent-fg"
                 >
                   Pricing for every entity type
                 </Link>
               </div>
             </div>
-            <div className="grid content-start gap-3 rounded-[var(--radius-control)] bg-surface-2 p-4 sm:p-5">
+            <Receipt
+              title="If we file it for you"
+              meta={exampleRule ? `Example: ${j.name} ${ENTITY_TYPE_LABELS[exampleRule.entityType]}` : `${j.name} annual report`}
+              className="w-full md:rotate-[1.2deg]"
+              footer={
+                <span className="flex items-start gap-2">
+                  <SealCheck size={16} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
+                  State fee verified against the {agency}
+                  {reviewed ? `, ${verifiedText(reviewed)}` : ""}.
+                </span>
+              }
+            >
               {exampleQuote && exampleRule ? (
-                <>
-                  <p className="text-sm font-medium text-fg">
-                    Example: {j.name} {ENTITY_TYPE_LABELS[exampleRule.entityType]}
-                  </p>
-                  <PriceBreakdown quote={exampleQuote} stateName={j.name} totalLabel="Total if we file it" />
-                </>
+                <PriceBreakdown quote={exampleQuote} stateName={j.name} totalLabel="Total if we file it" />
               ) : (
                 <p className="text-sm leading-6 text-muted">
                   The state fee is {feeSummary(rules)}. Our service fee is shown as a separate line before you pay.
                 </p>
               )}
-            </div>
-            <DisclaimerNote className="md:col-span-2" stateName={j.name} filingUrl={first.officialFilingUrl} />
+            </Receipt>
           </section>
+          <DisclaimerNote className="-mt-14 sm:-mt-16" stateName={j.name} filingUrl={first.officialFilingUrl} />
 
           {/* Required information */}
-          <section id="required" aria-labelledby="required-title" className="grid scroll-mt-24 gap-5">
-            <SectionHeading
-              id="required-title"
-              title="What information is required"
-              lede="The report confirms the business's current details. It doesn't include financial information."
+          <GuideSection
+            id="required"
+            title="What information is required"
+            lede="The report confirms the business's current details. It doesn't include financial information."
+          >
+            <RequiredInfoSheet
+              title={`${j.name} ${first.filingName.toLowerCase()}`}
+              formNumber={first.formNumber}
+              items={commonRequiredInfo(rules)}
             />
-            <ul className="grid max-w-[68ch] gap-3">
-              {commonRequiredInfo(rules).map((item) => (
-                <li key={item} className="flex gap-3 text-[15px] leading-7 text-muted sm:text-base">
-                  <span aria-hidden className="mt-3 size-1.5 shrink-0 rounded-full bg-accent" />
-                  <span>{item}</span>
+          </GuideSection>
+
+          {/* How filing works */}
+          <GuideSection id="how-to-file" title="How official filing works">
+            <GuideText>
+              <p>{first.filingMethodSummary}</p>
+              <p>{first.processingSummary}</p>
+            </GuideText>
+            <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+              {officialLinks.map((l) => (
+                <li key={l.href}>
+                  <a
+                    href={l.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border-strong bg-surface px-4 py-2 text-[15px] font-semibold leading-snug text-fg transition-colors hover:border-fg/40 hover:bg-surface-2"
+                  >
+                    {l.label}
+                    <ArrowUpRight size={15} weight="bold" aria-hidden />
+                    <span className="sr-only">(opens the official website in a new tab)</span>
+                  </a>
                 </li>
               ))}
             </ul>
-          </section>
-
-          {/* How filing works */}
-          <section id="how-to-file" aria-labelledby="how-title" className="grid scroll-mt-24 gap-5">
-            <SectionHeading id="how-title" title="How official filing works" />
-            <div className="grid max-w-[68ch] gap-4 text-[15px] leading-7 text-muted sm:text-base">
-              <p>{first.filingMethodSummary}</p>
-              <p>{first.processingSummary}</p>
-            </div>
-            <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
-              {[
-                { href: first.officialFilingUrl, label: "Official online filing" },
-                { href: facts?.businessSearchUrl ?? j.agency.businessSearchUrl, label: "Official business search" },
-                { href: first.officialInfoUrl, label: `${agency}: annual reports` },
-              ]
-                .filter((l): l is { href: string; label: string } => Boolean(l.href))
-                .map((l) => (
-                  <li key={l.href}>
-                    <a
-                      href={l.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
-                    >
-                      {l.label}
-                      <ArrowUpRight size={15} aria-hidden />
-                      <span className="sr-only">(opens the official website in a new tab)</span>
-                    </a>
-                  </li>
-                ))}
-            </ul>
-          </section>
+          </GuideSection>
 
           {/* Entity guides */}
-          <section id="entity-guides" aria-labelledby="entity-title" className="grid scroll-mt-24 gap-6">
-            <SectionHeading
-              id="entity-title"
-              title="Guides by entity type"
-              lede="Each guide covers the due date, the fee, who counts as a governor and what that entity type reports."
-            />
-            <ul className="grid gap-2 sm:grid-cols-2">
+          <GuideSection
+            id="entity-guides"
+            title="Guides by entity type"
+            lede="Each guide covers the due date, the fee, who counts as a governor and what that entity type reports."
+          >
+            <ul className="grid gap-3 sm:grid-cols-2">
               {rules.map((r) => (
                 <li key={r.ruleKey}>
                   <Link
                     href={`${path}/${ENTITY_TYPE_SLUGS[r.entityType]}`}
-                    className="group flex min-h-14 items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border bg-surface px-4 py-3 hover:border-border-strong hover:bg-surface-2"
+                    className="group flex min-h-[4.5rem] items-center gap-3.5 rounded-[var(--radius-surface)] border border-border bg-surface p-3 pr-4 transition-[border-color,box-shadow] hover:border-accent/40 hover:shadow-card"
                   >
-                    <span className="text-[15px] font-medium text-fg">
-                      {j.name} {ENTITY_COPY[r.entityType].title}
+                    <CalendarDate
+                      month={r.dueRule.kind === "fixed_annual" ? r.dueRule.month : null}
+                      day={r.dueRule.kind === "fixed_annual" ? r.dueRule.day : null}
+                      size="sm"
+                    />
+                    <span className="grid min-w-0 flex-1 gap-0.5">
+                      <span className="font-semibold leading-snug text-fg group-hover:text-accent">
+                        {j.name} {ENTITY_COPY[r.entityType].title}
+                      </span>
+                      <span className="tnum text-[13px] text-muted">Due {dueDayText(r)}</span>
                     </span>
-                    <ArrowRight size={16} aria-hidden className="shrink-0 text-subtle group-hover:text-fg" />
+                    <ArrowRight size={16} weight="bold" aria-hidden className="shrink-0 text-subtle group-hover:text-accent" />
                   </Link>
                 </li>
               ))}
             </ul>
-          </section>
+          </GuideSection>
 
           {/* FAQ */}
-          <section id="faq" aria-labelledby="faq-title" className="grid scroll-mt-24 gap-6">
-            <SectionHeading id="faq-title" title="Questions" />
+          <GuideSection id="faq" title="Questions">
             <FaqList items={faq} />
-          </section>
+          </GuideSection>
 
           {/* Sources */}
-          <section id="sources" aria-labelledby="sources-title" className="grid scroll-mt-24 gap-6">
-            <SectionHeading
-              id="sources-title"
-              title="Official sources"
-              lede="Every fact on this page comes from these official publications. Each excerpt is what we checked it against."
-            />
+          <GuideSection
+            id="sources"
+            title="Official sources"
+            lede="Every fact on this page comes from these official publications. Each excerpt is what we checked it against."
+          >
             <SourceList groups={sourceGroups} />
-          </section>
+          </GuideSection>
 
           <div className="grid gap-4 border-t border-border pt-8">
             {reviewed ? (
@@ -434,22 +546,20 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
           </div>
         </div>
 
-        <aside className="hidden lg:block">
-          <nav aria-label="On this page" className="sticky top-8 grid gap-1 py-16 text-sm">
-            <p className="mb-2 font-medium text-fg">On this page</p>
-            {TOC.map((item) => (
-              <a key={item.id} href={`#${item.id}`} className="rounded-[var(--radius-control)] px-3 py-2 text-muted hover:bg-surface-2 hover:text-fg">
-                {item.label}
-              </a>
-            ))}
-            <div className="mt-6 border-t border-border pt-6">
-              <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code} size="md" className="w-full">
-                Have us file it
-              </FilingCtaLink>
-            </div>
-          </nav>
-        </aside>
-      </div>
+        <OnThisPageAside items={TOC} className="pt-4">
+          <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code} size="md" className="w-full">
+            Have us file it
+          </FilingCtaLink>
+          <p className="text-[13px] leading-5 text-muted">
+            Or file it yourself at{" "}
+            <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent">
+              {filingHost}
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>{" "}
+            for the state fee.
+          </p>
+        </OnThisPageAside>
+      </Container>
     </>
   );
 }
@@ -467,45 +577,42 @@ function UnverifiedState({ j }: { j: JurisdictionDef }) {
   ];
   return (
     <>
-      <PageIntro
+      <PhotoHero
+        id="state-title"
         breadcrumbs={<Breadcrumbs items={crumbs} />}
         title={`${j.name} annual report`}
         lede={
           <p>
-            We haven&apos;t verified {j.name}&apos;s annual report requirements yet, so we don&apos;t show due dates or fees. For
-            accurate information, go to the state&apos;s official business filing agency.
+            We haven&apos;t verified {j.name}&apos;s annual report requirements yet, so we don&apos;t show due dates or fees.
+            For accurate information, go to the state&apos;s official business filing agency.
           </p>
         }
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <a href={j.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("primary", "lg")}>
+              Visit the official agency
+              <ArrowSquareOut size={18} aria-hidden />
+              <span className="sr-only">(opens the official website in a new tab)</span>
+            </a>
+            <a href="#waitlist" className={buttonClasses("secondary", "lg")}>
+              Get an email when it&apos;s ready
+            </a>
+          </div>
+        }
+        photo="potterWorkshop"
+        focus="55% 35%"
+        focusWide="30% 40%"
+        panel={<UnverifiedStatePanel j={j} />}
       />
-      <Section>
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-          <DirectoryListing j={j} />
-          <div className="grid content-start gap-5">
-            <SectionHeading
-              as="h2"
-              title={`Get an email when we support ${j.name}`}
-              lede={`We add a state only after checking its requirements against official sources. Leave your email and we'll let you know when ${j.name} is ready.`}
-            />
-            <WaitlistForm stateCode={j.code} stateName={j.name} />
-          </div>
-        </div>
-        <div className="mt-14 grid gap-6 border-t border-border pt-8">
-          <div className="flex flex-col gap-3 text-[15px] sm:flex-row sm:gap-8">
-            <Link href="/annual-report" className="inline-flex min-h-11 items-center gap-1.5 font-medium text-fg hover:underline hover:underline-offset-4">
-              All states
-              <ArrowRight size={16} aria-hidden />
-            </Link>
-            <Link
-              href="/annual-report/pennsylvania"
-              className="inline-flex min-h-11 items-center gap-1.5 font-medium text-fg hover:underline hover:underline-offset-4"
-            >
-              Pennsylvania annual report (supported)
-              <ArrowRight size={16} aria-hidden />
-            </Link>
-          </div>
-          <DisclaimerNote />
-        </div>
-      </Section>
+
+      <UnverifiedStateSections
+        j={j}
+        waitlistLede={`We add a state only after checking its requirements against official sources. Leave your email and we'll let you know when ${j.name} is ready.`}
+        links={[
+          { href: "/annual-report", label: "All states" },
+          { href: "/annual-report/pennsylvania", label: "Pennsylvania annual report (supported)" },
+        ]}
+      />
     </>
   );
 }

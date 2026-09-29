@@ -37,11 +37,11 @@ export function PaymentPoller({
     <div aria-live="polite" className="grid gap-4">
       {done ? (
         <>
-          <p className="text-[15px] text-muted">
+          <p className="text-[15px] leading-6 text-muted">
             This is taking longer than usual. Your payment may still be processing. We&apos;ll email you as soon as it&apos;s
             confirmed, and your dashboard will show the latest status.
           </p>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <Link href={dashboardHref} className={buttonClasses("primary", "lg")}>
               Go to your dashboard
             </Link>
@@ -58,8 +58,10 @@ export function PaymentPoller({
           </div>
         </>
       ) : (
-        <p className="flex items-center gap-2 text-[15px] text-muted">
-          <CircleNotch size={20} className="animate-spin text-fg" aria-hidden />
+        <p className="flex items-center gap-3.5 text-[15px] leading-6 text-muted">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft" aria-hidden>
+            <CircleNotch size={20} weight="bold" className="animate-spin text-accent" />
+          </span>
           Checking with the payment provider. This usually takes a few seconds.
         </p>
       )}

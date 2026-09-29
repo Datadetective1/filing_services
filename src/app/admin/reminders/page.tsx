@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { ActionForm } from "@/components/admin/action-form";
 import { StatusPill } from "@/components/admin/badges";
 import { formatDate, formatDateTime, humanize, opsToday } from "@/components/admin/format";
-import { EmptyRow, Panel, ScrollArea } from "@/components/admin/layout-bits";
+import { ConsoleHeader, EmptyRow, Panel, ScrollArea, Stat, StatStrip } from "@/components/admin/layout-bits";
+import { Table, TD, TH, THead, TR } from "@/components/admin/table";
+import { cn } from "@/components/ui/cn";
 import { Field, Input } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/surface";
-import { Table, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireStaff } from "@/lib/auth/session";
 import { addDays } from "@/lib/domain/dates";
 import { createClient } from "@/lib/supabase/server";
@@ -75,27 +75,39 @@ export default async function RemindersPage() {
   const schedules = (schedulesRes.data ?? []) as ScheduleRow[];
 
   return (
-    <div className="grid gap-5">
-      <PageHeader
+    <div className="grid grid-cols-1 gap-6">
+      <ConsoleHeader
         title="Reminders"
         description="Deadline reminder emails. A daily job plans and sends them, and each one is re-checked on the day it goes out."
       />
 
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-surface)] border border-border bg-border sm:grid-cols-5">
+      <StatStrip cols={5}>
         {STATUSES.map((s, i) => (
-          <div key={s} className="grid gap-1 bg-surface px-4 py-3">
-            <dt className="text-xs text-muted">{humanize(s)}</dt>
-            <dd className={s === "failed" && (counts[i].count ?? 0) > 0 ? "tnum text-xl font-semibold text-danger" : "tnum text-xl font-semibold text-fg"}>
-              {counts[i].count ?? 0}
-            </dd>
-          </div>
+          <Stat
+            key={s}
+            label={humanize(s)}
+            value={counts[i].count ?? 0}
+            tone={s === "failed" && (counts[i].count ?? 0) > 0 ? "danger" : "neutral"}
+            className={i === STATUSES.length - 1 ? "max-md:col-span-2" : undefined}
+          />
         ))}
-      </dl>
+      </StatStrip>
 
       {isAdmin ? (
-        <Panel title="Run the reminder cycle now" description="Runs the same job as the daily schedule. Emails already sent are never sent twice. The run is recorded in the audit log.">
+        <section
+          aria-labelledby="run-cycle-title"
+          className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface px-5 py-5 shadow-[0_1px_2px_rgb(23_35_29/0.04)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-8"
+        >
+          <div className="grid gap-1">
+            <h2 id="run-cycle-title" className="text-[17px] font-semibold leading-snug text-fg">
+              Run the reminder cycle now
+            </h2>
+            <p className="max-w-[70ch] text-sm text-muted">
+              Runs the same job as the daily schedule. Emails already sent are never sent twice. The run is recorded in the audit log.
+            </p>
+          </div>
           <ActionForm action={runReminderCycleAction} submitLabel="Run reminder cycle now" pendingLabel="Running..." variant="primary" resetOnSuccess={false} />
-        </Panel>
+        </section>
       ) : null}
 
       <Panel id="upcoming" title="Scheduled in the next 14 days" bodyClassName="p-0">
@@ -114,7 +126,7 @@ export default async function RemindersPage() {
                 {upcoming.map((r) => (
                   <TR key={r.id}>
                     <TD className="tnum whitespace-nowrap">{formatDate(r.scheduled_for)}</TD>
-                    <TD>{one(r.businesses)?.legal_name ?? "Unknown business"}</TD>
+                    <TD className="font-medium">{one(r.businesses)?.legal_name ?? "Unknown business"}</TD>
                     <TD className="whitespace-nowrap text-muted">{offsetLabel(r.offset_days)}</TD>
                     <TD className="tnum whitespace-nowrap">{formatDate(r.due_date)}</TD>
                   </TR>
@@ -123,7 +135,7 @@ export default async function RemindersPage() {
             </Table>
           </ScrollArea>
         ) : (
-          <div className="px-4 py-3">
+          <div className="px-5 py-4">
             <EmptyRow>No reminders scheduled in the next 14 days.</EmptyRow>
           </div>
         )}
@@ -147,7 +159,7 @@ export default async function RemindersPage() {
                 {recent.map((r) => (
                   <TR key={r.id}>
                     <TD className="tnum whitespace-nowrap">{formatDateTime(r.processed_at)}</TD>
-                    <TD>{one(r.businesses)?.legal_name ?? "Unknown business"}</TD>
+                    <TD className="font-medium">{one(r.businesses)?.legal_name ?? "Unknown business"}</TD>
                     <TD>
                       <StatusPill status={r.status} />
                     </TD>
@@ -160,7 +172,7 @@ export default async function RemindersPage() {
             </Table>
           </ScrollArea>
         ) : (
-          <div className="px-4 py-3">
+          <div className="px-5 py-4">
             <EmptyRow>Nothing processed yet.</EmptyRow>
           </div>
         )}
@@ -172,11 +184,11 @@ export default async function RemindersPage() {
         description="Offsets are days relative to the due date: negative is before, positive is after. Changes apply the next time reminders are planned. Reminders already scheduled keep their dates."
       >
         {schedules.length ? (
-          <ul className="grid divide-y divide-border">
+          <ul className="grid divide-y divide-border/70">
             {schedules.map((s) => (
-              <li key={s.id} className="grid gap-3 py-3 first:pt-0 last:pb-0">
+              <li key={s.id} className="grid gap-4 py-4 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium text-fg">
+                  <p className="font-semibold text-fg">
                     {s.name} {s.active ? null : <span className="text-sm font-normal text-muted">(inactive)</span>}
                   </p>
                   <p className="text-xs text-muted">
@@ -184,13 +196,7 @@ export default async function RemindersPage() {
                     {formatDateTime(s.updated_at)}
                   </p>
                 </div>
-                <ul className="flex flex-wrap gap-1.5" aria-label="Offsets">
-                  {s.offsets_days.map((o) => (
-                    <li key={o} className="tnum rounded-[var(--radius-control)] bg-surface-2 px-2 py-1 text-xs text-fg" title={offsetLabel(o)}>
-                      {o > 0 ? `+${o}` : o}
-                    </li>
-                  ))}
-                </ul>
+                <OffsetTrack offsets={s.offsets_days} />
                 {isAdmin ? (
                   <ActionForm action={updateScheduleAction} submitLabel="Save offsets" pendingLabel="Saving..." resetOnSuccess={false} className="max-w-xl">
                     <input type="hidden" name="scheduleId" value={s.id} />
@@ -211,5 +217,31 @@ export default async function RemindersPage() {
         )}
       </Panel>
     </div>
+  );
+}
+
+/** The schedule's offsets as stops along the due date: before, on the day, after. */
+function OffsetTrack({ offsets }: { offsets: number[] }) {
+  const stops = [...offsets].sort((a, b) => a - b);
+  return (
+    <ul className="flex flex-wrap gap-x-1.5 gap-y-3" aria-label="Offsets">
+      {stops.map((o) => (
+        <li key={o} className="grid justify-items-center gap-1" title={offsetLabel(o)}>
+          <span
+            className={cn(
+              "tnum inline-flex h-7 min-w-11 items-center justify-center rounded-full border px-2.5 text-xs font-semibold",
+              o === 0
+                ? "border-highlight-strong bg-highlight text-highlight-fg"
+                : o < 0
+                  ? "border-border-strong bg-surface text-fg"
+                  : "border-border bg-surface-2 text-muted",
+            )}
+          >
+            {o === 0 ? "Due" : o > 0 ? `+${o}` : o}
+          </span>
+          <span className="text-[11px] text-muted">{o === 0 ? "due date" : o < 0 ? "before" : "after"}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

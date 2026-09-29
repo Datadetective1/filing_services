@@ -23,38 +23,41 @@ export function ProfileForm({ initial }: { initial: ProfileValues }) {
           Your profile was saved.
         </Notice>
       ) : null}
-      <Field label="Full name" htmlFor="fullName" optional error={errors.fullName}>
-        <Input
-          id="fullName"
-          name="fullName"
-          autoComplete="name"
-          maxLength={200}
-          defaultValue={values.fullName}
-          aria-invalid={errors.fullName ? true : undefined}
-          aria-describedby={errors.fullName ? "fullName-error" : undefined}
-        />
-      </Field>
-      <Field
-        label="Phone"
-        htmlFor="phone"
-        optional
-        hint="Only used if we need to reach you about a filing."
-        error={errors.phone}
-      >
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          inputMode="tel"
-          maxLength={40}
-          defaultValue={values.phone}
-          aria-invalid={errors.phone ? true : undefined}
-          aria-describedby={errors.phone ? "phone-error" : "phone-hint"}
-        />
-      </Field>
-      <div>
-        <SubmitButton className="min-h-11" pendingLabel="Saving…">
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Full name" htmlFor="fullName" optional error={errors.fullName} className="content-start">
+          <Input
+            id="fullName"
+            name="fullName"
+            autoComplete="name"
+            maxLength={200}
+            defaultValue={values.fullName}
+            aria-invalid={errors.fullName ? true : undefined}
+            aria-describedby={errors.fullName ? "fullName-error" : undefined}
+          />
+        </Field>
+        <Field
+          label="Phone"
+          htmlFor="phone"
+          optional
+          className="content-start"
+          hint="Only used if we need to reach you about a filing."
+          error={errors.phone}
+        >
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            inputMode="tel"
+            maxLength={40}
+            defaultValue={values.phone}
+            aria-invalid={errors.phone ? true : undefined}
+            aria-describedby={errors.phone ? "phone-error" : "phone-hint"}
+          />
+        </Field>
+      </div>
+      <div className="flex justify-end border-t border-border pt-5">
+        <SubmitButton className="w-full sm:w-auto" pendingLabel="Saving…">
           Save profile
         </SubmitButton>
       </div>

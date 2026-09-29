@@ -243,3 +243,37 @@ export function groupSources(sources: RuleSource[]): SourceGroup[] {
 export function latestVerified(rules: ComplianceRuleDef[]): string | null {
   return rules.reduce<string | null>((max, r) => (!max || r.lastVerifiedAt > max ? r.lastVerifiedAt : max), null);
 }
+
+export interface DueGroup {
+  /** "September 30" */
+  day: string;
+  month: number | null;
+  dayOfMonth: number | null;
+  /** "LLCs", "Business corporations and nonprofit corporations", "Other filing entities" */
+  who: string;
+  rules: ComplianceRuleDef[];
+}
+
+/** Rules grouped by shared due day, in calendar order (the shape of `dueSummary`). */
+export function dueGroups(rules: ComplianceRuleDef[]): DueGroup[] {
+  const groups = new Map<string, ComplianceRuleDef[]>();
+  for (const r of sortByDue(rules)) {
+    const key = dueDayText(r);
+    groups.set(key, [...(groups.get(key) ?? []), r]);
+  }
+  const entries = [...groups.entries()];
+  return entries.map(([day, group], i) => {
+    const first = group[0].dueRule;
+    const who =
+      i === entries.length - 1 && entries.length > 1 && group.length >= 3
+        ? "Other filing entities"
+        : capitalize(joinList(group.map((r) => ENTITY_COPY[r.entityType].plural)));
+    return {
+      day,
+      month: first.kind === "fixed_annual" ? first.month : null,
+      dayOfMonth: first.kind === "fixed_annual" ? first.day : null,
+      who,
+      rules: group,
+    };
+  });
+}

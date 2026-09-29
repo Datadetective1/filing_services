@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { ActionForm } from "@/components/admin/action-form";
 import { centsToDollarsInput, formatDateTime, money } from "@/components/admin/format";
-import { EmptyRow, Panel } from "@/components/admin/layout-bits";
+import { ConsoleHeader, EmptyRow, Panel } from "@/components/admin/layout-bits";
 import { Badge } from "@/components/ui/badge";
 import { Field, Input } from "@/components/ui/field";
-import { Notice, PageHeader } from "@/components/ui/surface";
+import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
 import { FILING_TYPES, getJurisdiction } from "@/lib/compliance/registry";
 import { ENTITY_TYPE_LABELS, isEntityType } from "@/lib/domain/types";
@@ -51,8 +51,8 @@ export default async function PricingPage() {
   const people = await profilesByIds(prices.flatMap((p) => [p.approved_by, p.updated_by]));
 
   return (
-    <div className="grid gap-5">
-      <PageHeader
+    <div className="grid grid-cols-1 gap-6">
+      <ConsoleHeader
         title="Pricing"
         description="Our service fees. The state's government fee always comes from the filing's rule and is shown to customers as a separate line."
       />
@@ -81,10 +81,14 @@ export default async function PricingPage() {
                 </div>
               }
             >
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[10rem_1fr]">
-                  <dt className="text-muted">Service fee</dt>
-                  <dd className="tnum text-lg font-semibold text-fg">{money(p.service_fee_cents)}</dd>
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="grid content-start gap-4">
+                <div className="grid gap-1">
+                  <p className="text-[13px] font-medium text-muted">Service fee</p>
+                  <p className="tnum font-display text-[34px] font-semibold leading-none text-fg">{money(p.service_fee_cents)}</p>
+                  <p className="text-xs text-muted">Plus the state&apos;s government fee, shown to customers as its own line.</p>
+                </div>
+                <dl className="grid gap-x-4 gap-y-2 border-t border-border/70 pt-4 text-sm sm:grid-cols-[7rem_minmax(0,1fr)]">
                   <dt className="text-muted">Approval</dt>
                   <dd className="text-fg">
                     {p.approved
@@ -99,11 +103,12 @@ export default async function PricingPage() {
                     {p.updated_by ? <span className="text-muted"> by {people.get(p.updated_by)?.email ?? "staff"}</span> : null}
                   </dd>
                 </dl>
+                </div>
 
                 {isAdmin ? (
                   <div className="grid content-start gap-4">
-                    <div className="rounded-[var(--radius-control)] border border-border p-3">
-                      <h3 className="mb-2 text-sm font-semibold text-fg">Change fee</h3>
+                    <div className="rounded-[var(--radius-control)] border border-border bg-bg p-4">
+                      <h3 className="mb-3 text-[15px] font-semibold text-fg">Change fee</h3>
                       <ActionForm action={changeFeeAction} submitLabel="Save fee" pendingLabel="Saving..." resetOnSuccess={false}>
                         <input type="hidden" name="priceId" value={p.id} />
                         <Field label="Service fee ($)" htmlFor={`fee-${p.id}`} hint="Between $0 and $10,000. Saving resets approval.">
@@ -123,8 +128,8 @@ export default async function PricingPage() {
                       </ActionForm>
                     </div>
                     {!p.approved && p.active ? (
-                      <div className="rounded-[var(--radius-control)] border border-warning/30 bg-warning-soft p-3">
-                        <h3 className="mb-2 text-sm font-semibold text-fg">Approve {money(p.service_fee_cents)}</h3>
+                      <div className="rounded-[var(--radius-control)] border border-highlight/50 bg-highlight-soft p-4">
+                        <h3 className="mb-3 text-[15px] font-semibold text-fg">Approve {money(p.service_fee_cents)}</h3>
                         <ActionForm
                           action={approvePriceAction}
                           submitLabel="Approve price"

@@ -1,6 +1,6 @@
 "use client";
 
-import { BellSlash, CheckCircle } from "@phosphor-icons/react";
+import { BellSlash, CheckCircle, LinkBreak } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useActionState } from "react";
 import { buttonClasses } from "@/components/ui/button";
@@ -14,16 +14,16 @@ export function UnsubscribeConfirm({ token }: { token: string }) {
   if (state?.status === "done") {
     return (
       <div className="grid gap-5" role="status">
-        <span aria-hidden className="grid size-12 place-content-center rounded-full bg-accent-soft text-accent-soft-fg">
-          <CheckCircle size={26} weight="fill" />
+        <span aria-hidden className="grid size-14 place-content-center rounded-full bg-accent-soft text-accent">
+          <CheckCircle size={30} weight="fill" />
         </span>
         <div className="grid gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-fg">Deadline reminders are off</h1>
-          <p className="text-[15px] leading-relaxed text-muted">
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-fg sm:text-[32px]">Deadline reminders are off</h1>
+          <p className="text-[16px] leading-7 text-muted">
             We won&apos;t email you about upcoming filing deadlines anymore. Emails about filings you&apos;ve paid for,
             such as order confirmations and status updates, will still arrive.
           </p>
-          <p className="text-[15px] leading-relaxed text-muted">
+          <p className="text-[16px] leading-7 text-muted">
             Changed your mind? You can turn reminders back on at any time in your account settings.
           </p>
         </div>
@@ -42,12 +42,12 @@ export function UnsubscribeConfirm({ token }: { token: string }) {
 
   return (
     <div className="grid gap-5">
-      <span aria-hidden className="grid size-12 place-content-center rounded-full bg-surface-2 text-muted">
-        <BellSlash size={24} />
+      <span aria-hidden className="grid size-14 place-content-center rounded-full bg-highlight-soft text-highlight-fg">
+        <BellSlash size={28} weight="duotone" />
       </span>
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-fg">Stop deadline reminders?</h1>
-        <p className="text-[15px] leading-relaxed text-muted">
+        <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-fg sm:text-[32px]">Stop deadline reminders?</h1>
+        <p className="text-[16px] leading-7 text-muted">
           We&apos;ll stop emailing you reminders before your businesses&apos; filing deadlines. Emails about filings
           you&apos;ve paid for, such as order confirmations and status updates, are always sent.
         </p>
@@ -73,9 +73,12 @@ export function UnsubscribeConfirm({ token }: { token: string }) {
 export function InvalidLink() {
   return (
     <div className="grid gap-5">
+      <span aria-hidden className="grid size-14 place-content-center rounded-full bg-surface-2 text-muted">
+        <LinkBreak size={28} weight="duotone" />
+      </span>
       <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-fg">This link isn&apos;t working</h1>
-        <p className="text-[15px] leading-relaxed text-muted">
+        <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-fg sm:text-[32px]">This link isn&apos;t working</h1>
+        <p className="text-[16px] leading-7 text-muted">
           The unsubscribe link may have expired or been cut off by your email app. Sign in to manage your email
           preferences, including deadline reminders.
         </p>

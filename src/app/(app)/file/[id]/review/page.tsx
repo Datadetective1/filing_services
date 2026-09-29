@@ -1,8 +1,10 @@
+import { PenNib } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
+import { formatLongDate } from "@/lib/domain/dates";
 import { CUSTOMER_EDITABLE_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
 import { authorizationText } from "@/lib/filings/customer";
 import { validateAll } from "@/lib/intake/validate";
@@ -11,7 +13,7 @@ import { FilingContext } from "@/components/funnel/filing-context";
 import { FunnelSteps } from "@/components/funnel/funnel-steps";
 import { AnswerSummary } from "@/components/intake/answer-summary";
 import { AuthorizeForm } from "@/components/intake/authorize-form";
-import { Card, Container, Notice } from "@/components/ui/surface";
+import { Container, Notice } from "@/components/ui/surface";
 import { filingSummary, loadOwnFiling } from "../../_lib/filing";
 import { authorizeAction } from "./actions";
 
@@ -62,20 +64,19 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
   });
 
   return (
-    <Container className="max-w-3xl py-8 sm:py-10">
-      <FunnelSteps current="review" paid={paid} className="mb-8" />
+    <Container className="max-w-4xl pt-8 sm:pt-10">
+      <FunnelSteps current="review" paid={paid} className="mb-10" />
 
-      <div className="grid gap-1.5">
+      <div className="grid gap-2.5">
         <FilingContext
           businessName={summary.businessName}
           stateName={summary.stateName}
           filingName={summary.filingName}
           periodYear={summary.periodYear}
         />
-        <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">Review and sign</h1>
-        <p className="max-w-[62ch] text-[15px] leading-relaxed text-muted">
-          Check everything below. This is the information we&apos;ll submit to the {summary.agencyName} on your
-          business&apos;s behalf.
+        <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.025em] text-fg sm:text-[38px]">Review and sign</h1>
+        <p className="max-w-[60ch] text-[16px] leading-relaxed text-muted">
+          This is what we&apos;ll submit to the {summary.agencyName} for your business. Check it once, then sign below.
         </p>
       </div>
 
@@ -95,7 +96,7 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
                 <li key={s.key}>
                   <Link
                     href={`/file/${id}/details?step=${encodeURIComponent(s.key)}`}
-                    className="font-medium text-fg underline underline-offset-4"
+                    className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
                   >
                     {s.title}
                   </Link>
@@ -105,29 +106,57 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
         </Notice>
       ) : null}
 
-      <div className="mt-8 grid gap-4">
-        {sections.map((section) => (
-          <AnswerSummary
-            key={section.key}
-            section={section}
-            answers={loaded.answers}
-            editHref={`/file/${id}/details?step=${encodeURIComponent(section.key)}`}
-            incomplete={incomplete.has(section.key)}
-          />
-        ))}
-      </div>
+      <article
+        aria-labelledby="summary-title"
+        className="relative mt-8 rounded-[14px] border border-border bg-surface px-5 shadow-lift sm:px-9"
+      >
+        <span aria-hidden className="absolute right-0 top-0 size-7 rounded-bl-[10px] rounded-tr-[14px] bg-surface-3" />
+        <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b-2 border-dashed border-border py-6 sm:py-7">
+          <div className="grid gap-1">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-subtle">Summary for your review</p>
+            <h2 id="summary-title" className="text-[22px] font-semibold leading-tight text-fg [overflow-wrap:anywhere] sm:text-[26px]">
+              {summary.stateName} {summary.filingName} <span className="tnum">{summary.periodYear}</span>
+            </h2>
+            <p className="text-[15px] text-muted [overflow-wrap:anywhere]">{summary.businessName}</p>
+          </div>
+          <p className="tnum text-sm text-muted">
+            Due <span className="font-semibold text-fg">{formatLongDate(summary.dueDate)}</span>
+          </p>
+        </header>
+        <div className="divide-y divide-border">
+          {sections.map((section) => (
+            <AnswerSummary
+              key={section.key}
+              section={section}
+              answers={loaded.answers}
+              editHref={`/file/${id}/details?step=${encodeURIComponent(section.key)}`}
+              incomplete={incomplete.has(section.key)}
+            />
+          ))}
+        </div>
+      </article>
 
       {all.ok ? (
-        <Card className="mt-10 p-5 sm:p-8">
-          <div className="grid gap-1.5">
-            <h2 className="text-xl font-semibold tracking-tight text-fg">Sign and authorize</h2>
-            <p className="text-[15px] leading-relaxed text-muted">
-              {paid
-                ? "Sign again to confirm the updated details. We'll pick your filing back up right away."
-                : "Next is payment. You'll see the state fee and our service fee separately before you pay."}
-            </p>
+        <section
+          aria-labelledby="sign-title"
+          className="grain mt-12 overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface-2 p-5 sm:p-9"
+        >
+          <div className="flex items-start gap-4">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-accent-fg" aria-hidden>
+              <PenNib size={22} weight="fill" />
+            </span>
+            <div className="grid gap-1">
+              <h2 id="sign-title" className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-fg">
+                Sign and authorize
+              </h2>
+              <p className="max-w-[56ch] text-[15px] leading-relaxed text-muted">
+                {paid
+                  ? "Sign again to confirm the updated details. We'll pick your filing back up right away."
+                  : "Nothing is filed until you sign. Next is payment, where you'll see the state fee and our fee as separate lines."}
+              </p>
+            </div>
           </div>
-          <div className="mt-6">
+          <div className="mt-7">
             <AuthorizeForm
               action={authorizeAction.bind(null, id)}
               defaults={defaults}
@@ -136,7 +165,7 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
               submitLabel={paid ? "Sign and resubmit" : "Sign and continue"}
             />
           </div>
-        </Card>
+        </section>
       ) : null}
     </Container>
   );

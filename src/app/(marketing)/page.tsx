@@ -1,31 +1,37 @@
-import { ArrowRight, ArrowUpRight, Bell, BellSlash, CheckCircle, HandPointing } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowUpRight, BellSlash, CalendarX, ChatCircleText, SealCheck, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { TrackView } from "@/components/analytics/track-view";
-import { RequirementCard } from "@/components/compliance/requirement-card";
+import { PriceBreakdown } from "@/components/compliance/price-breakdown";
+import { Photo } from "@/components/media/photo";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
+import { FilingProcess } from "@/components/marketing/filing-process";
+import { HeroStatusCard } from "@/components/marketing/hero-status-card";
 import { JsonLd } from "@/components/marketing/json-ld";
+import { ProductPreview } from "@/components/marketing/product-preview";
 import { Section, SectionHeading } from "@/components/marketing/section";
-import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
+import { Receipt } from "@/components/visual/receipt";
+import { ReminderTimeline } from "@/components/visual/reminder-timeline";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { findRule, getJurisdiction, rulesForState } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { FaqItem } from "@/lib/compliance/types";
-import { formatLongDate } from "@/lib/domain/dates";
+import { verifiedText } from "@/lib/compliance/view";
+import { formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
 import { formatCents } from "@/lib/domain/money";
-import { DEFAULT_REMINDER_OFFSETS } from "@/lib/domain/reminders";
-import { ENTITY_TYPE_LABELS, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
-import { agencyShortName, dueDayText } from "@/lib/seo/content";
+import { DEFAULT_REMINDER_OFFSETS, planReminders } from "@/lib/domain/reminders";
+import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
+import { agencyShortName, dueGroups } from "@/lib/seo/content";
 import { graph, organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { marketingPeriod } from "@/lib/seo/period";
 
-// The hero card shows the current filing period, so refresh hourly.
+// The status card shows the current filing period, so refresh hourly.
 export const revalidate = 3600;
 
 export const metadata: Metadata = pageMetadata({
@@ -35,30 +41,7 @@ export const metadata: Metadata = pageMetadata({
   absoluteTitle: true,
 });
 
-const STEPS = [
-  {
-    title: "Find your business",
-    body: "Tell us the state, the entity type and the business name. We match it to that state's verified filing rules.",
-  },
-  {
-    title: "See what's due and what it costs",
-    body: "The due date, the state fee and our service fee, each on its own line, with a link to the official source.",
-  },
-  {
-    title: "We prepare and file it",
-    body: "You answer a short form and authorize the filing. A person on our team checks it, prepares it and submits it to the state.",
-  },
-  {
-    title: "You get the state receipt",
-    body: "We email you when it's submitted and when the state accepts it, and keep the confirmation in your dashboard.",
-  },
-];
-
-function offsetLabel(offset: number): string {
-  if (offset === 0) return "On the due date";
-  const n = Math.abs(offset);
-  return `${n} ${n === 1 ? "day" : "days"} ${offset < 0 ? "before" : "after"}`;
-}
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default async function HomePage() {
   const pa = getJurisdiction("PA");
@@ -67,9 +50,15 @@ export default async function HomePage() {
   const periodInfo = rule ? marketingPeriod(rule) : null;
   const quote = rule ? await publicQuote(rule) : null;
   const agency = pa ? agencyShortName(pa) : "Pennsylvania Department of State";
-
-  const before = DEFAULT_REMINDER_OFFSETS.filter((o) => o < 0);
-  const after = DEFAULT_REMINDER_OFFSETS.filter((o) => o > 0);
+  const stateName = pa?.name ?? "Pennsylvania";
+  const groups = dueGroups(paRules);
+  const today = todayInTimeZone(pa?.timezone ?? "America/New_York");
+  const nextReminder = periodInfo
+    ? (planReminders(periodInfo.period.dueDate, DEFAULT_REMINDER_OFFSETS, today).find((r) => r.status === "scheduled")
+        ?.scheduledFor ?? null)
+    : null;
+  const directFee = rule ? formatCents(rule.stateFeeCents, { trimZeros: true }) : "$7";
+  const filingHost = new URL(rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl).host;
 
   const faq: FaqItem[] = [
     {
@@ -99,18 +88,18 @@ export default async function HomePage() {
       <TrackView event="landing_viewed" />
       <JsonLd data={graph(organizationJsonLd(), websiteJsonLd())} />
 
-      {/* Hero */}
-      <section aria-labelledby="hero-title" className="border-b border-border">
-        <Container className="grid items-center gap-12 py-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,30rem)] lg:gap-16 lg:py-24">
+      {/* 1. Hero */}
+      <section aria-labelledby="hero-title" className="overflow-hidden">
+        <Container className="grid items-center gap-10 pb-16 pt-10 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)] lg:gap-14 lg:pb-24 lg:pt-16">
           <div className="grid gap-7">
             <h1
               id="hero-title"
-              className="max-w-[16ch] text-[42px] font-semibold leading-[1.02] tracking-[-0.03em] text-fg sm:text-6xl lg:text-[72px]"
+              className="max-w-[13ch] text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] text-fg sm:text-[64px] lg:text-[76px]"
             >
-              Never miss a business filing.
+              Never miss a <span className="mark-highlight">business filing</span> again.
             </h1>
-            <p className="max-w-[44ch] text-lg leading-relaxed text-muted text-pretty sm:text-xl">
-              Know what your business needs to file, when it&apos;s due, and get it handled.
+            <p className="max-w-[34ch] text-lg leading-relaxed text-muted sm:text-xl">
+              We&apos;ll tell you what&apos;s due before it becomes urgent, and file it for you when you ask.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/find" size="lg">
@@ -118,239 +107,304 @@ export default async function HomePage() {
                 <ArrowRight size={18} weight="bold" aria-hidden />
               </ButtonLink>
               <ButtonLink href="/states" size="lg" variant="secondary">
-                Browse by state
+                Browse filing requirements
               </ButtonLink>
             </div>
-            <p className="max-w-[52ch] text-sm leading-6 text-muted">
-              Pennsylvania annual reports supported today. {site.disclaimer}
+            <p className="flex max-w-[46ch] items-start gap-2 text-sm leading-6 text-muted">
+              <ShieldCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
+              <span>
+                Pennsylvania annual reports today. {site.disclaimer}
+              </span>
             </p>
           </div>
 
-          {rule ? (
-            <div className="grid gap-3">
-              <RequirementCard
-                rule={rule}
-                period={periodInfo?.period}
-                quote={quote}
-                actions={
-                  <FilingCtaLink href="/find?state=PA&entity=llc" stateCode="PA" entityType="llc">
-                    Have us file it
-                  </FilingCtaLink>
-                }
-              />
-              <p className="px-1 text-xs leading-5 text-subtle">
-                {periodInfo?.missed
-                  ? `The ${periodInfo.missed.periodYear} report was due ${formatLongDate(periodInfo.missed.dueDate)}. If it hasn't been filed yet, it can still be filed. ${rule.lateFeeSummary} `
-                  : null}
-                Example for a Pennsylvania LLC, based on the {agency}&apos;s published requirements.
-              </p>
-            </div>
-          ) : null}
-        </Container>
-      </section>
-
-      {/* How it works */}
-      <Section labelledBy="how-title">
-        <SectionHeading
-          id="how-title"
-          title="How it works"
-          lede="Four steps, and you can stop after the second one. Knowing what's due is useful on its own."
-        />
-        <ol className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step, i) => (
-            <li key={step.title} className="grid content-start gap-3 border-t border-border-strong pt-5">
-              <span className="tnum text-sm font-medium text-accent">{String(i + 1).padStart(2, "0")}</span>
-              <h3 className="text-lg font-semibold tracking-tight text-fg">{step.title}</h3>
-              <p className="text-[15px] leading-7 text-muted">{step.body}</p>
-            </li>
-          ))}
-        </ol>
-      </Section>
-
-      {/* Reminders */}
-      <Section labelledBy="reminders-title" band>
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-20">
-          <div className="grid content-start gap-8">
-            <SectionHeading
-              id="reminders-title"
-              title="Reminders on a schedule you can see"
-              lede="Add your business and we email you ahead of each due date. Every reminder is checked again on the day it goes out, so you never get one for a filing that is already done."
+          <div className="relative lg:pl-6">
+            <Photo
+              photo="ownerCoffeeShop"
+              priority
+              sizes="(min-width: 1024px) 46vw, 100vw"
+              className="aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/5]"
+              focus="48% 30%"
+              focusWide="54% 30%"
             />
-            <ul className="grid gap-5">
-              <li className="flex gap-3">
-                <CheckCircle size={22} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
-                <p className="text-[15px] leading-7 text-muted">
-                  <strong className="font-medium text-fg">Reminders stop once it&apos;s filed.</strong> Whether we filed it
-                  or you did, you won&apos;t hear about that deadline again. If you filed on your own, mark it as filed.
-                </p>
-              </li>
-              <li className="flex gap-3">
-                <HandPointing size={22} aria-hidden className="mt-0.5 shrink-0 text-fg" />
-                <p className="text-[15px] leading-7 text-muted">
-                  <strong className="font-medium text-fg">Quiet while we&apos;re working on it.</strong> If you&apos;ve
-                  ordered the filing, we send status updates instead of deadline reminders. If we need something from
-                  you, we ask for it directly.
-                </p>
-              </li>
-              <li className="flex gap-3">
-                <BellSlash size={22} aria-hidden className="mt-0.5 shrink-0 text-fg" />
-                <p className="text-[15px] leading-7 text-muted">
-                  <strong className="font-medium text-fg">Turn them off any time.</strong> Every reminder email has an
-                  unsubscribe link, and you can change it in your account settings.
-                </p>
-              </li>
-            </ul>
-          </div>
-
-          <div className="rounded-[var(--radius-surface)] border border-border bg-bg p-5 sm:p-6">
-            <p className="flex items-center gap-2 text-sm font-medium text-fg">
-              <Bell size={18} aria-hidden />
-              Reminder schedule
-            </p>
-            <ol className="relative mt-5 grid gap-3.5 pl-6 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-border-strong">
-              {before.map((o) => (
-                <li key={o} className="relative text-[15px] text-muted">
-                  <span aria-hidden className="absolute -left-6 top-[7px] size-[11px] rounded-full border-2 border-border-strong bg-bg" />
-                  <span className="tnum">{offsetLabel(o)}</span>
-                </li>
-              ))}
-              <li className="relative text-[15px] font-medium text-fg">
-                <span aria-hidden className="absolute -left-6 top-[6px] size-[11px] rounded-full bg-accent ring-4 ring-accent-soft" />
-                On the due date
-              </li>
-              <li className="relative text-[15px] text-muted">
-                <span aria-hidden className="absolute -left-6 top-[7px] size-[11px] rounded-full border-2 border-border-strong bg-bg" />
-                <span className="tnum">
-                  {after.map((o) => Math.abs(o)).join(", ").replace(/, (\d+)$/, " and $1")} days after, only if it&apos;s still
-                  open
-                </span>
-              </li>
-            </ol>
-          </div>
-        </div>
-      </Section>
-
-      {/* Honesty: DIY vs. us */}
-      <Section labelledBy="choice-title">
-        <SectionHeading
-          id="choice-title"
-          title="File it yourself or have us do it"
-          lede="Both are good options. We'd rather you choose with the full picture."
-        />
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          <div className="grid content-start gap-4 rounded-[var(--radius-surface)] border border-border bg-surface-2 p-6 sm:p-8">
-            <h3 className="text-xl font-semibold tracking-tight text-fg">File directly with your state</h3>
-            <p className="text-[15px] leading-7 text-muted">
-              You can always file with the state yourself and pay only the state fee.{" "}
-              {rule ? (
-                <>
-                  Based on the {agency}&apos;s published requirements, a Pennsylvania LLC files online for{" "}
-                  {formatCents(rule.stateFeeCents, { trimZeros: true })}, and online filings are approved automatically,
-                  usually within minutes.
-                </>
-              ) : null}
-            </p>
-            {rule ? (
-              <a
-                href={rule.officialFilingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center gap-1.5 justify-self-start text-[15px] font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
-              >
-                Pennsylvania&apos;s official filing site
-                <ArrowUpRight size={16} aria-hidden />
-                <span className="sr-only">(opens in a new tab)</span>
-              </a>
+            {rule && periodInfo ? (
+              <HeroStatusCard
+                rule={rule}
+                period={periodInfo.period}
+                stateName={stateName}
+                agency={agency}
+                className="relative z-10 mx-auto -mt-20 sm:-mt-28 lg:absolute lg:-left-10 lg:bottom-10 lg:mt-0"
+              />
             ) : null}
           </div>
-          <div className="grid content-start gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-6 shadow-card sm:p-8">
-            <h3 className="text-xl font-semibold tracking-tight text-fg">Have us file it</h3>
-            <p className="text-[15px] leading-7 text-muted">
-              We prepare the filing from your answers, submit it, and send you the state&apos;s confirmation. Before you
-              pay, you see the state fee and our service fee as separate lines. The state fee is passed through at cost.
+        </Container>
+        {periodInfo?.missed && rule ? (
+          <Container className="-mt-8 pb-10 lg:-mt-14">
+            <p className="max-w-[70ch] text-[13px] leading-5 text-subtle">
+              The {periodInfo.missed.periodYear} report was due {formatLongDate(periodInfo.missed.dueDate)}. If it
+              hasn&apos;t been filed yet, it can still be filed. {rule.lateFeeSummary}
             </p>
-            <Link
-              href="/pricing"
-              className="inline-flex min-h-11 items-center gap-1.5 justify-self-start text-[15px] font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
-            >
-              See pricing
-              <ArrowRight size={16} aria-hidden />
-            </Link>
-          </div>
-        </div>
-      </Section>
+          </Container>
+        ) : null}
+      </section>
 
-      {/* Coverage */}
-      <Section labelledBy="coverage-title" band>
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
-          <div className="grid content-start gap-6">
+      {/* 2. The problem */}
+      <Section labelledBy="problem-title" band>
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
+          <Photo
+            photo="paperworkKitchenTable"
+            sizes="(min-width: 1024px) 40vw, 100vw"
+            className="order-2 aspect-[16/10] lg:order-1 lg:aspect-[4/5]"
+            focus="28% 45%"
+          />
+          <div className="order-1 grid content-start gap-8 lg:order-2">
             <SectionHeading
-              id="coverage-title"
-              title="Where we file today"
-              lede="We only show due dates and fees after checking them against official government sources."
+              id="problem-title"
+              title="Annual reports are new, and easy to miss."
+              lede={`Since ${PENNSYLVANIA_FACTS.firstRequiredYear}, most Pennsylvania businesses file one every year. Your deadline depends on what kind of business you are.`}
             />
-            <p className="text-[15px] leading-7 text-muted">
-              Pennsylvania annual reports are supported now. Every other state, and the District of Columbia, is listed as
-              not yet verified. Those pages link to the state&apos;s own agency and make no claims about deadlines or fees.
-            </p>
-            <ButtonLink href="/states" variant="secondary" size="lg" className="justify-self-start">
-              Browse by state
-            </ButtonLink>
-          </div>
-
-          <div className="overflow-hidden rounded-[var(--radius-surface)] border border-border bg-bg">
-            <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
-              <Link href="/annual-report/pennsylvania" className="font-semibold text-fg hover:underline hover:underline-offset-4">
-                Pennsylvania annual report
-              </Link>
-              <Badge tone="success">Supported</Badge>
-            </div>
-            <ul className="divide-y divide-border">
-              {paRules.map((r) => (
-                <li key={r.ruleKey}>
+            <ul className="grid gap-3 sm:grid-cols-3">
+              {groups.map((g) => (
+                <li key={g.day}>
                   <Link
-                    href={`/annual-report/pennsylvania/${ENTITY_TYPE_SLUGS[r.entityType]}`}
-                    className="flex min-h-12 flex-col justify-center gap-0.5 px-5 py-3 hover:bg-surface-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                    href={`/annual-report/pennsylvania/${ENTITY_TYPE_SLUGS[g.rules[0].entityType]}`}
+                    className="group flex h-full items-center gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-3.5 transition-[border-color,box-shadow] hover:border-accent/40 hover:shadow-card sm:grid sm:content-start sm:gap-3 sm:p-4"
                   >
-                    <span className="text-[15px] text-fg">{ENTITY_TYPE_LABELS[r.entityType]}</span>
-                    <span className="tnum text-sm text-muted">Due {dueDayText(r)}</span>
+                    <span className="grid w-16 shrink-0 overflow-hidden rounded-[10px] border border-border text-center">
+                      <span className="bg-accent py-0.5 text-[11px] font-bold uppercase tracking-wider text-accent-fg">
+                        {g.month ? MONTHS[g.month - 1] : "Due"}
+                      </span>
+                      <span className="tnum py-1 font-display text-2xl font-semibold text-fg">{g.dayOfMonth ?? "·"}</span>
+                    </span>
+                    <span className="text-[15px] font-semibold leading-snug text-fg group-hover:text-accent">
+                      {g.who}
+                      <span className="sr-only">: due {g.day}</span>
+                    </span>
                   </Link>
                 </li>
               ))}
             </ul>
+            <div className="flex items-start gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-highlight-soft text-highlight-fg">
+                <CalendarX size={18} weight="bold" aria-hidden />
+              </span>
+              <p className="text-[15px] leading-7 text-fg">
+                Starting with reports due in {PENNSYLVANIA_FACTS.enforcementStartsWithReportsDueIn}, a business that
+                doesn&apos;t file can be administratively dissolved six months after its due date.{" "}
+                <a href={PENNSYLVANIA_FACTS.officialInfoUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
+                  {agency}
+                  <ArrowUpRight size={14} weight="bold" aria-hidden className="ml-0.5 inline align-[-1px]" />
+                  <span className="sr-only"> (opens the government website in a new tab)</span>
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </Section>
 
-      {/* FAQ */}
+      {/* 3. Filewell identifies what's due */}
+      <Section labelledBy="know-title">
+        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-16">
+          <div className="grid content-start gap-7">
+            <SectionHeading
+              id="know-title"
+              title="See what's due, and when, in about a minute."
+              lede="Tell us your state, your type of business and its name. You'll see the deadline, the state fee and the official source, with no account needed."
+            />
+            <ol className="grid gap-3">
+              {["Your state", "Your type of business", "Your business name"].map((label, i) => (
+                <li key={label} className="flex items-center gap-3 text-[17px] font-medium text-fg">
+                  <span className="tnum grid size-8 place-items-center rounded-full border border-border-strong bg-surface font-display text-sm font-bold">
+                    {i + 1}
+                  </span>
+                  {label}
+                </li>
+              ))}
+            </ol>
+            <ButtonLink href="/find" size="lg" className="justify-self-start">
+              Find my business
+              <ArrowRight size={18} weight="bold" aria-hidden />
+            </ButtonLink>
+          </div>
+          <div className="relative pb-10 sm:pb-16 lg:pb-20">
+            <Photo
+              photo="ownerLaptopDesk"
+              sizes="(min-width: 1024px) 48vw, 100vw"
+              className="aspect-[4/3] w-full sm:w-[86%]"
+              focus="72% 40%"
+            />
+            {rule && periodInfo ? (
+              <ProductPreview
+                rule={rule}
+                period={periodInfo.period}
+                stateName={stateName}
+                nextReminder={nextReminder}
+                className="relative z-10 -mt-24 ml-auto w-[94%] max-w-[26rem] sm:absolute sm:bottom-0 sm:right-0 sm:mt-0 sm:w-[62%]"
+              />
+            ) : null}
+          </div>
+        </div>
+      </Section>
+
+      {/* 4. We prepare and file it, if you want */}
+      <Section labelledBy="file-title" band>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end lg:gap-16">
+          <SectionHeading id="file-title" title="Want it off your plate? We'll file it." />
+          <p className="max-w-[46ch] text-[17px] leading-relaxed text-muted lg:justify-self-end lg:pb-1.5">
+            You stay in control. We handle the paperwork when you ask us to, and send you the state&apos;s confirmation
+            when it&apos;s done.
+          </p>
+        </div>
+        <div className="mt-12">
+          <FilingProcess stateName={stateName} agency={agency} />
+        </div>
+        <p className="mt-10 max-w-[70ch] text-[15px] leading-7 text-muted">
+          Prefer to do it yourself? That&apos;s a good option too: Pennsylvania&apos;s online filing costs {directFee} at{" "}
+          <a href={rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
+            {filingHost}
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+          , and we&apos;ll still remind you.
+        </p>
+      </Section>
+
+      {/* 5. Reminders */}
+      <Section labelledBy="reminders-title">
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16">
+          <div className="grid content-start gap-7">
+            <SectionHeading
+              id="reminders-title"
+              title="We'll tell you what's due before it becomes urgent."
+              lede="Add your business and we email you 90, 60 and 30 days ahead, then closer to the date. Each reminder is checked again on the day it goes out."
+            />
+            <div className="flex items-start gap-4 rounded-[var(--radius-surface)] bg-highlight-soft p-5">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-highlight-fg">
+                <BellSlash size={20} weight="fill" aria-hidden />
+              </span>
+              <div className="grid gap-1">
+                <p className="font-display text-lg font-semibold text-fg">Already filed it yourself?</p>
+                <p className="text-[15px] leading-6 text-fg/80">Tell us and the reminders stop. No need to explain.</p>
+              </div>
+            </div>
+          </div>
+          <Photo
+            photo="deliOwnerPhone"
+            sizes="(min-width: 1024px) 44vw, 100vw"
+            className="aspect-[16/11]"
+            focus="32% 45%"
+          />
+        </div>
+        <ReminderTimeline offsets={DEFAULT_REMINDER_OFFSETS} className="mt-12" />
+      </Section>
+
+      {/* 6. Transparent pricing */}
+      <Section labelledBy="pricing-title" band>
+        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-20">
+          <div className="grid content-start gap-7">
+            <SectionHeading
+              id="pricing-title"
+              title="Know the state fee before you pay us anything."
+              lede="The state's fee and ours are always separate lines. The state fee is passed through at cost, and you see the total before you pay."
+            />
+            <div className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:grid-cols-[auto_1fr] sm:items-center">
+              <span className="font-display text-4xl font-semibold text-fg">{directFee}</span>
+              <p className="text-[15px] leading-6 text-muted">
+                <strong className="font-semibold text-fg">Filing it yourself?</strong> That&apos;s all Pennsylvania charges
+                online. Pay it directly at{" "}
+                <a href={rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
+                  {filingHost}
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+                .
+              </p>
+            </div>
+            <Link href="/pricing" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-start`}>
+              See all pricing
+              <ArrowRight size={16} weight="bold" aria-hidden />
+            </Link>
+          </div>
+
+          <Receipt
+            title="If we file it for you"
+            meta={`${stateName} LLC annual report`}
+            className="mx-auto w-full max-w-md lg:rotate-[1.2deg]"
+            footer={
+              rule ? (
+                <span className="flex items-start gap-2">
+                  <SealCheck size={16} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
+                  State fee verified against the {agency}, {verifiedText(rule.lastVerifiedAt)}.
+                </span>
+              ) : null
+            }
+          >
+            {quote ? (
+              <PriceBreakdown quote={quote} stateName={stateName} totalLabel="Total if we file it" />
+            ) : (
+              <p className="text-[15px] text-muted">
+                State fee {directFee}. Our service fee is shown as its own line before you pay.
+              </p>
+            )}
+            {rule ? (
+              <div className="mt-5">
+                <FilingCtaLink href="/find?state=PA&entity=llc" stateCode="PA" entityType="llc" className="w-full">
+                  Have us file it
+                </FilingCtaLink>
+              </div>
+            ) : null}
+          </Receipt>
+        </div>
+      </Section>
+
+      {/* 7. Questions + a person to talk to */}
       <Section labelledBy="faq-title">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
-          <SectionHeading id="faq-title" title="Questions" lede="Short answers. The state pages go into detail." />
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
+          <div className="grid content-start gap-6">
+            <SectionHeading id="faq-title" title="Questions, answered plainly." />
+            <div className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-4">
+              <Photo photo="designerOnPhone" sizes="22rem" className="aspect-[16/9]" rounded focus="55% 30%" decorative />
+              <div className="grid gap-1 px-1">
+                <p className="font-display text-lg font-semibold text-fg">Rather ask a person?</p>
+                <p className="text-[15px] leading-6 text-muted">Someone on our team reads every message and writes back.</p>
+              </div>
+              <Link href="/help" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-2 px-1`}>
+                <ChatCircleText size={18} weight="bold" aria-hidden />
+                Get help
+              </Link>
+            </div>
+          </div>
           <FaqList items={faq} />
         </div>
       </Section>
 
-      {/* Closing CTA */}
-      <section aria-labelledby="cta-title" className="border-t border-border bg-surface">
-        <Container className="grid gap-8 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div className="grid gap-4">
-            <h2 id="cta-title" className="max-w-[20ch] text-3xl font-semibold tracking-tight text-fg text-balance sm:text-[40px] sm:leading-tight">
+      {/* 8. Final call to action */}
+      <section aria-labelledby="cta-title" className="px-4 pb-16 sm:px-6 sm:pb-24 lg:px-8">
+        <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[28px] bg-accent lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="order-2 grid content-center gap-6 px-6 py-12 sm:px-12 sm:py-16 lg:order-1 lg:px-16 lg:py-20">
+            <h2 id="cta-title" className="max-w-[16ch] text-[32px] font-semibold leading-[1.08] text-accent-fg sm:text-[46px]">
               Find out what your business needs to file.
             </h2>
-            <p className="max-w-[52ch] text-base leading-relaxed text-muted sm:text-lg">
+            <p className="max-w-[40ch] text-[17px] leading-relaxed text-accent-fg/80 sm:text-lg">
               It takes about a minute, and you don&apos;t need an account to see the answer.
             </p>
+            <ButtonLink href="/find" size="lg" variant="inverse" className="justify-self-start">
+              Find my business
+              <ArrowRight size={18} weight="bold" aria-hidden />
+            </ButtonLink>
           </div>
-          <ButtonLink href="/find" size="lg" className="justify-self-start">
-            Find my business
-            <ArrowRight size={18} weight="bold" aria-hidden />
-          </ButtonLink>
-          <DisclaimerNote
-            className="lg:col-span-2"
-            stateName="Pennsylvania"
-            filingUrl={rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl}
+          <Photo
+            photo="relaxedDesk"
+            rounded={false}
+            sizes="(min-width: 1024px) 640px, 100vw"
+            className="order-1 aspect-[16/10] lg:order-2 lg:aspect-auto lg:min-h-[26rem]"
+            focus="50% 30%"
+            decorative
           />
-        </Container>
+        </div>
+        <DisclaimerNote
+          className="mx-auto mt-6 max-w-7xl"
+          stateName="Pennsylvania"
+          filingUrl={rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl}
+        />
       </section>
     </>
   );

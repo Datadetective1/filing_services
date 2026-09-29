@@ -45,8 +45,13 @@ export function QueueFilters({
 }) {
   const statusKnown = STATUS_PRESETS.some((p) => p.value === values.status) || FILING_STATUSES.includes(values.status as never);
   return (
-    <form method="get" action="/admin/queue" className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-3">
-      <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 md:grid-cols-4 2xl:grid-cols-8">
+    <form
+      method="get"
+      action="/admin/queue"
+      aria-label="Filter the queue"
+      className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-[0_1px_2px_rgb(23_35_29/0.04)] sm:p-5"
+    >
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4 md:grid-cols-4 2xl:grid-cols-8">
         <FilterField id="f-status" label="Status">
           <Select id="f-status" name="status" defaultValue={values.status}>
             {STATUS_PRESETS.map((p) => (
@@ -95,10 +100,10 @@ export function QueueFilters({
           </Select>
         </FilterField>
         <FilterField id="f-from" label="Due from">
-          <Input id="f-from" name="due_from" type="date" defaultValue={values.due_from} />
+          <Input id="f-from" name="due_from" type="date" defaultValue={values.due_from} className="min-w-0" />
         </FilterField>
         <FilterField id="f-to" label="Due to">
-          <Input id="f-to" name="due_to" type="date" defaultValue={values.due_to} />
+          <Input id="f-to" name="due_to" type="date" defaultValue={values.due_to} className="min-w-0" />
         </FilterField>
         <FilterField id="f-payment" label="Payment">
           <Select id="f-payment" name="payment" defaultValue={values.payment}>
@@ -126,7 +131,7 @@ export function QueueFilters({
           </Select>
         </FilterField>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-4">
         <button type="submit" className={opsButton("primary")}>
           <Funnel size={16} aria-hidden />
           Apply filters
@@ -142,7 +147,7 @@ export function QueueFilters({
 function FilterField({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
     <div className="grid min-w-0 content-start gap-1.5">
-      <Label htmlFor={id} className="text-xs font-medium text-muted">
+      <Label htmlFor={id} className="text-[13px] font-semibold text-muted">
         {label}
       </Label>
       {children}

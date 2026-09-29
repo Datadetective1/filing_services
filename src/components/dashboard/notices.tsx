@@ -1,3 +1,4 @@
+import { cn } from "@/components/ui/cn";
 import { Notice } from "@/components/ui/surface";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -22,9 +23,11 @@ const ERROR_MESSAGES: Record<string, string> = {
 export function DashboardNotices({
   searchParams,
   addedMessage = "Business added. We'll remind you before it's due.",
+  className,
 }: {
   searchParams: SearchParams;
   addedMessage?: string;
+  className?: string;
 }) {
   const notices: { key: string; tone: "success" | "danger"; text: string }[] = [];
   if (first(searchParams.password) === "updated") {
@@ -46,7 +49,7 @@ export function DashboardNotices({
   }
   if (notices.length === 0) return null;
   return (
-    <div className="grid gap-3">
+    <div className={cn("grid gap-3", className)}>
       {notices.map((n) => (
         <Notice key={n.key} tone={n.tone} role={n.tone === "danger" ? "alert" : "status"} title={n.text} />
       ))}

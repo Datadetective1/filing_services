@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AdminStatusBadge, DeadlineText, UrgencyBadge } from "@/components/admin/badges";
+import { AdminStatusBadge, DeadlineText, PaymentLine, UrgencyBadge } from "@/components/admin/badges";
 import { firstParam, isUuid, money, opsToday } from "@/components/admin/format";
-import { Pagination, tableLink } from "@/components/admin/layout-bits";
+import { ConsoleHeader, Pagination, tableLink } from "@/components/admin/layout-bits";
 import { PAYMENT_FILTERS, QueueFilters, type QueueFilterValues } from "@/components/admin/queue-filters";
+import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table";
 import { isUrgency, urgencyDateRange } from "@/components/admin/urgency";
-import { PaymentStatusBadge } from "@/components/ui/badge";
-import { Notice, PageHeader } from "@/components/ui/surface";
-import { Table, TableScroll, TD, TH, THead, TR } from "@/components/ui/table";
+import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
 import { FILING_TYPES, listJurisdictions } from "@/lib/compliance/registry";
 import { isISODate } from "@/lib/domain/dates";
@@ -115,8 +114,8 @@ export default async function QueuePage(props: PageProps<"/admin/queue">) {
   const params: Record<string, string | undefined> = { ...filters };
 
   return (
-    <div className="grid gap-4">
-      <PageHeader
+    <div className="grid grid-cols-1 gap-5">
+      <ConsoleHeader
         title="Queue"
         description="Every filing in our hands, soonest deadline first. Open a row to act on it."
       />
@@ -133,81 +132,100 @@ export default async function QueuePage(props: PageProps<"/admin/queue">) {
         </Notice>
       ) : null}
 
-      <p className="tnum text-sm text-muted" aria-live="polite">
-        {total} {total === 1 ? "filing matches" : "filings match"}
-      </p>
+      <div className="grid gap-3">
+        <p className="tnum text-sm font-medium text-muted" aria-live="polite">
+          {total} {total === 1 ? "filing matches" : "filings match"}
+        </p>
 
-      <TableScroll>
-        <Table className="min-w-[88rem]">
-          <THead>
-            <tr>
-              <TH>Business</TH>
-              <TH>State</TH>
-              <TH>Filing</TH>
-              <TH>Deadline</TH>
-              <TH>Customer</TH>
-              <TH className="text-right">Amount paid</TH>
-              <TH className="text-right">Government fee</TH>
-              <TH className="text-right">Our revenue</TH>
-              <TH>Payment</TH>
-              <TH>Filing status</TH>
-              <TH>Urgency</TH>
-              <TH>Required action</TH>
-              <TH>Assigned</TH>
-            </tr>
-          </THead>
-          <tbody>
-            {rows.map((r) => {
-              const business = one(r.businesses);
-              const order = one(r.orders);
-              const assignee = r.assigned_to ? directory.get(r.assigned_to) : null;
-              const paid = order && ["paid", "partially_refunded", "refunded"].includes(order.status);
-              return (
-                <TR key={r.id} className="hover:bg-surface-2/60">
-                  <TD className="py-2">
-                    <Link href={`/admin/filings/${r.id}`} className={`${tableLink} inline-block max-w-56 truncate align-top`} title={business?.legal_name ?? undefined}>
-                      {business?.legal_name ?? "Unknown business"}
-                    </Link>
+        <TableScroll>
+          <Table className="min-w-[62rem]">
+            <THead>
+              <tr>
+                <TH className="sticky left-0 z-[1] bg-bg shadow-[1px_0_0_var(--border)]">Business</TH>
+                <TH>Filing</TH>
+                <TH>Deadline</TH>
+                <TH>Urgency</TH>
+                <TH>Status</TH>
+                <TH>Required action</TH>
+                <TH className="text-right">Amount paid</TH>
+              </tr>
+            </THead>
+            <tbody>
+              {rows.map((r) => {
+                const business = one(r.businesses);
+                const order = one(r.orders);
+                const assignee = r.assigned_to ? directory.get(r.assigned_to) : null;
+                const paid = order && ["paid", "partially_refunded", "refunded"].includes(order.status);
+                const customerEmail = customers.get(r.user_id)?.email;
+                const nextAction = isFilingStatus(r.status) ? OPERATOR_NEXT_ACTION[r.status] : "";
+                return (
+                  <TR key={r.id} className="group">
+                    <TD className="sticky left-0 z-[1] bg-surface shadow-[1px_0_0_var(--border)] transition-colors group-hover:bg-bg">
+                      <span className="grid w-52 gap-0.5 xl:w-56">
+                        <Link href={`/admin/filings/${r.id}`} className={`${tableLink} truncate`} title={business?.legal_name ?? undefined}>
+                          {business?.legal_name ?? "Unknown business"}
+                        </Link>
+                        <span className="truncate text-xs text-muted" title={customerEmail}>
+                          {customerEmail ?? "Unknown customer"}
+                        </span>
+                      </span>
+                    </TD>
+                    <TD>
+                      <span className="grid gap-0.5 leading-tight">
+                        <span className="whitespace-nowrap">
+                          {r.filing_name ?? "Annual Report"} <span className="tnum text-muted">{r.period_year}</span>
+                        </span>
+                        <span className="text-xs text-muted" title={stateNames.get(r.state_code)}>
+                          {stateNames.get(r.state_code) ?? r.state_code}
+                        </span>
+                      </span>
+                    </TD>
+                    <TD>
+                      <DeadlineText dueDate={r.due_date} today={today} status={r.status} />
+                    </TD>
+                    <TD>
+                      <UrgencyBadge dueDate={r.due_date} today={today} status={r.status} />
+                    </TD>
+                    <TD>
+                      <span className="grid justify-items-start gap-1">
+                        <AdminStatusBadge status={r.status} />
+                        <PaymentLine status={order?.status} />
+                      </span>
+                    </TD>
+                    <TD>
+                      <span className="grid gap-0.5 leading-tight">
+                        <span className={nextAction === "No action" ? "whitespace-nowrap text-muted" : "whitespace-nowrap font-semibold"}>{nextAction}</span>
+                        <span className="whitespace-nowrap text-xs text-muted">{assignee ? staffLabel(assignee) : "Unassigned"}</span>
+                      </span>
+                    </TD>
+                    <TD className="text-right">
+                      <span className="tnum grid gap-0.5 leading-tight">
+                        <span className="whitespace-nowrap font-medium">{paid ? money(order.total_cents) : <span className="font-normal text-muted">None</span>}</span>
+                        <span className="whitespace-nowrap text-xs text-muted">
+                          {order ? (
+                            <>
+                              Gov {money(order.government_fee_cents)} · Service {money(order.service_fee_cents)}
+                            </>
+                          ) : (
+                            "No order"
+                          )}
+                        </span>
+                      </span>
+                    </TD>
+                  </TR>
+                );
+              })}
+              {!rows.length && !error ? (
+                <TR>
+                  <TD colSpan={7} className="py-10 text-center text-muted">
+                    Nothing matches these filters.
                   </TD>
-                  <TD className="py-2" title={stateNames.get(r.state_code)}>
-                    {r.state_code}
-                  </TD>
-                  <TD className="whitespace-nowrap py-2">
-                    {r.filing_name ?? "Annual Report"} <span className="tnum text-muted">{r.period_year}</span>
-                  </TD>
-                  <TD className="py-2">
-                    <DeadlineText dueDate={r.due_date} today={today} status={r.status} />
-                  </TD>
-                  <TD className="max-w-52 truncate py-2 text-muted" title={customers.get(r.user_id)?.email}>
-                    {customers.get(r.user_id)?.email ?? "Unknown"}
-                  </TD>
-                  <TD className="tnum py-2 text-right">{paid ? money(order.total_cents) : <span className="text-muted">None</span>}</TD>
-                  <TD className="tnum py-2 text-right">{order ? money(order.government_fee_cents) : <span className="text-muted">None</span>}</TD>
-                  <TD className="tnum py-2 text-right">{order ? money(order.service_fee_cents) : <span className="text-muted">None</span>}</TD>
-                  <TD className="py-2">
-                    <PaymentStatusBadge status={order?.status} />
-                  </TD>
-                  <TD className="py-2">
-                    <AdminStatusBadge status={r.status} />
-                  </TD>
-                  <TD className="py-2">
-                    <UrgencyBadge dueDate={r.due_date} today={today} status={r.status} />
-                  </TD>
-                  <TD className="whitespace-nowrap py-2">{isFilingStatus(r.status) ? OPERATOR_NEXT_ACTION[r.status] : ""}</TD>
-                  <TD className="whitespace-nowrap py-2 text-muted">{assignee ? staffLabel(assignee) : "Unassigned"}</TD>
                 </TR>
-              );
-            })}
-            {!rows.length && !error ? (
-              <TR>
-                <TD colSpan={13} className="py-6 text-center text-muted">
-                  Nothing matches these filters.
-                </TD>
-              </TR>
-            ) : null}
-          </tbody>
-        </Table>
-      </TableScroll>
+              ) : null}
+            </tbody>
+          </Table>
+        </TableScroll>
+      </div>
 
       <Pagination basePath="/admin/queue" params={params} page={page} pageSize={PAGE_SIZE} total={total} />
     </div>

@@ -15,15 +15,35 @@ const tones: Record<StatusTone, string> = {
   danger: "bg-danger-soft text-danger",
 };
 
-export function Badge({ tone = "neutral", children, className }: { tone?: StatusTone; children: ReactNode; className?: string }) {
+const dots: Record<StatusTone, string> = {
+  neutral: "bg-subtle/60",
+  info: "bg-info",
+  warning: "bg-highlight-strong",
+  success: "bg-accent",
+  danger: "bg-danger",
+};
+
+/** Status pill with a small tone dot, so meaning never depends on color alone. */
+export function Badge({
+  tone = "neutral",
+  children,
+  className,
+  dot = true,
+}: {
+  tone?: StatusTone;
+  children: ReactNode;
+  className?: string;
+  dot?: boolean;
+}) {
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center whitespace-nowrap rounded-[var(--radius-control)] px-2 text-xs font-medium",
+        "inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13px] font-semibold",
         tones[tone],
         className,
       )}
     >
+      {dot ? <span aria-hidden className={cn("size-1.5 rounded-full", dots[tone])} /> : null}
       {children}
     </span>
   );

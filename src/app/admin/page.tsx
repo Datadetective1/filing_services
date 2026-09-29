@@ -1,12 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, CheckCircle, Warning } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowRight,
+  CaretRight,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  EnvelopeSimple,
+  Lightning,
+  WarningCircle,
+} from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
 import { AdminStatusBadge } from "@/components/admin/badges";
+import { opsButton } from "@/components/admin/button-classes";
 import { formatDate, formatDateTime, isoDaysAgo, money, opsDayStartIso, opsToday } from "@/components/admin/format";
-import { MetricTile, Panel, tableLink, TileGrid } from "@/components/admin/layout-bits";
+import { ConsoleHeader, MetricTile, tableLink, TileGrid } from "@/components/admin/layout-bits";
 import { CRITICAL_DAYS, DEADLINE_SENSITIVE_STATUSES, SOON_DAYS } from "@/components/admin/urgency";
-import { PageHeader } from "@/components/ui/surface";
+import { cn } from "@/components/ui/cn";
 import { requireStaff } from "@/lib/auth/session";
 import { addDays, daysBetween, describeDaysRemaining, formatLongDate } from "@/lib/domain/dates";
 import { ACTIVE_OPERATIONS_STATUSES } from "@/lib/domain/filing-status";
@@ -99,160 +110,286 @@ export default async function TodayPage() {
   const queueHref = (qs: Record<string, string>) => `/admin/queue?${new URLSearchParams(qs).toString()}`;
 
   return (
-    <div className="grid gap-6">
-      <PageHeader title="Today" description={`${formatLongDate(today)}. Counts use Eastern Time.`} />
+    <div className="grid grid-cols-1 gap-8">
+      <ConsoleHeader
+        title="Today"
+        description={`${formatLongDate(today)}. Counts use Eastern Time.`}
+        actions={
+          <Link href="/admin/queue" className={opsButton("primary")}>
+            Open the queue
+            <ArrowRight size={16} weight="bold" aria-hidden />
+          </Link>
+        }
+      />
 
-      <TileGrid>
-        <MetricTile
-          label="Upcoming deadlines"
-          value={n(upcoming.count)}
-          hint={`Active filings due in ${SOON_DAYS} days`}
-          href={queueHref({ due_from: today, due_to: soonDate })}
-          tone={n(upcoming.count) > 0 ? "warning" : "neutral"}
-        />
-        <MetricTile label="Orders today" value={paidRows.length} hint="Paid since midnight" href="/admin/payments#recent" />
-        <MetricTile
-          label="Revenue today"
-          value={money(revenueToday)}
-          hint={`Service fees. Government fees collected: ${money(govToday)}`}
-          href="/admin/payments#recent"
-          tone={revenueToday > 0 ? "success" : "neutral"}
-        />
-        <MetricTile label="Ready to file" value={n(ready.count)} hint="Ready for review or ready to file" href={queueHref({ status: "ready_for_review,ready_to_file" })} />
-        <MetricTile
-          label="Needs customer information"
-          value={n(waiting.count)}
-          hint="Waiting on the customer"
-          href={queueHref({ status: "needs_information,needs_customer_action" })}
-        />
-        <MetricTile
-          label="Failed payments"
-          value={n(failedPayments.count)}
-          hint="Last 7 days"
-          href="/admin/payments#failed"
-          tone={n(failedPayments.count) > 0 ? "danger" : "neutral"}
-        />
-        <MetricTile
-          label="Rejected filings"
-          value={n(rejected.count)}
-          hint="Need a fix and resubmission"
-          href={queueHref({ status: "rejected" })}
-          tone={n(rejected.count) > 0 ? "danger" : "neutral"}
-        />
-        <MetricTile
-          label="Critical exceptions"
-          value={exceptions}
-          hint="See the list below"
-          href="#attention"
-          tone={exceptions > 0 ? "danger" : "neutral"}
-        />
-        <MetricTile label="Completed today" value={n(completedToday.count)} hint="Receipts delivered" href={queueHref({ status: "completed" })} tone={n(completedToday.count) > 0 ? "success" : "neutral"} />
-        <Link
-          href="/admin/analytics"
-          className="group grid min-h-[5.75rem] content-between gap-2 bg-surface px-4 py-3 transition-colors hover:bg-surface-2"
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <section
+          id="attention"
+          aria-labelledby="attention-title"
+          className="scroll-mt-6 rounded-[var(--radius-surface)] border border-border bg-surface shadow-card"
         >
-          <span className="flex items-start justify-between gap-2 text-sm text-muted">
-            Funnel, last 7 days
-            <ArrowRight size={14} weight="bold" className="mt-1 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" aria-hidden />
-          </span>
-          <span className="tnum text-sm text-fg">
-            <span className="text-lg font-semibold">{n(checkoutStarts.count)}</span> checkouts started
-            <br />
-            <span className="text-lg font-semibold">{n(paymentsCompleted.count)}</span> payments completed
-          </span>
-        </Link>
-      </TileGrid>
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/70 px-5 py-4">
+            <div className="grid gap-0.5">
+              <h2 id="attention-title" className="text-[19px] font-semibold leading-snug text-fg">
+                Needs attention first
+              </h2>
+              <p className="text-sm text-muted">Deadlines within {CRITICAL_DAYS} days, flagged payments, webhook errors and failed reminders.</p>
+            </div>
+            <span
+              className={cn(
+                "tnum inline-flex h-8 items-center rounded-full px-3 text-sm font-semibold",
+                exceptions ? "bg-highlight text-highlight-fg" : "bg-accent-soft text-accent-soft-fg",
+              )}
+            >
+              {exceptions ? `${exceptions} critical ${exceptions === 1 ? "item" : "items"}` : "All clear"}
+            </span>
+          </div>
+          {exceptions === 0 ? (
+            <div className="flex items-start gap-3 px-5 py-8">
+              <CheckCircle size={28} weight="fill" className="shrink-0 text-accent" aria-hidden />
+              <div className="grid gap-0.5">
+                <p className="font-display text-lg font-semibold text-fg">Nothing critical right now.</p>
+                <p className="text-sm text-muted">Work the queue in deadline order. Anything urgent will show up here first.</p>
+              </div>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/70">
+              {critical.map((f) => {
+                const days = daysBetween(today, f.due_date);
+                const overdue = days < 0;
+                return (
+                  <AttentionItem
+                    key={f.id}
+                    href={`/admin/filings/${f.id}`}
+                    kind="Deadline"
+                    icon={overdue ? WarningCircle : Clock}
+                    tone={overdue ? "danger" : "highlight"}
+                    meta={<span className={overdue ? "font-semibold text-danger" : "font-semibold text-warning"}>{describeDaysRemaining(days)}</span>}
+                    title={one(f.businesses)?.legal_name ?? "Unknown business"}
+                    detail={`Due ${formatDate(f.due_date)}`}
+                    badge={<AdminStatusBadge status={f.status} />}
+                  />
+                );
+              })}
+              {criticalFilingCount > critical.length ? (
+                <li className="px-5 py-3 text-sm text-muted">
+                  And {criticalFilingCount - critical.length} more.{" "}
+                  <Link className={tableLink} href={queueHref({ due_to: criticalDate, status: DEADLINE_SENSITIVE_STATUSES.join(",") })}>
+                    Open in the queue
+                  </Link>
+                </li>
+              ) : null}
+              {review.map((p) => {
+                const link = reviewLinks.get(p.order_id);
+                return (
+                  <AttentionItem
+                    key={p.id}
+                    href={link ? `/admin/filings/${link.filingId}#payment` : "/admin/payments#review"}
+                    kind="Payment review"
+                    icon={CreditCard}
+                    tone="danger"
+                    meta={<span className="tnum">{money(p.amount_cents)}</span>}
+                    title={link?.businessName ?? "Payment"}
+                    detail={p.review_reason ?? "Flagged for review"}
+                  />
+                );
+              })}
+              {errors.map((e) => (
+                <AttentionItem
+                  key={e.id}
+                  href="/admin/payments#webhooks"
+                  kind="Webhook error"
+                  icon={Lightning}
+                  tone="danger"
+                  meta={<span className="tnum">{formatDateTime(e.received_at)}</span>}
+                  title={`${e.provider} ${e.event_type}`}
+                  detail={e.processing_error}
+                />
+              ))}
+              {errorCount > errors.length ? (
+                <li className="px-5 py-3 text-sm text-muted">
+                  And {errorCount - errors.length} more webhook errors.{" "}
+                  <Link className={tableLink} href="/admin/payments#webhooks">
+                    View all
+                  </Link>
+                </li>
+              ) : null}
+              {failedReminderCount > 0 ? (
+                <AttentionItem
+                  href="/admin/reminders#recent"
+                  kind="Reminders"
+                  icon={EnvelopeSimple}
+                  tone="danger"
+                  title={`${failedReminderCount} reminder ${failedReminderCount === 1 ? "email" : "emails"} failed`}
+                  detail="In the last 7 days"
+                />
+              ) : null}
+            </ul>
+          )}
+        </section>
 
-      <Panel
-        id="attention"
-        title="Needs attention"
-        description={exceptions ? `${exceptions} critical ${exceptions === 1 ? "item" : "items"}` : undefined}
-        bodyClassName="p-0"
-      >
-        {exceptions === 0 ? (
-          <p className="flex items-center gap-2 px-4 py-4 text-sm text-muted">
-            <CheckCircle size={18} weight="fill" className="text-accent" aria-hidden />
-            Nothing critical right now.
-          </p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {critical.map((f) => {
-              const days = daysBetween(today, f.due_date);
-              return (
-                <AttentionItem key={f.id} href={`/admin/filings/${f.id}`} kind="Deadline">
-                  <span className="font-medium text-fg">{one(f.businesses)?.legal_name ?? "Unknown business"}</span>
-                  <span className="text-muted">
-                    {" "}
-                    due {formatDate(f.due_date)},{" "}
-                    <span className={days < 0 ? "font-medium text-danger" : "text-warning"}>{describeDaysRemaining(days).toLowerCase()}</span>
-                  </span>
-                  <span className="ml-2 inline-block align-middle">
-                    <AdminStatusBadge status={f.status} />
-                  </span>
-                </AttentionItem>
-              );
-            })}
-            {criticalFilingCount > critical.length ? (
-              <li className="px-4 py-2 text-sm text-muted">
-                And {criticalFilingCount - critical.length} more.{" "}
-                <Link className={tableLink} href={queueHref({ due_to: criticalDate, status: DEADLINE_SENSITIVE_STATUSES.join(",") })}>
-                  Open in the queue
-                </Link>
-              </li>
-            ) : null}
-            {review.map((p) => {
-              const link = reviewLinks.get(p.order_id);
-              return (
-                <AttentionItem key={p.id} href={link ? `/admin/filings/${link.filingId}#payment` : "/admin/payments#review"} kind="Payment review">
-                  <span className="font-medium text-fg">{link?.businessName ?? "Payment"}</span>
-                  <span className="text-muted">
-                    {" "}
-                    {money(p.amount_cents)}: {p.review_reason ?? "Flagged for review"}
-                  </span>
-                </AttentionItem>
-              );
-            })}
-            {errors.map((e) => (
-              <AttentionItem key={e.id} href="/admin/payments#webhooks" kind="Webhook error">
-                <span className="font-medium text-fg">
-                  {e.provider} {e.event_type}
-                </span>
-                <span className="text-muted">
-                  {" "}
-                  {formatDateTime(e.received_at)}: {e.processing_error}
-                </span>
-              </AttentionItem>
-            ))}
-            {errorCount > errors.length ? (
-              <li className="px-4 py-2 text-sm text-muted">
-                And {errorCount - errors.length} more webhook errors.{" "}
-                <Link className={tableLink} href="/admin/payments#webhooks">
-                  View all
-                </Link>
-              </li>
-            ) : null}
-            {failedReminderCount > 0 ? (
-              <AttentionItem href="/admin/reminders#recent" kind="Reminders">
-                <span className="font-medium text-fg">
-                  {failedReminderCount} reminder {failedReminderCount === 1 ? "email" : "emails"} failed
-                </span>
-                <span className="text-muted"> in the last 7 days</span>
-              </AttentionItem>
-            ) : null}
+        <section
+          aria-labelledby="work-title"
+          className="rounded-[var(--radius-surface)] border border-border bg-surface shadow-[0_1px_2px_rgb(23_35_29/0.04)]"
+        >
+          <div className="border-b border-border/70 px-5 py-4">
+            <h2 id="work-title" className="text-[17px] font-semibold leading-snug text-fg">
+              Work queue
+            </h2>
+            <p className="text-sm text-muted">Each line opens the matching filings.</p>
+          </div>
+          <ul className="divide-y divide-border/70">
+            <WorkLine
+              count={n(ready.count)}
+              label="Ready to file"
+              hint="Ready for review or ready to file"
+              href={queueHref({ status: "ready_for_review,ready_to_file" })}
+              tone="accent"
+            />
+            <WorkLine
+              count={n(upcoming.count)}
+              label="Upcoming deadlines"
+              hint={`Active filings due in ${SOON_DAYS} days`}
+              href={queueHref({ due_from: today, due_to: soonDate })}
+              tone="warning"
+            />
+            <WorkLine
+              count={n(waiting.count)}
+              label="Needs customer information"
+              hint="Waiting on the customer"
+              href={queueHref({ status: "needs_information,needs_customer_action" })}
+              tone="neutral"
+            />
+            <WorkLine count={n(rejected.count)} label="Rejected filings" hint="Need a fix and resubmission" href={queueHref({ status: "rejected" })} tone="danger" />
+            <WorkLine count={n(failedPayments.count)} label="Failed payments" hint="Last 7 days" href="/admin/payments#failed" tone="danger" />
           </ul>
-        )}
-      </Panel>
+        </section>
+      </div>
+
+      <section aria-labelledby="numbers-title" className="grid gap-3">
+        <h2 id="numbers-title" className="text-[17px] font-semibold text-fg">
+          So far today
+        </h2>
+        <TileGrid cols={4}>
+          <MetricTile label="Orders today" value={paidRows.length} hint="Paid since midnight" href="/admin/payments#recent" />
+          <MetricTile
+            label="Revenue today"
+            value={money(revenueToday)}
+            hint={`Service fees. Government fees collected: ${money(govToday)}`}
+            href="/admin/payments#recent"
+            tone={revenueToday > 0 ? "success" : "neutral"}
+          />
+          <MetricTile
+            label="Completed today"
+            value={n(completedToday.count)}
+            hint="Receipts delivered"
+            href={queueHref({ status: "completed" })}
+            tone={n(completedToday.count) > 0 ? "success" : "neutral"}
+          />
+          <Link
+            href="/admin/analytics"
+            className="group grid min-h-[6.5rem] content-between gap-3 bg-surface px-5 py-4 transition-colors hover:bg-bg focus-visible:relative focus-visible:z-10"
+          >
+            <span className="flex items-start justify-between gap-2 text-[13px] font-medium text-muted">
+              Funnel, last 7 days
+              <CaretRight size={14} weight="bold" className="mt-0.5 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" aria-hidden />
+            </span>
+            <span className="tnum grid gap-1 text-sm text-fg">
+              <span>
+                <span className="font-display text-xl font-semibold">{n(checkoutStarts.count)}</span> checkouts started
+              </span>
+              <span>
+                <span className="font-display text-xl font-semibold">{n(paymentsCompleted.count)}</span> payments completed
+              </span>
+            </span>
+          </Link>
+        </TileGrid>
+      </section>
     </div>
   );
 }
 
-function AttentionItem({ href, kind, children }: { href: string; kind: string; children: ReactNode }) {
+type AttentionTone = "danger" | "highlight";
+
+const attentionIcon: Record<AttentionTone, string> = {
+  danger: "bg-danger-soft text-danger",
+  highlight: "bg-highlight-soft text-highlight-fg",
+};
+
+/** One row of the attention list: what it is, whose it is, and how late. */
+function AttentionItem({
+  href,
+  kind,
+  icon: ItemIcon,
+  tone,
+  meta,
+  title,
+  detail,
+  badge,
+}: {
+  href: string;
+  kind: string;
+  icon: Icon;
+  tone: AttentionTone;
+  meta?: ReactNode;
+  title: ReactNode;
+  detail?: ReactNode;
+  badge?: ReactNode;
+}) {
   return (
     <li>
-      <Link href={href} className="flex min-h-11 items-start gap-3 px-4 py-2.5 text-sm hover:bg-surface-2">
-        <Warning size={16} weight="fill" className="mt-0.5 shrink-0 text-danger" aria-hidden />
-        <span className="w-28 shrink-0 text-xs font-medium text-muted">{kind}</span>
-        <span className="min-w-0 flex-1">{children}</span>
+      <Link
+        href={href}
+        className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 px-5 py-4 transition-colors hover:bg-bg"
+      >
+        <span aria-hidden className={cn("grid size-10 place-items-center rounded-full", attentionIcon[tone])}>
+          <ItemIcon size={20} weight="fill" />
+        </span>
+        <span className="grid min-w-0 gap-0.5">
+          <span className="flex flex-wrap items-center gap-x-2 text-[13px] text-muted">
+            <span className="font-medium">{kind}</span>
+            {meta ? (
+              <>
+                <span aria-hidden className="text-subtle">
+                  ·
+                </span>
+                {meta}
+              </>
+            ) : null}
+          </span>
+          <span className="break-words font-display text-[17px] font-semibold leading-snug text-fg sm:truncate">{title}</span>
+          {detail ? <span className="text-sm text-muted">{detail}</span> : null}
+          {badge ? <span className="mt-1.5 sm:hidden">{badge}</span> : null}
+        </span>
+        <span className="flex items-center gap-3">
+          {badge ? <span className="max-sm:hidden">{badge}</span> : null}
+          <CaretRight size={16} weight="bold" className="text-subtle transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+type WorkTone = "accent" | "warning" | "danger" | "neutral";
+
+const workCount: Record<WorkTone, string> = {
+  accent: "text-accent",
+  warning: "text-warning",
+  danger: "text-danger",
+  neutral: "text-fg",
+};
+
+/** A queue bucket: the count, what it means, and a link to those filings. */
+function WorkLine({ count, label, hint, href, tone }: { count: number; label: string; hint: string; href: string; tone: WorkTone }) {
+  return (
+    <li>
+      <Link href={href} className="group grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 px-5 py-3.5 transition-colors hover:bg-bg">
+        <span className={cn("tnum font-display text-[26px] font-semibold leading-none", count > 0 ? workCount[tone] : "text-subtle")}>{count}</span>
+        <span className="grid min-w-0 gap-0.5">
+          <span className="font-semibold text-fg">{label}</span>
+          <span className="text-[13px] text-muted">{hint}</span>
+        </span>
+        <CaretRight size={16} weight="bold" className="text-subtle transition-transform group-hover:translate-x-0.5" aria-hidden />
       </Link>
     </li>
   );

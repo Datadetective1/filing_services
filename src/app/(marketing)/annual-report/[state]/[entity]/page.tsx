@@ -1,25 +1,30 @@
-import { ArrowRight, ArrowUpRight, UsersThree } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowUpRight, Info, UsersThree } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { site } from "@/config/site";
 import { TrackView } from "@/components/analytics/track-view";
 import { RequirementCard } from "@/components/compliance/requirement-card";
+import { Photo } from "@/components/media/photo";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
-import { PageIntro, SectionHeading } from "@/components/marketing/section";
+import { RequiredInfoSheet } from "@/components/marketing/required-info-sheet";
 import { SourceList } from "@/components/marketing/source-list";
-import { Facts } from "@/components/ui/surface";
+import { textLinkClasses } from "@/components/ui/button";
+import { Container } from "@/components/ui/surface";
+import { CalendarDate } from "@/components/visual/calendar-date";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { getJurisdiction, getJurisdictionBySlug, RULES, rulesForState } from "@/lib/compliance/registry";
 import type { ComplianceRuleDef, JurisdictionDef } from "@/lib/compliance/types";
 import { dueRuleText, lateFeeText, stateFeeText, verifiedText } from "@/lib/compliance/view";
 import { formatLongDate } from "@/lib/domain/dates";
 import { formatCents } from "@/lib/domain/money";
-import { entityTypeFromSlug, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
+import { entityTypeFromSlug, ENTITY_TYPE_SLUGS, type EntityType } from "@/lib/domain/types";
+import type { PhotoKey } from "@/lib/media/photos";
 import {
   agencyShortName,
   filingWindowText,
@@ -27,13 +32,26 @@ import {
   groupSources,
   requiredInfoForRule,
 } from "@/lib/seo/content";
-import { article, ENTITY_COPY, joinList } from "@/lib/seo/entities";
+import { article, ENTITY_COPY } from "@/lib/seo/entities";
 import { breadcrumbJsonLd, faqJsonLd, graph, serviceJsonLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { marketingPeriod } from "@/lib/seo/period";
 
 export const dynamicParams = false;
 export const revalidate = 3600;
+
+/** One photograph per entity type, so each guide opens on its own scene. */
+const ENTITY_PHOTOS: Record<EntityType, { photo: PhotoKey; focus?: string }> = {
+  llc: { photo: "woodworker", focus: "58% 42%" },
+  corporation: { photo: "shopCounter", focus: "62% 40%" },
+  nonprofit_corporation: { photo: "florist", focus: "55% 55%" },
+  lp: { photo: "potterWorkshop", focus: "52% 35%" },
+  llp: { photo: "tailorSewingPhone", focus: "58% 40%" },
+  electing_partnership: { photo: "cafeLaptop", focus: "50% 62%" },
+  professional_association: { photo: "reliefDocument", focus: "45% 40%" },
+  business_trust: { photo: "storefrontAwning", focus: "50% 38%" },
+  other: { photo: "cafeLaptop", focus: "50% 60%" },
+};
 
 export function generateStaticParams() {
   return RULES.filter((r) => r.verificationStatus === "verified").flatMap((r) => {
@@ -63,6 +81,26 @@ export async function generateMetadata({ params }: PageProps<"/annual-report/[st
   });
 }
 
+/** A guide section laid out as a row: heading on the left, content on the right. */
+function Row({ id, title, lede, children }: { id: string; title: ReactNode; lede?: ReactNode; children: ReactNode }) {
+  return (
+    <section
+      aria-labelledby={`${id}-title`}
+      className="grid scroll-mt-24 gap-5 border-t border-border py-10 sm:py-12 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12"
+    >
+      <div className="grid content-start gap-2">
+        <h2 id={`${id}-title`} className="text-[24px] font-semibold leading-[1.15] text-fg text-balance sm:text-[27px]">
+          {title}
+        </h2>
+        {lede ? <p className="text-[15px] leading-6 text-muted">{lede}</p> : null}
+      </div>
+      <div className="grid min-w-0 content-start gap-5">{children}</div>
+    </section>
+  );
+}
+
+const bodyText = "grid max-w-[68ch] gap-4 text-[16px] leading-7 text-muted";
+
 export default async function EntityAnnualReportPage({ params }: PageProps<"/annual-report/[state]/[entity]">) {
   const { state, entity } = await params;
   const hit = resolve(state, entity);
@@ -80,6 +118,7 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
   const dueDay = dueRuleText(rule.dueRule).replace(" each year", "");
   const siblings = rulesForState(j.code).filter((r) => r.ruleKey !== rule.ruleKey && r.verificationStatus === "verified");
   const findHref = `/find?state=${j.code}&entity=${rule.entityType}`;
+  const scene = ENTITY_PHOTOS[rule.entityType];
 
   const crumbs = [
     { name: "Home", path: "/" },
@@ -101,6 +140,21 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
         }.`;
   const a = article(copy.singular);
 
+  const facts = [
+    { term: "Due date", value: dueRuleText(rule.dueRule) },
+    ...(filingWindow ? [{ term: "Filing window", value: filingWindow }] : []),
+    { term: "State fee", value: stateFeeText(rule) },
+    { term: "Late fee", value: lateFeeText(rule) },
+    { term: "First report", value: firstReportText },
+    { term: "Form", value: rule.formNumber ? `${rule.filingName} (${rule.formNumber})` : rule.filingName },
+  ];
+
+  const officialLinks = [
+    { href: rule.officialFilingUrl, label: "Official online filing" },
+    { href: j.agency.businessSearchUrl, label: "Official business search" },
+    { href: rule.officialInfoUrl, label: `${agency}: annual reports` },
+  ].filter((l): l is { href: string; label: string } => Boolean(l.href));
+
   return (
     <>
       <TrackView event="state_page_viewed" stateCode={j.code} entityType={rule.entityType} />
@@ -118,197 +172,208 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
         )}
       />
 
-      <PageIntro
-        breadcrumbs={<Breadcrumbs items={crumbs} />}
-        title={`${j.name} annual report for ${copy.plural}`}
-        lede={
-          <p>
-            Based on the {agency}&apos;s published requirements, {j.name} {copy.plural} file an annual report by {dueDay} each
-            year. {feeSentence} {rule.lateFeeCents === null ? "There is no state late fee." : null}
-          </p>
-        }
-      />
+      {/* Hero: the answer first */}
+      <section aria-labelledby="entity-title" className="overflow-hidden">
+        <Container className="grid grid-cols-1 gap-x-14 gap-y-8 pb-14 pt-6 sm:pt-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)] lg:grid-rows-[auto_1fr] lg:pb-20 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_minmax(0,29rem)]">
+          <div className="grid content-start gap-5 lg:col-start-1 lg:row-start-1">
+            <Breadcrumbs items={crumbs} />
+            <h1
+              id="entity-title"
+              className="max-w-[18ch] text-[36px] font-semibold leading-[1.05] tracking-[-0.03em] text-fg sm:text-[50px] lg:text-[56px]"
+            >
+              {j.name} annual report for <span className="mark-highlight">{copy.plural}</span>
+            </h1>
+            <p className="max-w-[48ch] text-[17px] leading-relaxed text-muted sm:text-lg">
+              Based on the {agency}&apos;s published requirements, {j.name} {copy.plural} file an annual report by {dueDay} each
+              year. {feeSentence} {rule.lateFeeCents === null ? "There is no state late fee." : null}
+            </p>
+          </div>
 
-      <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-16">
-        <div className="order-2 grid min-w-0 content-start gap-16 lg:order-1">
-          {/* Key facts */}
-          <section aria-labelledby="facts-title" className="grid gap-6">
-            <SectionHeading id="facts-title" title="At a glance" />
-            <Facts
-              items={[
-                { term: "Due date", value: dueRuleText(rule.dueRule) },
-                ...(filingWindow ? [{ term: "Filing window", value: filingWindow }] : []),
-                { term: "State fee", value: stateFeeText(rule) },
-                { term: "Late fee", value: lateFeeText(rule) },
-                { term: "First report", value: firstReportText },
-                { term: "Form", value: rule.formNumber ? `${rule.filingName} (${rule.formNumber})` : rule.filingName },
-              ]}
+          <div className="grid content-start gap-3 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            <RequirementCard
+              rule={rule}
+              period={period}
+              quote={quote}
+              headingAs="h2"
+              actions={
+                <FilingCtaLink href={findHref} stateCode={j.code} entityType={rule.entityType}>
+                  Have us file it
+                  <ArrowRight size={18} weight="bold" aria-hidden />
+                </FilingCtaLink>
+              }
             />
-          </section>
+            {missed ? (
+              <p className="flex items-start gap-2 px-1 text-sm leading-6 text-muted">
+                <Info size={16} aria-hidden className="mt-1 shrink-0 text-accent" />
+                <span>
+                  The {missed.periodYear} report was due {formatLongDate(missed.dueDate)}. If your {copy.singular} hasn&apos;t
+                  filed it yet, it can still be filed. {rule.lateFeeSummary}
+                </span>
+              </p>
+            ) : null}
+          </div>
+
+          <Photo
+            photo={scene.photo}
+            focus={scene.focus}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            className="aspect-[16/10] lg:col-start-1 lg:row-start-2 lg:aspect-[3/2] lg:self-start"
+          />
+        </Container>
+      </section>
+
+      <Container className="pb-20">
+        <div className="max-w-5xl">
+          {/* Key facts */}
+          <Row id="facts" title="At a glance">
+            <dl className="grid overflow-hidden rounded-[var(--radius-surface)] border border-border bg-border sm:grid-cols-2 [&>div]:bg-surface gap-px">
+              {facts.map((f) => (
+                <div key={f.term} className="grid content-start gap-1 px-4 py-3.5 sm:px-5">
+                  <dt className="text-[13px] font-medium text-muted">{f.term}</dt>
+                  <dd className="text-[15px] font-medium leading-6 text-fg">{f.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </Row>
 
           {/* Governor */}
-          <section aria-labelledby="governor-title" className="grid gap-5">
-            <SectionHeading
-              id="governor-title"
-              title={`Who is the “governor” for ${a} ${copy.singular}?`}
-              lede={`${j.name}'s annual report asks for the name of at least one governor. The term covers different people depending on the entity type.`}
-            />
-            <div className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
-              <div className="flex items-start gap-3">
-                <UsersThree size={22} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+          <Row
+            id="governor"
+            title={`Who is the “governor” for ${a} ${copy.singular}?`}
+            lede={`${j.name}'s annual report asks for the name of at least one governor. The term covers different people depending on the entity type.`}
+          >
+            <div className="grid overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface">
+              <div className="flex items-start gap-4 p-5 sm:p-6">
+                <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+                  <UsersThree size={22} weight="duotone" />
+                </span>
                 <div className="grid gap-1.5">
-                  <p className="font-medium text-fg">
+                  <p className="font-display text-lg font-semibold text-fg">
                     For {a} {copy.singular}: {governor.label.toLowerCase()}
                   </p>
                   {governor.help ? <p className="text-[15px] leading-7 text-muted">{governor.help}</p> : null}
                   {governor.titles.length ? (
-                    <p className="text-sm text-subtle">Common titles: {joinList(governor.titles)}</p>
+                    <p className="mt-1 text-[13px] font-medium text-subtle">Common titles</p>
+                  ) : null}
+                  {governor.titles.length ? (
+                    <ul aria-label="Common titles" className="flex flex-wrap gap-1.5">
+                      {governor.titles.map((t) => (
+                        <li key={t} className="rounded-full bg-surface-2 px-2.5 py-1 text-[13px] font-medium text-fg">
+                          {t}
+                        </li>
+                      ))}
+                    </ul>
                   ) : null}
                 </div>
               </div>
-              <div className="border-t border-border pt-4">
-                <p className="font-medium text-fg">
+              <div className="border-t border-dashed border-border bg-surface-2/50 p-5 sm:px-6">
+                <p className="font-semibold text-fg">
                   Principal officers {governor.officersRequired ? "(required)" : "(if any)"}
                 </p>
                 {governor.officerHelp ? <p className="mt-1.5 text-[15px] leading-7 text-muted">{governor.officerHelp}</p> : null}
               </div>
             </div>
-          </section>
+          </Row>
 
           {/* Who must file */}
-          <section aria-labelledby="who-title" className="grid gap-5">
-            <SectionHeading id="who-title" title="Who must file" />
-            <p className="max-w-[68ch] text-[15px] leading-7 text-muted sm:text-base">{rule.whoMustFile}</p>
-          </section>
+          <Row id="who" title="Who must file">
+            <p className={bodyText}>{rule.whoMustFile}</p>
+          </Row>
 
           {/* Required information */}
-          <section aria-labelledby="required-title" className="grid gap-5">
-            <SectionHeading
-              id="required-title"
-              title="What the report includes"
-              lede="No financial information. You confirm or update the business's details on record."
+          <Row
+            id="required"
+            title="What the report includes"
+            lede="No financial information. You confirm or update the business's details on record."
+          >
+            <RequiredInfoSheet
+              title={`${j.name} ${copy.title} ${rule.filingName.toLowerCase()}`}
+              formNumber={rule.formNumber}
+              items={requiredInfoForRule(rule)}
             />
-            <ul className="grid max-w-[68ch] gap-3">
-              {requiredInfoForRule(rule).map((item) => (
-                <li key={item} className="flex gap-3 text-[15px] leading-7 text-muted sm:text-base">
-                  <span aria-hidden className="mt-3 size-1.5 shrink-0 rounded-full bg-accent" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          </Row>
 
           {/* Late filing */}
-          <section aria-labelledby="late-title" className="grid gap-5">
-            <SectionHeading id="late-title" title="If the report is late" />
-            <div className="grid max-w-[68ch] gap-4 text-[15px] leading-7 text-muted sm:text-base">
+          <Row id="late" title="If the report is late">
+            <div className={bodyText}>
               <p>{lateFeeText(rule)}</p>
               <p>{rule.consequenceSummary}</p>
             </div>
-          </section>
+          </Row>
 
           {/* How to file directly */}
-          <section aria-labelledby="direct-title" className="grid gap-5">
-            <SectionHeading id="direct-title" title="Filing it yourself" />
-            <div className="grid max-w-[68ch] gap-4 text-[15px] leading-7 text-muted sm:text-base">
+          <Row id="direct" title="Filing it yourself">
+            <div className={bodyText}>
               <p>{rule.filingMethodSummary}</p>
               <p>{rule.processingSummary}</p>
             </div>
-            <ul className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-x-6">
-              {[
-                { href: rule.officialFilingUrl, label: "Official online filing" },
-                { href: j.agency.businessSearchUrl, label: "Official business search" },
-                { href: rule.officialInfoUrl, label: `${agency}: annual reports` },
-              ]
-                .filter((l): l is { href: string; label: string } => Boolean(l.href))
-                .map((l) => (
-                  <li key={l.href}>
-                    <a
-                      href={l.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
-                    >
-                      {l.label}
-                      <ArrowUpRight size={15} aria-hidden />
-                      <span className="sr-only">(opens the official website in a new tab)</span>
-                    </a>
-                  </li>
-                ))}
+            <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+              {officialLinks.map((l) => (
+                <li key={l.href}>
+                  <a
+                    href={l.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border-strong bg-surface px-4 py-2 text-[15px] font-semibold leading-snug text-fg transition-colors hover:border-fg/40 hover:bg-surface-2"
+                  >
+                    {l.label}
+                    <ArrowUpRight size={15} weight="bold" aria-hidden className="shrink-0" />
+                    <span className="sr-only">(opens the official website in a new tab)</span>
+                  </a>
+                </li>
+              ))}
             </ul>
-          </section>
+          </Row>
 
           {/* FAQ */}
-          <section aria-labelledby="faq-title" className="grid gap-6">
-            <SectionHeading id="faq-title" title="Questions" />
+          <Row id="faq" title="Questions">
             <FaqList items={rule.faq} />
-          </section>
+          </Row>
 
           {/* Sources */}
-          <section aria-labelledby="sources-title" className="grid gap-6">
-            <SectionHeading
-              id="sources-title"
-              title="Official sources"
-              lede={`The facts on this page come from these publications. Last reviewed ${verifiedText(rule.lastVerifiedAt)}.`}
-            />
+          <Row
+            id="sources"
+            title="Official sources"
+            lede={`The facts on this page come from these publications. Last reviewed ${verifiedText(rule.lastVerifiedAt)}.`}
+          >
             <SourceList groups={groupSources(rule.sources)} />
-          </section>
+          </Row>
 
           {/* Related */}
-          <nav aria-labelledby="related-title" className="grid gap-5 border-t border-border pt-10">
-            <h2 id="related-title" className="text-lg font-semibold tracking-tight text-fg">
+          <nav aria-labelledby="related-title" className="grid gap-5 border-t border-border py-10 sm:py-12">
+            <h2 id="related-title" className="text-[24px] font-semibold leading-tight text-fg sm:text-[27px]">
               Other {j.name} entity types
             </h2>
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="grid gap-3 sm:grid-cols-2">
               {siblings.map((r) => (
                 <li key={r.ruleKey}>
                   <Link
                     href={`${statePath}/${ENTITY_TYPE_SLUGS[r.entityType]}`}
-                    className="group flex min-h-12 items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border bg-surface px-4 py-2.5 hover:border-border-strong hover:bg-surface-2"
+                    className="group flex min-h-16 items-center gap-3.5 rounded-[var(--radius-surface)] border border-border bg-surface p-3 pr-4 transition-[border-color,box-shadow] hover:border-accent/40 hover:shadow-card"
                   >
-                    <span className="text-[15px] text-fg">{ENTITY_COPY[r.entityType].title}</span>
-                    <span className="tnum flex shrink-0 items-center gap-2 text-sm text-muted">
-                      {dueRuleText(r.dueRule).replace(" each year", "")}
-                      <ArrowRight size={14} aria-hidden className="text-subtle group-hover:text-fg" />
+                    <CalendarDate
+                      month={r.dueRule.kind === "fixed_annual" ? r.dueRule.month : null}
+                      day={r.dueRule.kind === "fixed_annual" ? r.dueRule.day : null}
+                      size="sm"
+                    />
+                    <span className="grid min-w-0 flex-1 gap-0.5">
+                      <span className="font-semibold leading-snug text-fg group-hover:text-accent">{ENTITY_COPY[r.entityType].title}</span>
+                      <span className="tnum text-[13px] text-muted">Due {dueRuleText(r.dueRule).replace(" each year", "")}</span>
                     </span>
+                    <ArrowRight size={16} weight="bold" aria-hidden className="shrink-0 text-subtle group-hover:text-accent" />
                   </Link>
                 </li>
               ))}
             </ul>
-            <Link
-              href={statePath}
-              className="inline-flex min-h-11 items-center gap-1.5 justify-self-start text-[15px] font-medium text-fg hover:underline hover:underline-offset-4"
-            >
+            <Link href={statePath} className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-start`}>
               {j.name} annual report guide
-              <ArrowRight size={16} aria-hidden />
+              <ArrowRight size={16} weight="bold" aria-hidden />
             </Link>
           </nav>
 
           <DisclaimerNote stateName={j.name} filingUrl={rule.officialFilingUrl} />
         </div>
-
-        {/* Requirement card: first on mobile, sticky on desktop */}
-        <aside className="order-1 lg:order-2">
-          <div className="grid gap-3 lg:sticky lg:top-8">
-            <RequirementCard
-              rule={rule}
-              period={period}
-              quote={quote}
-              actions={
-                <FilingCtaLink href={findHref} stateCode={j.code} entityType={rule.entityType}>
-                  Have us file it
-                </FilingCtaLink>
-              }
-            />
-            {missed ? (
-              <p className="px-1 text-sm leading-6 text-muted">
-                The {missed.periodYear} report was due {formatLongDate(missed.dueDate)}. If your {copy.singular} hasn&apos;t filed
-                it yet, it can still be filed. {rule.lateFeeSummary}
-              </p>
-            ) : null}
-          </div>
-        </aside>
-      </div>
+      </Container>
     </>
   );
 }

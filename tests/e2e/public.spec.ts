@@ -7,11 +7,18 @@ test.describe("public pages", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Never miss a business filing");
     await expect(page.getByRole("link", { name: "Find my business" }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Browse by state" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Browse filing requirements" }).first()).toBeVisible();
     await expect(page.getByText(DISCLAIMER).first()).toBeVisible();
     // No horizontal overflow on any viewport.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
+  });
+
+  test("help page offers a human support path", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Talk to a person");
+    await expect(page.locator('main a[href^="mailto:"]').first()).toBeVisible();
+    await expect(page.getByText(DISCLAIMER).first()).toBeVisible();
   });
 
   test("Pennsylvania annual report page shows sourced facts", async ({ page }) => {

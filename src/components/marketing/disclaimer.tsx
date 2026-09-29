@@ -17,14 +17,14 @@ export function DisclaimerNote({
 }) {
   const host = filingUrl ? new URL(filingUrl).host : null;
   return (
-    <div className={cn("flex gap-3 rounded-[var(--radius-surface)] border border-border bg-surface-2 px-4 py-3.5 text-sm text-muted", className)}>
-      <Info size={18} aria-hidden className="mt-0.5 shrink-0 text-fg" />
+    <div className={cn("flex gap-3 rounded-[var(--radius-control)] border border-border bg-surface px-4 py-3.5 text-sm leading-6 text-muted", className)}>
+      <Info size={18} aria-hidden className="mt-0.5 shrink-0 text-accent" />
       <p>
-        <strong className="font-medium text-fg">{site.disclaimer}</strong>{" "}
+        <strong className="font-semibold text-fg">{site.disclaimer}</strong>{" "}
         {stateName && filingUrl && host ? (
           <>
             You can file directly with {stateName} at{" "}
-            <a href={filingUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-fg underline underline-offset-4">
+            <a href={filingUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent">
               {host}
             </a>{" "}
             and pay only the state fee.

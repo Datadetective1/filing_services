@@ -24,7 +24,7 @@ function describedBy(id: string, hint: boolean, error: boolean): string | undefi
   return [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") || undefined;
 }
 
-const legendClass = "text-base font-semibold tracking-tight text-fg";
+const legendClass = "font-display text-lg font-semibold text-fg";
 
 /** Label above, input, hint, error below. Uncontrolled: the value is only the starting value. */
 export function LabeledInput({
@@ -81,7 +81,7 @@ function RadioCard({
   description?: ReactNode;
 }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-border bg-surface px-3.5 py-3 text-[15px] transition-colors hover:border-border-strong has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
+    <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-border-strong bg-surface px-4 py-3.5 text-[15px] transition-[border-color,background-color,box-shadow] hover:border-fg/35 has-[:checked]:border-accent has-[:checked]:bg-accent-soft/70 has-[:checked]:ring-1 has-[:checked]:ring-accent has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-accent/15">
       <input
         type="radio"
         name={name}
@@ -89,10 +89,10 @@ function RadioCard({
         checked={checked}
         defaultChecked={defaultChecked}
         onChange={onChange}
-        className="mt-1 size-4 shrink-0 accent-[var(--accent)]"
+        className="mt-0.5 size-[18px] shrink-0 accent-[var(--accent)]"
       />
       <span className="grid gap-0.5">
-        <span className="font-medium text-fg">{title}</span>
+        <span className="font-semibold text-fg">{title}</span>
         {description ? <span className="text-sm text-muted">{description}</span> : null}
       </span>
     </label>
@@ -103,7 +103,7 @@ export function ChoiceField({ field, value, error }: { field: FieldOf<"choice">;
   const id = fieldId(field.key);
   return (
     <fieldset id={id} aria-describedby={describedBy(id, Boolean(field.help), Boolean(error))}>
-      <legend className="text-sm font-medium text-fg">
+      <legend className="text-[15px] font-semibold text-fg">
         {field.label}
         {!field.required ? <span className="ml-1 font-normal text-subtle">(optional)</span> : null}
       </legend>
@@ -173,7 +173,7 @@ function AddressInputs({
   const ac = (token: string) => `section-${prefix} ${token}`;
   const id = (sub: string) => `${fieldId(`${prefix}.${sub}`)}${idSuffix}`;
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-5">
       <LabeledInput
         name={`${prefix}.line1`}
         id={id("line1")}
@@ -203,7 +203,7 @@ function AddressInputs({
         maxLength={100}
         autoComplete={ac("address-level2")}
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-5 sm:grid-cols-2">
         {lockedRegion ? (
           <LockedRegion name={`${prefix}.region`} code={lockedRegion} id={id("region")} />
         ) : (
@@ -243,7 +243,7 @@ export function AddressField({ field, value, errors }: { field: FieldOf<"address
   return (
     <fieldset id={id} aria-describedby={describedBy(id, Boolean(field.help), Boolean(errors[field.key]))}>
       <legend className={legendClass}>{field.label}</legend>
-      <div className="mt-3 grid gap-4">
+      <div className="mt-2 grid gap-5">
         {field.help ? <FieldHint id={`${id}-hint`}>{field.help}</FieldHint> : null}
         <AddressInputs
           prefix={field.key}
@@ -280,7 +280,7 @@ export function RegisteredOfficeField({
   const countyId = fieldId(`${k}.county`);
 
   return (
-    <div id={id} className="grid gap-6">
+    <div id={id} className="grid gap-7">
       <fieldset id={fieldId(`${k}.mode`)}>
         <legend className={legendClass}>{field.label}</legend>
         <div className="mt-3 grid gap-2">
@@ -305,7 +305,7 @@ export function RegisteredOfficeField({
         </div>
       </fieldset>
 
-      <fieldset hidden={mode !== "address"} disabled={mode !== "address"} className="grid gap-4">
+      <fieldset hidden={mode !== "address"} disabled={mode !== "address"} className="grid gap-5">
         <legend className="sr-only">Registered office street address</legend>
         <AddressInputs
           prefix={k}
@@ -317,7 +317,7 @@ export function RegisteredOfficeField({
         />
       </fieldset>
 
-      <fieldset hidden={mode !== "crop"} disabled={mode !== "crop"} className="grid gap-4">
+      <fieldset hidden={mode !== "crop"} disabled={mode !== "crop"} className="grid gap-5">
         <legend className="sr-only">Commercial registered office provider</legend>
         <LabeledInput
           name={`${k}.crop_name`}
@@ -398,7 +398,7 @@ export function PeopleField({ field, value, errors }: { field: FieldOf<"people">
         <FieldError id={`${id}-error`}>{groupError}</FieldError>
 
         {rows.length === 0 ? (
-          <p className="rounded-[var(--radius-control)] border border-dashed border-border-strong px-4 py-3 text-sm text-muted">
+          <p className="rounded-[var(--radius-control)] border border-dashed border-border-strong bg-surface-2/40 px-4 py-4 text-sm text-muted">
             No one listed.
           </p>
         ) : (
@@ -406,7 +406,7 @@ export function PeopleField({ field, value, errors }: { field: FieldOf<"people">
             {rows.map((row, i) => (
               <li
                 key={row.id}
-                className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-start"
+                className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface-2/40 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-start sm:p-5"
               >
                 <LabeledInput
                   name={`${k}.${i}.name`}

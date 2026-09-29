@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowSquareOut, Info } from "@phosphor-icons/react";
+import { ArrowRight, ArrowSquareOut, Info } from "@phosphor-icons/react";
 import { useActionState, useRef, useState } from "react";
 import { track } from "@/lib/analytics/client";
 import { Checkbox, Field, Select } from "@/components/ui/field";
@@ -38,7 +38,7 @@ function CheckRow({
   return (
     <label
       htmlFor={id}
-      className="flex min-h-11 cursor-pointer items-start gap-3 rounded-[var(--radius-control)] px-1 py-2.5 text-[15px] text-fg"
+      className="flex min-h-12 cursor-pointer items-start gap-3 px-4 py-3 text-[15px] text-fg transition-colors hover:bg-surface-2/70 has-[:checked]:bg-accent-soft/60"
     >
       <Checkbox
         id={id}
@@ -92,7 +92,7 @@ export function LookupForm({
       action={formAction}
       noValidate
       onChange={onFirstInteraction}
-      className="grid gap-7"
+      className="grid gap-6 sm:gap-7"
     >
       {hasErrors ? (
         <ErrorSummary errors={e} formError={state.formError} describe={(k) => LABELS[k] ?? ""} focusKey={state.nonce} />
@@ -110,7 +110,7 @@ export function LookupForm({
         spellCheck={false}
       />
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid items-start gap-5 sm:grid-cols-2">
         <Field label="State" htmlFor={fieldId("stateCode")} error={e.stateCode}>
           <Select
             id={fieldId("stateCode")}
@@ -147,26 +147,30 @@ export function LookupForm({
         </Field>
       </div>
 
-      <div className="flex gap-3 rounded-[var(--radius-surface)] border border-border bg-surface-2 px-4 py-3.5 text-sm text-muted">
+      <div className="flex gap-3 rounded-[var(--radius-control)] bg-surface-2 px-4 py-3.5 text-sm leading-6 text-muted">
         <Info size={18} className="mt-0.5 shrink-0 text-fg" aria-hidden />
         <p>
-          We don&apos;t pull records from the state yet. Enter the details as they appear on your state record. You can
-          find them on the{" "}
+          We don&apos;t pull records from the state yet, so enter the details as they appear on your state record. Look
+          them up on the{" "}
           <a
             href={selected.searchUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
+            className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
           >
             {selected.isBusinessSearch ? `official ${selected.name} business search` : `official ${selected.name} business agency site`}
-            <ArrowSquareOut size={14} weight="bold" aria-hidden />
+            <ArrowSquareOut size={14} weight="bold" aria-hidden className="ml-1 inline align-[-2px]" />
             <span className="sr-only">(opens a government website in a new tab)</span>
           </a>
-          .
         </p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="flex items-center gap-3 pt-1" aria-hidden>
+        <span className="text-[13px] font-semibold uppercase tracking-wider text-subtle">Optional details</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <div className="-mt-2 grid items-start gap-5 sm:grid-cols-2">
         <LabeledInput
           name="formationDate"
           type="date"
@@ -190,8 +194,9 @@ export function LookupForm({
       </div>
 
       <fieldset>
-        <legend className="text-sm font-medium text-fg">About the business</legend>
-        <div className="mt-1 grid">
+        <legend className="text-[15px] font-semibold text-fg">About the business</legend>
+        <p className="mt-1 text-sm text-muted">Check any that apply.</p>
+        <div className="mt-3 grid divide-y divide-border overflow-hidden rounded-[var(--radius-control)] border border-border-strong">
           <CheckRow
             name="isForeign"
             label={`Formed outside ${selected.name} (foreign entity)`}
@@ -199,7 +204,7 @@ export function LookupForm({
             onChange={setIsForeign}
             controls="home-jurisdiction"
           />
-          <div id="home-jurisdiction" hidden={!isForeign} className="pb-3 pl-8">
+          <div id="home-jurisdiction" hidden={!isForeign} className="bg-surface-2/50 px-4 pb-4 pt-3 sm:pl-12">
             {isForeign ? (
               <LabeledInput
                 name="homeJurisdiction"
@@ -217,11 +222,12 @@ export function LookupForm({
         </div>
       </fieldset>
 
-      <div className="grid gap-3 border-t border-border pt-6 sm:flex sm:items-center sm:justify-between">
-        <p className="text-sm text-muted">Free to check. No account needed.</p>
-        <SubmitButton size="lg" pendingLabel="Checking…" className="w-full sm:w-auto">
+      <div className="grid gap-3 border-t border-border pt-6 sm:flex sm:flex-row-reverse sm:items-center sm:justify-between">
+        <SubmitButton size="lg" pendingLabel="Checking…" className="w-full sm:w-auto sm:px-8">
           See what&apos;s due
+          <ArrowRight size={18} weight="bold" aria-hidden />
         </SubmitButton>
+        <p className="text-center text-sm text-muted sm:text-left">Free to check. Nothing is filed until you ask.</p>
       </div>
     </form>
   );

@@ -2,7 +2,6 @@ import { PencilSimple, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { IntakeField, IntakeSection } from "@/lib/compliance/types";
 import { formatAddress, formatRegisteredOffice, type Address, type RegisteredOffice } from "@/lib/intake/validate";
-import { cn } from "@/components/ui/cn";
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
@@ -54,7 +53,10 @@ function FieldValue({ field, value }: { field: IntakeField; value: unknown }) {
   }
 }
 
-/** Read-only summary of one intake section with an Edit link, used on the review page. */
+/**
+ * Read-only summary of one intake section with an Edit link, used on the review page.
+ * Rendered as one part of the summary document (the page supplies the sheet).
+ */
 export function AnswerSummary({
   section,
   answers,
@@ -69,30 +71,30 @@ export function AnswerSummary({
   return (
     <section
       aria-labelledby={`review-${section.key}`}
-      className={cn(
-        "rounded-[var(--radius-surface)] border bg-surface",
-        incomplete ? "border-warning/40" : "border-border",
-      )}
+      className="py-6 sm:py-7"
     >
-      <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 sm:px-5">
-        <h2 id={`review-${section.key}`} className="flex items-center gap-2 text-base font-semibold tracking-tight text-fg">
+      <div className="flex items-center justify-between gap-4">
+        <h3
+          id={`review-${section.key}`}
+          className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-wider text-muted"
+        >
           {incomplete ? <WarningCircle size={18} weight="fill" className="text-warning" aria-hidden /> : null}
           {section.title}
-          {incomplete ? <span className="sr-only">(needs attention)</span> : null}
-        </h2>
+          {incomplete ? <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-semibold normal-case tracking-normal text-warning">Needs attention</span> : null}
+        </h3>
         <Link
           href={editHref}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-sm font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
+          className="-my-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-sm font-semibold text-accent underline decoration-accent/30 decoration-2 underline-offset-4 hover:decoration-accent"
         >
-          <PencilSimple size={16} aria-hidden />
+          <PencilSimple size={16} weight="bold" aria-hidden />
           Edit<span className="sr-only"> {section.title}</span>
         </Link>
       </div>
-      <dl className="grid gap-x-6 gap-y-3 px-4 py-4 sm:grid-cols-[minmax(9rem,13rem)_1fr] sm:px-5">
+      <dl className="mt-4 grid gap-x-8 gap-y-3.5 sm:grid-cols-[minmax(9rem,12rem)_1fr]">
         {section.fields.map((field) => (
           <div key={field.key} className="contents">
             <dt className="text-sm text-muted">{field.label}</dt>
-            <dd className="text-[15px] text-fg [overflow-wrap:anywhere]">
+            <dd className="-mt-2.5 text-[15px] font-medium text-fg [overflow-wrap:anywhere] sm:mt-0">
               <FieldValue field={field} value={answers[field.key]} />
             </dd>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useId, useRef, type FormEvent, type ReactNode } from "react";
+import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import { cn } from "@/components/ui/cn";
 import type { ActionState, FormAction } from "./action-state";
 import { opsButton } from "./button-classes";
@@ -81,7 +82,7 @@ export function ActionForm({
             name="confirm"
             value="yes"
             required
-            className="mt-0.5 size-4 shrink-0 rounded border-border-strong accent-[var(--accent)]"
+            className="mt-0.5 size-5 shrink-0 rounded border-border-strong accent-[var(--accent)]"
           />
           <span>{confirmLabel}</span>
         </label>
@@ -93,15 +94,19 @@ export function ActionForm({
       </div>
       <div id={statusId} aria-live="polite">
         {state && !state.ok ? (
-          <p role="alert" className="text-sm font-medium text-danger">
-            {state.error}
+          <p role="alert" className="flex items-start gap-2 rounded-[var(--radius-control)] bg-danger-soft px-3 py-2.5 text-sm font-medium text-danger">
+            <WarningCircle size={18} weight="fill" className="mt-px shrink-0" aria-hidden />
+            <span>{state.error}</span>
           </p>
         ) : null}
         {state && state.ok ? (
-          <div className="grid gap-1 text-sm">
-            <p className="font-medium text-accent">{state.message}</p>
+          <div className="grid gap-1.5 rounded-[var(--radius-control)] bg-accent-soft px-3 py-2.5 text-sm">
+            <p className="flex items-start gap-2 font-semibold text-accent-soft-fg">
+              <CheckCircle size={18} weight="fill" className="mt-px shrink-0" aria-hidden />
+              <span>{state.message}</span>
+            </p>
             {state.details?.length ? (
-              <dl className="tnum grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-muted">
+              <dl className="tnum grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 pl-[26px] text-muted">
                 {state.details.map((d) => (
                   <div key={d.label} className="contents">
                     <dt>{d.label}</dt>

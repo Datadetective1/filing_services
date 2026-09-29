@@ -1,90 +1,100 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, CaretRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowUpRight, CalendarCheck, CaretDown, CaretRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { markFiledElsewhereAction, startFilingAction } from "@/app/(app)/dashboard/actions";
 import { formatCents } from "@/lib/domain/money";
-import { formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
-import { filingWindowOpensOn, isFilingWindowOpen } from "@/lib/domain/deadlines";
+import { formatLongDate } from "@/lib/domain/dates";
 import { ButtonLink } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "@/components/ui/cn";
 import type { BusinessView, RequirementView } from "@/app/(app)/dashboard/_lib/data";
-import { continueHref, filingHref, isCustomerEditable } from "./steps";
+import { canMarkFiled, requirementAction } from "./requirement-state";
+import { filingHref } from "./steps";
 
 type ReturnPath = "/dashboard" | `/dashboard/businesses/${string}`;
 
 /**
  * The primary action for an open requirement plus the "already filed" escape hatch:
- *   no filing yet        -> "Have us file it"
+ *   no filing yet          -> "Have us file it" (only once the state's filing window is open)
  *   draft / waiting on you -> "Continue"
- *   in our hands          -> "View filing"
+ *   in our hands           -> "View filing"
+ * `size="panel"` is the larger treatment used in the "what do I need to do next?" panel.
  */
 export function RequirementActions({
   business,
   requirement,
   returnTo,
   className,
+  size = "card",
 }: {
   business: BusinessView;
   requirement: RequirementView;
   returnTo: ReturnPath;
   className?: string;
+  size?: "card" | "panel";
 }) {
-  const filing = requirement.activeFiling;
-  const canMarkFiled = requirement.status === "open" && (!filing || filing.status === "draft");
+  const action = requirementAction(business, requirement);
+  const panel = size === "panel";
+  const buttonSize = panel ? "lg" : "md";
 
   let primary: ReactNode = null;
-  if (filing && isCustomerEditable(filing.status)) {
-    primary = (
-      <ButtonLink href={continueHref(filing)} className="min-h-11 w-full sm:w-auto">
-        Continue
-        <ArrowRight size={16} weight="bold" aria-hidden />
-      </ButtonLink>
-    );
-  } else if (filing) {
-    primary = (
-      <ButtonLink href={filingHref(filing.id)} variant="secondary" className="min-h-11 w-full sm:w-auto">
-        View filing
-      </ButtonLink>
-    );
-  } else if (
-    requirement.status === "open" &&
-    business.sellable &&
-    business.rule &&
-    !isFilingWindowOpen(business.rule, requirement.periodYear, requirement.dueDate, todayInTimeZone("America/New_York"))
-  ) {
-    primary = (
-      <p className="text-sm text-muted">
-        Filing for the {requirement.periodYear} report opens{" "}
-        {formatLongDate(filingWindowOpensOn(business.rule, requirement.periodYear, requirement.dueDate))}. We&apos;ll remind you
-        before it&apos;s due.
-      </p>
-    );
-  } else if (requirement.status === "open" && business.sellable) {
-    primary = (
-      <form action={startFilingAction} className="w-full sm:w-auto">
-        <input type="hidden" name="businessId" value={business.id} />
-        <input type="hidden" name="returnTo" value={returnTo} />
-        <SubmitButton className="min-h-11 w-full sm:w-auto" pendingLabel="Starting…">
-          Have us file it
-        </SubmitButton>
-      </form>
-    );
+  let secondary: ReactNode = null;
+  switch (action.kind) {
+    case "continue":
+      primary = (
+        <ButtonLink href={action.href} size={buttonSize} className="w-full sm:w-auto">
+          {panel ? (action.step.cta ?? "Continue") : "Continue"}
+          <ArrowRight size={16} weight="bold" aria-hidden />
+        </ButtonLink>
+      );
+      secondary = (
+        <Link
+          href={filingHref(action.filing.id)}
+          className="inline-flex min-h-11 items-center gap-1 rounded-full text-sm font-semibold text-muted transition-colors hover:text-fg"
+        >
+          View filing details
+          <CaretRight size={14} weight="bold" aria-hidden />
+        </Link>
+      );
+      break;
+    case "view":
+      primary = (
+        <ButtonLink href={action.href} variant="secondary" size={buttonSize} className="w-full sm:w-auto">
+          View filing
+          <ArrowRight size={16} weight="bold" aria-hidden />
+        </ButtonLink>
+      );
+      break;
+    case "opens_later":
+      primary = (
+        <p className="flex max-w-[42ch] items-start gap-2 text-sm leading-6 text-muted">
+          <CalendarCheck size={18} weight="duotone" aria-hidden className="mt-0.5 shrink-0 text-accent" />
+          <span>
+            Filing for the {requirement.periodYear} report opens {formatLongDate(action.opensOn)}. We&apos;ll remind you
+            before it&apos;s due.
+          </span>
+        </p>
+      );
+      break;
+    case "start":
+      primary = (
+        <form action={startFilingAction} className="w-full sm:w-auto">
+          <input type="hidden" name="businessId" value={business.id} />
+          <input type="hidden" name="returnTo" value={returnTo} />
+          <SubmitButton size={buttonSize} className="w-full sm:w-auto" pendingLabel="Starting…">
+            Have us file it
+          </SubmitButton>
+        </form>
+      );
+      break;
+    case "none":
+      break;
   }
 
   return (
-    <div className={cn("grid gap-3", className)}>
-      {primary ? <div className="flex flex-wrap items-center gap-3">{primary}</div> : null}
-      {filing && isCustomerEditable(filing.status) ? (
-        <Link
-          href={filingHref(filing.id)}
-          className="inline-flex min-h-11 items-center gap-1 self-start text-sm text-muted underline-offset-4 hover:text-fg hover:underline sm:min-h-0"
-        >
-          View filing details
-          <CaretRight size={14} aria-hidden />
-        </Link>
-      ) : null}
-      {canMarkFiled ? <MarkFiledDisclosure requirement={requirement} returnTo={returnTo} /> : null}
+    <div className={cn("grid gap-1", className)}>
+      {primary ? <div className="flex flex-wrap items-center gap-x-5 gap-y-1">{primary}{secondary}</div> : null}
+      {canMarkFiled(requirement) ? <MarkFiledDisclosure requirement={requirement} returnTo={returnTo} /> : null}
     </div>
   );
 }
@@ -93,19 +103,20 @@ export function RequirementActions({
 export function MarkFiledDisclosure({ requirement, returnTo }: { requirement: RequirementView; returnTo: ReturnPath }) {
   return (
     <details className="group text-sm">
-      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-[var(--radius-control)] text-muted hover:text-fg sm:min-h-8 [&::-webkit-details-marker]:hidden">
-        <CheckCircle size={16} aria-hidden />
-        Mark as already filed
+      <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full font-semibold text-muted transition-colors hover:text-fg [&::-webkit-details-marker]:hidden">
+        <CheckCircle size={17} aria-hidden />
+        Already filed it yourself?
+        <CaretDown size={12} weight="bold" aria-hidden className="transition-transform duration-200 group-open:rotate-180" />
       </summary>
-      <div className="mt-2 grid max-w-sm gap-3 rounded-[var(--radius-control)] border border-border bg-surface-2 p-3 text-left">
-        <p className="text-muted">
+      <div className="mb-1 mt-1 grid max-w-sm gap-3 rounded-[14px] border border-border bg-surface p-4 text-left shadow-card">
+        <p className="text-sm leading-6 text-muted">
           Filed the {requirement.periodYear} {requirement.filingName.toLowerCase()} yourself? We&apos;ll stop reminders for
           this period and start tracking next year&apos;s report.
         </p>
         <form action={markFiledElsewhereAction}>
           <input type="hidden" name="requirementId" value={requirement.id} />
           <input type="hidden" name="returnTo" value={returnTo} />
-          <SubmitButton variant="secondary" className="min-h-11" pendingLabel="Saving…">
+          <SubmitButton variant="secondary" size="sm" className="min-h-11" pendingLabel="Saving…">
             Yes, it&apos;s already filed
           </SubmitButton>
         </form>
@@ -127,15 +138,16 @@ export function FileDirectlyNote({ business, className }: { business: BusinessVi
   const noFee = rule.stateFeeCents === 0 || (business.isNonprofit && rule.nonprofitStateFeeCents === 0);
   const fee = noFee ? "with no state fee" : `for the ${formatCents(rule.stateFeeCents, { trimZeros: true })} state fee`;
   return (
-    <p className={cn("text-xs leading-relaxed text-subtle", className)}>
+    <p className={cn("text-[13px] leading-5 text-muted", className)}>
       You can also file directly with the state at{" "}
       <a
         href={rule.officialFilingUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline underline-offset-2 hover:text-fg"
+        className="inline-flex items-center gap-0.5 font-semibold text-fg underline decoration-border-strong underline-offset-2 hover:decoration-fg"
       >
         {host}
+        <ArrowUpRight size={12} weight="bold" aria-hidden />
         <span className="sr-only"> (opens the state website in a new tab)</span>
       </a>{" "}
       {fee}.

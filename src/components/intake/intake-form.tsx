@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, ArrowRight, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import type { IntakeSection } from "@/lib/compliance/types";
@@ -43,26 +44,29 @@ export function ErrorSummary({
       ref={ref}
       tabIndex={-1}
       aria-labelledby="form-error-title"
-      className="rounded-[var(--radius-surface)] border border-danger/30 bg-danger-soft px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
+      className="flex gap-3 rounded-[var(--radius-control)] border border-danger/30 bg-danger-soft px-4 py-3.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
     >
-      <p id="form-error-title" className="font-medium text-fg">
-        {formError ?? (entries.length === 1 ? "One thing needs your attention" : "A few things need your attention")}
-      </p>
-      {entries.length > 0 ? (
-        <ul className="mt-2 grid gap-1.5">
-          {entries.map(([key, message]) => {
-            const context = describe?.(key);
-            return (
-              <li key={key}>
-                <a href={`#${fieldId(key)}`} className="text-danger underline underline-offset-2 hover:no-underline">
-                  {context ? `${context}: ` : ""}
-                  {message}
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+      <WarningCircle size={20} weight="fill" aria-hidden className="mt-px shrink-0 text-danger" />
+      <div className="min-w-0">
+        <p id="form-error-title" className="font-semibold text-fg">
+          {formError ?? (entries.length === 1 ? "One thing needs your attention" : "A few things need your attention")}
+        </p>
+        {entries.length > 0 ? (
+          <ul className="mt-2 grid gap-1.5">
+            {entries.map(([key, message]) => {
+              const context = describe?.(key);
+              return (
+                <li key={key}>
+                  <a href={`#${fieldId(key)}`} className="text-danger underline underline-offset-2 hover:no-underline">
+                    {context ? `${context}: ` : ""}
+                    {message}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -90,7 +94,7 @@ export function IntakeForm({
   const hasErrors = Object.keys(state.errors).length > 0 || Boolean(state.formError);
 
   return (
-    <form key={state.nonce} action={formAction} noValidate className="grid gap-8">
+    <form key={state.nonce} action={formAction} noValidate className="grid gap-9">
       {hasErrors ? (
         <ErrorSummary
           errors={state.errors}
@@ -100,7 +104,7 @@ export function IntakeForm({
         />
       ) : null}
 
-      <div className="grid gap-8">
+      <div className="grid gap-9">
         {section.fields.map((field) => (
           <IntakeFieldInput key={field.key} field={field} values={values} errors={state.errors} />
         ))}
@@ -108,14 +112,16 @@ export function IntakeForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
         {backHref ? (
-          <Link href={backHref} className={buttonClasses("ghost", "md", "h-11")}>
+          <Link href={backHref} className={buttonClasses("ghost", "md", "text-muted hover:text-fg")}>
+            <ArrowLeft size={16} weight="bold" aria-hidden />
             Back
           </Link>
         ) : (
-          <span aria-hidden />
+          <span aria-hidden className="max-sm:hidden" />
         )}
-        <SubmitButton size="lg" pendingLabel="Saving…" className="w-full sm:w-auto">
+        <SubmitButton size="lg" pendingLabel="Saving…" className="w-full sm:w-auto sm:px-7">
           {submitLabel}
+          <ArrowRight size={18} weight="bold" aria-hidden />
         </SubmitButton>
       </div>
     </form>

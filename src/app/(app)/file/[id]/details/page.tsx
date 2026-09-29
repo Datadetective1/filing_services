@@ -6,9 +6,10 @@ import { CUSTOMER_EDITABLE_STATUSES, CUSTOMER_STATUS_DESCRIPTIONS, type FilingSt
 import { validateAll } from "@/lib/intake/validate";
 import { FilingContext } from "@/components/funnel/filing-context";
 import { FunnelSteps } from "@/components/funnel/funnel-steps";
+import { FilingTicket } from "@/components/funnel/filing-ticket";
 import { IntakeForm } from "@/components/intake/intake-form";
 import { SectionNav } from "@/components/intake/section-nav";
-import { Card, Container, Notice } from "@/components/ui/surface";
+import { Container, Notice } from "@/components/ui/surface";
 import { filingSummary, loadOwnFiling } from "../../_lib/filing";
 import { saveSectionAction } from "./actions";
 
@@ -52,49 +53,66 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
   const paid = status !== "draft";
 
   return (
-    <Container className="max-w-5xl py-8 sm:py-10">
-      <FunnelSteps current="details" paid={paid} className="mb-8" />
+    <Container className="max-w-6xl pt-8 sm:pt-10">
+      <FunnelSteps current="details" paid={paid} className="mb-10" />
 
-      <div className="grid gap-1.5">
-        <FilingContext
-          businessName={summary.businessName}
-          stateName={summary.stateName}
-          filingName={summary.filingName}
-          periodYear={summary.periodYear}
-        />
-        <h1 className="text-2xl font-semibold tracking-tight text-fg sm:text-[28px]">Business details</h1>
-        <p className="max-w-[62ch] text-[15px] leading-relaxed text-muted">
-          Enter these as they appear on your {summary.stateName} business record. We use them to prepare your filing, and
-          you&apos;ll review everything before you sign.
+      <div className="mb-8 grid gap-2.5">
+        <div className="lg:hidden">
+          <FilingContext
+            businessName={summary.businessName}
+            stateName={summary.stateName}
+            filingName={summary.filingName}
+            periodYear={summary.periodYear}
+          />
+        </div>
+        <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.025em] text-fg sm:text-[38px]">Business details</h1>
+        <p className="max-w-[60ch] text-[16px] leading-relaxed text-muted">
+          Enter these as they appear on your {summary.stateName} business record. You&apos;ll review everything before you
+          sign.
         </p>
       </div>
 
-      {paid ? (
-        <Notice tone="warning" title="We need a few more details" className="mt-6">
-          {CUSTOMER_STATUS_DESCRIPTIONS[status]} Once everything is complete, review and sign again so we can continue.
-        </Notice>
-      ) : all.ok && allVisited ? (
-        <Notice tone="success" role="status" title="All details are complete" className="mt-6">
-          You can keep editing, or{" "}
-          <Link href={`/file/${id}/review`} className="font-medium text-fg underline underline-offset-4">
-            go to review
-          </Link>
-          .
-        </Notice>
-      ) : null}
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12">
-        <aside className="lg:sticky lg:top-6 lg:self-start">
+      <div className="grid gap-6 lg:grid-cols-[16.5rem_minmax(0,1fr)] lg:gap-12">
+        <aside className="grid content-start gap-6 lg:sticky lg:top-6 lg:self-start">
+          <FilingTicket
+            className="max-lg:hidden"
+            businessName={summary.businessName}
+            stateName={summary.stateName}
+            filingName={summary.filingName}
+            periodYear={summary.periodYear}
+            dueDate={summary.dueDate}
+            daysRemaining={summary.daysRemaining}
+          />
           <SectionNav filingId={id} sections={navItems} currentKey={current.key} />
         </aside>
 
-        <section aria-labelledby="section-title">
-          <Card className="p-5 sm:p-8">
-            <div className="grid gap-1.5">
-              <h2 id="section-title" className="text-xl font-semibold tracking-tight text-fg">
+        <div className="grid min-w-0 content-start gap-6">
+          {paid ? (
+            <Notice tone="warning" title="We need a few more details">
+              {CUSTOMER_STATUS_DESCRIPTIONS[status]} Once everything is complete, review and sign again so we can continue.
+            </Notice>
+          ) : all.ok && allVisited ? (
+            <Notice tone="success" role="status" title="All details are complete">
+              You can keep editing, or{" "}
+              <Link href={`/file/${id}/review`} className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
+                go to review
+              </Link>
+              .
+            </Notice>
+          ) : null}
+
+          <section
+            aria-labelledby="section-title"
+            className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-9"
+          >
+            <div className="grid gap-2 border-b border-border pb-6">
+              <p className="tnum text-[13px] font-semibold uppercase tracking-wider text-accent max-lg:hidden">
+                Section {index + 1} of {sections.length}
+              </p>
+              <h2 id="section-title" className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-fg sm:text-[28px]">
                 {current.title}
               </h2>
-              {current.description ? <p className="text-[15px] leading-relaxed text-muted">{current.description}</p> : null}
+              {current.description ? <p className="max-w-[62ch] text-[15px] leading-relaxed text-muted">{current.description}</p> : null}
             </div>
             <div className="mt-7">
               <IntakeForm
@@ -106,8 +124,10 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
                 backHref={backHref}
               />
             </div>
-          </Card>
-        </section>
+          </section>
+
+          <p className="text-sm leading-6 text-subtle">Your answers save each time you continue.</p>
+        </div>
       </div>
     </Container>
   );
