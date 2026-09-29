@@ -8,6 +8,7 @@ import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table"
 import { Label, Select } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
+import { getEmailReadiness } from "@/lib/email/provider";
 import { DEFAULT_TEMPLATES } from "@/lib/email/templates";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,13 +45,21 @@ export default async function NotificationsPage(props: PageProps<"/admin/notific
   const from = (page - 1) * PAGE_SIZE;
   const { data, count, error } = await query.order("created_at", { ascending: false }).range(from, from + PAGE_SIZE - 1);
   const rows = (data ?? []) as NotificationRow[];
+  const delivery = getEmailReadiness();
 
   return (
     <div className="grid grid-cols-1 gap-5">
       <ConsoleHeader title="Emails" description="Every email the system has rendered, newest first." />
-      <Notice tone="info" title="About the outbox">
-        With EMAIL_PROVIDER=outbox, emails are recorded here and not delivered to anyone. Rows with provider &ldquo;outbox&rdquo; were never sent.
-      </Notice>
+      {delivery.delivering ? (
+        <Notice tone="info" title="Email is delivering through Resend">
+          Emails are sent{delivery.from ? ` from ${delivery.from}` : ""}. Rows with provider &ldquo;outbox&rdquo; were recorded earlier and never sent. Failed rows
+          were not delivered: contact those customers directly.
+        </Notice>
+      ) : (
+        <Notice tone="warning" title={delivery.mode === "misconfigured" ? "Email is misconfigured: nothing is delivered" : "Email is in outbox mode: nothing is delivered"}>
+          {delivery.reason ? `${delivery.reason}. ` : "Emails are recorded here but not delivered. "}Contact customers directly about anything important.
+        </Notice>
+      )}
 
       <form method="get" action="/admin/notifications" aria-label="Filter emails" className="flex flex-wrap items-end gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-[0_1px_2px_rgb(23_35_29/0.04)] sm:p-5">
         <div className="grid min-w-44 flex-1 gap-1.5 sm:flex-none">

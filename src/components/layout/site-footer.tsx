@@ -2,7 +2,7 @@ import { EnvelopeSimple, Lifebuoy } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { Container } from "@/components/ui/surface";
-import { LEGAL_PAGES } from "@/lib/seo/legal";
+import { LEGAL_PAGES, operatorName } from "@/lib/seo/legal";
 import { Logo } from "./logo";
 
 const linkClass = "text-[15px] text-muted transition-colors hover:text-fg";
@@ -37,7 +37,7 @@ export function SiteFooter() {
 
         <div className="grid grid-cols-2 gap-8">
           <nav aria-label="Product" className="grid content-start gap-3">
-            <p className="text-sm font-semibold text-fg">Filewell</p>
+            <p className="text-sm font-semibold text-fg">{site.name}</p>
             <Link className={linkClass} href="/find">Find my business</Link>
             <Link className={linkClass} href="/annual-report/pennsylvania">Pennsylvania annual report</Link>
             <Link className={linkClass} href="/states">Filing requirements by state</Link>
@@ -56,7 +56,7 @@ export function SiteFooter() {
       </Container>
       <Container className="flex flex-col gap-2 border-t border-border py-6 text-[13px] leading-6 text-subtle sm:flex-row sm:items-center sm:justify-between">
         <p>
-          © {new Date().getFullYear()} {site.name}. Not a law firm; we don&apos;t give legal advice. State fees are set by
+          © {new Date().getFullYear()} {operatorName()}. Not a law firm; we don&apos;t give legal advice. State fees are set by
           each state and passed through at cost.
         </p>
         <Link href="/credits" className="shrink-0 hover:text-fg">

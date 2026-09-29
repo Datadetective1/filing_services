@@ -6,7 +6,7 @@ import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
 import { formatLongDate } from "@/lib/domain/dates";
 import { CUSTOMER_EDITABLE_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
-import { authorizationText } from "@/lib/filings/customer";
+import { authorizationBusinessName, authorizationText } from "@/lib/filings/customer";
 import { validateAll } from "@/lib/intake/validate";
 import { createClient } from "@/lib/supabase/server";
 import { FilingContext } from "@/components/funnel/filing-context";
@@ -56,8 +56,9 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
     new Set(sections.flatMap((s) => s.fields.flatMap((f) => (f.type === "people" ? f.titleSuggestions : [])))),
   );
   const defaults = await signerDefaults(id, user.id);
+  // Signed text names the business exactly as the server will store it (a corrected legal name wins).
   const text = authorizationText({
-    businessName: summary.businessName,
+    businessName: authorizationBusinessName(loaded.business, all.values),
     stateName: summary.stateName,
     filingName: summary.filingName,
     brand: site.name,

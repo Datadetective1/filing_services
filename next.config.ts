@@ -36,6 +36,14 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
+/**
+ * Mirrors isIndexable() in src/config/site.ts. Evaluated at build time, like the
+ * NEXT_PUBLIC_* values it reads. Until indexing is explicitly allowed on production,
+ * every response also says noindex in a header (robots.txt disallow-all means
+ * crawlers never see the page's meta tag).
+ */
+const indexable = process.env.NEXT_PUBLIC_VERCEL_ENV === "production" && process.env.NEXT_PUBLIC_ALLOW_INDEXING === "true";
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: {
@@ -46,6 +54,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      ...(indexable ? [] : [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }]),
       {
         source: "/(dashboard|admin|file|sandbox)/:path*",
         headers: [

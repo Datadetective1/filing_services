@@ -26,7 +26,14 @@ export function ProductPreview({
   className?: string;
 }) {
   const due = formatLongDate(period.dueDate);
-  const label = `Example of the ${stateName} dashboard: the ${period.periodYear} ${rule.filingName.toLowerCase()} is due ${due}, with options to have it filed or mark it filed yourself.`;
+  const filing = `${period.periodYear} ${rule.filingName.toLowerCase()}`;
+  const shortDue = formatShortDate(period.dueDate).replace(/, \d{4}$/, "");
+  // After the deadline the example shows the missed report, which can still be filed.
+  const passed = period.daysRemaining < 0;
+  const title = passed ? `The ${shortDue} deadline for the ${filing} has passed` : `File the ${filing} by ${shortDue}`;
+  const label = passed
+    ? `Example of the ${stateName} dashboard: the ${due} deadline for the ${filing} has passed and it can still be filed, with options to have it filed or mark it filed yourself.`
+    : `Example of the ${stateName} dashboard: the ${filing} is due ${due}, with options to have it filed or mark it filed yourself.`;
 
   return (
     <figure className={cn("overflow-hidden rounded-[var(--radius-surface)] border border-border bg-bg shadow-lift", className)}>
@@ -50,9 +57,7 @@ export function ProductPreview({
           <div className="rounded-[14px] border border-highlight/50 bg-highlight-soft p-4">
             <p className="text-[12px] font-semibold text-highlight-fg/80">What do I need to do next?</p>
             <div className="mt-1.5 flex items-center justify-between gap-3">
-              <p className="font-display text-[17px] font-semibold leading-snug text-fg">
-                File the {period.periodYear} {rule.filingName.toLowerCase()} by {formatShortDate(period.dueDate).replace(/, \d{4}$/, "")}
-              </p>
+              <p className="font-display text-[17px] font-semibold leading-snug text-fg">{title}</p>
               <CountdownRing days={period.daysRemaining} size={56} label="" />
             </div>
             <div className="mt-3 flex flex-wrap gap-2">

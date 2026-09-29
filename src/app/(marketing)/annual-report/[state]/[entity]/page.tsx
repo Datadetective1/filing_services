@@ -31,6 +31,7 @@ import {
   governorInfo,
   groupSources,
   requiredInfoForRule,
+  stateFeeSentence,
 } from "@/lib/seo/content";
 import { article, ENTITY_COPY } from "@/lib/seo/entities";
 import { breadcrumbJsonLd, faqJsonLd, graph, serviceJsonLd } from "@/lib/seo/json-ld";
@@ -38,7 +39,9 @@ import { pageMetadata } from "@/lib/seo/metadata";
 import { marketingPeriod } from "@/lib/seo/period";
 
 export const dynamicParams = false;
-export const revalidate = 3600;
+// The requirement card counts days to the deadline: render per request so a cached
+// (stale-while-revalidate) copy never shows yesterday's countdown.
+export const revalidate = 0;
 
 /** One photograph per entity type, so each guide opens on its own scene. */
 const ENTITY_PHOTOS: Record<EntityType, { photo: PhotoKey; focus?: string }> = {
@@ -76,7 +79,7 @@ export async function generateMetadata({ params }: PageProps<"/annual-report/[st
   const copy = ENTITY_COPY[rule.entityType];
   return pageMetadata({
     title: `${j.name} ${copy.title} Annual Report: Due Date, Fee & Filing`,
-    description: `${j.name} ${copy.plural} file an annual report by ${dueRuleText(rule.dueRule).replace(" each year", "")} each year. State fee: ${stateFeeText(rule)}. Who counts as a governor, what to report and how to file, from official sources.`,
+    description: `${j.name} ${copy.plural} file an annual report by ${dueRuleText(rule.dueRule).replace(" each year", "")} each year. ${stateFeeSentence(rule)} Who counts as a governor, what to report and how to file, from official sources.`,
     path: `/annual-report/${j.slug}/${ENTITY_TYPE_SLUGS[rule.entityType]}`,
   });
 }

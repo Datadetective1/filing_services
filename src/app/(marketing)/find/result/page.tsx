@@ -10,7 +10,8 @@ import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/regi
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { dueRuleText } from "@/lib/compliance/view";
-import { describeDaysRemaining, formatLongDate, formatShortDate, todayInTimeZone } from "@/lib/domain/dates";
+import { formatLongDate, formatShortDate, todayInTimeZone } from "@/lib/domain/dates";
+import { deadlineAriaLabel, deadlineCopy } from "@/lib/domain/deadline-copy";
 import { filingWindowOpensOn, isFilingWindowOpen, type FilingPeriod } from "@/lib/domain/deadlines";
 import { formatCents } from "@/lib/domain/money";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
@@ -65,6 +66,7 @@ function Context({ stateCode, stateName, entityLabel }: { stateCode: string; sta
 function DeadlineCard({
   rule,
   period,
+  stateName,
   agencyName,
   stateFeeCents,
   today,
@@ -72,6 +74,7 @@ function DeadlineCard({
 }: {
   rule: ComplianceRuleDef;
   period: FilingPeriod;
+  stateName: string;
   agencyName: string;
   stateFeeCents: number;
   today: string;
@@ -81,21 +84,18 @@ function DeadlineCard({
   const open = isFilingWindowOpen(rule, period.periodYear, period.dueDate, today);
   const opensOn = filingWindowOpensOn(rule, period.periodYear, period.dueDate);
   const overdue = period.phase === "overdue";
-  const status = overdue
-    ? { tone: "bg-warning", text: `${describeDaysRemaining(period.daysRemaining)}. It can still be filed.` }
-    : open
-      ? { tone: "bg-accent", text: "Filing window is open" }
-      : { tone: "bg-highlight-strong", text: `Filing opens ${formatShortDate(opensOn)}` };
   const days = period.daysRemaining;
+  const copy = deadlineCopy(days, period.dueDate, { rule, stateName });
+  const status = overdue
+    ? { tone: "bg-warning", text: `${copy.label}. ${copy.note ?? "It can still be filed."}` }
+    : open
+      ? { tone: "bg-accent", text: days <= 1 ? `${copy.label}. Filing window is open.` : "Filing window is open" }
+      : { tone: "bg-highlight-strong", text: `Filing for the ${period.periodYear} report opens ${formatShortDate(opensOn)}` };
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface shadow-card">
       <div className="flex items-center gap-4 p-5 sm:gap-6 sm:p-7">
-        <CountdownRing
-          days={days}
-          size={84}
-          label={`${Math.abs(days)} ${Math.abs(days) === 1 ? "day" : "days"} ${days < 0 ? "past" : "until"} the ${dueLong} due date`}
-        />
+        <CountdownRing days={days} size={84} label={deadlineAriaLabel(days, period.dueDate)} />
         <div className="grid min-w-0 gap-1">
           <p className="text-sm font-semibold text-muted">{label}</p>
           <p className="tnum font-display text-[22px] font-semibold leading-tight text-fg sm:text-[30px]">
@@ -397,6 +397,7 @@ export default async function FindResultPage() {
             <DeadlineCard
               rule={rule}
               period={period}
+              stateName={stateName}
               agencyName={agencyName}
               stateFeeCents={stateFeeCents}
               today={today}

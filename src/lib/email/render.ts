@@ -16,7 +16,7 @@ export function escapeHtml(value: string): string {
 }
 
 export function interpolate(template: string, vars: Record<string, string | number | null | undefined>): string {
-  return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, key: string) => {
+  return template.replace(/\{\{\s*([A-Za-z_]+)\s*\}\}/g, (_, key: string) => {
     const v = vars[key];
     return v === null || v === undefined ? "" : String(v);
   });
@@ -43,13 +43,24 @@ export interface RenderedEmail {
   html: string;
 }
 
+/**
+ * Who sent the email and how to reach a person: brand, legal entity and postal
+ * address (each only when configured), the private-service disclaimer, and support.
+ */
+export function emailFooterIdentity(): string[] {
+  const sender = [site.name, site.legalEntityConfigured ? site.legalEntity : null, site.postalAddress]
+    .filter(Boolean)
+    .join(" · ");
+  return [sender, site.disclaimer, `Questions? Reply to this email or write to ${site.supportEmail}.`];
+}
+
 export function renderEmail(input: RenderInput): RenderedEmail {
   const vars = { brand: site.name, ...input.vars };
   const subject = singleLine(interpolate(input.subject, vars));
   const body = interpolate(input.body, vars);
 
   const footerLines = [
-    `${site.name}. ${site.disclaimer}`,
+    ...emailFooterIdentity(),
     input.footerNote ?? null,
     input.unsubscribeUrl ? `Stop deadline reminders: ${input.unsubscribeUrl}` : null,
   ].filter(Boolean) as string[];

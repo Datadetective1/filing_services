@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { PGlite, type Transaction } from "@electric-sql/pglite";
 import {
@@ -49,13 +49,15 @@ grant usage, select on all sequences in schema public to anon, authenticated, se
 grant select on auth.users to service_role;
 `;
 
-const MIGRATIONS = [
-  "20260927000001_schema.sql",
-  "20260927000002_functions.sql",
-  "20260927000003_rls.sql",
-  "20260928000005_indexes.sql",
-  "20260928000006_payment_guards.sql",
-];
+const MIGRATIONS_DIR = path.join(process.cwd(), "supabase", "migrations");
+
+/**
+ * Every migration, in filename (timestamp) order, so a new migration is tested as soon as
+ * it lands. Storage is skipped: PGlite has no storage schema.
+ */
+const MIGRATIONS = readdirSync(MIGRATIONS_DIR)
+  .filter((f) => f.endsWith(".sql") && !f.endsWith("_storage.sql"))
+  .sort();
 
 export type Db = PGlite;
 
@@ -64,13 +66,11 @@ export async function createTestDb(): Promise<Db> {
   await db.exec(SHIM);
   // Supabase's default grants happen before migrations; mirror by granting after
   // table creation but BEFORE the RLS migration's column-level revokes run.
-  const dir = path.join(process.cwd(), "supabase", "migrations");
-  await db.exec(readFileSync(path.join(dir, MIGRATIONS[0]), "utf8"));
-  await db.exec(readFileSync(path.join(dir, MIGRATIONS[1]), "utf8"));
-  await db.exec(POST_MIGRATION_GRANTS);
-  await db.exec(readFileSync(path.join(dir, MIGRATIONS[2]), "utf8"));
-  // Later migrations (storage is skipped: PGlite has no storage schema).
-  for (const file of MIGRATIONS.slice(3)) await db.exec(readFileSync(path.join(dir, file), "utf8"));
+  if (!MIGRATIONS.some((f) => f.endsWith("_rls.sql"))) throw new Error("RLS migration not found");
+  for (const file of MIGRATIONS) {
+    if (file.endsWith("_rls.sql")) await db.exec(POST_MIGRATION_GRANTS);
+    await db.exec(readFileSync(path.join(MIGRATIONS_DIR, file), "utf8"));
+  }
   await seedReference(db);
   return db;
 }

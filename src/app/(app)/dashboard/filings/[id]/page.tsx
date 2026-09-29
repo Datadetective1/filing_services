@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import { ArrowLeft, CaretDown, PencilSimple, Receipt as ReceiptIcon, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import { requireUser } from "@/lib/auth/session";
 import { getJurisdiction } from "@/lib/compliance/registry";
-import { daysBetween, describeDaysRemaining, formatLongDate, isISODate, todayInTimeZone } from "@/lib/domain/dates";
+import { daysBetween, formatLongDate, isISODate, todayInTimeZone } from "@/lib/domain/dates";
+import { deadlineLabel } from "@/lib/domain/deadline-copy";
 import { CUSTOMER_STATUS_DESCRIPTIONS, FILED_STATUSES, TERMINAL_STATUSES } from "@/lib/domain/filing-status";
 import { FilingStatusBadge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/surface";
@@ -222,7 +223,7 @@ export default async function FilingPage(props: PageProps<"/dashboard/filings/[i
               <FactRow term="Due date">{validDue ? formatLongDate(filing.dueDate) : "Not available"}</FactRow>
               {daysLeft !== null && !isClosed ? (
                 <FactRow term="Time left" emphasis={daysLeft < 0}>
-                  {describeDaysRemaining(daysLeft)}
+                  {deadlineLabel(daysLeft, filing.dueDate)}
                 </FactRow>
               ) : null}
               {formNumber ? <FactRow term="State form">{formNumber}</FactRow> : null}

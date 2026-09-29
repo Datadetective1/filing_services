@@ -113,7 +113,7 @@ export function businessStanding(
   }
   if (action.kind === "opens_later") return { tone: "neutral", label: "Nothing to do yet" };
   const days = requirement.daysRemaining;
-  if (days < 0) return { tone: "warning", label: "Past due" };
+  if (days < 0) return { tone: "warning", label: "Deadline passed" };
   if (days <= 30) return { tone: "warning", label: "Due soon" };
   return action.kind === "start" ? { tone: "info", label: "Ready to file" } : { tone: "neutral", label: "Open" };
 }

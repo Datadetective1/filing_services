@@ -1,14 +1,19 @@
 import { Flask, LockSimple } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
-import { describeDaysRemaining, formatLongDate } from "@/lib/domain/dates";
+import { findRule } from "@/lib/compliance/registry";
+import { formatLongDate } from "@/lib/domain/dates";
+import { deadlineLabel } from "@/lib/domain/deadline-copy";
+import { hasVerifiedNoLateFee } from "@/lib/domain/deadline-copy";
 import { formatCents } from "@/lib/domain/money";
 import type { Quote } from "@/lib/domain/pricing";
+import type { EntityType } from "@/lib/domain/types";
 import { quoteForFiling } from "@/lib/filings/customer";
 import { validateAll } from "@/lib/intake/validate";
-import { getPaymentProvider } from "@/lib/payments";
+import { getPaymentReadiness, requiresApprovedPrice } from "@/lib/payments";
 import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { ActionForm } from "@/components/funnel/action-form";
@@ -46,16 +51,25 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
   } catch {
     quote = null;
   }
-  let sandbox = false;
-  try {
-    sandbox = getPaymentProvider().mode === "sandbox";
-  } catch {
-    sandbox = false;
-  }
+  const payments = getPaymentReadiness();
+  const sandbox = payments.mode === "sandbox";
+  // Only an approved service price is shown and charged on production or in live mode.
+  const priceBlocked = quote !== null && !quote.servicePriceApproved && requiresApprovedPrice(payments.mode);
+  const canPay = quote !== null && payments.ready && !priceBlocked;
 
   const cancelled = sp.cancelled === "1";
   const lastAttemptFailed = loaded.order?.status === "payment_failed";
   const urgent = summary.daysRemaining <= 30;
+  // Plain facts for a report due today or already past due. "No state late fee" only
+  // when the verified rule proves it (the same test the dashboard copy uses).
+  const rule = findRule(loaded.filing.state_code, loaded.business.entity_type as EntityType, "annual_report", Boolean(loaded.business.is_foreign));
+  const noStateLateFee = hasVerifiedNoLateFee(rule);
+  const deadlineTitle =
+    summary.daysRemaining === 0
+      ? "The due date for this report is today"
+      : summary.daysRemaining < 0
+        ? `The due date for this report passed on ${formatLongDate(summary.dueDate)}`
+        : null;
   const directUrl = summary.officialFilingUrl;
   const directHost = (() => {
     try {
@@ -85,17 +99,23 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
         </p>
       </div>
 
-      {lastAttemptFailed || cancelled ? (
-        <div className="mt-6">
+      {lastAttemptFailed || cancelled || deadlineTitle ? (
+        <div className="mt-6 grid gap-3">
           {lastAttemptFailed ? (
             <Notice tone="warning" role="alert" title="Your last payment didn't go through">
               You weren&apos;t charged. You can try again below.
             </Notice>
-          ) : (
+          ) : cancelled ? (
             <Notice tone="neutral" role="status" title="Checkout cancelled">
               You weren&apos;t charged. Your details are saved, so you can pay whenever you&apos;re ready.
             </Notice>
-          )}
+          ) : null}
+          {deadlineTitle ? (
+            <Notice tone="neutral" title={deadlineTitle}>
+              {noStateLateFee ? `${summary.stateName} charges no state late fee, and the report can still be filed. ` : null}
+              We submit orders in the order they&apos;re received.
+            </Notice>
+          ) : null}
         </div>
       ) : null}
 
@@ -116,24 +136,34 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
           <Receipt title="Your order" meta={receiptMeta} className="w-full">
             {quote ? (
               <>
-                <PriceBreakdown quote={quote} stateName={summary.stateName} />
-                <ActionForm
-                  className="mt-6 grid gap-3"
-                  action={payAction.bind(null, id)}
-                  label={
-                    <>
-                      <LockSimple size={18} weight="bold" aria-hidden />
-                      Pay <span className="tnum">{formatCents(quote.totalCents)}</span>
-                    </>
-                  }
-                  pendingLabel="Opening checkout…"
-                  errorTitle="We couldn't start checkout"
-                  footer={
-                    <p className="text-center text-[13px] leading-5 text-muted">
-                      You&apos;ll finish on a secure checkout page. {site.name} never sees or stores your card number.
-                    </p>
-                  }
-                />
+                {priceBlocked ? null : <PriceBreakdown quote={quote} stateName={summary.stateName} />}
+                {canPay ? (
+                  <ActionForm
+                    className="mt-6 grid gap-3"
+                    action={payAction.bind(null, id)}
+                    label={
+                      <>
+                        <LockSimple size={18} weight="bold" aria-hidden />
+                        Pay <span className="tnum">{formatCents(quote.totalCents)}</span>
+                      </>
+                    }
+                    pendingLabel="Opening checkout…"
+                    errorTitle="We couldn't start checkout"
+                    footer={
+                      <p className="text-center text-[13px] leading-5 text-muted">
+                        You&apos;ll finish on a secure checkout page. {site.name} never sees or stores your card number.
+                      </p>
+                    }
+                  />
+                ) : (
+                  <Notice tone="neutral" role="status" title="Online payment isn't open yet" className={priceBlocked ? undefined : "mt-6"}>
+                    Your details and authorization are saved, and nothing has been charged. You can place the order from this page once it opens. Questions? See our{" "}
+                    <Link href="/help" className="font-semibold text-accent underline decoration-accent/30 decoration-2 underline-offset-4 hover:decoration-accent">
+                      help page
+                    </Link>
+                    .
+                  </Notice>
+                )}
               </>
             ) : (
               <Notice tone="warning" title="Pricing isn't available right now">
@@ -157,7 +187,7 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
                 <p className="tnum flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
                   Due {formatLongDate(summary.dueDate)}
                   <Badge tone={summary.daysRemaining < 0 ? "warning" : urgent ? "info" : "neutral"}>
-                    <span className="tnum">{describeDaysRemaining(summary.daysRemaining)}</span>
+                    <span className="tnum">{deadlineLabel(summary.daysRemaining, summary.dueDate)}</span>
                   </Badge>
                 </p>
               </div>

@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { dueRuleText, lateFeeText, stateFeeText } from "@/lib/compliance/view";
-import { describeDaysRemaining, formatLongDate } from "@/lib/domain/dates";
+import { formatLongDate } from "@/lib/domain/dates";
+import { deadlineAriaLabel, deadlineCopy } from "@/lib/domain/deadline-copy";
 import type { FilingPeriod } from "@/lib/domain/deadlines";
 import type { Quote } from "@/lib/domain/pricing";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
@@ -48,6 +49,7 @@ export function RequirementCard({
           ? "bg-surface-2 ring-border"
           : "bg-accent-soft/70 ring-accent/20";
   const dueParts = period ? period.dueDate.split("-").map(Number) : null;
+  const deadline = period ? deadlineCopy(period.daysRemaining, period.dueDate, { rule, stateName }) : null;
 
   return (
     <div className={cn("overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface shadow-card", className)}>
@@ -80,7 +82,7 @@ export function RequirementCard({
               <CountdownRing
                 days={period.daysRemaining}
                 size={72}
-                label={`${Math.abs(period.daysRemaining)} days ${period.daysRemaining < 0 ? "past" : "until"} the ${formatLongDate(period.dueDate)} due date`}
+                label={deadlineAriaLabel(period.daysRemaining, period.dueDate)}
               />
             )}
             <div className="grid min-w-0 gap-0.5">
@@ -99,8 +101,9 @@ export function RequirementCard({
                       period.phase === "overdue" ? "text-warning" : period.phase === "upcoming" ? "text-accent" : "text-highlight-fg",
                     )}
                   >
-                    {describeDaysRemaining(period.daysRemaining)}
+                    {deadline?.label}
                   </p>
+                  {deadline?.note ? <p className="text-[14px] leading-5 text-muted">{deadline.note}</p> : null}
                 </>
               )}
             </div>

@@ -28,6 +28,11 @@ export default function RefundsPage() {
         You can cancel an order at any time before we submit the filing to the state, and we will refund the full amount: the
         state fee and our service fee. At that point we have not paid anything to the state.
       </p>
+      <p>
+        To cancel, send us a message from the filing&apos;s page in your dashboard, or email{" "}
+        <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>. If we have already submitted the filing when we receive
+        your request, the rules below for submitted filings apply.
+      </p>
 
       <h2>After we submit to the state</h2>
       <p>
@@ -68,8 +73,9 @@ export default function RefundsPage() {
 
       <h2>How to request a refund</h2>
       <p>
-        Email <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a> from the address on your account, with the business
-        name and the filing you are asking about. We will reply within [number] business days.
+        Send us a message from the filing&apos;s page in your dashboard, or email{" "}
+        <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a> from the address on your account, with the business name
+        and the filing you are asking about. We will reply within [number] business days.
       </p>
       <p>
         Refunds go back to the original payment method. We record the state fee and service fee parts of a refund separately and

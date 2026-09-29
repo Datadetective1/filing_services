@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowSquareOut, CaretDown, DownloadSimple, FileText, ShieldCheck, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 import { ActionForm } from "@/components/admin/action-form";
-import { AdminStatusBadge, DeadlineText, StatusPill, UrgencyBadge } from "@/components/admin/badges";
+import { AdminStatusBadge, DeadlineText, StatusPill, TestOrderBadge, UrgencyBadge } from "@/components/admin/badges";
 import { opsButton } from "@/components/admin/button-classes";
 import { FilingProgress } from "@/components/admin/filing-progress";
 import { centsToDollarsInput, formatDate, formatDateTime, humanize, money, opsToday, shortId } from "@/components/admin/format";
 import { IntakeAnswersView, PeopleList } from "@/components/admin/intake-answers";
 import { EmptyRow, JsonDetails, KeyValues, Panel, SectionNav, tableLink } from "@/components/admin/layout-bits";
+import { customerWroteLast, operatorNextStep } from "@/components/admin/operator-guidance";
 import { ADMIN_STATUS_LABELS, DOCUMENT_KIND_LABELS } from "@/components/admin/status";
 import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table";
 import { DEADLINE_SENSITIVE_STATUSES } from "@/components/admin/urgency";
@@ -19,10 +20,12 @@ import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field"
 import { Notice } from "@/components/ui/surface";
 import { CountdownRing } from "@/components/visual/countdown-ring";
 import { DocumentSheet } from "@/components/visual/document-tile";
+import { isProductionEnvironment } from "@/config/site";
 import { requireStaff } from "@/lib/auth/session";
 import { daysBetween, describeDaysRemaining, formatLongDate } from "@/lib/domain/dates";
 import { canTransition, isFilingStatus, OPERATOR_NEXT_ACTION, type FilingStatus } from "@/lib/domain/filing-status";
 import { ENTITY_TYPE_LABELS, isEntityType } from "@/lib/domain/types";
+import { readyToFileBlockers } from "@/lib/filings/operations";
 import { formatAddress } from "@/lib/intake/validate";
 import { staffLabel, type ProfileEntry } from "../../_lib/data";
 import {
@@ -73,6 +76,7 @@ export default async function FilingDetailPage(props: PageProps<"/admin/filings/
             <h1 className="break-words text-[28px] font-semibold leading-[1.1] text-fg sm:text-[34px]">{business?.legal_name ?? "Unknown business"}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <AdminStatusBadge status={filing.status} />
+              <TestOrderBadge mode={d.order?.payment_mode} />
               <UrgencyBadge dueDate={filing.due_date} today={today} status={filing.status} />
               <span className="text-sm text-muted">
                 Assigned: <span className="font-medium text-fg">{staffLabel(assigned)}</span>
@@ -184,7 +188,15 @@ function StatusBand({ d, today }: { d: FilingDetail; today: string }) {
     { label: "Government fee", value: <span className="tnum">{money(order?.government_fee_cents)}</span> },
     { label: "Service fee", value: <span className="tnum">{money(order?.service_fee_cents)}</span> },
     { label: "Total", value: <span className="tnum font-display text-lg font-semibold">{money(order?.total_cents)}</span> },
-    { label: "Payment", value: <PaymentStatusBadge status={order?.status} /> },
+    {
+      label: "Payment",
+      value: (
+        <span className="flex flex-wrap items-center gap-1.5">
+          <PaymentStatusBadge status={order?.status} />
+          <TestOrderBadge mode={order?.payment_mode} />
+        </span>
+      ),
+    },
     {
       label: "Confirmation",
       className: "col-span-2 sm:col-span-1",
@@ -229,51 +241,89 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
   const remainingSvc = Math.max(0, (d.order?.service_fee_cents ?? 0) - d.refundedSvc);
   const canRefund = isAdmin && Boolean(d.order && d.capturedPayment) && remainingGov + remainingSvc > 0;
   const staffOptions = [...d.staff.values()].filter((s) => s.active || s.id === filing.assigned_to);
+  // The same check the server runs before Mark ready to file, Start filing, Mark submitted and Retry filing.
+  const blockers =
+    status === "ready_for_review" || status === "ready_to_file" || status === "in_progress" || status === "rejected"
+      ? readyToFileBlockers({
+          schema: d.snapshot.intake_schema,
+          answers: d.answers,
+          intakeComplete: d.answersComplete,
+          authorizationSha256: d.authorization?.answers_sha256 ?? null,
+          order: d.order,
+          ruleVerificationStatus: d.snapshot.verification_status,
+          production: isProductionEnvironment(),
+        })
+      : [];
+  const blockerNotice = blockers.length ? (
+    <Notice tone="danger" role="alert" title="Don't file yet">
+      <ul className="grid list-disc gap-1 pl-4">
+        {blockers.map((b) => (
+          <li key={b}>{b}</li>
+        ))}
+      </ul>
+    </Notice>
+  ) : null;
 
   const primary: ReactNode[] = [];
 
   if (status === "ready_for_review") {
     primary.push(
       <ActionBlock key="ready" title="Mark ready to file" description="The details and authorization check out.">
-        <ActionForm action={markReadyAction} submitLabel="Mark ready to file" variant="primary" pendingLabel="Saving...">
-          {hidden}
-          <Field label="Note" htmlFor="ready-note" optional>
-            <Input id="ready-note" name="note" maxLength={1000} />
-          </Field>
-        </ActionForm>
+        {blockerNotice ?? (
+          <ActionForm action={markReadyAction} submitLabel="Mark ready to file" variant="primary" pendingLabel="Saving...">
+            {hidden}
+            <Field label="Note" htmlFor="ready-note" optional>
+              <Input id="ready-note" name="note" maxLength={1000} />
+            </Field>
+          </ActionForm>
+        )}
       </ActionBlock>,
     );
   }
   if (status === "ready_to_file") {
     primary.push(
       <ActionBlock key="start" title="Start filing" description="Marks the filing in progress while you work on the state site.">
-        <ActionForm action={startFilingAction} submitLabel="Start filing" variant="primary" pendingLabel="Starting...">
-          {hidden}
-        </ActionForm>
+        {blockerNotice ?? (
+          <ActionForm action={startFilingAction} submitLabel="Start filing" variant="primary" pendingLabel="Starting...">
+            {hidden}
+          </ActionForm>
+        )}
       </ActionBlock>,
     );
   }
-  if (status === "ready_to_file" || status === "in_progress") {
+  // At ready_to_file the Start filing block already shows any blockers; don't repeat them here.
+  if (status === "in_progress" || (status === "ready_to_file" && !blockerNotice)) {
     primary.push(
       <ActionBlock key="submitted" title="Mark submitted" description="Record the state's confirmation number. The customer is emailed.">
-        <ActionForm action={markSubmittedAction} submitLabel="Mark submitted" variant={status === "in_progress" ? "primary" : "secondary"} pendingLabel="Saving...">
-          {hidden}
-          <Field label="State confirmation number" htmlFor="sub-conf">
-            <Input id="sub-conf" name="confirmationNumber" required maxLength={100} autoComplete="off" className="font-mono" />
-          </Field>
-          <Field label="Submitted on" htmlFor="sub-date" hint="Today records the current time.">
-            <Input id="sub-date" name="submittedDate" type="date" required defaultValue={today} max={today} />
-          </Field>
-          <Field label="Note" htmlFor="sub-note" optional>
-            <Textarea id="sub-note" name="note" maxLength={1000} className="min-h-20" />
-          </Field>
-        </ActionForm>
+        {blockerNotice ?? (
+          <ActionForm action={markSubmittedAction} submitLabel="Mark submitted" variant={status === "in_progress" ? "primary" : "secondary"} pendingLabel="Saving...">
+            {hidden}
+            <Field label="State confirmation number" htmlFor="sub-conf">
+              <Input id="sub-conf" name="confirmationNumber" required maxLength={100} autoComplete="off" className="font-mono" />
+            </Field>
+            <Field label="Submitted on" htmlFor="sub-date" hint="Today records the current time.">
+              <Input id="sub-date" name="submittedDate" type="date" required defaultValue={today} max={today} />
+            </Field>
+            <Field label="Note" htmlFor="sub-note" optional>
+              <Textarea id="sub-note" name="note" maxLength={1000} className="min-h-20" />
+            </Field>
+          </ActionForm>
+        )}
       </ActionBlock>,
     );
   }
   if (status === "submitted") {
     primary.push(
       <ActionBlock key="accepted" title="Mark accepted" description="The state approved the filing. If a receipt is already uploaded, the filing completes too.">
+        {d.hasReceiptDocument ? null : (
+          <Notice tone="warning" className="mb-1">
+            No customer-visible receipt yet.{" "}
+            <a href="#documents" className="font-semibold underline underline-offset-4">
+              Upload the filed report and Acknowledgement Letter
+            </a>{" "}
+            first. The customer gets the acceptance email once one is uploaded.
+          </Notice>
+        )}
         <ActionForm action={markAcceptedAction} submitLabel="Mark accepted" variant="primary" pendingLabel="Saving...">
           {hidden}
           <Field label="Note" htmlFor="acc-note" optional>
@@ -292,7 +342,11 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
       >
         {d.hasReceiptDocument ? null : (
           <Notice tone="warning" className="mb-1">
-            No customer-visible receipt yet. Upload it under Documents first.
+            No customer-visible receipt yet.{" "}
+            <a href="#documents" className="font-semibold underline underline-offset-4">
+              Upload the filed report and Acknowledgement Letter
+            </a>{" "}
+            first.
           </Notice>
         )}
         <ActionForm action={completeAction} submitLabel="Complete filing" variant="primary" pendingLabel="Completing...">
@@ -318,12 +372,15 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
       status === "rejected" ? "Retry filing" : status === "completed" || status === "cancelled" ? "Reopen for review" : "Move back to review";
     primary.push(
       <ActionBlock key="reopen" title={label} description={`Moves the filing to "${ADMIN_STATUS_LABELS[reopenTarget]}".`}>
-        <ActionForm action={reopenAction} submitLabel={label} pendingLabel="Saving...">
-          {hidden}
-          <Field label="Note" htmlFor="reopen-note" optional>
-            <Input id="reopen-note" name="note" maxLength={1000} />
-          </Field>
-        </ActionForm>
+        {/* Retry filing goes straight to ready_to_file, so it gets the same check. */}
+        {(reopenTarget === "ready_to_file" ? blockerNotice : null) ?? (
+          <ActionForm action={reopenAction} submitLabel={label} pendingLabel="Saving...">
+            {hidden}
+            <Field label="Note" htmlFor="reopen-note" optional>
+              <Input id="reopen-note" name="note" maxLength={1000} />
+            </Field>
+          </ActionForm>
+        )}
       </ActionBlock>,
     );
   }
@@ -380,6 +437,9 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
 
   const next = OPERATOR_NEXT_ACTION[status];
   const idle = next === "No action";
+  // A staff status change after the customer's message counts as handling it (history is newest first).
+  const lastStaffChange = d.history.find((h) => h.actor_type === "staff")?.created_at ?? null;
+  const step = operatorNextStep({ status, orderStatus: d.order?.status, customerReplied: customerWroteLast(d.messages, lastStaffChange) });
 
   return (
     <>
@@ -396,7 +456,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
             {idle ? ADMIN_STATUS_LABELS[status] : next}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Status: {ADMIN_STATUS_LABELS[status]}. Only actions valid for this status are shown.
+            {blockers.length ? "Don't file yet: see below." : step ? `${step.instruction}.` : `Status: ${ADMIN_STATUS_LABELS[status]}.`}
           </p>
         </div>
         <div className="divide-y divide-border/70">
@@ -617,7 +677,15 @@ function PaymentPanel({ d }: { d: FilingDetail }) {
             <KeyValues
               items={[
                 { term: "Order status", value: <PaymentStatusBadge status={order.status} /> },
-                { term: "Payment mode", value: humanize(order.payment_mode) },
+                {
+                  term: "Payment mode",
+                  value: (
+                    <span className="flex flex-wrap items-center gap-2">
+                      {humanize(order.payment_mode)}
+                      <TestOrderBadge mode={order.payment_mode} />
+                    </span>
+                  ),
+                },
                 { term: "Paid", value: order.paid_at ? formatDateTime(order.paid_at) : <span className="text-muted">Not paid</span> },
                 {
                   term: "Refunded",

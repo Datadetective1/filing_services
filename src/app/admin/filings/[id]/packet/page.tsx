@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowSquareOut, Warning } from "@phosphor-icons/react/dist/s
 import { opsButton } from "@/components/admin/button-classes";
 import { formatDate, formatDateTime, money, opsToday } from "@/components/admin/format";
 import { answerText } from "@/components/admin/intake-answers";
+import { isTestPayment } from "@/components/admin/operator-guidance";
 import { PrintButton } from "@/components/admin/print-button";
 import { cn } from "@/components/ui/cn";
 import { site } from "@/config/site";
@@ -59,6 +60,7 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
   const assigned = filing.assigned_to ? d.staff.get(filing.assigned_to) : null;
   const signerOperator = assigned ? staffLabel(assigned) : staff.displayName || staff.email;
   const days = daysBetween(today, filing.due_date);
+  const testOrder = isTestPayment(order?.payment_mode);
 
   return (
     <article className="packet mx-auto grid max-w-3xl gap-5 text-fg print:max-w-none print:gap-0">
@@ -87,8 +89,11 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
           </p>
         </header>
 
-        {!authorization || d.answersChangedSinceAuthorization || snapshot.verification_status !== "verified" ? (
+        {testOrder || !authorization || d.answersChangedSinceAuthorization || snapshot.verification_status !== "verified" ? (
           <div className="grid gap-3 border-b border-border px-5 py-5 sm:px-8 print:px-0">
+            {testOrder ? (
+              <Warn title="TEST order: no money was collected">Do not file this with the state and do not pay the state fee.</Warn>
+            ) : null}
             {!authorization ? (
               <Warn title="No customer authorization is recorded">Do not file. Ask the customer to review and authorize the filing first.</Warn>
             ) : null}

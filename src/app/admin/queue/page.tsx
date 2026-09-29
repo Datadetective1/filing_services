@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AdminStatusBadge, DeadlineText, PaymentLine, UrgencyBadge } from "@/components/admin/badges";
+import { AdminStatusBadge, DeadlineText, PaymentLine, TestOrderBadge, UrgencyBadge } from "@/components/admin/badges";
 import { firstParam, isUuid, money, opsToday } from "@/components/admin/format";
 import { ConsoleHeader, Pagination, tableLink } from "@/components/admin/layout-bits";
 import { PAYMENT_FILTERS, QueueFilters, type QueueFilterValues } from "@/components/admin/queue-filters";
@@ -31,8 +31,8 @@ interface QueueRow {
   filing_name: string | null;
   businesses: { legal_name: string } | { legal_name: string }[] | null;
   orders:
-    | { status: string; total_cents: number; government_fee_cents: number; service_fee_cents: number }
-    | { status: string; total_cents: number; government_fee_cents: number; service_fee_cents: number }[]
+    | { status: string; total_cents: number; government_fee_cents: number; service_fee_cents: number; payment_mode: string }
+    | { status: string; total_cents: number; government_fee_cents: number; service_fee_cents: number; payment_mode: string }[]
     | null;
 }
 
@@ -77,7 +77,7 @@ export default async function QueuePage(props: PageProps<"/admin/queue">) {
   const byOrderStatus = filters.payment !== "" && filters.payment !== "none";
   const select =
     "id, state_code, filing_type_code, period_year, due_date, status, assigned_to, user_id, order_id, filing_name:rule_snapshot->>filing_name, businesses(legal_name), " +
-    `${byOrderStatus ? "orders!inner" : "orders"}(status, total_cents, government_fee_cents, service_fee_cents)`;
+    `${byOrderStatus ? "orders!inner" : "orders"}(status, total_cents, government_fee_cents, service_fee_cents, payment_mode)`;
 
   const db = await createClient();
   let query = db.from("filings").select(select, { count: "exact" });
@@ -190,6 +190,7 @@ export default async function QueuePage(props: PageProps<"/admin/queue">) {
                       <span className="grid justify-items-start gap-1">
                         <AdminStatusBadge status={r.status} />
                         <PaymentLine status={order?.status} />
+                        {paid ? <TestOrderBadge mode={order.payment_mode} /> : null}
                       </span>
                     </TD>
                     <TD>

@@ -31,8 +31,9 @@ import { graph, organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { marketingPeriod } from "@/lib/seo/period";
 
-// The status card shows the current filing period, so refresh hourly.
-export const revalidate = 3600;
+// The status card and product preview count days to a deadline, so render on every
+// request: a cached (stale-while-revalidate) copy could show yesterday's countdown.
+export const revalidate = 0;
 
 export const metadata: Metadata = pageMetadata({
   title: `${site.name}: ${site.tagline}`,
@@ -53,9 +54,12 @@ export default async function HomePage() {
   const stateName = pa?.name ?? "Pennsylvania";
   const groups = dueGroups(paRules);
   const today = todayInTimeZone(pa?.timezone ?? "America/New_York");
+  const reminderFor = (dueDate: string) =>
+    planReminders(dueDate, DEFAULT_REMINDER_OFFSETS, today).find((r) => r.status === "scheduled")?.scheduledFor ?? null;
+  // After the deadline the preview shows the missed report, which can still be filed.
+  const previewPeriod = periodInfo ? (periodInfo.missed ?? periodInfo.period) : null;
   const nextReminder = periodInfo
-    ? (planReminders(periodInfo.period.dueDate, DEFAULT_REMINDER_OFFSETS, today).find((r) => r.status === "scheduled")
-        ?.scheduledFor ?? null)
+    ? ((periodInfo.missed ? reminderFor(periodInfo.missed.dueDate) : null) ?? reminderFor(periodInfo.period.dueDate))
     : null;
   const directFee = rule ? formatCents(rule.stateFeeCents, { trimZeros: true }) : "$7";
   const filingHost = new URL(rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl).host;
@@ -131,6 +135,7 @@ export default async function HomePage() {
               <HeroStatusCard
                 rule={rule}
                 period={periodInfo.period}
+                missed={periodInfo.missed}
                 stateName={stateName}
                 agency={agency}
                 className="relative z-10 mx-auto -mt-20 sm:-mt-28 lg:absolute lg:-left-10 lg:bottom-10 lg:mt-0"
@@ -141,8 +146,9 @@ export default async function HomePage() {
         {periodInfo?.missed && rule ? (
           <Container className="-mt-8 pb-10 lg:-mt-14">
             <p className="max-w-[70ch] text-[13px] leading-5 text-subtle">
-              The {periodInfo.missed.periodYear} report was due {formatLongDate(periodInfo.missed.dueDate)}. If it
-              hasn&apos;t been filed yet, it can still be filed. {rule.lateFeeSummary}
+              The {formatLongDate(periodInfo.missed.dueDate)} deadline for {stateName} LLC annual reports has passed. If
+              your LLC hasn&apos;t filed its {periodInfo.missed.periodYear} report yet, it can still be filed.{" "}
+              {rule.lateFeeSummary}
             </p>
           </Container>
         ) : null}
@@ -233,10 +239,10 @@ export default async function HomePage() {
               className="aspect-[4/3] w-full sm:w-[86%]"
               focus="72% 40%"
             />
-            {rule && periodInfo ? (
+            {rule && previewPeriod ? (
               <ProductPreview
                 rule={rule}
-                period={periodInfo.period}
+                period={previewPeriod}
                 stateName={stateName}
                 nextReminder={nextReminder}
                 className="relative z-10 -mt-24 ml-auto w-[94%] max-w-[26rem] sm:absolute sm:bottom-0 sm:right-0 sm:mt-0 sm:w-[62%]"

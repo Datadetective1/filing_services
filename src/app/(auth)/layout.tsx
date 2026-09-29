@@ -1,8 +1,15 @@
 import { ChatCircleText, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { Logo } from "@/components/layout/logo";
 import { Photo } from "@/components/media/photo";
+
+/**
+ * Sign-in, sign-up and password pages are never indexed, even once the rest of the site is.
+ * Child pages set only a title, and metadata merges shallowly, so this robots value applies to all of them.
+ */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Sign in, sign up and password pages. The form comes first on every screen size;

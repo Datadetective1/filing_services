@@ -5,8 +5,12 @@
  * threats. Consequences are only mentioned when a published rule supports them.
  *
  * Placeholders: {{company_name}} {{filing_title}} {{state_name}} {{due_date}}
- * {{due_phrase}} {{status_label}} {{brand}} {{amount}} {{confirmation_number}}
- * {{message}}
+ * {{due_phrase}} {{status_label}} {{brand}} {{amount}} {{government_fee}}
+ * {{service_fee}} {{payment_mode}} {{confirmation_number}} {{message}}
+ * document_ready: {{businessName}} {{filingName}} {{documentLabel}}
+ *
+ * Money: the state's fee and our service fee are always separate lines, and the
+ * service fee is never described as a government fee.
  */
 
 export type TemplateCategory = "reminder" | "transactional";
@@ -65,7 +69,10 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     category: "transactional",
     subject: "Order confirmed: {{state_name}} {{filing_title}} for {{company_name}}",
     body:
-      "Thanks, we received your order and payment of {{amount}} for {{company_name}}'s {{state_name}} {{filing_title}}.\n\n" +
+      "Thanks, we received your order and payment for {{company_name}}'s {{state_name}} {{filing_title}}.\n\n" +
+      "Government filing fee (paid to {{state_name}}, passed through at cost): {{government_fee}}\n" +
+      "Our service fee: {{service_fee}}\n" +
+      "Total paid: {{amount}}\n\n" +
       "Next, we review your information and prepare the filing. We'll email you when it's submitted and when the state accepts it.",
     ctaLabel: "Track your filing",
     description: "Sent when payment succeeds.",
@@ -102,9 +109,11 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     subject: "Your filing was accepted: {{state_name}} {{filing_title}}",
     body:
       "Good news: the state accepted {{company_name}}'s {{state_name}} {{filing_title}}. Confirmation number: {{confirmation_number}}.\n\n" +
-      "Your filed report and state receipt are saved in your dashboard.",
-    ctaLabel: "Download your documents",
-    description: "Sent when the filing is accepted.",
+      "The state's confirmation is saved in your dashboard, where you can view and download it.",
+    ctaLabel: "View filing",
+    // Sent only once a customer-visible state receipt, filed report or acknowledgement
+    // is on file (operations.ts completeIfReceiptOnFile), so the confirmation is already there.
+    description: "Sent when the filing is accepted and the state's confirmation is in the dashboard.",
   },
   {
     key: "filing_rejected",
@@ -119,7 +128,12 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     key: "refund_issued",
     category: "transactional",
     subject: "Refund issued: {{amount}}",
-    body: "We issued a refund of {{amount}} for {{company_name}}'s {{state_name}} {{filing_title}}. It can take 5 to 10 business days to appear on your statement.",
+    body:
+      "We issued a refund for {{company_name}}'s {{state_name}} {{filing_title}}.\n\n" +
+      "Government filing fee refunded: {{government_fee}}\n" +
+      "Service fee refunded: {{service_fee}}\n" +
+      "Total refunded: {{amount}}\n\n" +
+      "It can take 5 to 10 business days to appear on your statement.",
     ctaLabel: "View order",
     description: "Sent when a refund succeeds.",
   },
@@ -130,6 +144,40 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     body: "Your order for {{company_name}}'s {{state_name}} {{filing_title}} was cancelled. {{message}}",
     ctaLabel: "View order",
     description: "Sent when a filing is cancelled.",
+  },
+  {
+    key: "document_ready",
+    category: "transactional",
+    subject: "Your {{filingName}} document is ready",
+    body:
+      "We added a document to {{businessName}}'s {{filingName}}: {{documentLabel}}.\n\n" +
+      "You can view and download it from your dashboard.",
+    ctaLabel: "View document",
+    description: "Sent when a customer-visible document is added to a filing.",
+  },
+  {
+    key: "staff_new_paid_order",
+    category: "transactional",
+    subject: "New paid order: {{company_name}} ({{state_name}} {{filing_title}})",
+    body:
+      "A new order was paid for {{company_name}}'s {{state_name}} {{filing_title}}, due {{due_date}}.\n\n" +
+      "Government filing fee: {{government_fee}}\n" +
+      "Service fee: {{service_fee}}\n" +
+      "Total paid: {{amount}}\n" +
+      "Payment mode: {{payment_mode}}\n\n" +
+      "Review it in the admin console.",
+    ctaLabel: "Open filing",
+    description: "Staff alert: a customer's payment succeeded.",
+  },
+  {
+    key: "staff_customer_message",
+    category: "transactional",
+    subject: "Customer message: {{company_name}} ({{state_name}} {{filing_title}})",
+    body:
+      "The customer sent a message about {{company_name}}'s {{state_name}} {{filing_title}}. Filing status: {{status_label}}.\n\n" +
+      "Read and reply in the admin console. You get at most one of these alerts per filing each hour, so read the whole thread.",
+    ctaLabel: "Open filing",
+    description: "Staff alert: a customer posted a message on a filing (at most one alert per filing per hour).",
   },
 ];
 

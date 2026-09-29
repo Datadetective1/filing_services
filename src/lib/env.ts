@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { isProductionEnvironment } from "@/config/site";
 
 /**
  * Server environment. Parsed lazily so builds that don't touch a subsystem don't
@@ -45,6 +46,7 @@ export function env(): ServerEnv {
   return cached;
 }
 
+/** True on the Vercel production deployment. Same answer as isProductionEnvironment(). */
 export function isProductionDeployment(): boolean {
-  return process.env.VERCEL_ENV === "production";
+  return isProductionEnvironment();
 }

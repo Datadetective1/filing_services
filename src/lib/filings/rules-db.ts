@@ -50,12 +50,18 @@ function mapPrice(row: Record<string, unknown>): ServicePrice {
   };
 }
 
+/**
+ * The only service_prices columns the anon role may read (column grants in
+ * supabase/migrations/20260929000007_column_grants.sql). `select("*")` as anon is refused.
+ */
+const PUBLIC_PRICE_COLUMNS = "id, filing_type_code, state_code, entity_type, service_fee_cents, approved, active";
+
 /** Active service prices (public read). Returns [] if the database is unreachable. */
 export const listActivePrices = cache(async (): Promise<ServicePrice[]> => {
   try {
     const db = createAnonClient();
     if (!db) return [];
-    const { data } = await db.from("service_prices").select("*").eq("active", true);
+    const { data } = await db.from("service_prices").select(PUBLIC_PRICE_COLUMNS).eq("active", true);
     return (data ?? []).map(mapPrice);
   } catch {
     return [];
@@ -63,6 +69,6 @@ export const listActivePrices = cache(async (): Promise<ServicePrice[]> => {
 });
 
 export async function listActivePricesAdmin(): Promise<ServicePrice[]> {
-  const { data } = await createAdminClient().from("service_prices").select("*").eq("active", true);
+  const { data } = await createAdminClient().from("service_prices").select(PUBLIC_PRICE_COLUMNS).eq("active", true);
   return (data ?? []).map(mapPrice);
 }

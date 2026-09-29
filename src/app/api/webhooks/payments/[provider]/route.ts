@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPaymentProvider } from "@/lib/payments";
 import { processPaymentEvent } from "@/lib/payments/process-event";
-import { WebhookVerificationError } from "@/lib/payments/types";
+import { PaymentConfigurationError, type PaymentProvider, WebhookVerificationError } from "@/lib/payments/types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,20 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/webhooks/payments/[provider]">) {
   const { provider: name } = await ctx.params;
-  const provider = getPaymentProvider();
+  if (name !== "stripe" && name !== "sandbox") return NextResponse.json({ error: "unknown provider" }, { status: 404 });
+
+  let provider: PaymentProvider;
+  try {
+    provider = getPaymentProvider();
+  } catch (e) {
+    // Payments are switched off or misconfigured here (for example test payments on
+    // the production deployment). 503 tells the processor to retry later.
+    if (e instanceof PaymentConfigurationError) {
+      console.error("[payments] webhook received while payments are not configured");
+      return NextResponse.json({ error: "payments not configured" }, { status: 503 });
+    }
+    throw e;
+  }
   if (provider.name !== name) return NextResponse.json({ error: "unknown provider" }, { status: 404 });
 
   const raw = await request.text();

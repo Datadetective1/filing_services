@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { StatusPill } from "@/components/admin/badges";
+import { StatusPill, TestOrderBadge } from "@/components/admin/badges";
 import { formatDateTime, humanize, isoDaysAgo, money, shortId } from "@/components/admin/format";
 import { ConsoleHeader, EmptyRow, JsonDetails, Panel, ScrollArea, SectionNav, Stat, StatStrip, tableLink } from "@/components/admin/layout-bits";
 import { Table, TD, TH, THead, TR } from "@/components/admin/table";
+import { isTestPayment } from "@/components/admin/operator-guidance";
 import { PaymentStatusBadge } from "@/components/ui/badge";
 import { requireStaff } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { filingIdsByOrder, profilesByIds, type ProfileEntry } from "../_lib/data";
+import { filingIdsByOrder, one, profilesByIds, type ProfileEntry } from "../_lib/data";
 
 export const metadata: Metadata = { title: "Payments" };
 
@@ -37,6 +38,8 @@ interface RefundRow {
   reason: string;
   status: string;
   created_at: string;
+  /** The refunded order's payment mode: a sandbox or test-mode refund moved no money. */
+  orders: { payment_mode: string } | { payment_mode: string }[] | null;
 }
 
 interface EventRow {
@@ -61,7 +64,7 @@ export default async function PaymentsPage() {
     db.from("payments").select(cols).eq("requires_review", true).order("updated_at", { ascending: false }).limit(100),
     db.from("payments").select(cols).eq("status", "failed").gte("updated_at", thirtyDaysAgo).order("updated_at", { ascending: false }).limit(100),
     db.from("payments").select(cols).order("created_at", { ascending: false }).limit(50),
-    db.from("refunds").select("id, order_id, user_id, amount_cents, government_fee_cents, service_fee_cents, reason, status, created_at").order("created_at", { ascending: false }).limit(50),
+    db.from("refunds").select("id, order_id, user_id, amount_cents, government_fee_cents, service_fee_cents, reason, status, created_at, orders(payment_mode)").order("created_at", { ascending: false }).limit(50),
     db
       .from("payment_events")
       .select("id, provider, provider_event_id, event_type, received_at, processed_at, processing_error, attempts, payload")
@@ -77,6 +80,7 @@ export default async function PaymentsPage() {
   const recent = (recentRes.data ?? []) as PaymentRow[];
   const refunds = (refundsRes.data ?? []) as RefundRow[];
   const events = (eventsRes.data ?? []) as EventRow[];
+  const testRefunds = refunds.filter((r) => isTestPayment(one(r.orders)?.payment_mode)).length;
 
   const allOrders = [...review, ...failed, ...recent, ...refunds].map((r) => r.order_id);
   const [filingLinks, customers] = await Promise.all([
@@ -93,7 +97,12 @@ export default async function PaymentsPage() {
         <Stat label="Failed, last 30 days" value={failed.length} tone={failed.length > 0 ? "danger" : "neutral"} />
         <Stat label="Unresolved webhook errors" value={errorCountRes.count ?? 0} tone={(errorCountRes.count ?? 0) > 0 ? "danger" : "neutral"} />
         <Stat label="Redelivered events" value={redeliveredRes.count ?? 0} hint="Attempted more than once. Repeats of processed events are ignored." />
-        <Stat label="Recent refunds" value={refunds.length} className="max-md:col-span-2" />
+        <Stat
+          label="Recent refunds"
+          value={refunds.length}
+          hint={testRefunds ? `${testRefunds} of these are test refunds (no money moved).` : undefined}
+          className="max-md:col-span-2"
+        />
       </StatStrip>
 
       <SectionNav
@@ -144,7 +153,10 @@ export default async function PaymentsPage() {
                     </TD>
                     <TD className="max-w-48 truncate text-muted">{customers.get(r.user_id)?.email ?? "Unknown"}</TD>
                     <TD>
-                      <StatusPill status={r.status} />
+                      <div className="flex flex-wrap items-center gap-1">
+                        <StatusPill status={r.status} />
+                        <TestOrderBadge mode={one(r.orders)?.payment_mode} />
+                      </div>
                     </TD>
                     <TD className="tnum text-right">{money(r.government_fee_cents)}</TD>
                     <TD className="tnum text-right">{money(r.service_fee_cents)}</TD>
@@ -273,6 +285,7 @@ function PaymentsTable({
               <TD>
                 <div className="flex flex-wrap items-center gap-1">
                   <PaymentStatusBadge status={p.status} />
+                  <TestOrderBadge mode={p.mode} />
                   {p.requires_review ? <StatusPill status="needs review" tone="danger" /> : null}
                 </div>
               </TD>

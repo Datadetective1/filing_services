@@ -23,10 +23,18 @@ export function agencyShortName(j: JurisdictionDef): string {
   return j.agency.name.split(" - ")[0];
 }
 
-/** "January 1 to September 30" for fixed annual deadlines, else null. */
+/**
+ * When filing opens for fixed annual deadlines, else null. Deliberately no end date:
+ * the due date is shown alongside it, and a report can still be filed after it.
+ */
 export function filingWindowText(rule: ComplianceRuleDef): string | null {
   if (rule.dueRule.kind !== "fixed_annual") return null;
-  return `January 1 to ${formatMonthDay(rule.dueRule.month, rule.dueRule.day)}`;
+  return "Opens January 1 of the report year";
+}
+
+/** Meta-description sentence for the state fee: "State fee: $7." or, when there is none, "No state filing fee." */
+export function stateFeeSentence(rule: Pick<ComplianceRuleDef, "stateFeeCents" | "nonprofitStateFeeCents">): string {
+  return rule.stateFeeCents === 0 ? "No state filing fee." : `State fee: ${stateFeeText(rule)}.`;
 }
 
 /** "September 30" for fixed annual deadlines, else the generic due text. */

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionState } from "@/components/admin/action-state";
 import { dollarsToCents, formatDate, opsToday, UUID_RE, zonedStartOfDay } from "@/components/admin/format";
+import { emailOutcomeText, operatorMessage } from "@/components/admin/operator-guidance";
 import { ADMIN_STATUS_LABELS } from "@/components/admin/status";
 import { audit } from "@/lib/audit";
 import { requireAdmin, requireStaff } from "@/lib/auth/session";
@@ -90,12 +91,16 @@ export async function requestInformationAction(_prev: ActionState, formData: For
   if (!canRequestInformation(filing.status)) {
     return fail(`You can't request information while the filing is "${statusLabel(filing.status)}".`);
   }
+  let result;
   try {
-    await requestCustomerInformation(staff, filing.id, parsed.data.message);
+    result = await requestCustomerInformation(staff, filing.id, parsed.data.message);
   } catch (e) {
     return actionError(e);
   }
-  return done(filing.id, "Request sent. The customer was emailed and the filing is now waiting on them.");
+  return done(
+    filing.id,
+    operatorMessage(["Request sent. The filing is now waiting on the customer.", emailOutcomeText(result.email, "the request")], result.warnings),
+  );
 }
 
 export async function markReadyAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -155,12 +160,16 @@ export async function markSubmittedAction(_prev: ActionState, formData: FormData
   }
   // Today: record the exact time. Earlier day: record noon Eastern on that day.
   const submittedAt = submittedDate === today ? null : new Date(zonedStartOfDay(submittedDate).getTime() + 12 * 3_600_000).toISOString();
+  let result;
   try {
-    await markSubmitted(staff, filing.id, { confirmationNumber, submittedAt, note: note || undefined });
+    result = await markSubmitted(staff, filing.id, { confirmationNumber, submittedAt, note: note || undefined });
   } catch (e) {
     return actionError(e);
   }
-  return done(filing.id, "Marked submitted. The customer was emailed the confirmation number.");
+  return done(
+    filing.id,
+    operatorMessage(["Marked submitted and the confirmation number is saved.", emailOutcomeText(result.email, "the confirmation number")], result.warnings),
+  );
 }
 
 export async function markAcceptedAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -170,17 +179,26 @@ export async function markAcceptedAction(_prev: ActionState, formData: FormData)
   const filing = await loadFiling(parsed.data.filingId);
   if (!filing) return fail("Filing not found.");
   if (filing.status !== "submitted") return fail(`Only submitted filings can be marked accepted. This one is "${statusLabel(filing.status)}".`);
+  let result;
   try {
-    await markAccepted(staff, filing.id, { note: parsed.data.note || undefined });
+    result = await markAccepted(staff, filing.id, { note: parsed.data.note || undefined });
   } catch (e) {
     return actionError(e);
   }
-  const after = await loadFiling(filing.id);
   return done(
     filing.id,
-    after?.status === "completed"
-      ? "Marked accepted. A receipt was already on file, so the filing is now completed."
-      : "Marked accepted. Upload the state receipt or filed report to complete it.",
+    result.completed
+      ? operatorMessage(
+          ["Marked accepted. A receipt was already on file, so the filing is now completed.", emailOutcomeText(result.email, "that the filing was accepted")],
+          result.warnings,
+        )
+      : operatorMessage(
+          [
+            "Marked accepted. Next: upload the filed report or Acknowledgement Letter (visible to the customer) under Documents.",
+            "The customer is emailed once it is uploaded.",
+          ],
+          result.warnings,
+        ),
   );
 }
 
@@ -191,12 +209,13 @@ export async function markRejectedAction(_prev: ActionState, formData: FormData)
   const filing = await loadFiling(parsed.data.filingId);
   if (!filing) return fail("Filing not found.");
   if (filing.status !== "submitted") return fail(`Only submitted filings can be marked rejected. This one is "${statusLabel(filing.status)}".`);
+  let result;
   try {
-    await markRejected(staff, filing.id, parsed.data.reason);
+    result = await markRejected(staff, filing.id, parsed.data.reason);
   } catch (e) {
     return actionError(e);
   }
-  return done(filing.id, "Marked rejected. The customer was emailed the reason.");
+  return done(filing.id, operatorMessage(["Marked rejected.", emailOutcomeText(result.email, "the reason")], result.warnings));
 }
 
 export async function completeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -206,12 +225,19 @@ export async function completeAction(_prev: ActionState, formData: FormData): Pr
   const filing = await loadFiling(parsed.data.filingId);
   if (!filing) return fail("Filing not found.");
   if (filing.status !== "accepted") return fail(`Only accepted filings can be completed. This one is "${statusLabel(filing.status)}".`);
+  let result;
   try {
-    await completeFiling(staff, filing.id);
+    result = await completeFiling(staff, filing.id);
   } catch (e) {
     return actionError(e);
   }
-  return done(filing.id, "Completed. Next period's requirement has been opened.");
+  return done(
+    filing.id,
+    operatorMessage(
+      [result.warnings.length ? "Completed." : "Completed. Next period's requirement has been opened.", emailOutcomeText(result.email, "that the filing was accepted")],
+      result.warnings,
+    ),
+  );
 }
 
 export async function cancelAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -221,12 +247,16 @@ export async function cancelAction(_prev: ActionState, formData: FormData): Prom
   const filing = await loadFiling(parsed.data.filingId);
   if (!filing) return fail("Filing not found.");
   if (!canTransition(filing.status, "cancelled")) return fail(`A filing that is "${statusLabel(filing.status)}" can't be cancelled.`);
+  let result;
   try {
-    await cancelFiling(staff, filing.id, parsed.data.reason);
+    result = await cancelFiling(staff, filing.id, parsed.data.reason);
   } catch (e) {
     return actionError(e);
   }
-  return done(filing.id, "Cancelled. The customer was emailed. Issue a refund if one is owed.");
+  return done(
+    filing.id,
+    operatorMessage(["Cancelled. Issue a refund if one is owed.", emailOutcomeText(result.email, "the cancellation and reason")], result.warnings),
+  );
 }
 
 export async function reopenAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -347,12 +377,16 @@ export async function sendMessageAction(_prev: ActionState, formData: FormData):
     if (!canRequestInformation(filing.status)) {
       return fail(`You can't ask the customer to act while the filing is "${statusLabel(filing.status)}". Untick "Requires customer action" to send a plain message.`);
     }
+    let result;
     try {
-      await requestCustomerInformation(staff, filing.id, parsed.data.body);
+      result = await requestCustomerInformation(staff, filing.id, parsed.data.body);
     } catch (e) {
       return actionError(e);
     }
-    return done(filing.id, "Message sent and the customer was emailed. The filing is waiting on them.");
+    return done(
+      filing.id,
+      operatorMessage(["Message sent. The filing is waiting on the customer.", emailOutcomeText(result.email, "the message")], result.warnings),
+    );
   }
 
   try {
@@ -397,9 +431,9 @@ export async function uploadDocumentAction(_prev: ActionState, formData: FormDat
   if (file.size > MAX_DOCUMENT_BYTES) return fail("Files must be 4 MB or smaller.");
   const filing = await loadFiling(parsed.data.filingId);
   if (!filing) return fail("Filing not found.");
-  const statusBefore = filing.status;
+  let result;
   try {
-    await uploadFilingDocument(staff, filing.id, {
+    result = await uploadFilingDocument(staff, filing.id, {
       file,
       kind: parsed.data.kind,
       visibleToCustomer: parsed.data.visibleToCustomer === "on",
@@ -407,10 +441,15 @@ export async function uploadDocumentAction(_prev: ActionState, formData: FormDat
   } catch (e) {
     return actionError(e);
   }
-  const after = await loadFiling(filing.id);
-  const completed = statusBefore === "accepted" && after?.status === "completed";
   return done(
     filing.id,
-    completed ? "Uploaded. With the receipt on file, the filing is now completed." : "Uploaded.",
+    operatorMessage(
+      [
+        result.completed ? "Uploaded. With the receipt on file, the filing is now completed." : "Uploaded.",
+        result.documentEmail ? emailOutcomeText(result.documentEmail, "that the document is ready") : "Internal only: the customer can't see it and was not emailed.",
+        emailOutcomeText(result.acceptedEmail, "that the filing was accepted"),
+      ],
+      result.warnings,
+    ),
   );
 }

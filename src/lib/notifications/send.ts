@@ -1,6 +1,7 @@
 import "server-only";
 import { absoluteUrl } from "@/config/site";
 import { getEmailProvider } from "@/lib/email/provider";
+import { isReservedTestAddress, RESERVED_ADDRESS_REASON } from "@/lib/email/recipients";
 import { renderEmail } from "@/lib/email/render";
 import { getDefaultTemplate } from "@/lib/email/templates";
 import { createSignedToken } from "@/lib/security/tokens";
@@ -16,6 +17,8 @@ export interface SendNotificationInput {
   ctaPath?: string | null;
   businessId?: string | null;
   filingId?: string | null;
+  /** When set, the email is recorded as "suppressed" with this reason and not delivered. */
+  suppressReason?: string | null;
 }
 
 export type SendResult =
@@ -24,7 +27,9 @@ export type SendResult =
 
 /**
  * Render, record and deliver one notification. At-most-once per dedupeKey: the
- * row is claimed (inserted) before anything is sent.
+ * row is claimed (inserted) before anything is sent. A row whose earlier attempt
+ * ended "failed" is re-claimed and retried (the provider idempotency key is the
+ * same dedupeKey, so a retry never delivers twice).
  */
 export async function sendNotification(input: SendNotificationInput): Promise<SendResult> {
   const db = createAdminClient();
@@ -72,18 +77,28 @@ export async function sendNotification(input: SendNotificationInput): Promise<Se
     })
     .select("id")
     .single();
+  let notificationId: string;
   if (claimError) {
-    if (claimError.code === "23505") {
-      const { data: existing } = await db
-        .from("notifications")
-        .select("id")
-        .eq("dedupe_key", input.dedupeKey)
-        .maybeSingle();
-      return { status: "duplicate", notificationId: existing?.id ?? null };
-    }
-    throw new Error(`Notification claim failed: ${claimError.message}`);
+    if (claimError.code !== "23505") throw new Error(`Notification claim failed: ${claimError.message}`);
+    const { data: existing } = await db
+      .from("notifications")
+      .select("id, status")
+      .eq("dedupe_key", input.dedupeKey)
+      .maybeSingle();
+    if (existing?.status !== "failed") return { status: "duplicate", notificationId: existing?.id ?? null };
+    // Conditional re-claim: only one concurrent retry wins.
+    const { data: reclaimed } = await db
+      .from("notifications")
+      .update({ status: "queued", error: null })
+      .eq("id", existing.id)
+      .eq("status", "failed")
+      .select("id")
+      .maybeSingle();
+    if (!reclaimed) return { status: "duplicate", notificationId: existing.id as string };
+    notificationId = reclaimed.id as string;
+  } else {
+    notificationId = claimed.id as string;
   }
-  const notificationId = claimed.id as string;
 
   const ctaUrl = input.ctaPath
     ? absoluteUrl(`/r/${notificationId}?to=${encodeURIComponent(input.ctaPath)}`)
@@ -110,10 +125,16 @@ export async function sendNotification(input: SendNotificationInput): Promise<Se
         : null,
   });
 
-  if (!to) {
+  // Never hand a provider an address that cannot receive mail, or a message the caller suppressed.
+  const suppression = !to
+    ? "no email address"
+    : isReservedTestAddress(to)
+      ? RESERVED_ADDRESS_REASON
+      : (input.suppressReason ?? null);
+  if (!to || suppression) {
     await db
       .from("notifications")
-      .update({ ...toColumns(rendered), status: "suppressed", error: "no email address" })
+      .update({ ...toColumns(rendered, to), status: "suppressed", error: suppression })
       .eq("id", notificationId);
     return { status: "suppressed", notificationId };
   }
@@ -133,7 +154,7 @@ export async function sendNotification(input: SendNotificationInput): Promise<Se
     await db
       .from("notifications")
       .update({
-        ...toColumns(rendered),
+        ...toColumns(rendered, to),
         status: "sent",
         provider: provider.name,
         provider_message_id: id,
@@ -145,7 +166,7 @@ export async function sendNotification(input: SendNotificationInput): Promise<Se
     await db
       .from("notifications")
       .update({
-        ...toColumns(rendered),
+        ...toColumns(rendered, to),
         status: "failed",
         provider: provider.name,
         error: e instanceof Error ? e.message.slice(0, 500) : "send failed",
@@ -155,6 +176,7 @@ export async function sendNotification(input: SendNotificationInput): Promise<Se
   }
 }
 
-function toColumns(r: { subject: string; text: string; html: string }) {
-  return { subject: r.subject, body_text: r.text, body_html: r.html };
+function toColumns(r: { subject: string; text: string; html: string }, to: string | null | undefined) {
+  // The address is rewritten too: a retried row may predate an email change.
+  return { to_address: to ?? "", subject: r.subject, body_text: r.text, body_html: r.html };
 }

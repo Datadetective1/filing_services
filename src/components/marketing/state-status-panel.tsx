@@ -5,6 +5,7 @@ import { cn } from "@/components/ui/cn";
 import { CalendarDate } from "@/components/visual/calendar-date";
 import type { ComplianceRuleDef, JurisdictionDef } from "@/lib/compliance/types";
 import { verifiedText } from "@/lib/compliance/view";
+import { deadlineLabel } from "@/lib/domain/deadline-copy";
 import { formatCents } from "@/lib/domain/money";
 import { agencyShortName, dueGroups, feeSummary, latestVerified } from "@/lib/seo/content";
 import { marketingPeriod } from "@/lib/seo/period";
@@ -72,9 +73,7 @@ export function StateStatusPanel({
               </div>
               {next ? (
                 <span className="tnum shrink-0 rounded-full bg-highlight-soft px-2.5 py-1 text-[12px] font-bold text-highlight-fg">
-                  {g.period.daysRemaining === 0
-                    ? "Due today"
-                    : `${g.period.daysRemaining} ${g.period.daysRemaining === 1 ? "day" : "days"} left`}
+                  {deadlineLabel(g.period.daysRemaining, g.period.dueDate)}
                 </span>
               ) : null}
             </li>

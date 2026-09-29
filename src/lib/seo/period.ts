@@ -1,5 +1,6 @@
 import "server-only";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
+import { businessNow } from "@/lib/domain/clock";
 import type { FilingPeriod } from "@/lib/domain/deadlines";
 import { periodFor } from "@/lib/filings/customer";
 
@@ -11,7 +12,7 @@ import { periodFor } from "@/lib/filings/customer";
  */
 export function marketingPeriod(
   rule: ComplianceRuleDef,
-  now: Date = new Date(),
+  now: Date = businessNow(),
 ): { period: FilingPeriod; missed: FilingPeriod | null } {
   const current = periodFor(rule, { formationDate: null, alreadyFiledThisYear: false }, now);
   if (current.phase !== "overdue") return { period: current, missed: null };
