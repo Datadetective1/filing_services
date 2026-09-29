@@ -112,8 +112,18 @@ export function StatusPill({ status, tone }: { status: string; tone?: StatusTone
  * Shown wherever an order is shown when its payment was not live (sandbox or test
  * mode): no money was collected, so the order must never be filed with the state.
  */
-export function TestOrderBadge({ mode }: { mode: string | null | undefined }) {
+export function TestOrderBadge({ mode, compact = false }: { mode: string | null | undefined; compact?: boolean }) {
   if (!isTestPayment(mode)) return null;
+  // Compact form for narrow cells; the full sentence stays available to screen readers and on hover.
+  if (compact) {
+    return (
+      <span title={TEST_ORDER_LABEL}>
+        <Badge tone="danger">
+          TEST<span className="sr-only">: no money collected</span>
+        </Badge>
+      </span>
+    );
+  }
   return <Badge tone="danger">{TEST_ORDER_LABEL}</Badge>;
 }
 
