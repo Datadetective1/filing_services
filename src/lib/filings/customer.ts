@@ -1,4 +1,5 @@
 import "server-only";
+import { businessNow } from "@/lib/domain/clock";
 import { createHash } from "node:crypto";
 import { absoluteUrl } from "@/config/site";
 import { trackServer } from "@/lib/analytics/server";
@@ -58,7 +59,7 @@ export interface AddBusinessInput {
   alreadyFiledThisYear: boolean;
 }
 
-export function periodFor(rule: ComplianceRuleDef, input: { formationDate: string | null; alreadyFiledThisYear: boolean }, now = new Date()): FilingPeriod {
+export function periodFor(rule: ComplianceRuleDef, input: { formationDate: string | null; alreadyFiledThisYear: boolean }, now = businessNow()): FilingPeriod {
   const tz = getJurisdiction(rule.stateCode)?.timezone ?? "America/New_York";
   const today = todayInTimeZone(tz, now);
   const todayYear = Number(today.slice(0, 4));

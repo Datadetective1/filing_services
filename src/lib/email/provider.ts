@@ -64,3 +64,22 @@ export function getEmailProvider(): EmailProvider {
   if (!e.RESEND_API_KEY || !e.EMAIL_FROM) return new OutboxEmailProvider();
   return new ResendEmailProvider(e.RESEND_API_KEY, e.EMAIL_FROM, e.EMAIL_REPLY_TO);
 }
+
+export interface EmailReadiness {
+  mode: "outbox" | "resend" | "misconfigured";
+  /** True when messages are actually delivered to inboxes. */
+  delivering: boolean;
+  /** Configured sender (no secrets). */
+  from: string | null;
+  reason: string | null;
+}
+
+/** Non-throwing summary of email delivery, for the staff status panel. */
+export function getEmailReadiness(): EmailReadiness {
+  const e = env();
+  if (e.EMAIL_PROVIDER !== "resend") return { mode: "outbox", delivering: false, from: e.EMAIL_FROM ?? null, reason: "EMAIL_PROVIDER is outbox" };
+  if (!e.RESEND_API_KEY || !e.EMAIL_FROM) {
+    return { mode: "misconfigured", delivering: false, from: e.EMAIL_FROM ?? null, reason: "RESEND_API_KEY or EMAIL_FROM is missing" };
+  }
+  return { mode: "resend", delivering: !isTestRunner(), from: e.EMAIL_FROM, reason: null };
+}

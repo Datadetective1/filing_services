@@ -1,3 +1,4 @@
+import { businessNow } from "./clock";
 import type { ISODate } from "./types";
 
 /**
@@ -26,7 +27,7 @@ export function parseISODate(value: ISODate): { year: number; month: number; day
 }
 
 /** Today's calendar date in the given IANA time zone. */
-export function todayInTimeZone(timeZone: string, now: Date = new Date()): ISODate {
+export function todayInTimeZone(timeZone: string, now: Date = businessNow()): ISODate {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
