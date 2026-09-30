@@ -65,14 +65,13 @@ correct). Switching live payments on should wait until the owner checks in 4.3 t
 - DNS: DKIM `resend._domainkey` present; Resend SPF and bounce MX on `send.getfilewell.com`;
   Cloudflare Email Routing MX on getfilewell.com; Cloudflare DKIM key present.
 
-**Wrong in DNS (needs you, see 4.1 and 4.2)**
-
-- **Two DMARC records** at `_dmarc.getfilewell.com` (`v=DMARC1; p=none;
-  rua=mailto:...@dmarc-reports.cloudflare.net` and `v=DMARC1; p=none;`). With more than one
-  record, receivers ignore DMARC entirely. Delete the one without `rua`.
-- **Root SPF is `v=spf1 include:amazonses.com ~all`** and does not include Cloudflare
-  (`include:_spf.mx.cloudflare.net`), which Email Routing needs for clean forwarding. Resend
-  sending is not affected (it uses `send.getfilewell.com`).
+**DNS (re-verified externally 2026-09-30 via 1.1.1.1 and 8.8.8.8): PASS.** One DMARC
+record (`v=DMARC1; p=none; rua=...@dmarc-reports.cloudflare.net`); root SPF
+`v=spf1 include:_spf.mx.cloudflare.net include:amazonses.com -all` (2 DNS lookups); Resend
+SPF and bounce MX on `send.getfilewell.com`; DKIM `resend._domainkey`; Cloudflare Email
+Routing MX. Amazon SES is not used anywhere (no code, dependency or env var; Resend sends
+with its own return path on `send.`), so `include:amazonses.com` can be removed later for a
+tighter SPF; it is harmless.
 
 **Not verifiable by the engineer** (safety rules forbid creating accounts or entering
 passwords on the live site, and your Resend account for getfilewell.com is not connected to
@@ -81,7 +80,6 @@ real Resend delivery from the production key. Steps 4.3 to 4.5 cover them.
 
 ## 3. Remaining launch blockers
 
-1. DNS: duplicate DMARC; root SPF missing Cloudflare's include.
 2. Your production account: sign up, confirm, grant yourself admin, and prove auth and
    Resend delivery end to end.
 3. Stripe live payments: account, keys, webhook, final fee approval, then your switch-on.
