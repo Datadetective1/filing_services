@@ -7,15 +7,14 @@ Runbooks: [OPERATIONS.md](OPERATIONS.md).
 
 ## 1. Launch verdict
 
-**CAN FILEWELL ACCEPT ITS FIRST REAL CUSTOMER? NO, not yet.** Infrastructure is now in
-place and verified. What remains: two DNS corrections, your own account and email check,
-Stripe live payments with an approved fee, the legal entity/address and draft-terms
-decision, and Pennsylvania filing access. The full customer-to-operator workflow is
-validated on staging and a Vercel preview; the last proof on production is one real order
-you place yourself.
+**CAN FILEWELL ACCEPT ITS FIRST REAL CUSTOMER? NO, not yet.** Infrastructure, DNS, owner
+auth and production email are verified end to end. What remains: the legal operator
+identity and draft-terms decision, Pennsylvania filing access, fee approval, Stripe live
+payments, and one real order you place yourself. The full customer-to-operator workflow is
+validated on staging and a Vercel preview.
 
-**Ready to proceed to Stripe setup: yes** (production database, auth, email and domain are
-correct). Switching live payments on should wait until the owner checks in 4.3 to 4.5 pass.
+**Ready to proceed to Stripe setup: yes.** Production database, auth, email and domain are
+all verified (owner checks in 4.1 passed 2026-09-30). Payments and indexing remain off.
 
 ## 2. Re-audit findings (2026-09-30)
 
@@ -52,7 +51,8 @@ correct). Switching live payments on should wait until the owner checks in 4.3 t
   `PAYMENTS_PROVIDER=sandbox` + `PAYMENTS_LIVE_ENABLED=false` (production refuses the sandbox,
   so checkout is safely closed), `NEXT_PUBLIC_ALLOW_INDEXING=false`. None of the
   `ALLOW_*_IN_PRODUCTION` overrides exist. Vercel is on Pro.
-- Production database: 0 users, 0 orders, 0 staff; reference data only. No staging or test
+- Production database: reference data plus the owner's own records only (1 user, 1 admin,
+  1 business, 1 draft filing, 1 notification); 0 orders, 0 payments. No staging or test
   records.
 - Supabase auth (production): Site URL `https://www.getfilewell.com`, redirects for www and
   apex only, email confirmation required, password policy and leaked-password check on,
@@ -73,61 +73,44 @@ Routing MX. Amazon SES is not used anywhere (no code, dependency or env var; Res
 with its own return path on `send.`), so `include:amazonses.com` can be removed later for a
 tighter SPF; it is harmless.
 
-**Not verifiable by the engineer** (safety rules forbid creating accounts or entering
-passwords on the live site, and your Resend account for getfilewell.com is not connected to
-the engineer's tools): a real sign-up, confirmation email, sign-in, password reset, and a
-real Resend delivery from the production key. Steps 4.3 to 4.5 cover them.
+**Owner auth: PASS (owner-verified 2026-09-30).** On www, with a real address: sign-up,
+the confirmation email (via Supabase custom SMTP through Resend), sign-in, and password
+reset all worked. The owner was granted admin with the first-admin SQL in OPERATIONS.md
+(1 active staff member, role `admin`; `staff.granted` audit row).
+
+**Production app email: PASS (2026-09-30).** The owner clicked "Send test email to me" on
+`/admin/notifications` (staff-only; same `sendNotification` path, renderer and Resend
+provider as customer emails; no filing, order or payment involved).
+- Database (engineer-verified): notification `staff_email_test`, status `sent`, provider
+  `resend`, with a Resend message id (Resend accepted it); one `email.test_sent` audit row;
+  orders 0, payments 0, and the one draft filing unchanged (status `draft`, not updated
+  since it was created before the send).
+- Outlook (owner-verified): arrived from `Filewell <filings@getfilewell.com>` with subject
+  "Filewell production email test"; Reply-To was `support@getfilewell.com`; the reply was
+  routed back to the owner's Outlook inbox through Cloudflare Email Routing.
 
 ## 3. Remaining launch blockers
 
-2. Your production account: sign up, confirm, grant yourself admin, and prove auth and
-   Resend delivery end to end.
-3. Stripe live payments: account, keys, webhook, final fee approval, then your switch-on.
-4. Legal: operating company name and postal address (shown publicly and in email footers),
+1. Legal: the operator's name and postal address (shown publicly and in email footers),
    your recorded decision to sell under the draft terms, counsel's OK on the
    authorized-representative e-signature wording.
-5. Pennsylvania filing access: a file.dos.pa.gov login and a company card for the $7 fee.
+2. Pennsylvania filing access: a file.dos.pa.gov login and a company card for the $7 fee.
+3. Stripe live payments: account, keys, webhook, final fee approval, then your switch-on.
 
 ## 4. Remaining human actions, in order
 
-**4.1 Fix DMARC (2 min).** Cloudflare → getfilewell.com → DNS → Records → filter TXT
-`_dmarc` → delete the record whose content is exactly `v=DMARC1; p=none;` → keep the one
-with `rua=mailto:...@dmarc-reports.cloudflare.net`.
+**4.1 Done (2026-09-30).** DMARC de-duplicated, root SPF includes Cloudflare, owner sign-up
+/ confirmation / sign-in / reset, first admin granted, admin status panel checked, and a
+production email delivered, replied to and routed back (section 2).
 
-**4.2 Fix the root SPF (2 min).** Cloudflare → Email → Email Routing → Settings (it lists
-any missing records). Then DNS → the TXT record on `getfilewell.com` starting `v=spf1` →
-Edit → content `v=spf1 include:_spf.mx.cloudflare.net include:amazonses.com ~all` → Save.
-(Exactly one SPF record; keeping `include:amazonses.com` is harmless.)
-
-**4.3 Sign up and test auth (10 min).** In a normal browser window:
-1. https://www.getfilewell.com/signup with your real address → "Check your email".
-2. Open the "Confirm your Filewell account" email **in the same browser** → you land signed
-   in on the dashboard. (Gmail → ⋮ → Show original: SPF, DKIM and DMARC = PASS.)
-3. Sign out → sign in again.
-4. Sign out → https://www.getfilewell.com/forgot-password → open "Reset your Filewell
-   password" in the same browser → set a new password → you land on the dashboard.
-
-**4.4 Make yourself admin and check the panel (3 min).** Supabase → filewell-production →
-SQL Editor → run the "No-laptop alternative" in OPERATIONS.md, "First admin" (replace the
-email). Open https://www.getfilewell.com/admin: the status panel must show Database
-**Production (tnwpcprvetxtgyjuncrl)**, Database keys **Both keys accepted**, Customer email
-**Delivering (Resend)**, Payments **disabled**, Search indexing **Off**.
-
-**4.5 Prove app email through Resend, no payment (5 min).** On www: Find my business → PA →
-your real entity → Have us file it → Continue to details (this creates a draft filing;
-nothing is charged). Open the filing in your dashboard and send a message ("test"). You
-should receive a "Customer message" staff alert from `filings@getfilewell.com` (Reply-To
-support@getfilewell.com); `/admin/notifications` shows provider `resend`, status `sent`.
-Reply to it once to confirm the reply reaches you through Cloudflare forwarding.
-
-**4.6 Legal values (2 min, once decided).** Vercel → Environment Variables → Add
+**4.2 Legal values (2 min, once decided).** Vercel → Environment Variables → Add
 `NEXT_PUBLIC_LEGAL_ENTITY` and `NEXT_PUBLIC_POSTAL_ADDRESS` (Production only) → Redeploy.
 Record your decision about the draft terms.
 
-**4.7 Pennsylvania access.** Create the file.dos.pa.gov Business Filing Services login and
+**4.3 Pennsylvania access.** Create the file.dos.pa.gov Business Filing Services login and
 have the company card ready.
 
-**4.8 Stripe, then live.** As in OPERATIONS.md, "Stripe production setup": activate the
+**4.4 Stripe, then live.** As in OPERATIONS.md, "Stripe production setup": activate the
 Filewell Stripe account; public details (Filewell, support@getfilewell.com, descriptor
 `FILEWELL`); cards only; webhook `https://www.getfilewell.com/api/webhooks/payments/stripe`
 with `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
@@ -138,7 +121,7 @@ while Preview/Development stay `sandbox` (edit the existing variable to untick P
 then add a Production-only one). Approve the fee at `/admin/pricing`. When ready to take
 money: Production `PAYMENTS_LIVE_ENABLED=true` (split the same way) → Redeploy.
 
-**4.9 One real order** placed by you and filed with the runbook below. Then the verdict is
+**4.5 One real order** placed by you and filed with the runbook below. Then the verdict is
 YES.
 
 **Optional clean-up (not blocking):** remove the Production target from
@@ -196,9 +179,8 @@ Problems (rejection, cancellation, refunds) are in OPERATIONS.md, "Problems".
 
 ## 7. Known risks
 
-**Launch blockers** (section 3): DNS (DMARC duplicate, root SPF), owner account and
-end-to-end auth/email proof, live Stripe + fee approval, legal entity/address and the
-draft-terms decision, PA filing login and card.
+**Launch blockers** (section 3): legal operator name/address and the draft-terms
+decision, PA filing login and card, live Stripe + fee approval.
 
 **Can fix after the first customer**
 
