@@ -39,6 +39,7 @@ import { ACTIVE_OPERATIONS_STATUSES, isFilingStatus } from "@/lib/domain/filing-
 import type { ServicePrice } from "@/lib/domain/pricing";
 import { getEmailReadiness } from "@/lib/email/provider";
 import { getPaymentReadiness } from "@/lib/payments";
+import { checkSupabaseKeys } from "@/lib/supabase/health";
 import { createClient } from "@/lib/supabase/server";
 import { filingIdsByOrder, one } from "./_lib/data";
 
@@ -200,6 +201,7 @@ export default async function TodayPage() {
   const payments = getPaymentReadiness();
   const email = getEmailReadiness();
   const database = supabaseEnvironment(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const keys = await checkSupabaseKeys();
   const paPrices = servicePriceApproval(
     ((activePrices.data ?? []) as Record<string, unknown>[]).map(
       (p): ServicePrice => ({
@@ -537,6 +539,24 @@ export default async function TodayPage() {
                 {
                   term: "Database",
                   value: <StatusValue good={database.label === "Production"} text={`${database.label}${database.ref ? ` (${database.ref})` : ""}`} />,
+                },
+                {
+                  term: "Database keys",
+                  value: (
+                    <StatusValue
+                      good={keys.server.ok && keys.publicKey.ok}
+                      text={
+                        keys.server.ok && keys.publicKey.ok
+                          ? "Both keys accepted"
+                          : !keys.server.ok && !keys.publicKey.ok
+                            ? "Both keys rejected: check Vercel env"
+                            : !keys.server.ok
+                              ? "Server key rejected: background writes fail"
+                              : "Public key rejected: sign-in fails"
+                      }
+                      note={keys.server.detail ?? keys.publicKey.detail}
+                    />
+                  ),
                 },
                 {
                   term: "PA service price",

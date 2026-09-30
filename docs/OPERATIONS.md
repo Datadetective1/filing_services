@@ -109,8 +109,10 @@ take effect.
 | `NEXT_PUBLIC_POSTAL_ADDRESS` | mailing address, once known | unset | unset | no |
 | `NEXT_PUBLIC_ALLOW_INDEXING` | `false` until owner approval | `false` | `false` | no |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://tnwpcprvetxtgyjuncrl.supabase.co` | `https://iskphxoowsiuvvojswty.supabase.co` | local stack or staging | no |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | production key | staging key | local or staging key | no (public) |
-| `SUPABASE_SECRET_KEY` | production key | staging key | local or staging key | yes |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | production key (`sb_publishable_ogSK5...`) | staging key | local or staging key | no (public) |
+| `SUPABASE_SECRET_KEY` | **not set** (production uses `SUPABASE_SERVICE_ROLE_KEY`) | staging key | local or staging key | yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | production key | not set | not set | yes |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | production key (currently unused: the publishable key wins) | not set | not set | no (public) |
 | `APP_SIGNING_SECRET` | own value (32+ chars) | own value | own value | yes |
 | `IP_HASH_SALT` | own value (16+ chars) | own value | optional (a dev default is used; leave out, never blank) | yes |
 | `CRON_SECRET` | own value (cron runs on Production only) | optional (leave out, never blank) | optional (leave out, never blank) | yes |
@@ -120,7 +122,7 @@ take effect.
 | `STRIPE_WEBHOOK_SECRET` | secret of the live endpoint | unset | from `stripe listen` | yes |
 | `SANDBOX_WEBHOOK_SECRET` | **not set** | set | set | yes |
 | `ALLOW_TEST_PAYMENTS_IN_PRODUCTION` | **never set** | unset | unset | no |
-| `ALLOW_SANDBOX_IN_PRODUCTION` (older name; builds before this sprint still honor it) | **never set**; remove it if present | **never set** | **never set** | no |
+| `ALLOW_SANDBOX_IN_PRODUCTION` (older name; ignored since `06d7581`) | **never set**; remove it if present | **never set** | **never set** | no |
 | `ALLOW_REAL_PAYMENTS_IN_TESTS` | **never set** | **never set** | **never set** (tests stay on the sandbox) | no |
 | `EMAIL_PROVIDER` | `resend` (or unset: resend is the production default) | `outbox` | `outbox` | no |
 | `RESEND_API_KEY` | production sending key | **not set** | not set | yes |
@@ -129,6 +131,18 @@ take effect.
 | `EMAIL_DELIVERY_OUTSIDE_PRODUCTION` | unset | only for a deliberate deliverability check, then remove | never | no |
 | `FILEWELL_CLOCK_OVERRIDE` | never (ignored) | only for date QA | optional | no |
 | `CONFIRM_PRODUCTION` | never | never | command line only | no |
+
+**Which Supabase variables the app reads (and which wins):** the URL comes only from
+`NEXT_PUBLIC_SUPABASE_URL`. The public key is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
+falling back to `NEXT_PUBLIC_SUPABASE_ANON_KEY` only when the first is absent. The server
+key is `SUPABASE_SECRET_KEY`, falling back to `SUPABASE_SERVICE_ROLE_KEY` only when the first
+is absent (`src/lib/env.ts`, `src/lib/supabase/*`, `src/proxy.ts`, scripts). So a staging
+value left on the Production target of the *preferred* name silently overrides a correct
+production value under the fallback name. That happened on 2026-09-30 (production URL with
+the staging publishable and secret keys, and Preview pointed at production) and was fixed
+by scoping each variable to one environment. The admin Today page's status panel now shows
+"Database keys: Both keys accepted" when the keys match the project; any other value means
+a key belongs to a different project.
 
 Previews stay on the outbox unless `EMAIL_PROVIDER=resend` and
 `EMAIL_DELIVERY_OUTSIDE_PRODUCTION=true`. They would take real payments if given `sk_live_`
@@ -193,12 +207,13 @@ run against https://www.getfilewell.com. Never copy staging data into production
 
 ## Supabase Auth settings
 
-Production project, Authentication settings. **Applied 2026-09-29 on the production
-project:** Site URL, redirect URLs (`https://www.getfilewell.com/**`,
-`https://getfilewell.com/**`), Confirm email ON (autoconfirm off), password policy (10+,
-lower/upper/digit), leaked-password protection ON, branded subjects ("Confirm your
-Filewell account", "Reset your Filewell password"). **Still to do by the owner:** custom
-SMTP and (optional) the branded template bodies below.
+Production project, Authentication settings. **Verified 2026-09-30 on the production
+project:** Site URL `https://www.getfilewell.com`; redirect URLs
+`https://www.getfilewell.com/**` and `https://getfilewell.com/**`; Confirm email ON; secure
+email change ON; password policy 10+ with lower/upper/digit; leaked-password protection ON;
+branded subjects; custom SMTP through Resend (`smtp.resend.com`, port **587** (it was saved
+as 572 and was corrected), username `resend`, sender `Filewell <support@getfilewell.com>`,
+password set); email rate limit 30/hour. Optional: the branded template bodies below.
 
 - **URL configuration:** Site URL `https://www.getfilewell.com`. Redirect URLs
   `https://www.getfilewell.com/auth/confirm` and `https://www.getfilewell.com/**`. No
@@ -207,7 +222,7 @@ SMTP and (optional) the branded template bodies below.
 - **Email provider:** Confirm email ON. Secure email change ON.
 - **Passwords:** minimum length 10, lowercase + uppercase + digits (matches the app),
   leaked-password protection ON.
-- **Custom SMTP (Resend):** host `smtp.resend.com`, port `465`, username `resend`,
+- **Custom SMTP (Resend):** host `smtp.resend.com`, port `587` (or `465`; Resend also accepts 25, 2465, 2587), username `resend`,
   password = a separate Resend API key (Sending access, getfilewell.com only), sender
   `filings@getfilewell.com`, sender name `Filewell`. Then raise the email rate limit to at
   least 30 per hour.

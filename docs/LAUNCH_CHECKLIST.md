@@ -11,21 +11,18 @@ build, 414 unit and DB tests, the Playwright journey on staging and on a Vercel 
 `tests/e2e/public.spec.ts` against https://www.getfilewell.com, and a 25-point read-only
 production check. See [FIRST_CUSTOMER_READINESS.md](FIRST_CUSTOMER_READINESS.md).
 
-Observed 2026-09-29 (read-only checks of Vercel and Supabase):
+Observed 2026-09-30 (re-audit of live Vercel env names/targets, Supabase auth settings,
+DNS, production database and the live site; details in
+[FIRST_CUSTOMER_READINESS.md](FIRST_CUSTOMER_READINESS.md) section 2):
 
-- Production Supabase `tnwpcprvetxtgyjuncrl` (filewell-production, Pro org, us-east-1):
-  migrations 000001 to 000006 applied; reference data present (51 states, 8 PA rules,
-  reminder schedule, one provisional $49 PA price, **not approved**); private
-  `filing-documents` bucket; 0 users, 0 staff, 0 orders. `notification_templates` is
-  empty at first; **filled later on 2026-09-29** (all 15 templates, identical to staging),
-  and migration 000007 applied to both projects.
-- Vercel Production still points `NEXT_PUBLIC_SUPABASE_URL` / keys at **staging**
-  (`iskphxoowsiuvvojswty`), and has `EMAIL_PROVIDER=outbox`, `PAYMENTS_PROVIDER=sandbox`
-  and `SANDBOX_WEBHOOK_SECRET`. `RESEND_API_KEY` is set on Production **and Preview**.
-  `NEXT_PUBLIC_SITE_URL=https://www.getfilewell.com`, `EMAIL_FROM` and `EMAIL_REPLY_TO`
-  are set on Production.
-- DNS: getfilewell.com is verified in Resend; it has **no MX record**, so mail to
-  support@getfilewell.com bounces.
+- Production reads and writes `tnwpcprvetxtgyjuncrl` (filewell-production) with matching
+  keys; Preview and Development use staging. 0 users, 0 orders, 0 staff in production.
+- Supabase Auth production settings verified; SMTP port corrected from 572 to 587.
+- Email: `EMAIL_PROVIDER=resend` on Production; Cloudflare Email Routing MX present; DKIM
+  and Resend SPF present; **duplicate DMARC** and a root SPF without Cloudflare's include
+  remain (owner).
+- Payments: `PAYMENTS_PROVIDER=sandbox`, `PAYMENTS_LIVE_ENABLED=false`; production refuses
+  the sandbox, so checkout is closed. Indexing off.
 
 ## 1. Infrastructure and data
 
@@ -33,11 +30,11 @@ Observed 2026-09-29 (read-only checks of Vercel and Supabase):
 | --- | --- | --- |
 | PASS | Production Supabase project created in the Pro org (daily backups, no auto-pause); migrations applied | g1-integrity-02, critic-06 |
 | PASS | Reference data and all 15 notification templates seeded | g1-integrity-12 |
-| BLOCKED | Vercel **Production-only** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` set to the production project; staging values kept on Preview/Development; redeploy | g1-integrity-02, g3-email-08 |
+| PASS | Vercel Production reads filewell-production: Production-only URL and publishable key, `SUPABASE_SERVICE_ROLE_KEY` (staging `SUPABASE_SECRET_KEY` scoped to Preview); Preview/Development on staging; verified by a live write and the /admin "Database keys" check (fixed 2026-09-30) | g1-integrity-02, g3-email-08 |
 | BLOCKED | Production-only secrets: new `APP_SIGNING_SECRET`, `IP_HASH_SALT`, `CRON_SECRET`; remove `SANDBOX_WEBHOOK_SECRET` and the Preview target of `RESEND_API_KEY` | critic-02 |
-| BLOCKED | Supabase Auth on the production project: Site URL, redirect URLs, confirmations, password policy, leaked-password check and branded subjects are **done**; custom SMTP (needs a Resend API key) and optional template bodies remain | g1-integrity-03, g2-email-10, g3-email-04, g3-email-06, critic-03 |
-| BLOCKED | Owner signs up at https://www.getfilewell.com and is granted admin (`grant-staff` with `CONFIRM_PRODUCTION`); no test users or staff in production | g7-ops-01, g4-5-pay-price-08, g1-integrity-09 |
-| BLOCKED | Vercel plan allows commercial use (Pro) | g1-integrity-21 |
+| PASS | Supabase Auth on the production project: Site URL, redirects (www + apex), confirmations, password policy, leaked-password check, branded subjects, custom SMTP via Resend on port 587 (was saved as 572; corrected 2026-09-30), 30 emails/hour. Optional: branded template bodies | g1-integrity-03, g2-email-10, g3-email-04, g3-email-06 |
+| BLOCKED | Owner signs up at https://www.getfilewell.com, confirms, tests sign-in and password reset, and is granted admin (SQL in OPERATIONS.md); no test users or staff in production (0 today) | g7-ops-01, g4-5-pay-price-08, g1-integrity-09 |
+| PASS | Vercel plan allows commercial use (Pro) | g1-integrity-21 |
 | BLOCKED | GitHub repo visibility decided; 2FA on GitHub, Vercel, Supabase, Stripe, registrar/DNS; branch protection on `main`; Vercel Git Fork Protection on | critic-01 |
 | PASS | Scripts refuse the production project unless `CONFIRM_PRODUCTION` names it. E2E never uses the production project, and against a production host only `tests/e2e/public.spec.ts` runs. Production credentials never in `.env.local` | g1-integrity-10, g1-integrity-11 |
 | PASS | `*.vercel.app` production aliases redirect to the canonical domain; production links always use https://www.getfilewell.com | g1-integrity-07, g2-domain-08, g3-email-05, g9-seo-05 |
@@ -47,9 +44,9 @@ Observed 2026-09-29 (read-only checks of Vercel and Supabase):
 | Status | Item | Ids |
 | --- | --- | --- |
 | PASS | getfilewell.com verified in Resend; `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` set on Production | g2-email-11, g3-email-03 |
-| BLOCKED | Production `EMAIL_PROVIDER` changed from `outbox` to `resend` (or removed), after the Supabase switch above; redeploy | g3-email-03, g3-email-08, g6-legal-25 |
-| BLOCKED | Inbound mail: MX / forwarding for support@ (and dmarc@, billing@) on getfilewell.com, monitored by a named person | g2-brand-02, g6-legal-01, g3-email-12 |
-| BLOCKED | DMARC TXT at `_dmarc.getfilewell.com`; Resend open/click tracking off | g3-email-03 |
+| PASS | Production `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` Production-only, `EMAIL_FROM`/`EMAIL_REPLY_TO` set; first real delivery still to be observed (READINESS 4.5) | g3-email-03, g3-email-08, g6-legal-25 |
+| PASS | Inbound mail: Cloudflare Email Routing MX on getfilewell.com; support@, filings@, billing@ forwarded (owner-confirmed) | g2-brand-02, g6-legal-01, g3-email-12 |
+| BLOCKED | DNS: **two** DMARC TXT records at `_dmarc` (receivers then ignore DMARC): delete `v=DMARC1; p=none;`, keep the one with `rua`. Root SPF lacks `include:_spf.mx.cloudflare.net` (Email Routing). Resend open/click tracking off | g3-email-03 |
 | BLOCKED | Verification: real signup + password reset from an outside address, one owner order; Gmail "Show original" shows SPF, DKIM, DMARC = PASS; `/admin/notifications` shows provider `resend` | g3-email-16 |
 | BLOCKED | Postal address for email footers (`NEXT_PUBLIC_POSTAL_ADDRESS`); counsel says whether reminders are commercial | g3-email-15, g6-legal-26 |
 | PASS | Resend delivers only on production; misconfiguration fails visibly; test-domain recipients blocked; operator messages reflect the real send result | g2-email-12, g3-email-02, g3-email-07, g3-email-09, g7-ops-07 |
