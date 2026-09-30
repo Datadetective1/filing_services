@@ -33,7 +33,7 @@ DNS, production database and the live site; details in
 | PASS | Vercel Production reads filewell-production: Production-only URL and publishable key, `SUPABASE_SERVICE_ROLE_KEY` (staging `SUPABASE_SECRET_KEY` scoped to Preview); Preview/Development on staging; verified by a live write and the /admin "Database keys" check (fixed 2026-09-30) | g1-integrity-02, g3-email-08 |
 | BLOCKED | Production-only secrets: new `APP_SIGNING_SECRET`, `IP_HASH_SALT`, `CRON_SECRET`; remove `SANDBOX_WEBHOOK_SECRET` and the Preview target of `RESEND_API_KEY` | critic-02 |
 | PASS | Supabase Auth on the production project: Site URL, redirects (www + apex), confirmations, password policy, leaked-password check, branded subjects, custom SMTP via Resend on port 587 (was saved as 572; corrected 2026-09-30), 30 emails/hour. Optional: branded template bodies | g1-integrity-03, g2-email-10, g3-email-04, g3-email-06 |
-| BLOCKED | Owner signs up at https://www.getfilewell.com, confirms, tests sign-in and password reset, and is granted admin (SQL in OPERATIONS.md); no test users or staff in production (0 today) | g7-ops-01, g4-5-pay-price-08, g1-integrity-09 |
+| PASS | Owner signed up at https://www.getfilewell.com, confirmed, tested sign-in and password reset, and was granted admin (owner-verified 2026-09-30) | g7-ops-01, g4-5-pay-price-08, g1-integrity-09 |
 | PASS | Vercel plan allows commercial use (Pro) | g1-integrity-21 |
 | BLOCKED | GitHub repo visibility decided; 2FA on GitHub, Vercel, Supabase, Stripe, registrar/DNS; branch protection on `main`; Vercel Git Fork Protection on | critic-01 |
 | PASS | Scripts refuse the production project unless `CONFIRM_PRODUCTION` names it. E2E never uses the production project, and against a production host only `tests/e2e/public.spec.ts` runs. Production credentials never in `.env.local` | g1-integrity-10, g1-integrity-11 |
@@ -46,8 +46,8 @@ DNS, production database and the live site; details in
 | PASS | getfilewell.com verified in Resend; `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` set on Production | g2-email-11, g3-email-03 |
 | PASS | Production `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` Production-only, `EMAIL_FROM`/`EMAIL_REPLY_TO` set; first real delivery still to be observed (READINESS 4.5) | g3-email-03, g3-email-08, g6-legal-25 |
 | PASS | Inbound mail: Cloudflare Email Routing MX on getfilewell.com; support@, filings@, billing@ forwarded (owner-confirmed) | g2-brand-02, g6-legal-01, g3-email-12 |
-| BLOCKED | DNS: **two** DMARC TXT records at `_dmarc` (receivers then ignore DMARC): delete `v=DMARC1; p=none;`, keep the one with `rua`. Root SPF lacks `include:_spf.mx.cloudflare.net` (Email Routing). Resend open/click tracking off | g3-email-03 |
-| BLOCKED | Verification: real signup + password reset from an outside address, one owner order; Gmail "Show original" shows SPF, DKIM, DMARC = PASS; `/admin/notifications` shows provider `resend` | g3-email-16 |
+| PASS | DNS: one DMARC record (p=none, rua), root SPF includes Cloudflare Email Routing; SPF/DKIM/DMARC pass (verified 2026-09-30) | g3-email-03 |
+| PASS | Real signup, confirmation, reset and a production app email (Resend, `filings@` with Reply-To `support@`, reply routed back via Cloudflare) verified 2026-09-30; `/admin/notifications` shows `resend` / `sent` | g3-email-16 |
 | BLOCKED | Postal address for email footers (`NEXT_PUBLIC_POSTAL_ADDRESS`); counsel says whether reminders are commercial | g3-email-15, g6-legal-26 |
 | PASS | Resend delivers only on production; misconfiguration fails visibly; test-domain recipients blocked; operator messages reflect the real send result | g2-email-12, g3-email-02, g3-email-07, g3-email-09, g7-ops-07 |
 
@@ -57,11 +57,11 @@ DNS, production database and the live site; details in
 | --- | --- | --- |
 | PASS | No real charge is possible today; state fee and service fee are separate lines; no PA late fee is claimed | g4-5-pay-price-01, g4-5-pay-price-09, g4-5-pay-price-11 |
 | PASS | Production refuses the sandbox and Stripe test keys; until Stripe is live, production checkout says payments are unavailable | g1-integrity-04, g4-5-pay-price-02, g6-legal-27 |
-| BLOCKED | Stripe account for this business: verification, public details, statement descriptor, receipts, instant payment methods only, Radar and dispute alerts | g4-5-pay-price-16, g2-brand-23, critic-07 |
-| BLOCKED | Stripe test-mode purchase and refund run end to end off production (local Stripe CLI) | g1-integrity-19 |
+| BLOCKED | Stripe live account `acct_1ULCTn0kBic3wOhx`: charges + payouts enabled, descriptor FILEWELL, MCC 7399, card + Link only (enforced in code). **Past due:** bank account and identity-verification challenge; public support email empty | g4-5-pay-price-16, g2-brand-23, critic-07 |
+| PASS | Checkout verified without money moving: a live session with the production parameters ($49 + $7 = $56, card + Link, www URLs) was accepted by Stripe and expired unpaid; sandbox journey (pay, duplicate/forged webhooks, file, refund paths) 21/21 E2E on staging (2026-09-30) | g1-integrity-19 |
 | BLOCKED | Sales-tax determination for the service fee | g4-5-pay-price-16 |
-| BLOCKED | Owner sets and approves the final PA service fee in `/admin/pricing` | g4-5-pay-price-08, g1-integrity-05 |
-| BLOCKED | Live keys, webhook secret, `PAYMENTS_PROVIDER=stripe`, `PAYMENTS_LIVE_ENABLED=true` on the Production target only, never "All environments" (owner approval) | g1-integrity-19 |
+| PASS | PA service fee $49.00 approved (owner's written approval, recorded with an audit row 2026-09-30) | g4-5-pay-price-08, g1-integrity-05 |
+| BLOCKED | Live webhook endpoint created (`we_1ULElQ0kBic3wOhxnXQTsnHJ`, 6 events, API 2026-08-26.dahlia); `PAYMENTS_PROVIDER=stripe` and `PAYMENTS_LIVE_ENABLED=false` on Production only. Owner adds `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (Production, Sensitive), then flips `PAYMENTS_LIVE_ENABLED` after the controlled test | g1-integrity-19 |
 | PASS | `ALLOW_TEST_PAYMENTS_IN_PRODUCTION`, `ALLOW_SANDBOX_IN_PRODUCTION` (older name, no longer honored since `06d7581`) and `ALLOW_REAL_PAYMENTS_IN_TESTS` are set on no Vercel target (env names checked 2026-09-29, values not read). Keep it that way | g1-integrity-04 |
 
 ## 4. Legal
@@ -73,14 +73,14 @@ DNS, production database and the live site; details in
 | PASS | Authorization text v2 ("the amount I pay for this order") and agreement to the Terms and Refund Policy with their date, stored with each signature; checkbox covers the full text; the version follows the legal documents' date | g6-legal-08, g6-legal-09, g6-legal-20 |
 | PASS | Signed text names the legal name being filed (the intake answer), not the name typed at lookup, both in `authorizeFiling` and on the Review page | g6-legal-19 |
 | BLOCKED | Owner decision, recorded with the document date: take the first paid order under unreviewed draft terms, or get attorney review first | g6-legal-05, g2-legal-21 |
-| BLOCKED | Legal entity name (`NEXT_PUBLIC_LEGAL_ENTITY`), state of formation, governing law and disputes clause, postal address, support reply time, PA fee-refund wording, retention periods | g2-legal-05, g6-legal-04, g4-5-pay-price-22, g6-legal-16 |
+| BLOCKED | Operator set (`NEXT_PUBLIC_LEGAL_ENTITY=Amary Coulibaly, sole proprietor`); retention, reply time, PA fee-refund wording and disputes placeholders resolved without inventing facts. Still open: governing-law state (`NEXT_PUBLIC_GOVERNING_LAW`), public postal address (optional; legal pages say "available on request") | g2-legal-05, g6-legal-0 |
 | BLOCKED | Counsel confirms the service may e-sign the PA report as authorized representative, and the exact signer name and title | g6-legal-11, g2-legal-07 |
 
 ## 5. Operations
 
 | Status | Item | Ids |
 | --- | --- | --- |
-| BLOCKED | Company Business Filing Services login at file.dos.pa.gov and a company card for the $7 state fee | g7-ops-08 |
+| PASS | Owner has a Business Filing Services login at file.dos.pa.gov and funds for the $7 state fee (owner-confirmed 2026-09-30) | g7-ops-08 |
 | PASS | Operator guards and visibility: sandbox orders labelled, "ready to file" checks, refunds owed stay visible, customer messages surfaced, staff alerts | g1-integrity-08, g7-ops-03 to g7-ops-06, g7-ops-12, g7-ops-13, g3-email-13 |
 | PASS | Incident, rollback, backup and export basics documented | critic-06 |
 | BLOCKED | Before Jan 1, 2027: confirm whether PA accepts a 2026 report after Dec 31 | g8-deadline-14 |

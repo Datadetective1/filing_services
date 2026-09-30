@@ -15,6 +15,14 @@ import {
 } from "./types";
 
 /**
+ * Payment methods offered in hosted Checkout: cards (which include Apple Pay and Google
+ * Pay) and Link. All settle instantly. Delayed or buy-now-pay-later methods (ACH, Klarna,
+ * Afterpay, Cash App and so on) are left out even if active on the account, so an order is
+ * paid before we file and a refund never races a pending bank debit.
+ */
+export const CHECKOUT_PAYMENT_METHOD_TYPES = ["card", "link"] as const;
+
+/**
  * Stripe adapter (hosted Checkout — we never see or store card data).
  * Constructing it with a live key throws unless PAYMENTS_LIVE_ENABLED=true.
  */
@@ -45,6 +53,7 @@ export class StripePaymentProvider implements PaymentProvider {
     const session = await this.stripe.checkout.sessions.create(
       {
         mode: "payment",
+        payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
         customer_email: input.customerEmail,
         client_reference_id: input.orderId,
         line_items: input.lineItems

@@ -268,47 +268,54 @@ password set); email rate limit 30/hour. Optional: the branded template bodies b
 
 ## Stripe production setup
 
-1. Stripe account for this business, verification complete. Describe it as a private
-   filing-preparation service (MCC 7399 or 8999, never a government MCC).
-2. Public details: business name `Filewell` (or the legal entity), statement descriptor
-   `FILEWELL` (22 characters max, nothing that reads like a state agency), support email
-   `support@getfilewell.com`, website `https://www.getfilewell.com`, support URL
-   `https://www.getfilewell.com/help`.
-3. Settings: customer email receipts ON; payment methods = cards and wallets only
-   (instant settlement); Radar default rules ON; dispute and early-fraud-warning
-   notifications to the owner.
-4. Webhook endpoint `https://www.getfilewell.com/api/webhooks/payments/stripe` (the `www`
-   host: Stripe does not follow the apex redirect), API version `2026-08-26.dahlia` (the
-   SDK's pinned version). Events the adapter handles (`src/lib/payments/stripe.ts`):
-   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-   `checkout.session.async_payment_failed`, `checkout.session.expired`,
-   `refund.created`, `refund.updated`. (`payment_intent.payment_failed` is ignored and
-   need not be sent.) The endpoint's signing secret is `STRIPE_WEBHOOK_SECRET` on Production.
-5. Test mode first, off production (production refuses test keys): locally with
-   `sk_test_` keys in `.env.local`, `PAYMENTS_PROVIDER=stripe` and
-   `stripe listen --forward-to localhost:3000/api/webhooks/payments/stripe`; run a
-   purchase and a refund end to end.
-6. Get a determination on sales tax for the service fee.
+State on 2026-09-30 (live account `acct_1ULCTn0kBic3wOhx`, individual / sole proprietor):
+
+1. Account: charges and payouts enabled, details submitted, MCC 7399, website
+   `https://www.getfilewell.com`, statement descriptor `FILEWELL`. **Past due:** a bank
+   account (`external_account`) and an identity-verification challenge; the public
+   support email is empty. The owner resolves these in the Dashboard (Settings → Business
+   → Public details; Balances → Payout account; the verification banner).
+2. Payment methods: enforced in code (`CHECKOUT_PAYMENT_METHOD_TYPES` in
+   `src/lib/payments/stripe.ts`): cards (incl. Apple Pay / Google Pay) and Link only. Other
+   methods active on the account (ACH, Klarna, Afterpay, Cash App...) never appear.
+3. Webhook endpoint (created by the engineer with the Stripe CLI):
+   `we_1ULElQ0kBic3wOhxnXQTsnHJ` → `https://www.getfilewell.com/api/webhooks/payments/stripe`
+   (the `www` host: Stripe does not follow the apex redirect), API version
+   `2026-08-26.dahlia` (the SDK's pinned version), events `checkout.session.completed`,
+   `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`,
+   `checkout.session.expired`, `refund.created`, `refund.updated`. Its signing secret is
+   shown in the Dashboard (Developers → Webhooks → the endpoint → Signing secret → Reveal)
+   and goes into `STRIPE_WEBHOOK_SECRET` on Production.
+4. Vercel (done): `PAYMENTS_PROVIDER` is `stripe` on Production and `sandbox` on
+   Preview/Development; `PAYMENTS_LIVE_ENABLED` has a Production-only variable (`false`).
+   Still needed on Production (owner, Sensitive): `STRIPE_SECRET_KEY` (`sk_live_...` from
+   Developers → API keys; never the Stripe CLI's key) and `STRIPE_WEBHOOK_SECRET`.
+5. Check: `/admin` → System status → **Stripe account** and **Stripe webhook** (a read-only
+   live check that works while checkout is still off). Payments reads "Off" with the note
+   "Live Stripe key present but PAYMENTS_LIVE_ENABLED is not 'true'" until the switch.
+6. Stripe CLI (engineer): always `--project-name=filewell --live`, never the default
+   profile. It is for inspection and configuration only; the app never uses its key.
+7. Sales tax on the service fee: not collected (Stripe Tax off); get a determination.
 
 ## Approving the service fee
 
 Owner only, signed in as admin: `/admin/pricing` → **Change fee** if needed (saving resets
 approval) → **Approve price** → confirm "I approve this price for live payments". Live
 checkout refuses an unapproved price. Afterwards check that `/pricing`, the Pennsylvania
-page and checkout show the same fee. Never approve on the owner's behalf.
+page and checkout show the same fee. The engineer records an approval only on the owner's
+written instruction, with an audit row (done 2026-09-30: PA $49.00, owner's written
+approval of $49 + $7 = $56).
 
 ## Turning on live payments (owner approval)
 
-Preconditions: Stripe setup done, test-mode run passed, fee approved, production on its
-own Supabase project, email delivering, legal decision recorded (LAUNCH_CHECKLIST).
+Preconditions: Stripe keys in place and both Stripe rows green on `/admin`, fee approved
+(done), email delivering (done), legal decision recorded (LAUNCH_CHECKLIST).
 
-1. Vercel Production only: `PAYMENTS_PROVIDER=stripe`, `STRIPE_SECRET_KEY=sk_live_...`,
-   `STRIPE_WEBHOOK_SECRET`, `PAYMENTS_LIVE_ENABLED=true`. Remove `SANDBOX_WEBHOOK_SECRET`
-   from Production. Redeploy.
-2. Check that the staff status on `/admin` reports live payments, then place one owner
-   order and confirm the webhook marks it paid (cancel and refund it if it is not a real
-   filing).
-3. To stop taking payments: set `PAYMENTS_LIVE_ENABLED=false` and redeploy. Checkout then
+1. Vercel → Settings → Environment Variables → the **Production** `PAYMENTS_LIVE_ENABLED`
+   → Edit → `true` → Save → Deployments → latest Production → ⋯ → Redeploy.
+2. `/admin` must read Payments **Live: real charges**. Then run the first controlled
+   payment (FIRST_CUSTOMER_READINESS.md, "First live payment test").
+3. To stop taking payments: set it back to `false` and redeploy. Checkout then
    shows payments as unavailable, and orders already paid stay paid. While switched off,
    Stripe webhooks get 503 and are retried (up to 3 days), so a checkout completed just
    before the switch shows as paid only after you switch back. Console refunds also fail.

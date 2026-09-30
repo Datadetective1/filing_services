@@ -2,7 +2,7 @@ import Stripe from "stripe";
 import { describe, expect, it } from "vitest";
 import { site } from "@/config/site";
 import { checkoutDescription, checkoutLineItemName } from "@/lib/payments/checkout-text";
-import { StripePaymentProvider } from "@/lib/payments/stripe";
+import { CHECKOUT_PAYMENT_METHOD_TYPES, StripePaymentProvider } from "@/lib/payments/stripe";
 
 // Fake, non-secret values. Only signature verification and normalization run: no network.
 const KEY = "sk_test_unit_000000000000000000000000";
@@ -73,5 +73,11 @@ describe("checkout wording sent to the processor", () => {
       `${site.name} filing service: Pennsylvania Annual Report`,
     );
     expect(checkoutDescription({ stateName: "Pennsylvania", filingName: "Annual Report", businessName: "A".repeat(400) })).toHaveLength(200);
+  });
+});
+
+describe("Checkout payment methods", () => {
+  it("offers only instant-settling methods: cards (incl. Apple Pay / Google Pay) and Link", () => {
+    expect([...CHECKOUT_PAYMENT_METHOD_TYPES]).toEqual(["card", "link"]);
   });
 });
