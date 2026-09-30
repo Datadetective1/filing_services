@@ -22,6 +22,8 @@ export const site = {
   legalEntityConfigured: legalEntity !== null,
   /** Physical postal address for email footers and legal pages; null until configured. */
   postalAddress: process.env.NEXT_PUBLIC_POSTAL_ADDRESS?.trim() || null,
+  /** Jurisdiction whose law governs the terms (e.g. "the Commonwealth of Pennsylvania"); null until the owner chooses. */
+  governingLaw: process.env.NEXT_PUBLIC_GOVERNING_LAW?.trim() || null,
   tagline: "Never miss a business filing.",
   description:
     "Know what your business needs to file, when it's due, and get it handled. A private filing service for U.S. annual reports.",

@@ -1,209 +1,250 @@
 # First-customer readiness: Filewell, Pennsylvania
 
-Re-audited 2026-09-30 against the live production configuration (Vercel env names and
-targets, Supabase auth settings, DNS, production database, live site). Canonical site:
-https://www.getfilewell.com. Detailed checklist: [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).
-Runbooks: [OPERATIONS.md](OPERATIONS.md).
+Overnight launch-readiness sprint, 2026-09-30, against the live configuration (Vercel env,
+Supabase production, live Stripe account via the Stripe CLI `--project-name=filewell --live`,
+live site). Canonical site: https://www.getfilewell.com. Checklist:
+[LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md). Runbooks: [OPERATIONS.md](OPERATIONS.md).
 
-## 1. Launch verdict
+## 1. Verdict
 
-**CAN FILEWELL ACCEPT ITS FIRST REAL CUSTOMER? NO, not yet.** Infrastructure, DNS, owner
-auth and production email are verified end to end. What remains: the legal operator
-identity and draft-terms decision, Pennsylvania filing access, fee approval, Stripe live
-payments, and one real order you place yourself. The full customer-to-operator workflow is
-validated on staging and a Vercel preview.
+**CAN FILEWELL TECHNICALLY ACCEPT ITS FIRST $56 CUSTOMER? NO, not yet.** Everything the
+engineer can do is done and verified. What remains needs you: resolve two past-due Stripe
+requirements (bank account, identity-verification challenge), paste the live secret key and
+webhook signing secret into Vercel, then run the controlled first payment (section 5) and
+switch on. After those steps, with the status panel green, the answer is YES.
 
-**Ready to proceed to Stripe setup: yes.** Production database, auth, email and domain are
-all verified (owner checks in 4.1 passed 2026-09-30). Payments and indexing remain off.
+Payments stay **off** (`PAYMENTS_LIVE_ENABLED=false` on Production). Search indexing stays
+**off**. No money has moved.
 
-## 2. Re-audit findings (2026-09-30)
+## 2. Completed overnight
 
-**Fixed during the re-audit**
+**Payment architecture audit (no rewrite needed).** One provider abstraction
+(`src/lib/payments`), Stripe hosted Checkout (no card data touches Filewell), and:
+- Webhooks verified with Stripe's signature and timestamp; unsigned or forged requests get
+  400; payments not configured gets 503 (Stripe retries).
+- Idempotent: `payment_events(provider, provider_event_id)` is unique; a replayed event is
+  a no-op.
+- An order becomes paid only in the database function `apply_payment_success`, which
+  checks the amount and currency against the order, matches the session to its own payment
+  (metadata cross-check), flags a second payment for an already-paid order for refund, and
+  sends an unauthorized or incomplete filing to "needs information" instead of the work
+  queue.
+- The success redirect never marks anything paid by itself: the return page re-reads the
+  session from Stripe and applies it through the same function.
+- Checkout is refused unless the filing is authorized, the details still match the signed
+  authorization (hash), the price is approved, and live mode is on. A retry expires or
+  applies older sessions first, so a customer cannot pay twice by double-clicking.
+- Prices come from the database, never from the browser; the order stores state fee,
+  service fee and total separately, and refunds record both parts.
 
-1. **Production was using staging keys against the production database.** The app reads
-   `SUPABASE_SECRET_KEY` before `SUPABASE_SERVICE_ROLE_KEY`, and
-   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` before `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The staging
-   values of the preferred names were still on the Production target, so the new production
-   keys were ignored: Supabase rejected the public key (`401 Invalid API key`), and server
-   writes failed silently (a page view's analytics row reached neither database). Sign-up,
-   sign-in and every database action on www were broken in the live deployment.
-   Fix (env targets only; no secret value read, rotated or deleted): `SUPABASE_SECRET_KEY`
-   (staging) scoped to Preview; the staging publishable key scoped to Preview and
-   Development; a Production-only `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` with the production
-   key; production redeployed. Verified: a page view now writes to `filewell-production`,
-   and the site's security policy references only the production project.
-2. **Preview and Development pointed at the production database.** `NEXT_PUBLIC_SUPABASE_URL`
-   (production) applied to all targets, so previews and E2E runs could have written test data
-   into production. It is now Production-only, with a Preview/Development variable pointing
-   at staging.
-3. **Supabase SMTP port was 572** (Resend accepts 25, 465, 587, 2465, 2587), so every
-   sign-up and password-reset email would have failed. Corrected to 587 (password
-   untouched). No sign-ups had been attempted yet.
-4. **New safeguard:** the admin status panel now shows "Database keys: Both keys accepted"
-   (a live check of each key), so a key from the wrong project is visible at a glance.
+**Changes (branch `launch/stripe-readiness`, merged to main and deployed; see git log):**
+1. Admin → System status now has **Stripe account** and **Stripe webhook** rows: a live,
+   read-only check (charges, payouts, outstanding requirements, statement descriptor;
+   endpoint URL, events and API version) that works while checkout is still off. It never
+   reads or shows a secret.
+2. Checkout offers only **card** (with Apple Pay / Google Pay) and **Link**. The account
+   also has ACH, Klarna, Afterpay, Cash App and others active; those are excluded in code
+   so every order settles instantly before we file.
+3. Legal pages: bracketed placeholders resolved without inventing facts (retention periods,
+   refund reply time, PA fee-refund wording, disputes clause); the operator is shown as
+   **Amary Coulibaly, sole proprietor**; "private business" (not "company"); postal address
+   reads "available on request from support@getfilewell.com" (no private address
+   published); governing law stays bracketed until you choose it (one env var).
+   `LEGAL_LAST_UPDATED` = 2026-09-30. No LLC, DBA, EIN or attorney review is claimed; the
+   "Draft for legal review" banner remains because no attorney has reviewed the terms.
 
-**Verified correct**
+**Configuration:**
+- Production PA service price **$49.00 approved** (your written approval; recorded with an
+  audit row). PA state fee **$7.00** (from the verified rule; $0 for nonprofit LLCs and
+  nonprofit corporations). Checkout total **$56.00**, shown as two lines.
+- Vercel: `PAYMENTS_PROVIDER=stripe` on Production, `sandbox` on Preview/Development;
+  `PAYMENTS_LIVE_ENABLED` has its own Production variable (`false`), so switching on
+  touches only Production. `NEXT_PUBLIC_LEGAL_ENTITY` set on Production.
+- Stripe live webhook endpoint created: `we_1ULElQ0kBic3wOhxnXQTsnHJ` →
+  `https://www.getfilewell.com/api/webhooks/payments/stripe`, enabled, API version
+  `2026-08-26.dahlia` (the SDK's), exactly the six events the code handles. Its signing
+  secret was not printed or stored anywhere by the engineer.
 
-- Vercel Production: `NEXT_PUBLIC_SUPABASE_URL` = filewell-production, production
-  publishable key, `SUPABASE_SERVICE_ROLE_KEY` (production), `EMAIL_PROVIDER=resend`,
-  `RESEND_API_KEY` (Production only), `EMAIL_FROM=Filewell <filings@getfilewell.com>`,
-  `EMAIL_REPLY_TO=support@getfilewell.com`, `NEXT_PUBLIC_SITE_URL=https://www.getfilewell.com`,
-  `PAYMENTS_PROVIDER=sandbox` + `PAYMENTS_LIVE_ENABLED=false` (production refuses the sandbox,
-  so checkout is safely closed), `NEXT_PUBLIC_ALLOW_INDEXING=false`. None of the
-  `ALLOW_*_IN_PRODUCTION` overrides exist. Vercel is on Pro.
-- Production database: reference data plus the owner's own records only (1 user, 1 admin,
-  1 business, 1 draft filing, 1 notification); 0 orders, 0 payments. No staging or test
-  records.
-- Supabase auth (production): Site URL `https://www.getfilewell.com`, redirects for www and
-  apex only, email confirmation required, password policy and leaked-password check on,
-  custom SMTP via Resend (sender support@getfilewell.com), 30 emails/hour.
-- Live site: 25/25 read-only production checks, 14/14 public smoke tests (desktop + mobile),
-  a no-account lookup at desktop and mobile ($7 state fee shown, unapproved $49 hidden,
-  "File it yourself" links to file.dos.pa.gov), auth pages noindex, invalid or expired
-  confirmation links land on a clear login message, open-redirect probe refused, sandbox
-  checkout 404, sandbox webhook 503, admin requires sign-in.
-- DNS: DKIM `resend._domainkey` present; Resend SPF and bounce MX on `send.getfilewell.com`;
-  Cloudflare Email Routing MX on getfilewell.com; Cloudflare DKIM key present.
+**Tests (all passing):** typecheck, lint, production build, 344 unit tests, 82 database
+tests (real Postgres with the production migrations: payment guards, replay dedupe, amount
+and currency mismatch, duplicate payment, out-of-order events, partial/full refunds, RLS),
+21/21 E2E on the staging preview (sign-in, intake, authorization, sandbox payment,
+duplicate and forged webhooks harmless, cross-customer isolation, operator filing,
+customer notification and receipt download, desktop and mobile public pages), and the
+read-only production checks after deploy (section 2, "Production checks" in the report).
 
-**DNS (re-verified externally 2026-09-30 via 1.1.1.1 and 8.8.8.8): PASS.** One DMARC
-record (`v=DMARC1; p=none; rua=...@dmarc-reports.cloudflare.net`); root SPF
-`v=spf1 include:_spf.mx.cloudflare.net include:amazonses.com -all` (2 DNS lookups); Resend
-SPF and bounce MX on `send.getfilewell.com`; DKIM `resend._domainkey`; Cloudflare Email
-Routing MX. Amazon SES is not used anywhere (no code, dependency or env var; Resend sends
-with its own return path on `send.`), so `include:amazonses.com` can be removed later for a
-tighter SPF; it is harmless.
+**Live checkout verified without moving money:** a live Checkout Session with the
+production parameters was accepted by Stripe (line items "Filewell service fee" $49.00 and
+"Pennsylvania Department of State filing fee (passed through at cost)" $7.00, total
+$56.00, card + Link, checkout.stripe.com) and expired immediately, unpaid. No order was
+created in Filewell. Its `checkout.session.expired` event is being retried against the
+webhook (503 until your keys are in) and will be ignored as unmatched; if Stripe emails you
+about a failed webhook delivery tonight, that is the cause.
 
-**Owner auth: PASS (owner-verified 2026-09-30).** On www, with a real address: sign-up,
-the confirmation email (via Supabase custom SMTP through Resend), sign-in, and password
-reset all worked. The owner was granted admin with the first-admin SQL in OPERATIONS.md
-(1 active staff member, role `admin`; `staff.granted` audit row).
+## 3. Stripe live status
 
-**Production app email: PASS (2026-09-30).** The owner clicked "Send test email to me" on
-`/admin/notifications` (staff-only; same `sendNotification` path, renderer and Resend
-provider as customer emails; no filing, order or payment involved).
-- Database (engineer-verified): notification `staff_email_test`, status `sent`, provider
-  `resend`, with a Resend message id (Resend accepted it); one `email.test_sent` audit row;
-  orders 0, payments 0, and the one draft filing unchanged (status `draft`, not updated
-  since it was created before the send).
-- Outlook (owner-verified): arrived from `Filewell <filings@getfilewell.com>` with subject
-  "Filewell production email test"; Reply-To was `support@getfilewell.com`; the reply was
-  routed back to the owner's Outlook inbox through Cloudflare Email Routing.
+| Item | Status |
+|---|---|
+| Account | `acct_1ULCTn0kBic3wOhx`, US, individual (sole proprietor) |
+| Charges enabled | Yes |
+| Payouts enabled | Yes |
+| Details submitted | Yes |
+| Requirements outstanding | **Past due:** `external_account` (no bank account for payouts) and an identity-verification challenge. Nothing pending review. Stripe may pause charges or payouts until these are done |
+| Public details | Name Filewell, website www.getfilewell.com, MCC 7399, descriptor `FILEWELL`. Support email **empty** |
+| Webhook | Created and enabled (`we_1ULElQ0kBic3wOhxnXQTsnHJ`, 6 events, correct API version) |
+| Production keys connected | **No.** `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` must be added by you |
+| $49 service price | Approved and configured |
+| $7 PA fee | Configured (verified rule) |
+| Checkout | Verified live (unpaid session, expired) |
+| Stripe Tax | Off, as decided. No tax is added |
+| Live charging | Off (`PAYMENTS_LIVE_ENABLED=false`) |
 
-## 3. Remaining launch blockers
+## 4. Remaining human actions (shortest path)
 
-1. Legal: the operator's name and postal address (shown publicly and in email footers),
-   your recorded decision to sell under the draft terms, counsel's OK on the
-   authorized-representative e-signature wording.
-2. Pennsylvania filing access: a file.dos.pa.gov login and a company card for the $7 fee.
-3. Stripe live payments: account, keys, webhook, final fee approval, then your switch-on.
+**4.1 Stripe past-due items (10 min).** https://dashboard.stripe.com (Filewell account,
+live) →
+1. Follow the banner at the top ("verify your identity" / "Action required") and complete
+   the identity challenge.
+2. Settings → Business → **Payouts** (or Balances → Payout account) → add your bank
+   account.
+3. Settings → Business → **Public details** → Support email `support@getfilewell.com`,
+   support URL `https://www.getfilewell.com/help` → Save.
+4. Settings → Business → Customer emails → **Successful payments** ON and **Refunds** ON.
 
-## 4. Remaining human actions, in order
+**4.2 Keys into Vercel (5 min).**
+1. Stripe → Developers → **API keys** → Secret key → Reveal (or create one named
+   `filewell-production`) → copy. Use the `sk_live_...` key, not the Stripe CLI's key.
+2. Vercel → filewell → Settings → Environment Variables → Add: key `STRIPE_SECRET_KEY`,
+   value the key, environment **Production only**, **Sensitive** on → Save.
+3. Stripe → Developers → **Webhooks** → the endpoint
+   `https://www.getfilewell.com/api/webhooks/payments/stripe` → Signing secret → Reveal →
+   copy (`whsec_...`).
+4. Vercel → Add: `STRIPE_WEBHOOK_SECRET`, **Production only**, **Sensitive** → Save.
+5. Vercel → Deployments → the latest Production deployment → ⋯ → **Redeploy**.
+6. https://www.getfilewell.com/admin → System status: **Stripe account** "Live: charges on,
+   payouts on" with no "Stripe needs" note; **Stripe webhook** "Active: all required
+   events"; **Payments** still "Off" (note: live key present but PAYMENTS_LIVE_ENABLED is
+   not 'true'). **PA service price** "Approved".
 
-**4.1 Done (2026-09-30).** DMARC de-duplicated, root SPF includes Cloudflare, owner sign-up
-/ confirmation / sign-in / reset, first admin granted, admin status panel checked, and a
-production email delivered, replied to and routed back (section 2).
+**4.3 Governing law (1 min, recommended before the first real customer).** Choose the
+state whose law governs your terms (typically the state where you live and operate the
+business). Vercel → Add `NEXT_PUBLIC_GOVERNING_LAW` = for example
+`the Commonwealth of Pennsylvania` (Production) → Redeploy. Until then Terms section 17
+shows a bracketed placeholder.
 
-**4.2 Legal values (2 min, once decided).** Vercel → Environment Variables → Add
-`NEXT_PUBLIC_LEGAL_ENTITY` and `NEXT_PUBLIC_POSTAL_ADDRESS` (Production only) → Redeploy.
-Record your decision about the draft terms.
+**4.4 Decisions to record (your call, not engineering):**
+- Selling under terms that no attorney has reviewed (the legal pages say so), and whether
+  counsel should confirm the authorized-representative e-signature wording first.
+- Operating as "Filewell" under your own name: many states (Pennsylvania included) require
+  an individual using a business name other than their own to register it as a fictitious
+  name. Check the rule where you do business; the site claims no DBA registration.
+- Optional: a public postal address (a mailbox service, not your home) for
+  `NEXT_PUBLIC_POSTAL_ADDRESS`.
 
-**4.3 Pennsylvania access.** Create the file.dos.pa.gov Business Filing Services login and
-have the company card ready.
+**4.5 The controlled first live payment** (section 5), then switch on.
 
-**4.4 Stripe, then live.** As in OPERATIONS.md, "Stripe production setup": activate the
-Filewell Stripe account; public details (Filewell, support@getfilewell.com, descriptor
-`FILEWELL`); cards only; webhook `https://www.getfilewell.com/api/webhooks/payments/stripe`
-with `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-`checkout.session.async_payment_failed`, `checkout.session.expired`, `refund.created`,
-`refund.updated`. In Vercel, **Production only**: `STRIPE_SECRET_KEY` (sk_live, Sensitive),
-`STRIPE_WEBHOOK_SECRET` (Sensitive), and split `PAYMENTS_PROVIDER` so Production is `stripe`
-while Preview/Development stay `sandbox` (edit the existing variable to untick Production,
-then add a Production-only one). Approve the fee at `/admin/pricing`. When ready to take
-money: Production `PAYMENTS_LIVE_ENABLED=true` (split the same way) → Redeploy.
+## 5. First live payment test
 
-**4.5 One real order** placed by you and filed with the runbook below. Then the verdict is
-YES.
+The existing production draft is for **DAFF TRUCKING LLC**. Treat it as a test artifact:
+never file it with Pennsylvania unless you are authorized to act for that business.
 
-**Optional clean-up (not blocking):** remove the Production target from
-`SANDBOX_WEBHOOK_SECRET` (unused there); `NEXT_PUBLIC_SUPABASE_ANON_KEY` is now unused
-(harmless); give Production its own `APP_SIGNING_SECRET`, `IP_HASH_SALT` and `CRON_SECRET`
-(they are shared with Preview).
+1. **Enable live checkout.** Vercel → Environment Variables → the **Production**
+   `PAYMENTS_LIVE_ENABLED` → Edit → `true` → Save → Deployments → latest Production → ⋯ →
+   Redeploy. `/admin` must read Payments **Live: real charges**.
+2. **Pay $56 yourself.** Signed in as yourself: Dashboard → the draft filing → continue
+   to Review (re-sign the authorization if asked) → Checkout. The page must show state fee
+   $7.00, service fee $49.00, total $56.00 → **Pay** → on Stripe, the same two lines and
+   $56.00 → pay with your own card.
+3. **Confirm Stripe.** Stripe → Payments: one $56.00 payment, Succeeded, descriptor
+   FILEWELL. Developers → Webhooks → the endpoint → Event deliveries: 200 for
+   `checkout.session.completed`.
+4. **Confirm Filewell.** You land on the confirmation page. `/admin/payments`: the order
+   is Paid, live mode, $56.00 ($7.00 + $49.00), no review flag. Emails: "Order confirmed"
+   to you and "New paid order" staff alert; `/admin/notifications` shows both `sent`.
+5. **Confirm the queue.** `/admin` → "Your next step for each paid customer" shows the
+   filing with **no** TEST badge, status Ready for review.
+6. **No state filing.** Do not click Start filing or open the state site for this order.
+7. **Refund decision.** Unless you are authorized for this business and want it filed:
+   open the filing → **Cancel** (reason "Owner payment test") → **Refund** the full $56.00.
+   Check: Stripe shows the refund; `/admin/payments` shows it refunded; you receive the
+   "Refund issued" email. Stripe keeps its processing fee (about $1.92) on a refunded
+   payment.
+8. **If anything is inconsistent** (payment succeeded but the order is not Paid, wrong
+   amount, a missing email, a webhook error on `/admin/payments`): set Production
+   `PAYMENTS_LIVE_ENABLED` back to `false` and redeploy immediately, refund from the Stripe
+   dashboard if needed, and keep the evidence (screenshots, event IDs) for the engineer.
 
-## 5. First real customer runbook
+If every check passes, leave live payments on (or switch them off until you are ready to
+announce). The verdict is then YES.
 
-1. **An order arrives.** You get a "New paid order" email (staff alert). Open
-   https://www.getfilewell.com/admin: the order is at the top of "Your next step for each
-   paid customer". It must **not** carry a TEST badge.
-2. **Open the filing.** Check the header: Payment `Paid`, Authorization recorded (the
-   Actions card says "The details and authorization check out"), no customer message
-   asking to cancel. In Stripe, check there is no dispute or fraud warning.
-3. **Review** the Answers section (legal name, entity number, registered office or CROP +
-   county, principal office, governors, officers). If something is missing, use
-   **Request customer information** (the customer is emailed; the filing waits). Otherwise
-   click **Mark ready to file**.
-4. **Open filing packet** and keep it beside the state site. Click **Start filing**, then
-   **Open official filing site**: file.dos.pa.gov → Business Search → the entity → **File
-   Annual Report** → enter each value exactly as the packet shows → declarations → e-sign
-   with the packet's signature wording → pay the $7 with the company card.
+## 6. First real customer runbook
+
+1. **Payment received.** You get a "New paid order" email (from filings@getfilewell.com).
+   The customer gets "Order confirmed" with the $7 state fee and $49 service fee on
+   separate lines.
+2. **Find the order.** https://www.getfilewell.com/admin → "Your next step for each paid
+   customer" (soonest deadline first). No TEST badge. Open the filing: Payment `Paid`,
+   authorization recorded ("The details and authorization check out"), no customer message
+   asking to cancel. In Stripe, check there is no dispute or early-fraud warning.
+3. **Review the answers** (legal name, entity number, registered office or CROP + county,
+   principal office, governors, officers). If something is missing: **Request customer
+   information** (customer gets "Action needed"; the filing waits). Otherwise **Mark ready
+   to file**.
+4. **File on Pennsylvania's portal.** **Open filing packet** and keep it beside the state
+   site. **Start filing** → **Open official filing site** → file.dos.pa.gov → log in →
+   Business Search → the entity → **File Annual Report** → copy each value exactly as the
+   packet shows → declarations → e-sign with the packet's signature wording → pay the
+   $7.00 with your card.
 5. PA approves online reports automatically, usually within minutes. **Download the filed
-   report and the acknowledgement letter right away** (the state keeps them 60 days).
-6. Back in the filing: **Mark submitted** with the confirmation number (the customer gets
-   the "submitted" email).
+   report and the acknowledgement letter right away** (the state keeps them 60 days); keep
+   copies in your drive too.
+6. **Mark submitted** in the filing with Pennsylvania's confirmation number (customer gets
+   "Submitted" with the number).
 7. **Upload** the filed report and acknowledgement (Document type *Filed report* /
-   *Acknowledgement letter*, visible to customer). The customer gets a "document ready" email.
+   *Acknowledgement letter*, visible to customer). The customer gets "Your document is
+   ready".
 8. **Mark accepted.** With the documents on file the filing completes: the customer gets
-   the "accepted" email, this year's reminders stop and next year's requirement and
-   reminders are created automatically.
-9. Check **Emails** (`/admin/notifications`): each message should show provider `resend`,
-   status `sent`.
+   "Your filing was accepted", this year's reminders stop and next year's requirement and
+   reminders are created.
+9. **Check Emails** (`/admin/notifications`): each message shows provider `resend`, status
+   `sent`.
 
-Problems (rejection, cancellation, refunds) are in OPERATIONS.md, "Problems".
+Rejection, cancellation and refunds: OPERATIONS.md, "Problems".
 
-## 6. Rollback
+## 7. Rollback
 
-- **Stop taking payments:** Vercel → Production `PAYMENTS_LIVE_ENABLED` = `false` →
-  Redeploy. Checkout then shows "payments aren't open yet". Stripe webhooks get 503 and are
-  retried for up to 3 days; refund in the Stripe dashboard meanwhile.
-- **Stop sending email:** Production `EMAIL_PROVIDER` = `outbox` → Redeploy. Emails are
-  still recorded in `/admin/notifications`.
-- **Revert the site:** Vercel → Deployments → pick the previous good Production deployment
-  → ⋯ → **Promote to Production** (instant). Or `git revert -m 1 06d7581` and push.
-- **Database:** every migration is backward compatible; nothing needs to be rolled back to
-  run an older deployment. To undo only `20260929000007` (column grants), run in the SQL
-  editor: `grant select on public.service_prices, public.state_rule_versions to anon;`
-  and recreate the old `service_prices_read` policy from `20260927000003_rls.sql`.
+- **Disable checkout immediately (keeps all data):** Vercel → Environment Variables →
+  Production `PAYMENTS_LIVE_ENABLED` → `false` → Save → Redeploy (about 1 to 2 minutes).
+  Checkout then says payments aren't open; accounts, filings, orders and payments are
+  untouched; paid orders stay paid. Stripe webhooks get 503 and are retried for up to 3
+  days, so nothing is lost; refunds meanwhile go through the Stripe dashboard.
+- **Stop sending email:** Production `EMAIL_PROVIDER` = `outbox` → Redeploy (emails are
+  still recorded in `/admin/notifications`).
+- **Revert the site:** Vercel → Deployments → previous good Production deployment → ⋯ →
+  **Promote to Production** (instant). The database needs no rollback; every migration is
+  backward compatible.
 - **Supabase keys:** production reads `NEXT_PUBLIC_SUPABASE_URL`, the Production-only
-  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (because
-  `SUPABASE_SECRET_KEY` is Preview-only). Never put a staging value on the Production target
-  of either preferred name; check "Database keys" on /admin after any change.
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. Never put a
+  staging value on the Production target; check "Database keys" on `/admin` after any
+  change.
 
-## 7. Known risks
+## 8. Known risks
 
-**Launch blockers** (section 3): legal operator name/address and the draft-terms
-decision, PA filing login and card, live Stripe + fee approval.
+**Before the first real customer:** the items in section 4.
 
 **Can fix after the first customer**
-
+- Sales-tax determination for the service fee (Stripe Tax deliberately off).
 - Production and Preview share `APP_SIGNING_SECRET`, `IP_HASH_SALT` and `CRON_SECRET`;
-  give Production its own values (needs someone who can handle secrets).
-- Customers can edit their own intake answers directly through the database API while a
-  filing is editable (their own filing only); the ready-to-file hash check catches it.
-  Tightening to server-only writes is a small follow-up.
-- Direct database inserts can bypass the app's message rate limit (own filings only).
+  give Production its own values. `SANDBOX_WEBHOOK_SECRET` is unused on Production.
+- Customers can edit their own intake answers through the database API while a filing is
+  editable (own filing only); the ready-to-file hash check catches it.
 - Sign-in, sign-up and reset throttles are per IP only.
-- An email confirmation link opened in a different browser confirms the address but asks
-  the customer to sign in (clear message; by design of PKCE).
-- Branded Supabase auth email bodies (defaults work; subjects are branded).
-- Email CTA buttons use a dark neutral color rather than the brand green.
-- Stuck-payment cases (money moved, order didn't advance) are listed on /admin/payments
-  but not emailed to staff.
+- Stuck-payment cases are listed on `/admin/payments` but not emailed to staff.
 - Two admins refunding the same order at the same moment could over-refund (single
   operator today).
+- Branded Supabase auth email bodies (defaults work; subjects are branded).
 
-**Future enhancements**
-
-- Before Jan 1, 2027: confirm whether Pennsylvania accepts a 2026 report after Dec 31,
-  and decide how unfiled 2026 reports roll into 2027.
-- Sales-tax determination for the service fee.
-- Error monitoring/alerting (Sentry or similar) and a record of each reminder cron run.
-- Turning on search indexing (only with your written approval; procedure in OPERATIONS.md).
+**Future**
+- Before Jan 1, 2027: confirm whether Pennsylvania accepts a 2026 report after Dec 31.
+- Error monitoring/alerting and a record of each reminder cron run.
+- Search indexing (only with your written approval; OPERATIONS.md).

@@ -5,7 +5,7 @@ import { site } from "@/config/site";
  * legal page changes: it is shown on every legal page and recorded with each filing
  * authorization as the version of the Terms and Refund Policy the customer agreed to.
  */
-export const LEGAL_LAST_UPDATED = "2026-09-29";
+export const LEGAL_LAST_UPDATED = "2026-09-30";
 
 export const LEGAL_PAGES = [
   { path: "/legal/terms", title: "Terms of service" },
@@ -20,9 +20,17 @@ export function legalEntityText(): string {
   return site.legalEntityConfigured ? site.legalEntity : "[legal name of the operating company, to be confirmed]";
 }
 
-/** Postal address for legal notices, or a bracketed placeholder until it is configured. */
+/**
+ * Postal address for legal notices. Until a public address is approved we point to support
+ * email rather than publish a private (e.g. residential) address.
+ */
 export function postalAddressText(): string {
-  return site.postalAddress ?? "[postal address to be confirmed]";
+  return site.postalAddress ?? `available on request from ${site.supportEmail}`;
+}
+
+/** Governing-law jurisdiction for the terms, or a bracketed placeholder until the owner chooses one. */
+export function governingLawText(): string {
+  return site.governingLaw ?? "[governing-law state to be confirmed]";
 }
 
 /** Who operates the service, for copyright lines: the legal entity once configured, otherwise the brand. */

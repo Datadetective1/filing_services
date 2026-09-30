@@ -36,9 +36,8 @@ export default function RefundsPage() {
 
       <h2>After we submit to the state</h2>
       <p>
-        When we submit a filing, we pay the state fee to the state on your business&apos;s behalf. The state keeps that fee, and
-        we cannot get it back for you, so the state fee is not refundable once the filing has been submitted. [State-specific fee
-        refund rules to be confirmed and cited from official sources.]
+        When we submit a filing, we pay the state fee to the state on your business&apos;s behalf. Because that money has
+        already been paid to the state, the state fee is not refundable once the filing has been submitted.
       </p>
       <p>
         Some states process online filings very quickly. In Pennsylvania, for example, online annual reports are approved
@@ -75,7 +74,7 @@ export default function RefundsPage() {
       <p>
         Send us a message from the filing&apos;s page in your dashboard, or email{" "}
         <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a> from the address on your account, with the business name
-        and the filing you are asking about. We will reply within [number] business days.
+        and the filing you are asking about. We will reply as soon as we can, normally within a few business days.
       </p>
       <p>
         Refunds go back to the original payment method. We record the state fee and service fee parts of a refund separately and
