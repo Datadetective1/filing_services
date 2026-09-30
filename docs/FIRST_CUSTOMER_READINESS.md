@@ -70,8 +70,12 @@ tests (real Postgres with the production migrations: payment guards, replay dedu
 and currency mismatch, duplicate payment, out-of-order events, partial/full refunds, RLS),
 21/21 E2E on the staging preview (sign-in, intake, authorization, sandbox payment,
 duplicate and forged webhooks harmless, cross-customer isolation, operator filing,
-customer notification and receipt download, desktop and mobile public pages), and the
-read-only production checks after deploy (section 2, "Production checks" in the report).
+customer notification and receipt download, desktop and mobile public pages). After the
+production deploy: 33/33 read-only production checks (www/apex redirects, canonical,
+noindex, security headers, $49 + $7 = $56 on /pricing, operator named on the terms, no
+retention/reply-time placeholders, Stripe webhook 503 while unconfigured, sandbox closed,
+admin requires sign-in), 14/14 public E2E on production (desktop + mobile), no horizontal
+overflow at 375px. Production data unchanged: 0 orders, 0 payments, 0 live Stripe charges.
 
 **Live checkout verified without moving money:** a live Checkout Session with the
 production parameters was accepted by Stripe (line items "Filewell service fee" $49.00 and
