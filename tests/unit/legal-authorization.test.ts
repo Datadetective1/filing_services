@@ -71,7 +71,7 @@ describe("legal page values", () => {
     if (site.legalEntityConfigured) return; // a developer shell with the real value set
     expect(legalEntityText()).toMatch(/^\[.*to be confirmed\]$/);
     expect(operatorName()).toBe(site.name);
-    if (site.postalAddress === null) expect(postalAddressText()).toMatch(/^\[.*to be confirmed\]$/);
+    if (site.postalAddress === null) expect(postalAddressText()).toBe(`available on request from ${site.supportEmail}`);
   });
 
   it("uses the configured legal entity and postal address once set", async () => {
@@ -82,6 +82,15 @@ describe("legal page values", () => {
     expect(legal.legalEntityText()).toBe("Example Operating Co LLC");
     expect(legal.operatorName()).toBe("Example Operating Co LLC");
     expect(legal.postalAddressText()).toBe("PO Box 1, Pittsburgh, PA 15201");
+  });
+
+  it("keeps the governing law bracketed until the owner chooses it, then uses the chosen value", async () => {
+    vi.stubEnv("NEXT_PUBLIC_GOVERNING_LAW", "");
+    vi.resetModules();
+    expect((await import("@/lib/seo/legal")).governingLawText()).toMatch(/^\[.*to be confirmed\]$/);
+    vi.stubEnv("NEXT_PUBLIC_GOVERNING_LAW", "the Commonwealth of Pennsylvania");
+    vi.resetModules();
+    expect((await import("@/lib/seo/legal")).governingLawText()).toBe("the Commonwealth of Pennsylvania");
   });
 });
 

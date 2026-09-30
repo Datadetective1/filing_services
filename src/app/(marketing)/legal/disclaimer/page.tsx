@@ -24,7 +24,7 @@ export default function DisclaimerPage() {
     >
       <h2>Not a government agency</h2>
       <p>
-        {brand} is a private company. We are not a government agency, and we are not affiliated with, endorsed by or acting for
+        {brand} is a private business. We are not a government agency, and we are not affiliated with, endorsed by or acting for
         any state, federal or local government office. State names and agency names appear on our site only to describe the
         filings they administer.
       </p>

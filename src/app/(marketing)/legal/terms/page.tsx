@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { LegalPage } from "@/components/marketing/legal-page";
-import { legalEntityText, postalAddressText } from "@/lib/seo/legal";
+import { governingLawText, legalEntityText, postalAddressText } from "@/lib/seo/legal";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -33,7 +33,7 @@ export default function TermsPage() {
       </p>
       <ul>
         <li>
-          <strong>We are a private company.</strong> We are not a government agency and are not affiliated with or endorsed by any
+          <strong>We are a private business.</strong> We are not a government agency and are not affiliated with or endorsed by any
           government agency.
         </li>
         <li>
@@ -187,8 +187,7 @@ export default function TermsPage() {
 
       <h2>17. Governing law</h2>
       <p>
-        These terms are governed by the laws of [state of formation of the operating company, to be confirmed], without regard
-        to its conflict-of-law rules. [Dispute resolution terms to be confirmed.]
+        These terms are governed by the laws of {governingLawText()}, without regard to its conflict-of-law rules.
       </p>
 
       <h2>18. Contact</h2>

@@ -39,6 +39,7 @@ import { ACTIVE_OPERATIONS_STATUSES, isFilingStatus } from "@/lib/domain/filing-
 import type { ServicePrice } from "@/lib/domain/pricing";
 import { getEmailReadiness } from "@/lib/email/provider";
 import { getPaymentReadiness } from "@/lib/payments";
+import { checkStripe, STRIPE_API_VERSION, STRIPE_WEBHOOK_URL, type StripeHealth } from "@/lib/payments/stripe-health";
 import { checkSupabaseKeys } from "@/lib/supabase/health";
 import { createClient } from "@/lib/supabase/server";
 import { filingIdsByOrder, one } from "./_lib/data";
@@ -201,7 +202,7 @@ export default async function TodayPage() {
   const payments = getPaymentReadiness();
   const email = getEmailReadiness();
   const database = supabaseEnvironment(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const keys = await checkSupabaseKeys();
+  const [keys, stripeHealth] = await Promise.all([checkSupabaseKeys(), checkStripe()]);
   const paPrices = servicePriceApproval(
     ((activePrices.data ?? []) as Record<string, unknown>[]).map(
       (p): ServicePrice => ({
@@ -520,6 +521,8 @@ export default async function TodayPage() {
                     />
                   ),
                 },
+                { term: "Stripe account", value: <StripeAccountStatus health={stripeHealth} /> },
+                { term: "Stripe webhook", value: <StripeWebhookStatus health={stripeHealth} /> },
                 {
                   term: "Customer email",
                   value: (
@@ -637,6 +640,40 @@ const attentionIcon: Record<AttentionTone, string> = {
 };
 
 /** One status line: a dot (on or needs attention), the value, and an optional plain reason. */
+/** Stripe account state, read-only. Shown even while live checkout is still switched off. */
+function StripeAccountStatus({ health: h }: { health: StripeHealth }) {
+  if (h.state === "not_configured") return <StatusValue good={false} text="Not connected" note={h.reason} />;
+  if (h.state === "error") return <StatusValue good={false} text={`${h.mode === "live" ? "Live" : "Test"} key: check failed`} note={h.reason} />;
+  const a = h.account;
+  const due = [...a.pastDue, ...a.currentlyDue];
+  const text = `${h.mode === "live" ? "Live" : "Test"}: charges ${a.chargesEnabled ? "on" : "off"}, payouts ${a.payoutsEnabled ? "on" : "off"}`;
+  const note = [
+    a.disabledReason ? `Disabled: ${a.disabledReason}` : null,
+    due.length ? `Stripe needs: ${due.slice(0, 4).join(", ")}${due.length > 4 ? ` (+${due.length - 4} more)` : ""}` : null,
+    a.statementDescriptor ? `Statement descriptor: ${a.statementDescriptor}` : null,
+  ]
+    .filter(Boolean)
+    .join(". ");
+  return <StatusValue good={h.mode === "live" && a.chargesEnabled && !a.disabledReason && a.pastDue.length === 0} text={text} note={note || null} />;
+}
+
+/** Whether Stripe will deliver the events the app needs to www, with the SDK's API version. */
+function StripeWebhookStatus({ health: h }: { health: StripeHealth }) {
+  if (h.state !== "checked") return <StatusValue good={false} text="Not checked" note="Connect Stripe first." />;
+  const w = h.webhook;
+  if (!w.found) return <StatusValue good={false} text="Missing" note={`No endpoint for ${STRIPE_WEBHOOK_URL}.`} />;
+  const problems = [
+    w.enabled ? null : "endpoint is disabled",
+    w.missingEvents.length ? `missing events: ${w.missingEvents.join(", ")}` : null,
+    w.apiVersionMatches ? null : `API version ${w.apiVersion ?? "unknown"}, expected ${STRIPE_API_VERSION}`,
+  ].filter(Boolean);
+  return problems.length ? (
+    <StatusValue good={false} text="Needs attention" note={problems.join("; ")} />
+  ) : (
+    <StatusValue good text="Active: all required events" />
+  );
+}
+
 function StatusValue({ good, text, note }: { good: boolean; text: string; note?: string | null }) {
   return (
     <span className="grid gap-0.5">

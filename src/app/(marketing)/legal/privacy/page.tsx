@@ -126,12 +126,12 @@ export default function PrivacyPage() {
 
       <h2>How long we keep it</h2>
       <p>
-        We keep account information while your account is open and for [retention period to be confirmed] after it is closed.
-        We keep filing, authorization, payment and message records, and copies of the emails we sent you, for [retention period
-        to be confirmed] after a filing is completed, to meet legal, tax and record-keeping obligations and to answer questions
-        about past filings. We keep those records for that full period even if you close your account, because they show what
-        was authorized and done. Analytics events are kept for [retention period to be confirmed]. You can ask us to delete
-        other information, as described under &ldquo;Your rights&rdquo; below.
+        We keep account information while your account is open, and afterward only as long as we need it to close the account
+        and answer questions about it. We keep filing, authorization, payment and message records, and copies of the emails we
+        sent you, for as long as we need them to meet legal, tax and record-keeping obligations and to answer questions about
+        past filings. We keep those records even if you close your account, because they show what was authorized and done.
+        Analytics events are kept only as long as they are useful for understanding how the site is used. You can ask us to
+        delete other information, as described under &ldquo;Your rights&rdquo; below.
       </p>
 
       <h2>How we protect it</h2>
