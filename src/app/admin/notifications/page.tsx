@@ -11,6 +11,7 @@ import { requireStaff } from "@/lib/auth/session";
 import { getEmailReadiness } from "@/lib/email/provider";
 import { DEFAULT_TEMPLATES } from "@/lib/email/templates";
 import { createClient } from "@/lib/supabase/server";
+import { sendTestEmailAction } from "./actions";
 
 export const metadata: Metadata = { title: "Emails" };
 
@@ -46,10 +47,33 @@ export default async function NotificationsPage(props: PageProps<"/admin/notific
   const { data, count, error } = await query.order("created_at", { ascending: false }).range(from, from + PAGE_SIZE - 1);
   const rows = (data ?? []) as NotificationRow[];
   const delivery = getEmailReadiness();
+  const test = firstParam(sp.test);
+  const TEST_MESSAGES: Record<string, string> = {
+    sent: "Test email sent to your staff address. Check your inbox; it appears below with status “sent”.",
+    failed: "The test email failed. The row below shows the provider error.",
+    suppressed: "The test email was suppressed (reserved test address or no email on your profile).",
+    duplicate: "That test was already sent.",
+    limited: "One test email every 10 minutes. Try again shortly.",
+  };
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      <ConsoleHeader title="Emails" description="Every email the system has rendered, newest first." />
+      <ConsoleHeader
+        title="Emails"
+        description="Every email the system has rendered, newest first."
+        actions={
+          <form action={sendTestEmailAction}>
+            <button type="submit" className={opsButton("secondary")}>
+              Send test email to me
+            </button>
+          </form>
+        }
+      />
+      {TEST_MESSAGES[test] ? (
+        <Notice tone={test === "sent" ? "success" : "warning"} title="Delivery test" role="status">
+          {TEST_MESSAGES[test]}
+        </Notice>
+      ) : null}
       {delivery.delivering ? (
         <Notice tone="info" title="Email is delivering through Resend">
           Emails are sent{delivery.from ? ` from ${delivery.from}` : ""}. Rows with provider &ldquo;outbox&rdquo; were recorded earlier and never sent. Failed rows

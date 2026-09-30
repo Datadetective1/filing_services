@@ -179,6 +179,16 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     ctaLabel: "Open filing",
     description: "Staff alert: a customer posted a message on a filing (at most one alert per filing per hour).",
   },
+  {
+    key: "staff_email_test",
+    category: "transactional",
+    subject: "Filewell production email test",
+    body:
+      "This is a production delivery test. No filing was submitted and no payment was processed.\n\n" +
+      "It was sent from the admin console (Emails page) to the staff member who requested it.",
+    ctaLabel: null,
+    description: "Staff-requested delivery test sent to the requesting staff member only.",
+  },
 ];
 
 export function getDefaultTemplate(key: string): TemplateDef | undefined {
