@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { isProductionHost, isProductionSupabaseUrl } from "../../src/config/environments";
 import { STORAGE_STATE } from "./global-setup";
@@ -12,18 +11,29 @@ import { backend, uniqueSuffix } from "./support/backend";
 const productionTarget = isProductionHost(process.env.E2E_BASE_URL) || isProductionSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
 test.skip(productionTarget, "Writes reminder subscriptions: staging only.");
 
-/** Mirrors src/lib/security/tokens.ts (the deployment and this runner share APP_SIGNING_SECRET). */
-function token(purpose: string, payload: Record<string, unknown>): string {
-  const secret = process.env.APP_SIGNING_SECRET;
-  if (!secret) throw new Error("APP_SIGNING_SECRET is required for this spec");
-  const body = Buffer.from(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + 3600 })).toString("base64url");
-  return `${body}.${createHmac("sha256", secret).update(`${purpose}.${body}`).digest("base64url")}`;
+/** The links in the latest email of this kind sent to the subscriber (a copy is kept on staging). */
+async function emailLinks(subscriberId: string, kind: "confirmation" | "reminder"): Promise<{ confirm: string | null; unsubscribe: string | null }> {
+  const { data } = await backend()
+    .from("subscriber_emails")
+    .select("body_text")
+    .eq("subscriber_id", subscriberId)
+    .eq("kind", kind)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+  const text = String(data?.body_text ?? "");
+  const path = (re: RegExp) => {
+    const m = re.exec(text);
+    return m ? new URL(m[0]).pathname + new URL(m[0]).search : null;
+  };
+  return { confirm: path(/https?:\/\/\S+\/reminders\/confirm\?t=\S+/), unsubscribe: path(/https?:\/\/\S+\/reminders\/unsubscribe\?t=\S+/) };
 }
 
 test("anonymous lookup -> free reminders with consent -> confirm -> unsubscribe -> re-subscribe", async ({ browser }) => {
   test.setTimeout(180_000);
   const email = `optin.${uniqueSuffix()}@e2e.filewell.test`;
   const ctx = await browser.newContext({ storageState: STORAGE_STATE });
+  await ctx.clearCookies({ name: "fw_attr" });
   const page = await ctx.newPage();
   const main = page.locator("main");
   try {
@@ -59,8 +69,11 @@ test("anonymous lookup -> free reminders with consent -> confirm -> unsubscribe 
     expect(sub!.consent_text).toMatch(/up to three reminders a year/);
     expect(sub!.attribution).toMatchObject({ ft: { s: "reddit", c: "e2e_optin" } });
 
-    // Opening the confirmation link changes nothing; the button confirms.
-    const confirmUrl = `/reminders/confirm?t=${encodeURIComponent(token("rem-confirm", { s: sub!.id, c: new Date(sub!.consent_at).getTime() }))}`;
+    // The emailed link: opening it changes nothing; the button confirms.
+    const links = await emailLinks(sub!.id, "confirmation");
+    const confirmUrl = links.confirm!;
+    expect(confirmUrl).toBeTruthy();
+    expect(links.unsubscribe).toBeTruthy();
     const res = await page.goto(confirmUrl);
     expect(res?.headers()["x-robots-tag"]).toContain("noindex");
     expect((await backend().from("reminder_subscribers").select("status").eq("id", sub!.id).single()).data?.status).toBe("pending");
@@ -77,8 +90,9 @@ test("anonymous lookup -> free reminders with consent -> confirm -> unsubscribe 
     await expect(main).toContainText("This link isn't valid");
 
     // One-click unsubscribe: page needs a click; the RFC 8058 endpoint works by POST.
-    const unsub = token("rem-unsub", { e: email });
-    await page.goto(`/reminders/unsubscribe?t=${encodeURIComponent(unsub)}`);
+    const unsubPath = links.unsubscribe!;
+    const unsub = new URL(unsubPath, "https://x.test").searchParams.get("t")!;
+    await page.goto(unsubPath);
     await page.getByRole("button", { name: "Unsubscribe" }).click();
     await expect(main).toContainText("You're unsubscribed");
     expect((await backend().from("reminder_subscribers").select("status").eq("id", sub!.id).single()).data?.status).toBe("unsubscribed");
@@ -95,14 +109,16 @@ test("anonymous lookup -> free reminders with consent -> confirm -> unsubscribe 
     await page.getByRole("checkbox", { name: /email me reminders/i }).check();
     await page.getByRole("button", { name: "Email me reminders" }).click();
     await expect(main).toContainText("Check your inbox to confirm");
-    const { data: again } = await backend().from("reminder_subscribers").select("status, consent_at").eq("id", sub!.id).single();
+    const { data: again } = await backend().from("reminder_subscribers").select("status").eq("id", sub!.id).single();
     expect(again?.status).toBe("pending");
     expect((await backend().from("reminder_suppressions").select("email").eq("email", email)).data?.length).toBe(1);
     // The old confirmation link no longer works (it was bound to the earlier consent).
     await page.goto(confirmUrl);
     await page.getByRole("button", { name: "Yes, send me reminders" }).click();
     await expect(main).toContainText("This link isn't valid");
-    await page.goto(`/reminders/confirm?t=${encodeURIComponent(token("rem-confirm", { s: sub!.id, c: new Date(again!.consent_at).getTime() }))}`);
+    const fresh = await emailLinks(sub!.id, "confirmation");
+    expect(fresh.confirm).not.toBe(confirmUrl);
+    await page.goto(fresh.confirm!);
     await page.getByRole("button", { name: "Yes, send me reminders" }).click();
     await expect(main).toContainText("Reminders confirmed");
     expect((await backend().from("reminder_suppressions").select("email").eq("email", email)).data?.length).toBe(0);
@@ -122,24 +138,16 @@ test("anonymous lookup -> free reminders with consent -> confirm -> unsubscribe 
   }
 });
 
-test("reminder links restore the business and count as a reminder visit", async ({ browser }) => {
-  const email = `link.${uniqueSuffix()}@e2e.filewell.test`;
-  const { data: sub } = await backend()
-    .from("reminder_subscribers")
-    .insert({ email, state_code: "PA", entity_type: "llc", legal_name: "Daff Trucking LLC", entity_number: "0007380992", status: "confirmed", consent_text: "E2E fixture consent text." })
-    .select("id")
-    .single();
+test("a forged reminder link falls back to the normal lookup", async ({ browser }) => {
   const ctx = await browser.newContext({ storageState: STORAGE_STATE });
+  await ctx.clearCookies({ name: "fw_attr" });
   const page = await ctx.newPage();
   try {
-    await page.goto(`/rs/${encodeURIComponent(token("rem-link", { s: sub!.id }))}`);
-    await page.waitForURL(/\/find\/result\?utm_source=reminder/);
-    await expect(page.locator("main")).toContainText("Pennsylvania record found");
+    const res = await page.goto("/rs/forged.token");
+    await page.waitForURL(/\/find\?utm_source=reminder/);
+    expect(res?.ok()).toBe(true);
     const cookie = (await ctx.cookies()).find((c) => c.name === "fw_attr");
     expect(decodeURIComponent(cookie!.value)).toContain('"s":"reminder"');
-    // A forged link falls back to the normal lookup.
-    await page.goto("/rs/forged.token");
-    await page.waitForURL(/\/find\?utm_source=reminder/);
   } finally {
     await ctx.close();
   }

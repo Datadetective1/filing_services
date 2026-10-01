@@ -8,7 +8,7 @@ import { clientIpHash } from "@/lib/security/request";
 
 export type ReminderOptInState =
   | { ok: true; email: string }
-  | { ok: false; error?: string; fieldErrors?: { email?: string; consent?: string } }
+  | { ok: false; error?: string; fieldErrors?: { email?: string; consent?: string }; email?: string }
   | undefined;
 
 const schema = z.object({
@@ -35,7 +35,8 @@ export async function optInToReminders(_: ReminderOptInState, formData: FormData
       if (i.path[0] === "email") fieldErrors.email ??= i.message;
       if (i.path[0] === "consent") fieldErrors.consent ??= "Tick the box to confirm you want these reminders";
     }
-    return { ok: false, fieldErrors };
+    // React resets the form after the action; hand back what was typed so it isn't lost.
+    return { ok: false, fieldErrors, email: String(formData.get("email") ?? "").slice(0, 254) };
   }
   const lookup = await readPendingLookup();
   if (!lookup) return { ok: false, error: "We lost track of the business you looked up. Search for it again, then sign up." };

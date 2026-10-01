@@ -71,6 +71,17 @@ export function subscriberFromLinkToken(t: string | null | undefined): string | 
   return p && typeof p.s === "string" ? p.s : null;
 }
 
+/** Keep a copy of what was sent (best effort; never blocks the email). */
+async function recordEmail(subscriberId: string, kind: "confirmation" | "reminder", subject: string, text: string, providerId: string | null) {
+  await db()
+    .from("subscriber_emails")
+    .insert({ subscriber_id: subscriberId, kind, subject: subject.slice(0, 300), body_text: text.slice(0, 20000), provider_message_id: providerId })
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+}
+
 async function copyVars(row: SubscriberRow, dueDate: string): Promise<SubscriberCopyVars | null> {
   const rule = findRule(row.state_code, row.entity_type as never, "annual_report", row.is_foreign);
   if (!rule) return null;
@@ -148,12 +159,15 @@ export async function subscribeToReminders(rawEmail: string, lookup: PendingLook
     ctaLabel: copy.ctaLabel,
     ctaUrl: absoluteUrl(`/reminders/confirm?t=${encodeURIComponent(confirmToken(sub))}`),
     vars: {},
+    // Lets someone who never asked for this block future confirmation emails too.
+    unsubscribeUrl: absoluteUrl(`/reminders/unsubscribe?t=${encodeURIComponent(reminderUnsubscribeToken(email))}`),
   });
   try {
-    if (!isReservedTestAddress(email)) {
-      await getEmailProvider().send({ to: email, ...rendered, idempotencyKey: `rem-confirm:${sub.id}:${sub.consent_at}` });
-    }
+    const sent = isReservedTestAddress(email)
+      ? { id: "reserved_address" }
+      : await getEmailProvider().send({ to: email, ...rendered, idempotencyKey: `rem-confirm:${sub.id}:${sub.consent_at}` });
     await db().from("reminder_subscribers").update({ confirmation_sent_at: new Date().toISOString() }).eq("id", sub.id);
+    await recordEmail(sub.id, "confirmation", rendered.subject, rendered.text, sent.id);
   } catch {
     return { status: "error" };
   }
@@ -288,6 +302,7 @@ export async function runSubscriberReminderCycle(now = new Date()): Promise<Subs
         },
       });
       await db().from("subscriber_reminders").update({ status: "sent", provider_message_id: sent.id, processed_at: now.toISOString() }).eq("id", r.id);
+      await recordEmail(sub.id, "reminder", rendered.subject, rendered.text, sent.id);
       await trackServer("reminder_sent", {
         stateCode: sub.state_code,
         entityType: sub.entity_type,

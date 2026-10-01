@@ -74,6 +74,7 @@ test.describe("public pages", () => {
   }
 
   test("attribution: first touch kept, last touch follows the latest source", async ({ page, context }) => {
+    await context.clearCookies({ name: "fw_attr" });
     await page.goto("/pricing?utm_source=e2e_check&utm_campaign=public_smoke");
     const read = async () => JSON.parse(decodeURIComponent((await context.cookies()).find((c) => c.name === "fw_attr")!.value));
     const first = await read();

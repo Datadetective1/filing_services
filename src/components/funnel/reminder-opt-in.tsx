@@ -68,6 +68,8 @@ export function ReminderOptIn({
           autoComplete="email"
           inputMode="email"
           required
+          defaultValue={err?.email ?? ""}
+          key={err?.email ?? "empty"}
           aria-invalid={err?.fieldErrors?.email ? true : undefined}
           aria-describedby={err?.fieldErrors?.email ? "reminder-email-error" : undefined}
         />

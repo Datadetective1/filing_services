@@ -6,7 +6,7 @@ import { asAnon, asService, asUser, count, createTestDb, createUser, type Db, ex
 let db: Db;
 let user: string;
 
-const TABLES = ["reminder_subscribers", "reminder_suppressions", "subscriber_reminders", "business_attribution", "founder_prospects", "referral_partners"];
+const TABLES = ["reminder_subscribers", "reminder_suppressions", "subscriber_reminders", "subscriber_emails", "business_attribution", "founder_prospects", "referral_partners"];
 
 const insertSubscriber = (email: string, entity: string | null, name = "Daff Partners LP") =>
   asService(db, (tx) =>

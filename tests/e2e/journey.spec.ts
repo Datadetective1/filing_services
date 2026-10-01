@@ -95,7 +95,8 @@ test("1. visitor reads the Pennsylvania page and looks up their business", async
   await expectNoSeriousA11yViolations(page);
 });
 
-test("2. customer signs in, completes intake, authorizes and pays (sandbox)", async ({ page }) => {
+test("2. customer signs in, completes intake, authorizes and pays (sandbox)", async ({ page, context }) => {
+  await context.clearCookies({ name: "fw_attr" });
   // Arrive from a tagged LinkedIn link: attribution must survive signup, intake, checkout and payment.
   await page.goto("/?utm_source=linkedin&utm_medium=social&utm_campaign=e2e_journey");
   await lookUp(page);

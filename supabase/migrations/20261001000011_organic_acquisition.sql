@@ -7,6 +7,7 @@
 --   reminder_suppressions     addresses that unsubscribed from reminders; only an explicit
 --                             new opt-in that is confirmed again removes the row
 --   subscriber_reminders      one row per reminder email planned/sent to a subscriber
+--   subscriber_emails         a copy of each email sent to a subscriber
 --   business_attribution      first/last touch captured when a business is added
 --   founder_prospects         Amary's manual research notes on public register businesses
 --   referral_partners         accountants, bookkeepers and similar firms (CRM only)
@@ -64,6 +65,18 @@ create table public.subscriber_reminders (
 );
 create index subscriber_reminders_due_idx on public.subscriber_reminders (status, scheduled_for);
 
+-- A copy of every email sent to a subscriber (like notifications for customers).
+create table public.subscriber_emails (
+  id uuid primary key default gen_random_uuid(),
+  subscriber_id uuid not null references public.reminder_subscribers (id) on delete cascade,
+  kind text not null check (kind in ('confirmation', 'reminder')),
+  subject text not null check (char_length(subject) <= 300),
+  body_text text not null check (char_length(body_text) <= 20000),
+  provider_message_id text,
+  created_at timestamptz not null default now()
+);
+create index subscriber_emails_subscriber_idx on public.subscriber_emails (subscriber_id, created_at);
+
 create table public.business_attribution (
   business_id uuid primary key references public.businesses (id) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -116,12 +129,13 @@ create trigger referral_partners_updated_at before update on public.referral_par
 alter table public.reminder_subscribers enable row level security;
 alter table public.reminder_suppressions enable row level security;
 alter table public.subscriber_reminders enable row level security;
+alter table public.subscriber_emails enable row level security;
 alter table public.business_attribution enable row level security;
 alter table public.founder_prospects enable row level security;
 alter table public.referral_partners enable row level security;
 
 revoke all on public.reminder_subscribers, public.reminder_suppressions, public.subscriber_reminders,
-  public.business_attribution, public.founder_prospects, public.referral_partners
+  public.subscriber_emails, public.business_attribution, public.founder_prospects, public.referral_partners
   from anon, authenticated;
 
 -- ---------------------------------------------------------------------------
