@@ -83,8 +83,9 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
         </div>
         <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.025em] text-fg sm:text-[38px]">Business details</h1>
         <p className="max-w-[60ch] text-[16px] leading-relaxed text-muted">
-          Enter these as they appear on your {summary.stateName} business record. You&apos;ll review everything before you
-          sign.
+          {showPrefill
+            ? "We filled in what we could. Check it, add anything missing, and you'll review everything before you sign."
+            : `Enter these as they appear on your ${summary.stateName} business record. You'll review everything before you sign.`}
         </p>
       </div>
 

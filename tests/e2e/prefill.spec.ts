@@ -38,6 +38,12 @@ test("a register pick prefills the draft and asks only what's missing", async ({
   await expect(main).toContainText("From Pennsylvania's business register");
   await expect(main).toContainText("We still need this from you");
   await expect(main).toContainText("Has anything changed?");
+  await page.screenshot({ path: "test-results/prefill-panel-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "test-results/prefill-panel-mobile.png", fullPage: true });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.getByRole("button", { name: /No, it's all current/ }).click();
   await page.waitForURL(/step=principal_office/);
