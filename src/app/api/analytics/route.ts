@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 /** Events the browser may report. Money/status events are recorded server-side only. */
 const CLIENT_EVENTS = [
+  "visit_started",
   "landing_viewed",
   "state_page_viewed",
   "lookup_started",

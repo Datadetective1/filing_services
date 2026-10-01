@@ -96,6 +96,8 @@ test("1. visitor reads the Pennsylvania page and looks up their business", async
 });
 
 test("2. customer signs in, completes intake, authorizes and pays (sandbox)", async ({ page }) => {
+  // Arrive from a tagged LinkedIn link: attribution must survive signup, intake, checkout and payment.
+  await page.goto("/?utm_source=linkedin&utm_medium=social&utm_campaign=e2e_journey");
   await lookUp(page);
   // Signed-out visitors are sent to sign up; this customer already has an account.
   await page.goto("/login?next=/file/start");
@@ -183,6 +185,22 @@ test("2. customer signs in, completes intake, authorizes and pays (sandbox)", as
   const { data: auth } = await backend().from("filing_authorizations").select("signer_name, answers_sha256").eq("filing_id", filingId).single();
   expect(auth?.signer_name).toBe("Dana Whitfield");
   expect(auth?.answers_sha256).toMatch(/^[0-9a-f]{64}$/);
+
+  // Attribution: kept with the business, and on the funnel events through payment.
+  const { data: f2 } = await backend().from("filings").select("business_id").eq("id", filingId).single();
+  const { data: attr } = await backend().from("business_attribution").select("attribution").eq("business_id", f2!.business_id).single();
+  expect(attr?.attribution).toMatchObject({ ft: { s: "linkedin", m: "social", c: "e2e_journey" } });
+  for (const event of ["intake_started", "checkout_started", "payment_completed"]) {
+    const { data: ev } = await backend()
+      .from("analytics_events")
+      .select("properties")
+      .eq("event_name", event)
+      .eq("user_id", customer.id)
+      .order("id", { ascending: false })
+      .limit(1)
+      .single();
+    expect(ev?.properties, event).toMatchObject({ ft_source: "linkedin", ft_campaign: "e2e_journey" });
+  }
 });
 
 test("3. duplicate and forged webhooks are harmless", async ({ request }) => {

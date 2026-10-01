@@ -5,7 +5,7 @@ import { site } from "@/config/site";
  * legal page changes: it is shown on every legal page and recorded with each filing
  * authorization as the version of the Terms and Refund Policy the customer agreed to.
  */
-export const LEGAL_LAST_UPDATED = "2026-09-30";
+export const LEGAL_LAST_UPDATED = "2026-10-01";
 
 export const LEGAL_PAGES = [
   { path: "/legal/terms", title: "Terms of service" },

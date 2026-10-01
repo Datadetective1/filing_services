@@ -15,9 +15,12 @@ import type { RegistrySearchResult, RegistrySelectState } from "@/app/(marketing
 export function RegistrySearch({
   search,
   select,
+  compact = false,
 }: {
   search: (q: string) => Promise<RegistrySearchResult>;
   select: (state: RegistrySelectState, formData: FormData) => Promise<RegistrySelectState>;
+  /** No heading; "enter your details" points to /find (for the homepage hero and guide pages). */
+  compact?: boolean;
 }) {
   const id = useId();
   const [q, setQ] = useState("");
@@ -31,16 +34,25 @@ export function RegistrySearch({
   }
 
   const results = result?.status === "ok" ? result.results : [];
+  const manual = compact ? (
+    <a href="/find" className="font-medium text-fg underline underline-offset-4">
+      enter your details instead
+    </a>
+  ) : (
+    "enter your details below"
+  );
 
   return (
     <div className="grid gap-4">
-      <div className="grid gap-1">
-        <h2 className="text-[19px] font-semibold leading-snug text-fg">Search Pennsylvania&apos;s business register</h2>
-        <p className="text-sm leading-6 text-muted">
-          Type your business name or entity number, then pick it from the list. We fill in what the state&apos;s register shows,
-          and you check it before anything is filed.
-        </p>
-      </div>
+      {compact ? null : (
+        <div className="grid gap-1">
+          <h2 className="text-[19px] font-semibold leading-snug text-fg">Search Pennsylvania&apos;s business register</h2>
+          <p className="text-sm leading-6 text-muted">
+            Type your business name or entity number, then pick it from the list. We fill in what the state&apos;s register shows,
+            and you check it before anything is filed.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={run} role="search" className="flex flex-col gap-2 sm:flex-row">
         <label htmlFor={`${id}-q`} className="sr-only">
@@ -63,14 +75,14 @@ export function RegistrySearch({
 
       <div aria-live="polite" className="grid gap-3">
         {result?.status === "too_short" ? <p className="text-sm text-muted">Enter at least 3 letters or numbers.</p> : null}
-        {result?.status === "limited" ? <p className="text-sm text-muted">Too many searches in a short time. Wait a minute, or enter your details below.</p> : null}
+        {result?.status === "limited" ? <p className="text-sm text-muted">Too many searches in a short time. Wait a minute, or {manual}.</p> : null}
         {result?.status === "unavailable" ? (
-          <p className="text-sm text-muted">Pennsylvania&apos;s register isn&apos;t responding right now. Enter your details below instead.</p>
+          <p className="text-sm text-muted">Pennsylvania&apos;s register isn&apos;t responding right now. You can {manual}.</p>
         ) : null}
         {result?.status === "ok" && results.length === 0 ? (
           <p className="text-sm text-muted">
-            No match. Try fewer words or the entity number, or enter your details below. Businesses registered in the last few
-            weeks may not be listed yet.
+            No match. Try fewer words or the entity number, or {manual}. Businesses registered in the last few weeks may not be
+            listed yet.
           </p>
         ) : null}
         {selectState.error ? (

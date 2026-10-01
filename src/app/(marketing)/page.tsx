@@ -15,7 +15,9 @@ import { ProductPreview } from "@/components/marketing/product-preview";
 import { Section, SectionHeading } from "@/components/marketing/section";
 import { ButtonLink, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
+import { RegistrySearch } from "@/components/funnel/registry-search";
 import { Receipt } from "@/components/visual/receipt";
+import { searchRegistry, selectRegistryEntity } from "./find/registry-actions";
 import { ReminderTimeline } from "@/components/visual/reminder-timeline";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { findRule, getJurisdiction, rulesForState } from "@/lib/compliance/registry";
@@ -105,15 +107,22 @@ export default async function HomePage() {
             <p className="max-w-[34ch] text-lg leading-relaxed text-muted sm:text-xl">
               We&apos;ll tell you what&apos;s due before it becomes urgent, and file it for you when you ask.
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href="/find" size="lg">
-                Find my business
-                <ArrowRight size={18} weight="bold" aria-hidden />
-              </ButtonLink>
-              <ButtonLink href="/states" size="lg" variant="secondary">
-                Browse filing requirements
-              </ButtonLink>
+            {/* The main acquisition path: search the register right here, no account needed. */}
+            <div id="find" className="grid scroll-mt-24 gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5">
+              <p className="text-[15px] font-semibold text-fg">Find your Pennsylvania business</p>
+              <RegistrySearch search={searchRegistry} select={selectRegistryEntity} compact />
             </div>
+            <p className="text-sm text-muted">
+              Not in Pennsylvania?{" "}
+              <Link href="/find" className={textLinkClasses}>
+                Enter your details
+              </Link>{" "}
+              or{" "}
+              <Link href="/states" className={textLinkClasses}>
+                browse filing requirements
+              </Link>
+              .
+            </p>
             <p className="flex max-w-[46ch] items-start gap-2 text-sm leading-6 text-muted">
               <ShieldCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
               <span>

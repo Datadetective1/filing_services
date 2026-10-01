@@ -56,6 +56,12 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       ...(indexable ? [] : [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }]),
       {
+        // Signed, per-person or utility URLs: never indexed, whatever robots.txt says.
+        source: "/(m|rs|r|reminders|outreach|unsubscribe|auth)/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      { source: "/find/result", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      {
         source: "/(dashboard|admin|file|sandbox)/:path*",
         headers: [
           { key: "Cache-Control", value: "private, no-store" },

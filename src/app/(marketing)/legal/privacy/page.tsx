@@ -62,20 +62,33 @@ export default function PrivacyPage() {
         If you join a waitlist for a state we don&apos;t support yet, we keep your email address and that state, and use them only
         to tell you when we support it.
       </p>
+      <h3>Filing reminders without an account</h3>
+      <p>
+        If you ask us to remind you about a business&apos;s filing without creating an account, we keep the email address you
+        typed, the business details from your lookup (name, state, entity type, entity number and formation date if known), the
+        wording you agreed to and when, and whether you confirmed. We use them only to send the confirmation email and the
+        reminders you asked for, which have a one-click unsubscribe. When you unsubscribe, we keep the address on a list so we
+        don&apos;t email it again unless you sign up and confirm again yourself. We never add anyone to reminders from public
+        business records, and we don&apos;t guess or look up email addresses.
+      </p>
       <h3>Analytics</h3>
       <p>
         We use our own first-party analytics to understand which pages and steps work. We record the event (for example, that a
         state page was viewed), the page path without its query string, the state and entity type involved, your account ID if
         you are signed in, and a random ID stored in your browser. We do not store IP addresses or user agents with analytics,
         and we do not use third-party advertising trackers. If your browser sends a Global Privacy Control or Do Not Track
-        signal, we do not create the random browser ID.
+        signal, we do not create the random browser ID. To learn which channels bring visitors (for example a search engine,
+        a social site, a partner link or one of our reminder emails), we also note how you first and most recently arrived: the
+        source, any campaign tag in the link, the referring website&apos;s domain (not the full address), the first page you
+        landed on and the date. This is kept with analytics events and, if you add a business, with that business.
       </p>
       <h3>Cookies and browser storage</h3>
       <p>
         We use cookies that are needed to run the site: sign-in cookies that keep you logged in, and, if you look up a business
         before creating an account, cookies that hold what you typed for up to 24 hours so we can carry it into your account. Our
-        analytics store a random ID in your browser&apos;s local storage (not a cookie). We do not use advertising or third-party
-        tracking cookies.
+        analytics store a random ID in your browser&apos;s local storage (not a cookie), and a first-party cookie holds how you
+        arrived (described under Analytics) for up to 180 days. We don&apos;t set that cookie if your browser sends a Global
+        Privacy Control signal. We do not use advertising or third-party tracking cookies.
       </p>
       <h3>Security and logs</h3>
       <p>

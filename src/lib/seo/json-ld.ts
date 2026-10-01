@@ -123,6 +123,21 @@ export function serviceJsonLd(input: {
   };
 }
 
+/** A guide page: plain Article published by the private Organization (never a government body). */
+export function articleJsonLd(input: { headline: string; description: string; path: string; dateModified: string }): Json {
+  return {
+    "@type": "Article",
+    headline: input.headline,
+    description: input.description,
+    url: absoluteUrl(input.path),
+    mainEntityOfPage: absoluteUrl(input.path),
+    dateModified: input.dateModified,
+    inLanguage: "en-US",
+    author: organizationRef(),
+    publisher: organizationRef(),
+  };
+}
+
 /** Wrap nodes in a single @graph document. */
 export function graph(...nodes: Json[]): Json {
   return { "@context": "https://schema.org", "@graph": nodes };

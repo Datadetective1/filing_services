@@ -16,6 +16,11 @@ export const ANALYTICS_EVENTS = [
   "prefill_applied",
   "prefill_confirmed",
   "outreach_clicked",
+  "visit_started",
+  "reminder_opt_in",
+  "reminder_confirmed",
+  "reminder_unsubscribed",
+  "reminder_sent",
 ] as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];

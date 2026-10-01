@@ -2,12 +2,27 @@ import { expect, test } from "@playwright/test";
 
 const DISCLAIMER = "Not affiliated with or endorsed by any government agency";
 
+const GUIDES = [
+  ["annual-report-deadline", "Pennsylvania annual report deadline"],
+  ["annual-report-fee", "Pennsylvania annual report fee"],
+  ["how-to-file-annual-report", "How to file a Pennsylvania annual report"],
+  ["annual-report-after-deadline", "Filing a Pennsylvania annual report after the deadline"],
+  ["business-search", "Pennsylvania business search"],
+] as const;
+
 test.describe("public pages", () => {
+  // Keep test traffic out of the first-party visitor counts (server-side lookups still count).
+  test.beforeEach(async ({ page }) => {
+    await page.route("**/api/analytics", (r) => r.fulfill({ status: 204 }));
+  });
+
   test("homepage communicates the value and the disclaimer", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Never miss a business filing");
     await expect(page.getByRole("link", { name: "Find my business" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "Browse filing requirements" }).first()).toBeVisible();
+    // The register search is right in the hero: no extra click, no account.
+    await expect(page.getByRole("textbox", { name: "Business name or Pennsylvania entity number" }).first()).toBeVisible();
     await expect(page.getByText(DISCLAIMER).first()).toBeVisible();
     // No horizontal overflow on any viewport.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -26,6 +41,64 @@ test.describe("public pages", () => {
     await page.waitForURL(/\/find\/result/);
     await expect(page.locator("main")).toContainText("Pennsylvania record found");
     await expect(page.locator("main")).toContainText("$7.00");
+    // Never states filing status as fact.
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("may be due");
+    // Free reminders: consent box unticked; submitting without it is refused before anything is saved.
+    const consent = page.getByRole("checkbox", { name: /email me reminders/i });
+    await expect(consent).not.toBeChecked();
+    await page.getByLabel("Email", { exact: true }).fill("someone@example.com");
+    await page.getByRole("button", { name: "Email me reminders" }).click();
+    await expect(page.locator("main")).toContainText("Tick the box to confirm you want these reminders");
+  });
+
+  for (const [slug, h1] of GUIDES) {
+    test(`guide: ${slug}`, async ({ page }) => {
+      const res = await page.goto(`/pennsylvania/${slug}`);
+      expect(res?.status()).toBe(200);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(h1);
+      const main = page.locator("main");
+      await expect(main).toContainText("Checked against official Pennsylvania sources on");
+      await expect(main).toContainText("private filing service");
+      await expect(main).toContainText("You don't need a filing service");
+      await expect(main).toContainText("Our service fee");
+      await expect(page.locator('main a[href^="https://www.pa.gov/"]').first()).toBeAttached();
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", new RegExp(`/pennsylvania/${slug}$`));
+      await expect(page.getByRole("textbox", { name: "Business name or Pennsylvania entity number" }).first()).toBeVisible();
+      const jsonLd = (await page.locator('script[type="application/ld+json"]').allTextContents()).join(" ");
+      expect(jsonLd).toContain('"Article"');
+      expect(jsonLd).toContain("FAQPage");
+      expect(jsonLd).not.toContain("GovernmentService");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(1);
+    });
+  }
+
+  test("attribution: first touch kept, last touch follows the latest source", async ({ page, context }) => {
+    await page.goto("/pricing?utm_source=e2e_check&utm_campaign=public_smoke");
+    const read = async () => JSON.parse(decodeURIComponent((await context.cookies()).find((c) => c.name === "fw_attr")!.value));
+    const first = await read();
+    expect(first.ft).toMatchObject({ s: "other", c: "public_smoke", lp: "/pricing" });
+    await page.goto("/help", { referer: "https://www.google.com/" });
+    const second = await read();
+    expect(second.ft.c).toBe("public_smoke");
+    expect(second.lt).toMatchObject({ s: "google", m: "organic" });
+    await page.getByRole("link", { name: "Pricing" }).first().click();
+    expect((await read()).lt.s).toBe("google");
+  });
+
+  test("private and signed URLs are never indexable", async ({ request }) => {
+    for (const path of ["/find/result", "/reminders/confirm?t=x", "/reminders/unsubscribe?t=x", "/outreach/unsubscribe?t=x"]) {
+      const res = await request.get(path, { maxRedirects: 0 });
+      expect(res.headers()["x-robots-tag"] ?? "", path).toContain("noindex");
+    }
+    const m = await request.get("/m/00000000-123-AAAAAAAAAA", { maxRedirects: 0 });
+    expect(m.headers()["x-robots-tag"] ?? "").toContain("noindex");
+    const robots = await (await request.get("/robots.txt")).text();
+    if (!/^Disallow: \/$/m.test(robots)) {
+      for (const p of ["/admin", "/dashboard", "/file", "/api/", "/m/", "/rs/", "/r/", "/reminders/", "/find/result"]) {
+        expect(robots, p).toContain(`Disallow: ${p}`);
+      }
+    }
   });
 
   test("help page offers a human support path", async ({ page }) => {
@@ -72,6 +145,8 @@ test.describe("public pages", () => {
     expect(xml).toContain("/annual-report/pennsylvania");
     expect(xml).not.toContain("/annual-report/texas");
     expect(xml).not.toContain("/admin");
+    for (const [slug] of GUIDES) expect(xml).toContain(`/pennsylvania/${slug}`);
+    for (const bad of ["/find/result", "/dashboard", "/file/", "/m/", "/rs/", "/reminders/", "/login"]) expect(xml).not.toContain(bad);
   });
 
   test("admin console is hidden from signed-out visitors", async ({ page }) => {

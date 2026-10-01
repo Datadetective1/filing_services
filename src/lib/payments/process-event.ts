@@ -1,5 +1,6 @@
 import "server-only";
 import { isProductionEnvironment } from "@/config/site";
+import { businessAttribution } from "@/lib/analytics/attribution-server";
 import { trackServer } from "@/lib/analytics/server";
 import { loadFilingContext } from "@/lib/filings/context";
 import { formatCents } from "@/lib/domain/money";
@@ -231,8 +232,10 @@ export async function afterPaymentSucceeded(filingId: string | null, orderId: st
     userId,
     stateCode: ctx.filing.stateCode,
     filingTypeCode: "annual_report",
-    properties: { order_id: orderId },
+    properties: { order_id: orderId, payment_mode: order.payment_mode },
     dedupeKey: `payment_completed:${orderId}`,
+    // Webhooks have no visitor cookie: use what was captured when the business was added.
+    attribution: await businessAttribution(ctx.filing.businessId),
   });
 }
 

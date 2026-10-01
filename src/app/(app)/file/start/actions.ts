@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { saveBusinessAttribution } from "@/lib/analytics/attribution-server";
 import { type SessionUser, requireUser } from "@/lib/auth/session";
 import { findRule, getJurisdiction } from "@/lib/compliance/registry";
 import { todayInTimeZone } from "@/lib/domain/dates";
@@ -75,6 +76,7 @@ export async function confirmStart(_prev: ActionMessageState, formData: FormData
       });
       businessId = created.businessId;
     }
+    await saveBusinessAttribution(businessId, user.id);
     if (lookup.registryEntityNumber && lookup.stateCode === "PA") {
       await linkRegistryRecord(user, businessId, lookup.registryEntityNumber);
       const attribution = await mailAttributionFor(lookup.registryEntityNumber);
