@@ -11,14 +11,15 @@ import { requireAdmin } from "@/lib/auth/session";
 import { DEFAULT_SUBJECTS } from "@/lib/outreach/email";
 import { campaignGates, GATE_TEXT } from "@/lib/outreach/gate";
 import { gateConfig, outreachStats } from "@/lib/outreach/service";
-import { createCampaignAction, importProspectsAction, suppressAction } from "./actions";
+import { createCampaignAction, createMailPilotAction, importProspectsAction, suppressAction } from "./actions";
 
 export const metadata: Metadata = { title: "Outreach" };
 
 const SEGMENT_LABEL: Record<string, string> = {
   approaching_deadline: "Deadline approaching (within 60 days)",
-  deadline_passed_outstanding: "Deadline passed, source shows unfiled",
+  deadline_passed_outstanding: "Deadline passed, report verified open by a real-time source (none connected)",
   unknown_status: "Deadline passed, filing status unknown",
+  upcoming_deadline: "December 31 deadline within 120 days (postcard)",
 };
 const GROUP_LABEL: Record<string, string> = { all: "All entity types", llc: "LLCs", corporation: "Corporations", other: "Other associations" };
 
@@ -76,7 +77,7 @@ export default async function OutreachPage() {
                   <TH>Campaign</TH>
                   <TH>Segment</TH>
                   <TH>Status</TH>
-                  <TH>Dry run: would send</TH>
+                  <TH>Dry run: would receive</TH>
                 </TR>
               </THead>
               <tbody>
@@ -88,7 +89,7 @@ export default async function OutreachPage() {
                         <Link href={`/admin/outreach/${c.id}`} className="font-semibold text-fg underline-offset-4 hover:underline">
                           {c.name}
                         </Link>
-                        <span className="block text-xs text-muted">{c.subject}</span>
+                        <span className="block text-xs text-muted">{c.channel === "mail" ? "Postcard pilot" : c.subject}</span>
                       </TD>
                       <TD>
                         {SEGMENT_LABEL[c.segment]}
@@ -98,7 +99,9 @@ export default async function OutreachPage() {
                         <Badge tone={c.status === "approved" ? "success" : "neutral"}>{c.status === "approved" ? "Content approved" : "Draft"}</Badge>
                         {c.approved_at ? <span className="block text-xs text-muted">{formatDateTime(c.approved_at)}</span> : null}
                       </TD>
-                      <TD className="tnum">{rows.length ? `${rows.filter((r) => r.reasons.length === 0).length} of ${rows.length}` : "Not run"}</TD>
+                      <TD className="tnum">
+                        {rows.length ? `${rows.filter((r) => r.reasons.length === 0).length} of ${rows.length}${c.channel === "mail" ? " cards" : ""}` : "Not run"}
+                      </TD>
                     </TR>
                   );
                 })}
@@ -109,7 +112,19 @@ export default async function OutreachPage() {
       </Panel>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <Panel id="new-campaign" title="New campaign" description="Content is a fixed, reviewed template. Only the subject can change, and official-sounding or pressuring subjects are refused.">
+        <Panel
+          id="new-mail-pilot"
+          title="New postcard pilot"
+          description="Pennsylvania associations with a December 31 deadline (LPs, LLPs, business trusts, professional associations), from imported register records. Builds the selection, exclusions, card and export. Buys and mails nothing."
+        >
+          <ActionForm action={createMailPilotAction} submitLabel="Create postcard pilot" variant="secondary">
+            <Field label="Name" htmlFor="m-name">
+              <Input id="m-name" name="name" required maxLength={120} placeholder="PA Dec 31 postcard pilot (Nov 2026)" />
+            </Field>
+          </ActionForm>
+        </Panel>
+
+        <Panel id="new-campaign" title="New email campaign" description="Content is a fixed, reviewed template. Only the subject can change, and official-sounding or pressuring subjects are refused.">
           <ActionForm action={createCampaignAction} submitLabel="Create draft" variant="primary">
             <Field label="Name" htmlFor="c-name">
               <Input id="c-name" name="name" required maxLength={120} placeholder="PA LLCs, deadline passed (Oct 2026)" />

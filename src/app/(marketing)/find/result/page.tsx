@@ -172,7 +172,7 @@ export default async function FindResultPage() {
     <details className="group rounded-[var(--radius-surface)] border border-border bg-surface">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-[var(--radius-surface)] px-5 py-3 hover:bg-surface-2/60 sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="grid gap-0.5">
-          <span className="font-display text-[17px] font-semibold text-fg">{fromRegistry ? "From Pennsylvania's business register" : "Details you entered"}</span>
+          <span className="font-display text-[17px] font-semibold text-fg">{fromRegistry ? "Pennsylvania record found" : "Details you entered"}</span>
           <span className="text-sm text-muted [overflow-wrap:anywhere]">
             {lookup.legalName} · {stateName} {entityLabel}
           </span>
@@ -194,7 +194,7 @@ export default async function FindResultPage() {
             { term: "Not-for-profit purpose", value: lookup.isNonprofit ? "Yes" : "No" },
             {
               term: "This year's report",
-              value: fromRegistry ? "Not shown on the register" : lookup.alreadyFiledThisYear ? "Already filed" : "Not filed yet",
+              value: fromRegistry ? "Not shown on the register" : lookup.alreadyFiledThisYear ? "You marked it as already filed" : "Not marked as already filed",
             },
           ]}
         />

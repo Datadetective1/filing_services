@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { findRule } from "@/lib/compliance/registry";
 import { contentSha256, DEFAULT_SUBJECTS, renderOutreachEmail, subjectProblem } from "@/lib/outreach/email";
 import { campaignGates, decide, recipientGates, senderIsValid, type GateConfig, type RecipientForGate } from "@/lib/outreach/gate";
-import { assessSituation } from "@/lib/outreach/segment";
+import { assessSituation, AUTHORITATIVE_STATUS_SOURCES } from "@/lib/outreach/segment";
 
 const base = { stateCode: "PA", isForeign: false, formationDate: "2015-03-01", filedYears: null };
 
@@ -26,9 +26,21 @@ describe("PA deadline segmentation (verified rules)", () => {
     expect(assessSituation({ ...base, entityType: "lp", today: "2026-10-01" })).toMatchObject({ segment: null });
   });
 
-  it("never contacts a business the source shows as filed, and only says 'outstanding' when a source shows it unfiled", () => {
-    expect(assessSituation({ ...base, entityType: "llc", today: "2026-10-01", filedYears: [2026] })).toMatchObject({ filed: true, segment: null });
-    expect(assessSituation({ ...base, entityType: "llc", today: "2026-10-01", filedYears: [2025] })).toMatchObject({
+  it("ignores filing history from the monthly open dataset (or any non-authoritative source): status stays unknown", () => {
+    for (const statusSource of ["pa_dos_open_data", null, undefined, "some_scraper"]) {
+      expect(assessSituation({ ...base, entityType: "llc", today: "2026-10-01", filedYears: [2026], statusSource })).toMatchObject({ filed: null, segment: "unknown_status" });
+      expect(assessSituation({ ...base, entityType: "llc", today: "2026-10-01", filedYears: [2025], statusSource })).toMatchObject({ filed: null, segment: "unknown_status" });
+    }
+  });
+
+  it("no authoritative real-time status source is configured today", () => {
+    expect(AUTHORITATIVE_STATUS_SOURCES.size).toBe(0);
+  });
+
+  it("with a verified real-time source: never contacts a filed business, and only then says 'outstanding'", () => {
+    const trusted = { statusSource: "pa_dos_realtime", trustedSources: new Set(["pa_dos_realtime"]) };
+    expect(assessSituation({ ...base, ...trusted, entityType: "llc", today: "2026-10-01", filedYears: [2026] })).toMatchObject({ filed: true, segment: null });
+    expect(assessSituation({ ...base, ...trusted, entityType: "llc", today: "2026-10-01", filedYears: [2025] })).toMatchObject({
       filed: false,
       segment: "deadline_passed_outstanding",
     });

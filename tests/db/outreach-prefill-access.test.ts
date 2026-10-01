@@ -91,3 +91,38 @@ describe("analytics events", () => {
     await expect(asService(db, (tx) => tx.query("insert into public.analytics_events (event_name) values ('made_up')"))).rejects.toThrow();
   });
 });
+
+describe("mail pilot columns (20261001000009)", () => {
+  it("campaigns default to the email channel; mail pilots use the Dec 31 segment and postcard template", async () => {
+    const email = await asService(db, (tx) =>
+      tx.query<{ channel: string }>("insert into public.marketing_campaigns (name, state_code, segment, subject) values ('e', 'PA', 'unknown_status', 'Reminder: may be due') returning channel"),
+    );
+    expect(email.rows[0].channel).toBe("email");
+    await asService(db, (tx) =>
+      tx.query(
+        "insert into public.marketing_campaigns (name, state_code, channel, segment, entity_group, template_key, subject) values ('m', 'PA', 'mail', 'upcoming_deadline', 'other', 'pa_dec31_postcard', 'Postcard')",
+      ),
+    );
+    await expect(asService(db, (tx) => tx.query("insert into public.marketing_campaigns (name, state_code, channel, segment, subject) values ('x', 'PA', 'fax', 'unknown_status', 's')"))).rejects.toThrow();
+  });
+
+  it("landing codes are unique and well-formed", async () => {
+    const rec = await asService(db, (tx) =>
+      tx.query<{ id: string }>("insert into public.state_entity_records (state_code, entity_number, legal_name, source, retrieved_at) values ('PA', '0000000001', 'A LP', 'pa_dos_open_data', now()) returning id"),
+    );
+    const pr = await asService(db, (tx) => tx.query<{ id: string }>("insert into public.prospects (state_entity_record_id, state_code) values ($1, 'PA') returning id", [rec.rows[0].id]));
+    const camp = await asService(db, (tx) => tx.query<{ id: string }>("select id from public.marketing_campaigns where channel = 'mail' limit 1"));
+    await asService(db, (tx) =>
+      tx.query("insert into public.marketing_sends (campaign_id, prospect_id, status, landing_code) values ($1, $2, 'dry_run', 'abcd1234-1-xyzxyzxyz0')", [camp.rows[0].id, pr.rows[0].id]),
+    );
+    const camp2 = await asService(db, (tx) => tx.query<{ id: string }>("select id from public.marketing_campaigns where channel = 'email' limit 1"));
+    await expect(
+      asService(db, (tx) =>
+        tx.query("insert into public.marketing_sends (campaign_id, prospect_id, status, landing_code) values ($1, $2, 'dry_run', 'abcd1234-1-xyzxyzxyz0')", [camp2.rows[0].id, pr.rows[0].id]),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      asService(db, (tx) => tx.query("insert into public.marketing_sends (campaign_id, prospect_id, status, landing_code) values ($1, $2, 'dry_run', 'bad code!')", [camp2.rows[0].id, pr.rows[0].id])),
+    ).rejects.toThrow();
+  });
+});

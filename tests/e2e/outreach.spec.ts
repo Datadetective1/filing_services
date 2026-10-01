@@ -37,7 +37,7 @@ test("admin previews a dry-run campaign; every sending gate is closed", async ({
     await page.screenshot({ path: "test-results/outreach-overview-desktop.png", fullPage: true });
 
     const name = `E2E dry run ${uniqueSuffix()}`;
-    await page.getByLabel("Name").fill(name);
+    await page.locator("#c-name").fill(name);
     await page.getByRole("button", { name: "Create draft" }).click();
     await expect(main).toContainText("Campaign created as a draft");
     await page.reload();

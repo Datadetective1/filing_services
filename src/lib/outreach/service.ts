@@ -182,6 +182,7 @@ export async function dryRunCampaign(campaign: CampaignRow, opts: { persist: boo
       isForeign: rec.is_foreign,
       formationDate: rec.formation_date,
       filedYears: rec.annual_reports ? rec.annual_reports.map((a) => a.year) : null,
+      statusSource: rec.source,
       today,
     });
     const email = p.contact_points.find((c) => c.kind === "email") ?? null;
@@ -261,7 +262,7 @@ export async function outreachStats() {
     db.from("prospects").select("id", head).eq("state_code", "PA").not("converted_business_id", "is", null),
     db.from("contact_points").select("id", head).eq("kind", "email"),
     db.from("marketing_suppressions").select("email", head),
-    db.from("marketing_campaigns").select("id, name, segment, entity_group, subject, status, approved_content_sha256, approved_at, created_at").order("created_at", { ascending: false }),
+    db.from("marketing_campaigns").select("id, name, segment, entity_group, subject, status, approved_content_sha256, approved_at, created_at, channel").order("created_at", { ascending: false }),
     db.from("marketing_sends").select("campaign_id, status, clicked_at, converted_business_id, revenue_cents, reasons"),
   ]);
   const rows = (sends.data ?? []) as { campaign_id: string; status: string; clicked_at: string | null; converted_business_id: string | null; revenue_cents: number; reasons: string[] }[];
@@ -278,7 +279,7 @@ export async function outreachStats() {
     clicked: rows.filter((r) => r.clicked_at).length,
     started: rows.filter((r) => r.converted_business_id).length,
     revenueCents: rows.reduce((s, r) => s + (r.revenue_cents ?? 0), 0),
-    campaigns: (campaigns.data ?? []) as (CampaignRow & { created_at: string })[],
+    campaigns: (campaigns.data ?? []) as (CampaignRow & { created_at: string; channel: string })[],
     sendsByCampaign: rows,
   };
 }
