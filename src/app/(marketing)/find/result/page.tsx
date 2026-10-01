@@ -17,6 +17,7 @@ import { formatCents } from "@/lib/domain/money";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
 import { periodFor } from "@/lib/filings/customer";
 import { readPendingLookup } from "@/lib/lookup/pending";
+import { mailAttributionFor, markMailEvent } from "@/lib/outreach/mail-cohort";
 import { TrackView } from "@/components/analytics/track-view";
 import { OfficialSource } from "@/components/compliance/official-source";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
@@ -151,6 +152,11 @@ function DeadlineCard({
 export default async function FindResultPage() {
   const lookup = await readPendingLookup();
   const fromRegistry = Boolean(lookup?.registryEntityNumber);
+  if (fromRegistry) {
+    // Postcard visitors: the record was viewed (first time wins; no-op for everyone else).
+    const attribution = await mailAttributionFor(lookup?.registryEntityNumber);
+    if (attribution) await markMailEvent(attribution, "record_viewed");
+  }
   if (!lookup) redirect("/find");
 
   const homeJurisdiction = lookup.isForeign ? await readLookupHomeJurisdiction() : null;

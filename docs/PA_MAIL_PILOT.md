@@ -1,7 +1,8 @@
-# Pennsylvania December 31 postcard pilot (design only)
+# Pennsylvania December 31 postcard pilot (100 cards, test mode only)
 
-Prepared 2026-10-01. **Nothing has been purchased or mailed.** There is no mail-vendor
-integration in the code. Prices were read from vendor sites on 2026-09-30; laws were read
+Prepared 2026-10-01. **Nothing has been purchased or mailed.** The Lob integration exists
+but only runs with a `test_` key (Lob never mails test pieces); live keys are refused while
+`MAIL_SENDS_ENABLED` is not `true`, and it is not set anywhere. Prices were read from vendor sites on 2026-09-30; laws were read
 from primary sources the same day. Not legal advice: have counsel review the card.
 
 ## 1. Who
@@ -31,37 +32,45 @@ one or two counties to keep fulfilment manageable.
 
 ## 2. The card (6x4 in, First-Class)
 
-Copy side (rendered for review in Admin > Outreach > the pilot; HTML template via
-"Card template (HTML)"):
+Final copy (template `pa_dec31_postcard@2026-10-01b`, `src/lib/outreach/postcard.ts`).
+Proofs: `docs/mail-pilot/postcard-front-sample.png`, `postcard-back-sample.png`,
+`postcard-proof-sample.pdf` (placeholder business name).
 
-> **THIS IS A SOLICITATION. NOT A BILL OR OFFICIAL GOVERNMENT DOCUMENT. NOT SENT BY THE PENNSYLVANIA DEPARTMENT OF STATE.**
-> Filewell · Private filing service · Advertisement
+Front, top band (largest type on the card):
+
+> **THIS IS A SOLICITATION. NOT A BILL. NOT A GOVERNMENT DOCUMENT.**
+> Not sent by the Pennsylvania Department of State. Filewell is a private filing service. Advertisement.
 >
 > **Your 2026 Pennsylvania annual report may be due by December 31.**
 > For {{business_name}}
-> - File it yourself at file.dos.pa.gov: $7.00 state fee ($0.00 for not-for-profit associations). You don't need a filing service.
-> - Or have Filewell file it for you: $49.00 service fee + $7.00 state fee = $56.00.
->
-> Already filed? Please ignore this card.
-> **Start here: www.getfilewell.com/m/{{code}}**
->
-> *Filewell is a private filing service operated by Amary Coulibaly, sole proprietor. It is not the Pennsylvania Department of State and is not affiliated with, endorsed by or acting for any government agency.*
-> *This is a solicitation for the order of goods or services, or both, and not a bill, invoice, or statement of account due. You are under no obligation to make any payments on account of this offer unless you accept this offer.*
-> *Pennsylvania charges no late fee for annual reports. To stop mail from Filewell, email support@getfilewell.com.*
-> *Filewell, [return address]*
+> - File it yourself: you can file directly with the Pennsylvania Department of State at file.dos.pa.gov for the $7.00 state fee ($0.00 for not-for-profit associations) instead of using Filewell.
+> - Or let Filewell file it: $49.00 service fee + $7.00 state fee = $56.00.
 
-Address side: vendor address block and postage. No seals, keystones, agency-like names,
-"notice", "final", deadlines framed as penalties, or amounts styled as a balance due.
+Back, left column (right side left blank for Lob's address block and postage):
 
-Each card's URL is unique and signed. It opens that business's own "Pennsylvania record
-found" page (prefilled lookup), records the visit, and a forged code just opens the normal
-lookup.
+> Disclosure repeated, the direct-filing option repeated, the card's QR code and its
+> unique URL `www.getfilewell.com/m/{{code}}`, "Already filed? Please ignore this card."
+> Fine print: Filewell is a private filing service operated by Amary Coulibaly, sole
+> proprietor, not the Pennsylvania Department of State and not affiliated with, endorsed by
+> or acting for any government agency; the solicitation statement (section 3); Pennsylvania
+> charges no late fee for annual reports; to stop mail, email support@getfilewell.com;
+> return address.
+
+No seals, keystones, agency-like names, "notice", "final", penalty framing, or amounts
+styled as a balance due. The card never says filed, unfiled, active, compliant,
+delinquent or outstanding: only "Pennsylvania record found" (landing page) and "may be due".
+
+Each card's URL is unique and HMAC-signed (`<campaign>-<entity>-<signature>`); a forged or
+altered code just opens the normal lookup, and its QR route returns 404.
 
 ## 3. Rules that shape the card
 
-- **39 U.S.C. § 3001(d):** a solicitation that could be read as a bill, invoice or statement
-  of account must carry the "solicitation ... not a bill" notice conspicuously. Showing fees
-  makes this prudent, so the card carries it verbatim.
+- **39 U.S.C. § 3001(d)** addresses solicitations that could reasonably be read as a bill,
+  invoice or statement of account. Because the card shows fees, it includes a
+  "solicitation ... not a bill" statement modeled on the language that provision describes,
+  as a precaution. Whether § 3001(d) applies to this card, and whether this wording (or any
+  other on the card) satisfies it or any other rule, is for counsel to confirm; nothing here
+  is a statement of legal sufficiency.
 - **39 U.S.C. § 3001(h)–(j)** cover implied *federal* connection only; they don't reach a
   state-agency look-alike.
 - **FTC Impersonation Rule (16 CFR 461, 2024)** covers state agencies: no implied affiliation.
@@ -120,21 +129,48 @@ Suggested pilot: **500 cards, two counties, mailed the first week of November**
 (about $451-$455), measure for 6 weeks; expand only if paid response is at or above ~1%
 with good repeat signals.
 
-## 6. What's built
+## 6. The 100-card cohort
 
-- Admin > Outreach > "New postcard pilot": selection, exclusions, the rendered card, costs,
-  "Record dry run", "Approve card content" (records approval only).
-- Export CSV (admin only, audited): included, exclusion_reason, business_name,
-  entity_number, entity_type, registration type, mailing address, county, report year,
-  deadline, landing_url, landing_code, source, source_url, retrieved_at, campaign_id.
-  Spreadsheet-formula safe.
-- `/m/<code>` landing with click attribution.
+Built with `npx tsx scripts/build-pa-mail-cohort.mts --size 100 --pool 600` from the
+data.pa.gov register (domestic December 31 types, formed before 2026, newest first) and
+saved to production campaign `78fc115b-c545-4599-a6ad-2365551df4b6`
+("PA Dec 31 pilot: 100 cards", draft). Selection is a deterministic hash order over the
+eligible rows; 54 eligible rows are held in reserve.
 
-## 7. Before any money is spent (owner)
+Exclusions on the 600-row pool (a row can have more than one): shared address (3+
+registrations at the street address: agent/CROP) 337, duplicate address within the pool 87,
+name/type mismatch (e.g. "LLC" or "Company" on an LP record) 25, personal name 5,
+government-like name 3, PO box 2, no street number 1, questionable characters 1. Also
+applied: existing customer, first-year entity, foreign entity, non-PA or incomplete
+address, care-of/agent lines, wrong deadline group, address or name too long for the card.
 
-1. Approve the pilot size and budget.
-2. A return address for the card (a mailbox service, not your home).
-3. Counsel's review of the card.
-4. Create the vendor account (Lob recommended); add `MAIL_VENDOR` and the key; we then
-   build the adapter against the test key.
-5. Turn on `MAIL_SENDS_ENABLED` only for the approved pilot.
+## 7. What's built
+
+- Admin > Outreach > the pilot: funnel (mailed, visits, record viewed, filing started,
+  checkout started, paid), conversion, acquisition cost, service-fee revenue, estimated
+  mailing cost, contribution after Stripe and mail, break-even paid orders; selected and
+  not-selected tables with reasons; front/back artwork for any selected card; "Approve card
+  content" (records approval only); Lob panel.
+- `/m/<code>`: verifies the code, records the visit, opens that business's prefilled
+  "Pennsylvania record found" page, and sets an attribution cookie so "record viewed" and
+  "filing started" are counted. `/m/<code>/qr.png`: the card's QR code.
+- Export CSV (admin only, audited, formula-safe): selected, exclusion_reason, business,
+  address, deadline, landing URL/code, source.
+- Lob adapter (`src/lib/outreach/lob.ts`): 4x6, `use_type=marketing`, First-Class,
+  idempotency key per send, metadata. "Create Lob test pieces" only appears with a `test_`
+  key. There is **no live-send action yet**: it gets built and reviewed after test pieces
+  have been checked and mailing is authorized.
+
+## 8. Remaining owner steps
+
+1. Counsel's review of the card (proofs in `docs/mail-pilot/`).
+2. A return address (a mailbox service, not your home); set `MAIL_FROM_NAME`,
+   `MAIL_FROM_LINE1`, `MAIL_FROM_LINE2`, `MAIL_FROM_CITY`, `MAIL_FROM_STATE`,
+   `MAIL_FROM_ZIP` in Vercel.
+3. Create a Lob account (free Developer plan, no payment method needed for test keys); set
+   `LOB_API_KEY` to the **test** key in Vercel; create test pieces from the dashboard and
+   check Lob's rendered proofs.
+4. Approve the card in Admin.
+5. Only to mail: add a payment method in Lob, swap in the live key, set `MAIL_VENDOR=lob`
+   and `MAIL_SENDS_ENABLED=true`, and have the live-send action built. Estimated cost:
+   100 x $0.909 = **$90.90**; break-even is **2 paid orders** ($47.08 net each).

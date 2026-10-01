@@ -10,6 +10,9 @@ import { env } from "@/lib/env";
  * data; nothing personal is in the URL.
  */
 
+/** Cookie holding the visitor's landing code (signed; verified on every read). */
+export const MAIL_COOKIE = "fw_mail";
+
 const CODE_RE = /^([0-9a-f]{8})-(\d{1,10})-([A-Za-z0-9_-]{10})$/;
 
 function mac(campaignShort: string, entity: string, secret: string): string {

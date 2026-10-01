@@ -24,10 +24,10 @@ export default async function CampaignPage({ params }: PageProps<"/admin/outreac
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { data } = await createAdminClient()
     .from("marketing_campaigns")
-    .select("id, name, segment, entity_group, subject, status, approved_content_sha256, approved_at, channel")
+    .select("id, name, segment, entity_group, subject, status, approved_content_sha256, approved_at, channel, created_at")
     .eq("id", id)
     .maybeSingle();
-  const campaign = data as (CampaignRow & { channel: string }) | null;
+  const campaign = data as (CampaignRow & { channel: string; created_at: string }) | null;
   if (!campaign) notFound();
   if (campaign.channel === "mail") return <MailPilotView campaign={campaign} />;
 

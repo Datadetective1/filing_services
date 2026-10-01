@@ -8,6 +8,9 @@ import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/session";
 import { contentSha256, DEFAULT_SUBJECTS, subjectProblem } from "@/lib/outreach/email";
 import { buildMailPilot } from "@/lib/outreach/mail-service";
+import { freezeCohort } from "@/lib/outreach/mail-cohort";
+import { createTestPostcards } from "@/lib/outreach/mail-lob";
+import { MailBlockedError } from "@/lib/outreach/lob";
 import { POSTCARD_TEMPLATE_VERSION } from "@/lib/outreach/postcard";
 import { dryRunCampaign, importPaProspects, suppressEmail, type CampaignRow } from "@/lib/outreach/service";
 import { RegistryUnavailableError } from "@/lib/registry/pa-open-data";
@@ -175,4 +178,32 @@ export async function approveMailPilotAction(_prev: ActionState, formData: FormD
   await audit({ actorUserId: admin.id, actorType: "staff", action: "outreach.mail_pilot_approved", entityType: "marketing_campaign", entityId: id, after: { template: POSTCARD_TEMPLATE_VERSION } });
   revalidatePath(`/admin/outreach/${id}`);
   return ok("Card content approved. Nothing is purchased or mailed: a vendor, a return address and the mail switch are still required.");
+}
+
+export async function freezeCohortAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const id = String(formData.get("campaignId") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(id)) return fail("Pilot not found.");
+  const size = Math.max(1, Math.min(1000, Number(formData.get("size") ?? 100) || 100));
+  const r = await freezeCohort(id, size);
+  await audit({ actorUserId: admin.id, actorType: "staff", action: "outreach.cohort_frozen", entityType: "marketing_campaign", entityId: id, after: { size, ...r } });
+  revalidatePath(`/admin/outreach/${id}`);
+  return ok(`Cohort saved: ${r.selected} selected, ${r.excluded} not selected (with reasons). Nothing was mailed.`);
+}
+
+export async function createLobTestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const id = String(formData.get("campaignId") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(id)) return fail("Pilot not found.");
+  const { data: campaign } = await createAdminClient().from("marketing_campaigns").select("status, channel").eq("id", id).maybeSingle();
+  if (!campaign || campaign.channel !== "mail") return fail("Pilot not found.");
+  try {
+    const r = await createTestPostcards(id, campaign);
+    await audit({ actorUserId: admin.id, actorType: "staff", action: "outreach.lob_test_created", entityType: "marketing_campaign", entityId: id, after: r });
+    revalidatePath(`/admin/outreach/${id}`);
+    return ok(`Lob TEST mode: ${r.created} test postcards created (${r.skipped} already existed). Test pieces are never printed, mailed or charged.`);
+  } catch (e) {
+    if (e instanceof MailBlockedError) return fail(e.message);
+    return actionError(e);
+  }
 }
