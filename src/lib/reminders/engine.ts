@@ -9,6 +9,7 @@ import {
   planReminders,
   reminderDecision,
   type RequirementStatus,
+  supersededReminderIds,
 } from "@/lib/domain/reminders";
 import { formatLongDate } from "@/lib/domain/dates";
 import { sendNotification } from "@/lib/notifications/send";
@@ -166,8 +167,18 @@ export async function runReminderCycle(now = new Date()): Promise<DispatchSummar
     .order("scheduled_for", { ascending: true })
     .limit(1000);
 
+  const superseded = supersededReminderIds(due ?? [], today);
   for (const rem of due ?? []) {
     summary.examined++;
+    if (superseded.has(rem.id)) {
+      await db()
+        .from("reminders")
+        .update({ status: "skipped", skip_reason: "superseded", processed_at: now.toISOString() })
+        .eq("id", rem.id)
+        .eq("status", "scheduled");
+      summary.skipped++;
+      continue;
+    }
     try {
       const outcome = await dispatchOne(rem, now);
       summary[outcome]++;

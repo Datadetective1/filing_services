@@ -7,6 +7,7 @@ import {
   type ReminderContext,
   reminderDecision,
   STALE_AFTER_DAYS,
+  supersededReminderIds,
 } from "@/lib/domain/reminders";
 
 describe("planReminders", () => {
@@ -124,5 +125,28 @@ describe("dueDatePhrase", () => {
     expect(dueDatePhrase(30)).toBe("in 30 days");
     expect(dueDatePhrase(-1)).toBe("yesterday");
     expect(dueDatePhrase(-7)).toBe("7 days ago");
+  });
+});
+
+describe("supersededReminderIds", () => {
+  const rem = (id: string, scheduled_for: string, requirement_id = "req-1", due_date = "2026-09-30") => ({ id, requirement_id, due_date, scheduled_for });
+
+  it("sends only the most recent of several reminders due in one run (planned late the evening before)", () => {
+    // Production case 2026-09-30: the day-before reminder was planned at 10:44 PM on Sep 29,
+    // after that day's run, so both it and the due-today reminder were due the next morning.
+    const skip = supersededReminderIds([rem("day-before", "2026-09-29"), rem("due-today", "2026-09-30")], "2026-09-30");
+    expect([...skip]).toEqual(["day-before"]);
+  });
+
+  it("keeps one reminder per requirement and due date, and ignores reminders not due yet", () => {
+    const skip = supersededReminderIds(
+      [rem("a", "2026-09-28"), rem("b", "2026-09-29"), rem("other", "2026-09-29", "req-2"), rem("tomorrow", "2026-10-01")],
+      "2026-09-30",
+    );
+    expect([...skip].sort()).toEqual(["a"]);
+  });
+
+  it("supersedes nothing when a single reminder is due", () => {
+    expect(supersededReminderIds([rem("only", "2026-09-30")], "2026-09-30").size).toBe(0);
   });
 });

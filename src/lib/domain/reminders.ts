@@ -32,6 +32,31 @@ export function planReminders(dueDate: ISODate, offsets: readonly number[], plan
   });
 }
 
+/**
+ * When several reminders for the same deadline are due in one run (a reminder planned
+ * late in the evening after that day's run, or a short cron outage), only the most
+ * recent one is sent; the older ones are superseded. Otherwise a customer gets two
+ * emails the same morning, both saying "due today". Returns the ids to skip.
+ */
+export function supersededReminderIds(
+  due: readonly { id: string; requirement_id: string; due_date: ISODate; scheduled_for: ISODate }[],
+  today: ISODate,
+): Set<string> {
+  const latest = new Map<string, { id: string; scheduled_for: ISODate }>();
+  const skip = new Set<string>();
+  for (const r of due) {
+    if (compareISODate(r.scheduled_for, today) > 0) continue; // not due yet: left for its own day
+    const key = `${r.requirement_id}|${r.due_date}`;
+    const prev = latest.get(key);
+    if (!prev) latest.set(key, r);
+    else if (compareISODate(r.scheduled_for, prev.scheduled_for) > 0) {
+      skip.add(prev.id);
+      latest.set(key, r);
+    } else skip.add(r.id);
+  }
+  return skip;
+}
+
 export type ReminderTemplateKey =
   | "reminder_upcoming"
   | "reminder_due_today"
