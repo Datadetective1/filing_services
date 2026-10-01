@@ -30,7 +30,8 @@ export type MailExclusion =
   | "no_address"
   | "incomplete_address"
   | "non_us_address"
-  | "shared_address";
+  | "shared_address"
+  | "agent_address";
 
 export const MAIL_EXCLUSION_TEXT: Record<MailExclusion, string> = {
   unsupported_type: "Registration type we don't handle",
@@ -44,6 +45,7 @@ export const MAIL_EXCLUSION_TEXT: Record<MailExclusion, string> = {
   incomplete_address: "Address incomplete (street, city, state or ZIP missing)",
   non_us_address: "Address outside the U.S.",
   shared_address: `${SHARED_ADDRESS_THRESHOLD}+ entities at this address (likely a registered agent or CROP)`,
+  agent_address: "Care-of or agent-service address (reaches an agent or attorney, not the owner)",
 };
 
 const US_STATES = new Set(
@@ -100,8 +102,16 @@ export function mailExclusions(input: {
     if (!a.city || !a.region || zip.length < 5) out.push("incomplete_address");
     else if (!US_STATES.has(a.region.toUpperCase())) out.push("non_us_address");
     if (input.sharedCount >= SHARED_ADDRESS_THRESHOLD) out.push("shared_address");
+    if (isAgentLine(a.line1) || isAgentLine(a.line2)) out.push("agent_address");
   }
   return out;
+}
+
+const AGENT_LINE = /^\s*(c\/o|c\.o\.|care of|attn:?)(\s|\b)|\b(registered agents?|incorporating services|corporation service company|ct corporation|national registered|commercial registered office|statutory agent)\b/i;
+
+/** Address lines that route mail to an agent or attorney rather than the business. */
+export function isAgentLine(line: string | undefined): boolean {
+  return Boolean(line && AGENT_LINE.test(line));
 }
 
 export function formatMailAddress(a: RecordAddress): string {

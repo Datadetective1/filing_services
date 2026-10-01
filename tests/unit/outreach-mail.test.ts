@@ -41,6 +41,13 @@ describe("postcard pilot selection (December 31 group)", () => {
     expect(mailExclusions({ entityType: "lp", address: addr, situation: lp({ filedYears: [2026], statusSource: "pa_dos_open_data" }), isCustomer: false, sharedCount: 1 })).toEqual([]);
   });
 
+  it("excludes care-of and agent-service addresses", () => {
+    for (const line1 of ["C/o Norman Yaffe Esq 100 Pine St", "c/o John Doe", "Incorporating Services Ltd", "Attn: Legal Dept", "CT Corporation System"]) {
+      expect(mailExclusions({ entityType: "lp", address: { ...addr, line1 }, situation: lp(), isCustomer: false, sharedCount: 1 }), line1).toEqual(["agent_address"]);
+    }
+    expect(mailExclusions({ entityType: "lp", address: { ...addr, line1: "12 Corporation Way" }, situation: lp(), isCustomer: false, sharedCount: 1 })).toEqual([]);
+  });
+
   it("normalizes addresses so suite numbers and spelling don't hide a shared registered-agent address", () => {
     expect(addressKey({ line1: "2595 Interstate Drive, Suite 103", postal_code: "17110-9378" })).toBe(addressKey({ line1: "2595 Interstate Drive", postal_code: "17110" }));
     expect(addressKey({ line1: "10 Main Street", postal_code: "19103" })).toBe(addressKey({ line1: "10 main st", postal_code: "19103" }));
