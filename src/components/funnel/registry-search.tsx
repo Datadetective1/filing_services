@@ -65,7 +65,7 @@ export function RegistrySearch({
           placeholder="e.g. Daff Trucking or 7380992"
           autoComplete="organization"
           maxLength={100}
-          className="h-12 flex-1"
+          className="h-12 w-full sm:flex-1"
         />
         <button type="submit" className={buttonClasses("primary", "md", "h-12 shrink-0")} disabled={searching}>
           <MagnifyingGlass size={18} weight="bold" aria-hidden />
