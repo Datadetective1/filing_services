@@ -57,7 +57,7 @@ export default async function CampaignPage({ params }: PageProps<"/admin/outreac
             ...run.campaignGates.filter((g) => g !== "campaign_not_approved").map((g) => ({ term: "Blocked", value: GATE_TEXT[g] })),
           ]}
         />
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 grid justify-items-start gap-4">
           <ActionForm action={dryRunAction} submitLabel="Record dry run" variant="secondary">
             <input type="hidden" name="campaignId" value={campaign.id} />
           </ActionForm>
@@ -70,7 +70,17 @@ export default async function CampaignPage({ params }: PageProps<"/admin/outreac
         </div>
       </Panel>
 
-      <Panel id="email" title="Exact email" description={sample ? `As ${sample.businessName} would receive it.` : "Import businesses to preview the email for a real recipient."}>
+      <Panel
+        id="email"
+        title="Exact email"
+        description={
+          !sample
+            ? "Import businesses to preview the email for a real recipient."
+            : selected.length
+              ? `As ${sample.businessName} would receive it.`
+              : `Sample only: no imported business is in this segment today, so this shows the wording with ${sample.businessName}'s details.`
+        }
+      >
         {email ? (
           <div className="grid gap-3">
             <KeyValues

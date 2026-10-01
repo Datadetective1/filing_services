@@ -32,6 +32,8 @@ test("admin previews a dry-run campaign; every sending gate is closed", async ({
     await page.getByLabel("How many (max 500)").fill("10");
     await page.getByRole("button", { name: "Import" }).click();
     await expect(main).toContainText(/Imported \d+ businesses/, { timeout: 30_000 });
+    await page.reload();
+    await page.screenshot({ path: "test-results/outreach-overview-desktop.png", fullPage: true });
 
     const name = `E2E dry run ${uniqueSuffix()}`;
     await page.getByLabel("Name").fill(name);
@@ -45,7 +47,9 @@ test("admin previews a dry-run campaign; every sending gate is closed", async ({
     await expect(main).toContainText("Filewell is a private filing service. It is not the Pennsylvania Department of State");
     await expect(main).toContainText("file.dos.pa.gov for the $7.00 state fee");
     await expect(main).toContainText("This is an advertisement from Filewell.");
-    await expect(main).toContainText("No business email on file");
+    // Which segment the imported LLCs fall in depends on today's date; either way nobody would receive it.
+    await expect(main).toContainText(/No business email on file|No imported business is in this segment today/);
+    await expect(main).toContainText(/ 0 would receive it right now/);
     await expect(main).not.toContainText("Would send");
     await page.screenshot({ path: "test-results/outreach-campaign-desktop.png", fullPage: true });
 
