@@ -45,6 +45,8 @@ export interface MailRow {
   businessName: string;
   entityNumber: string;
   entityType: EntityType | null;
+  isForeign: boolean | null;
+  addressCount: number;
   entityTypeLabel: string;
   typeRaw: string | null;
   address: RecordAddress | null;
@@ -134,6 +136,8 @@ export async function buildMailPilot(campaignId: string, opts: { persist: boolea
       businessName: r.legal_name,
       entityNumber: r.entity_number,
       entityType,
+      isForeign: r.is_foreign,
+      addressCount: k ? (keyCounts.get(k) ?? 0) : 0,
       entityTypeLabel: entityType ? `${r.is_foreign ? "Foreign " : ""}${ENTITY_TYPE_LABELS[entityType]}` : (r.entity_type_raw ?? "Unknown"),
       typeRaw: r.entity_type_raw,
       address: r.registered_office,

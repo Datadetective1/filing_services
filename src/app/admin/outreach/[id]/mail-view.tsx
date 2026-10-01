@@ -1,70 +1,119 @@
 import { ActionForm } from "@/components/admin/action-form";
+import { opsButton } from "@/components/admin/button-classes";
 import { formatDateTime, money } from "@/components/admin/format";
 import { ConsoleHeader, EmptyRow, KeyValues, Panel, Stat, StatStrip } from "@/components/admin/layout-bits";
-import { opsButton } from "@/components/admin/button-classes";
 import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table";
 import { Badge } from "@/components/ui/badge";
 import { Notice } from "@/components/ui/surface";
-import { MAIL_EXCLUSION_TEXT, type MailExclusion } from "@/lib/outreach/mail";
-import { cheapestPlan, NET_PER_ORDER, PILOT_SIZES, pilotCost, STRIPE_FEE, VENDOR_PLANS } from "@/lib/outreach/mail-economics";
-import { buildMailPilot, MAIL_GATE_TEXT, mailGates, postcardForRow } from "@/lib/outreach/mail-service";
-import { approveMailPilotAction, mailDryRunAction } from "../actions";
+import { COHORT_EXCLUSION_TEXT, type CohortExclusion } from "@/lib/outreach/mail";
+import { loadCohort, pilotFunnel } from "@/lib/outreach/mail-cohort";
+import { NET_PER_ORDER, STRIPE_FEE, VENDOR_PLANS } from "@/lib/outreach/mail-economics";
+import { lobStatus } from "@/lib/outreach/mail-lob";
+import { approveMailPilotAction, createLobTestAction, freezeCohortAction } from "../actions";
 
-const SHOW = 100;
-const pct = (n: number) => `${(n * 100).toFixed(n < 0.01 ? 2 : 1)}%`;
+const LOB = VENDOR_PLANS.find((p) => p.id === "lob_developer")!;
+const reasonText = (r: string) => (r === "eligible_reserve" ? "Eligible, held in reserve (not in this cohort)" : (COHORT_EXCLUSION_TEXT[r as CohortExclusion] ?? r));
+const pct = (n: number, d: number) => (d ? `${((n / d) * 100).toFixed(1)}%` : "-");
 
-export async function MailPilotView({ campaign }: { campaign: { id: string; name: string; status: string; approved_at: string | null } }) {
-  const rows = await buildMailPilot(campaign.id, { persist: false });
-  const included = rows.filter((r) => r.included);
-  const byReason = new Map<MailExclusion, number>();
-  for (const r of rows) for (const x of r.exclusions) byReason.set(x, (byReason.get(x) ?? 0) + 1);
-  const gates = mailGates(campaign);
-  const sample = included[0] ?? null;
-  const card = postcardForRow(sample ?? { businessName: "Example Partners LP", entityType: "lp", periodYear: null, landingUrl: null });
+export async function MailPilotView({ campaign }: { campaign: { id: string; name: string; status: string; approved_at: string | null; created_at: string } }) {
+  const cohort = await loadCohort(campaign.id);
+  const selected = cohort.filter((r) => r.selected);
+  const notSelected = cohort.filter((r) => !r.selected);
+  const f = await pilotFunnel(campaign.created_at, cohort);
+  const lob = lobStatus(campaign.status === "approved");
+
+  const pieces = selected.length;
+  const mailCost = Math.round(pieces * LOB.perPiece * 100) / 100;
+  const breakEven = pieces ? Math.ceil(mailCost / NET_PER_ORDER) : 0;
+  const base = f.mailed || pieces;
+  const contributionCents = f.serviceRevenueCents - f.stripeFeesCents - (f.mailed ? Math.round(f.mailed * LOB.perPiece * 100) : 0);
+  const cac = f.paid ? (f.mailed * LOB.perPiece) / f.paid : null;
+  const byReason = new Map<string, number>();
+  for (const r of notSelected) for (const x of r.reasons) byReason.set(x, (byReason.get(x) ?? 0) + 1);
+  const sample = selected[0] ?? null;
 
   return (
     <div className="grid grid-cols-1 gap-8">
       <ConsoleHeader
         eyebrow="Outreach · Postcard pilot (December 31 deadline)"
         title={campaign.name}
-        description={`${rows.length} imported PA businesses evaluated. ${included.length} would get a card today.`}
+        description={`${pieces} businesses selected from ${cohort.length} considered. Nothing has been mailed.`}
         actions={
-          <>
-            <a className={opsButton("secondary")} href={`/admin/outreach/${campaign.id}/export`}>
-              Download export (CSV)
-            </a>
-            <a className={opsButton("secondary")} href={`/admin/outreach/${campaign.id}/export?format=html`}>
-              Card template (HTML)
-            </a>
-          </>
+          <a className={opsButton("secondary")} href={`/admin/outreach/${campaign.id}/export`}>
+            Download export (CSV)
+          </a>
         }
       />
 
-      <Notice tone="warning" title="Nothing is purchased or mailed from here">
-        The export is for review and for a future vendor upload. Before anything could be mailed: {gates.map((g) => MAIL_GATE_TEXT[g]).join("; ")}.
+      <Notice tone="warning" title="Mailing is switched off">
+        No mail has been created or purchased. Live mailing needs: {lob.liveBlockers.join("; ") || "nothing else"}. MAIL_SENDS_ENABLED stays false until you authorize the pilot.
       </Notice>
 
-      <StatStrip cols={4}>
-        <Stat label="Evaluated" value={rows.length} hint="Imported from the PA register (Admin > Outreach > Import, Other associations)" />
-        <Stat label="Would get a card" value={included.length} tone={included.length ? "success" : "neutral"} />
-        <Stat label="Excluded" value={rows.length - included.length} />
-        <Stat label="Card status" value={campaign.status === "approved" ? "Content approved" : "Draft"} hint={campaign.approved_at ? formatDateTime(campaign.approved_at) : undefined} />
-      </StatStrip>
+      <section aria-labelledby="funnel-title" className="grid gap-3">
+        <h2 id="funnel-title" className="text-[17px] font-semibold text-fg">
+          Funnel
+        </h2>
+        <StatStrip cols={5}>
+          <Stat label="Selected" value={pieces} />
+          <Stat label="Mailed" value={f.mailed} hint="Live pieces only" />
+          <Stat label="Visits" value={f.visits} hint={pct(f.visits, base)} />
+          <Stat label="Record viewed" value={f.recordViews} />
+          <Stat label="Filing started" value={f.filingStarts} />
+        </StatStrip>
+        <StatStrip cols={5}>
+          <Stat label="Checkout started" value={f.checkouts} />
+          <Stat label="Paid orders" value={f.paid} tone={f.paid ? "success" : "neutral"} />
+          <Stat label="Conversion (paid / mailed)" value={pct(f.paid, f.mailed)} />
+          <Stat label="Acquisition cost" value={cac === null ? "-" : money(Math.round(cac * 100))} hint="Mailing cost / paid orders" />
+          <Stat label="Service-fee revenue" value={money(f.serviceRevenueCents)} hint="Net of refunds; $7 state fees excluded" />
+        </StatStrip>
+        <StatStrip cols={3}>
+          <Stat label="Estimated mailing cost" value={money(Math.round(mailCost * 100))} hint={`${pieces} x ${money(LOB.perPiece * 100)} (Lob 4x6 First-Class, print + postage, from Nov 1, 2026)`} />
+          <Stat label="Contribution after Stripe and mail" value={money(contributionCents)} hint="Revenue - card fees - mailed cost" tone={contributionCents > 0 ? "success" : "neutral"} />
+          <Stat label="Break-even paid orders" value={breakEven} hint={`At ${money(NET_PER_ORDER * 100)} net per order ($49 - ${money(STRIPE_FEE * 100)} card fee)`} />
+        </StatStrip>
+      </section>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <Panel id="exclusions" title="Exclusions" description="A business can have more than one reason.">
-          {byReason.size === 0 ? (
-            <EmptyRow>No exclusions.</EmptyRow>
+        <Panel id="cohort" title="Cohort">
+          {cohort.length === 0 ? (
+            <div className="grid gap-3">
+              <EmptyRow>No cohort saved yet. Import &quot;Other associations&quot; on the Outreach page, then save a cohort.</EmptyRow>
+            </div>
           ) : (
-            <KeyValues items={[...byReason.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ term: String(n), value: MAIL_EXCLUSION_TEXT[k] }))} />
+            <KeyValues
+              items={[
+                { term: "Selected", value: `${pieces}` },
+                { term: "Not selected", value: `${notSelected.length}` },
+                ...[...byReason.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ term: String(n), value: reasonText(k) })),
+              ]}
+            />
           )}
-        </Panel>
-        <Panel id="gates" title="Approval">
-          <KeyValues items={gates.map((g) => ({ term: "Blocked", value: MAIL_GATE_TEXT[g] }))} />
-          <div className="mt-4 grid justify-items-start gap-4">
-            <ActionForm action={mailDryRunAction} submitLabel="Record dry run" variant="secondary">
+          <div className="mt-4">
+            <ActionForm action={freezeCohortAction} submitLabel={cohort.length ? "Rebuild cohort from imported records" : "Save a 100-business cohort"} variant="secondary" confirmLabel={cohort.length ? "Replace the saved cohort (the selection may change)." : undefined}>
               <input type="hidden" name="campaignId" value={campaign.id} />
+              <input type="hidden" name="size" value="100" />
             </ActionForm>
+          </div>
+        </Panel>
+
+        <Panel id="lob" title="Lob (print and mail)">
+          <KeyValues
+            items={[
+              { term: "API key", value: lob.mode === "test" ? "Test key (never mails)" : lob.mode === "live" ? "Live key" : "Not configured" },
+              { term: "Return address", value: lob.from ? `${lob.from.address_line1}, ${lob.from.address_city}, ${lob.from.address_state} ${lob.from.address_zip}` : "Not configured" },
+              { term: "Test pieces", value: `${selected.filter((r) => r.vendorTest).length} of ${pieces}` },
+              { term: "Card content", value: campaign.status === "approved" ? `Approved ${campaign.approved_at ? formatDateTime(campaign.approved_at) : ""}` : "Not approved" },
+            ]}
+          />
+          <div className="mt-4 grid justify-items-start gap-4">
+            {lob.mode === "test" ? (
+              <ActionForm action={createLobTestAction} submitLabel="Create test postcards in Lob" variant="secondary">
+                <input type="hidden" name="campaignId" value={campaign.id} />
+              </ActionForm>
+            ) : (
+              <p className="text-sm text-muted">Add a Lob test key (LOB_API_KEY=test_...) and the MAIL_FROM_* return address to render test proofs. Test pieces are never mailed or charged.</p>
+            )}
             {campaign.status !== "approved" ? (
               <ActionForm action={approveMailPilotAction} submitLabel="Approve card content" variant="primary" confirmLabel="I reviewed the card, the selection and the exclusions.">
                 <input type="hidden" name="campaignId" value={campaign.id} />
@@ -74,81 +123,77 @@ export async function MailPilotView({ campaign }: { campaign: { id: string; name
         </Panel>
       </div>
 
-      <Panel id="card" title="The card" description={sample ? `As ${sample.businessName} would receive it.` : "Sample wording (no business would get a card yet)."}>
-        <div className="mx-auto grid max-w-[34rem] gap-2 rounded-[6px] border border-border-strong bg-white p-5 text-[13px] leading-5 text-[#17231d] shadow-card">
-          <p className="bg-[#17231d] px-2 py-1 text-center text-[11px] font-bold tracking-wide text-white">{card.banner}</p>
-          <p className="font-bold text-[#1f5a3e]">{card.brandLine}</p>
-          <p className="text-[17px] font-bold leading-snug">{card.headline}</p>
-          <p className="font-semibold">{card.forLine}</p>
-          <ul className="list-disc pl-5">
-            {card.options.map((o) => (
-              <li key={o}>{o}</li>
+      <Panel id="artwork" title="Card artwork (4x6)" description={sample ? `As ${sample.businessName} would receive it. Front, then back (the blank right side is for the address block and postage).` : "Save a cohort to preview a real card."}>
+        {sample ? (
+          <div className="grid gap-6 xl:grid-cols-2">
+            {(["front", "back"] as const).map((side) => (
+              <div key={side} className="grid gap-2">
+                <p className="text-sm font-semibold capitalize text-fg">{side}</p>
+                <div className="w-full max-w-[600px] overflow-hidden rounded-[6px] border border-border-strong bg-white shadow-card">
+                  <iframe title={`Card ${side}`} src={`/admin/outreach/${campaign.id}/card?send=${sample.sendId}&side=${side}`} className="block h-[408px] w-[600px] border-0" />
+                </div>
+                <a className="text-sm underline underline-offset-4" href={`/admin/outreach/${campaign.id}/card?send=${sample.sendId}&side=${side}`} target="_blank" rel="noreferrer">
+                  Open {side} at full size
+                </a>
+              </div>
             ))}
-          </ul>
-          <p>{card.ignore}</p>
-          <p className="font-bold">{card.cta}</p>
-          <div className="mt-2 grid gap-1 text-[10px] leading-4 text-[#333]">
-            {card.finePrint.map((f) => (
-              <p key={f}>{f}</p>
-            ))}
-            <p>{card.returnAddress}</p>
           </div>
-        </div>
+        ) : (
+          <EmptyRow>No card yet.</EmptyRow>
+        )}
       </Panel>
 
-      <Panel
-        id="costs"
-        title="Cost and unit economics (estimates)"
-        description={`4x6 First-Class, print and postage included, prices read 2026-09-30 (Lob's increase on Nov 1 applied). Net per paid order: $49 service fee minus ${money(STRIPE_FEE * 100)} card fee = ${money(NET_PER_ORDER * 100)}; the $7 state fee passes through. Conversion rates are assumptions.`}
-        bodyClassName="p-0"
-      >
-        <TableScroll variant="inset">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Pieces</TH>
-                <TH>Cheapest plan</TH>
-                <TH>Cost</TH>
-                <TH>Break-even</TH>
-                <TH>At 0.5% / 1% / 2% paid</TH>
-              </TR>
-            </THead>
-            <tbody>
-              {PILOT_SIZES.map((n) => {
-                const c = cheapestPlan(n);
-                return (
-                  <TR key={n}>
-                    <TD className="tnum">{n.toLocaleString("en-US")}</TD>
-                    <TD>
-                      {c.plan.vendor} {c.plan.plan}
-                      <span className="block text-xs text-muted">{money(c.costPerPiece * 100)} a piece</span>
+      <Panel id="selected" title={`Selected businesses (${pieces})`} description="Pennsylvania record found for each; the card says the report may be due. Each has its own signed landing URL." bodyClassName="p-0">
+        {pieces === 0 ? (
+          <div className="px-5 py-4">
+            <EmptyRow>None yet.</EmptyRow>
+          </div>
+        ) : (
+          <TableScroll variant="inset">
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Business</TH>
+                  <TH>Mailing address (record)</TH>
+                  <TH>Deadline</TH>
+                  <TH>Landing URL</TH>
+                  <TH>Funnel</TH>
+                </TR>
+              </THead>
+              <tbody>
+                {selected.map((r) => (
+                  <TR key={r.sendId}>
+                    <TD valign="top">
+                      <span className="font-semibold">{r.businessName}</span>
+                      <span className="block text-xs text-muted">
+                        {r.entityTypeLabel} · #{r.entityNumber}
+                      </span>
                     </TD>
-                    <TD className="tnum">{money(c.cost * 100)}</TD>
-                    <TD className="tnum">
-                      {c.breakEvenOrders} orders ({pct(c.breakEvenRate)})
+                    <TD valign="top" className="text-sm">
+                      {r.mailingAddress}
                     </TD>
-                    <TD className="tnum text-sm">
-                      {c.scenarios
-                        .filter((s) => s.rate >= 0.005)
-                        .map((s) => `${s.orders} → ${money(s.net * 100)}`)
-                        .join(" · ")}
+                    <TD valign="top" className="tnum text-sm">
+                      {r.deadline}
+                    </TD>
+                    <TD valign="top" className="break-all text-xs text-muted">
+                      {r.landingUrl}
+                    </TD>
+                    <TD valign="top" className="text-xs">
+                      {r.businessId ? <Badge tone="success">Started</Badge> : r.recordViewedAt ? <Badge tone="info">Viewed record</Badge> : r.clickedAt ? <Badge tone="info">Visited</Badge> : <span className="text-muted">No visit</span>}
+                      {r.vendorTest ? <span className="block text-muted">Lob test piece</span> : null}
                     </TD>
                   </TR>
-                );
-              })}
-            </tbody>
-          </Table>
-        </TableScroll>
-        <p className="px-5 py-3 text-xs text-muted">
-          Plans compared: {VENDOR_PLANS.map((p) => `${p.vendor} ${p.plan} (${money(p.perPiece * 100)}/piece${p.monthlyFee ? ` + ${money(p.monthlyFee * 100)}/mo` : ""}${p.monthlyCap ? `, ${p.monthlyCap}/mo cap` : ""})`).join("; ")}.
-          5,000 on Lob Developer instead: {money(pilotCost(5000, VENDOR_PLANS[0]).cost * 100)}.
-        </p>
+                ))}
+              </tbody>
+            </Table>
+          </TableScroll>
+        )}
       </Panel>
 
-      <Panel id="rows" title="Selection" description={`First ${SHOW} rows. The export has every row with provenance and landing URLs.`} bodyClassName="p-0">
-        {rows.length === 0 ? (
+      <Panel id="excluded" title={`Not selected (${notSelected.length})`} description="Every considered business that is not in the cohort, with the reasons." bodyClassName="p-0">
+        {notSelected.length === 0 ? (
           <div className="px-5 py-4">
-            <EmptyRow>No businesses imported yet. Import &quot;Other associations&quot; on the Outreach page.</EmptyRow>
+            <EmptyRow>None.</EmptyRow>
           </div>
         ) : (
           <TableScroll variant="inset">
@@ -157,38 +202,25 @@ export async function MailPilotView({ campaign }: { campaign: { id: string; name
                 <TR>
                   <TH>Business</TH>
                   <TH>Address on record</TH>
-                  <TH>Deadline</TH>
-                  <TH>Card</TH>
+                  <TH>Reasons</TH>
                 </TR>
               </THead>
               <tbody>
-                {rows.slice(0, SHOW).map((r) => (
-                  <TR key={r.prospectId}>
+                {notSelected.slice(0, 500).map((r) => (
+                  <TR key={r.sendId}>
                     <TD valign="top">
                       <span className="font-semibold">{r.businessName}</span>
-                      <span className="block text-xs text-muted">
-                        {r.entityTypeLabel} · #{r.entityNumber}
-                      </span>
+                      <span className="block text-xs text-muted">#{r.entityNumber}</span>
                     </TD>
                     <TD valign="top" className="text-sm">
                       {r.mailingAddress || <span className="text-muted">None</span>}
                     </TD>
-                    <TD valign="top" className="tnum text-sm">
-                      {r.deadline}
-                    </TD>
                     <TD valign="top">
-                      {r.included ? (
-                        <>
-                          <Badge tone="success">Would get a card</Badge>
-                          <span className="block break-all text-xs text-muted">{r.landingUrl}</span>
-                        </>
-                      ) : (
-                        <ul className="grid gap-0.5 text-xs text-muted">
-                          {r.exclusions.map((x) => (
-                            <li key={x}>{MAIL_EXCLUSION_TEXT[x]}</li>
-                          ))}
-                        </ul>
-                      )}
+                      <ul className="grid gap-0.5 text-xs text-muted">
+                        {r.reasons.map((x) => (
+                          <li key={x}>{reasonText(x)}</li>
+                        ))}
+                      </ul>
                     </TD>
                   </TR>
                 ))}

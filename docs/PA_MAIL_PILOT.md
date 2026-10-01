@@ -59,9 +59,12 @@ lookup.
 
 ## 3. Rules that shape the card
 
-- **39 U.S.C. § 3001(d):** a solicitation that could be read as a bill, invoice or statement
-  of account must carry the "solicitation ... not a bill" notice conspicuously. Showing fees
-  makes this prudent, so the card carries it verbatim.
+- **39 U.S.C. § 3001(d)** addresses solicitations that could reasonably be read as a bill,
+  invoice or statement of account. Because the card shows fees, it includes a
+  "solicitation ... not a bill" statement modeled on the language that provision describes,
+  as a precaution. Whether § 3001(d) applies to this card, and whether this wording (or any
+  other on the card) satisfies it or any other rule, is for counsel to confirm; nothing here
+  is a statement of legal sufficiency.
 - **39 U.S.C. § 3001(h)–(j)** cover implied *federal* connection only; they don't reach a
   state-agency look-alike.
 - **FTC Impersonation Rule (16 CFR 461, 2024)** covers state agencies: no implied affiliation.

@@ -9,6 +9,7 @@ import { addBusiness, periodFor, startFiling } from "@/lib/filings/customer";
 import { clearPendingLookup, type PendingLookup, readPendingLookup } from "@/lib/lookup/pending";
 import { getPaRecord } from "@/lib/registry/pa-open-data";
 import { saveStateRecord } from "@/lib/registry/state-records";
+import { mailAttributionFor, markMailEvent } from "@/lib/outreach/mail-cohort";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionMessageState } from "@/components/funnel/types";
@@ -74,7 +75,11 @@ export async function confirmStart(_prev: ActionMessageState, formData: FormData
       });
       businessId = created.businessId;
     }
-    if (lookup.registryEntityNumber && lookup.stateCode === "PA") await linkRegistryRecord(user, businessId, lookup.registryEntityNumber);
+    if (lookup.registryEntityNumber && lookup.stateCode === "PA") {
+      await linkRegistryRecord(user, businessId, lookup.registryEntityNumber);
+      const attribution = await mailAttributionFor(lookup.registryEntityNumber);
+      if (attribution) await markMailEvent(attribution, "started", businessId).catch(() => undefined);
+    }
     // A report for a future year can't be filed yet: add the business and remind instead.
     const period = periodFor(rule, { formationDate: lookup.formationDate ?? null, alreadyFiledThisYear: lookup.alreadyFiledThisYear });
     const currentYear = Number(todayInTimeZone(getJurisdiction(rule.stateCode)?.timezone ?? "America/New_York").slice(0, 4));

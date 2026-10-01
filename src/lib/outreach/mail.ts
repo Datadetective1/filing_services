@@ -123,3 +123,106 @@ export function formatMailAddress(a: RecordAddress): string {
 export function deadlineText(s: Situation): ISODate | "" {
   return s.kind === "assessed" ? s.dueDate : "";
 }
+
+// ---------------------------------------------------------------------------
+// Pilot cohort: stricter rules on top of mailExclusions, for a small clean first test.
+// ---------------------------------------------------------------------------
+
+export type CohortExclusion =
+  | MailExclusion
+  | "foreign_entity"
+  | "outside_pennsylvania"
+  | "po_box"
+  | "no_street_number"
+  | "duplicate_address"
+  | "address_too_long"
+  | "name_type_mismatch"
+  | "government_like_name"
+  | "personal_name"
+  | "questionable_record"
+  | "name_too_long";
+
+export const COHORT_EXCLUSION_TEXT: Record<CohortExclusion, string> = {
+  ...MAIL_EXCLUSION_TEXT,
+  foreign_entity: "Foreign registration (pilot uses domestic entities only)",
+  outside_pennsylvania: "Address outside Pennsylvania (pilot uses PA addresses only)",
+  po_box: "P.O. box (pilot uses street addresses only)",
+  no_street_number: "Street line doesn't start with a building number",
+  duplicate_address: "Another registered entity uses this address (anywhere in the register)",
+  address_too_long: "Address lines longer than the mail vendor allows (50 characters)",
+  name_type_mismatch: "Name suggests a different entity type than the registration (questionable record)",
+  government_like_name: "Name sounds like a public body (never solicit these)",
+  personal_name: "Registered under what looks like a person's name (avoid mailing individuals)",
+  questionable_record: "Name contains data-entry artifacts (questionable record)",
+  name_too_long: "Name longer than the mail vendor's 40-character recipient field",
+};
+
+/** Names ending like an LLC or corporation on a partnership/trust registration. */
+const OTHER_TYPE_SUFFIX = /\b(l\.?\s?l\.?\s?c|inc|incorporated|corp|corpor\w*|corporation|company|co)\.?\s*$/i;
+const PUBLIC_BODY = /\b(task force|police|sheriff|county|township|borough|municipal|authority|commonwealth|department|state of|federal|government|school district|court|agency|bureau|fire company|volunteer fire)\b/i;
+
+const PO_BOX = /\b(p\.?\s*o\.?\s*box|post\s*office\s*box|box\s+\d+)\b/i;
+
+/**
+ * Cohort exclusions. `registerAddressCount` is how many entities in the WHOLE register
+ * (all types) use this street address and ZIP, so any address shared with another entity
+ * (agents, CROPs, offices) is left out.
+ */
+export function cohortExclusions(
+  input: Parameters<typeof mailExclusions>[0] & { isForeign: boolean | null; registerAddressCount: number; legalName?: string },
+): CohortExclusion[] {
+  const out: CohortExclusion[] = [...mailExclusions(input)];
+  const name = input.legalName ?? "";
+  if (name && input.entityType && DEC31_ENTITY_TYPES.has(input.entityType) && OTHER_TYPE_SUFFIX.test(name)) out.push("name_type_mismatch");
+  if (PUBLIC_BODY.test(name)) out.push("government_like_name");
+  if (looksLikePersonalName(name)) out.push("personal_name");
+  if (/[_@#*]/.test(name)) out.push("questionable_record");
+  if (name.length > 40) out.push("name_too_long");
+  if (input.isForeign !== false) out.push("foreign_entity");
+  const a = input.address;
+  if (a?.line1) {
+    if ((a.region ?? "").toUpperCase() !== "PA") out.push("outside_pennsylvania");
+    if (PO_BOX.test(`${a.line1} ${a.line2 ?? ""}`)) out.push("po_box");
+    else if (!/^\d/.test(a.line1.trim())) out.push("no_street_number");
+    if (`${a.line1}${a.line2 ?? ""}`.length > 50) out.push("address_too_long");
+    if (input.registerAddressCount > 1 && !out.includes("shared_address")) out.push("duplicate_address");
+  }
+  return [...new Set(out)];
+}
+
+const BUSINESS_WORD = /\b(lp|lllp|llp|ltd|limited|partners?|partnership|group|services?|properties|property|rentals?|farms?|family|enterprises?|associates|holdings?|ventures?|company|co|trust|llc|inc|corp|realty|investments?|management|consulting|auto|care|home|construction|logistics|trucking|express|entertainment|music|studio|solutions|cleaning|repair|salon|spa|nails|books?|boutique|towing|plumbing|equipment|outdoor|lawn|landscaping|shipping|transportation|pizzeria|news|manor|club)\b/i;
+
+/** Common U.S. first names (lower case), for spotting registrations under a person's name. */
+const FIRST_NAMES = new Set(
+  (
+    "james john robert michael william david richard joseph thomas charles christopher daniel matthew anthony mark donald steven paul andrew joshua kenneth kevin brian george timothy ronald edward jason jeffrey ryan jacob gary nicholas eric jonathan stephen larry justin scott brandon benjamin samuel gregory alexander frank patrick raymond jack dennis jerry tyler aaron jose adam nathan henry douglas zachary peter kyle noah ethan jeremy walter christian keith roger terry austin sean gerald carl harold dylan arthur lawrence jordan jesse bryan billy bruce gabriel joe logan alan juan albert willie elijah wayne randy vincent mason roy ralph bobby russell bradley philip eugene " +
+    "mary patricia jennifer linda elizabeth barbara susan jessica sarah karen lisa nancy betty sandra margaret ashley kimberly emily donna michelle carol amanda melissa deborah stephanie dorothy rebecca sharon laura cynthia amy kathleen angela shirley brenda emma anna pamela nicole samantha katherine christine helen debra rachel carolyn janet maria catherine heather diane olivia julie joyce victoria ruth virginia lauren kelly christina joan evelyn judith andrea hannah megan cheryl jacqueline martha madison teresa gloria sara janice ann kathryn abigail sophia frances jean alice judy isabella julia grace amber denise danielle marilyn beverly charlotte natalie theresa diana brittany doris kayla alexis lori marie valerie florence " +
+    "luis carlos jorge miguel pedro ramon rosa ana carmen lerida felipe javier manuel francisco angel ricardo eduardo fernando sergio raul"
+  ).split(/\s+/),
+);
+
+/** A registration under what looks like an individual's name ("Jesse Jones", "Florence J Lawson"). */
+export function looksLikePersonalName(name: string): boolean {
+  const n = name.trim();
+  if (!n || BUSINESS_WORD.test(n) || /[&,0-9]/.test(n)) return false;
+  const m = /^([A-Z][a-z'-]+)(\s+[A-Z]\.?)?\s+[A-Z][a-z'-]+$/.exec(n);
+  return Boolean(m && (FIRST_NAMES.has(m[1].toLowerCase()) || m[2]));
+}
+
+/** Stable pseudo-random order (FNV-1a of the entity number), so a cohort is reproducible and unbiased. */
+export function cohortOrder(entityNumber: string): number {
+  let h = 0x811c9dc5;
+  for (const ch of entityNumber) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+/** Pick `size` eligible rows in stable order; everything else keeps its reasons. */
+export function selectCohort<T extends { entityNumber: string; exclusions: CohortExclusion[] }>(rows: T[], size: number): { selected: T[]; excluded: T[] } {
+  const eligible = rows.filter((r) => r.exclusions.length === 0).sort((a, b) => cohortOrder(a.entityNumber) - cohortOrder(b.entityNumber));
+  const selected = eligible.slice(0, size);
+  const chosen = new Set(selected.map((r) => r.entityNumber));
+  return { selected, excluded: rows.filter((r) => !chosen.has(r.entityNumber)) };
+}

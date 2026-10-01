@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { addressKey, formatMailAddress, mailExclusions, SHARED_ADDRESS_THRESHOLD } from "@/lib/outreach/mail";
+import { describe, expect, it, vi } from "vitest";
+import { addressKey, cohortExclusions, type CohortExclusion, formatMailAddress, looksLikePersonalName, mailExclusions, selectCohort, SHARED_ADDRESS_THRESHOLD } from "@/lib/outreach/mail";
+import { createLobPostcard, type LobAddress, lobFromAddress, lobMode, mailBlockers, MailBlockedError } from "@/lib/outreach/lob";
 import { landingCode, verifyLandingCode } from "@/lib/outreach/mail-codes";
 import { cheapestPlan, NET_PER_ORDER, pilotCost, STRIPE_FEE, VENDOR_PLANS } from "@/lib/outreach/mail-economics";
 import { csvCell, mailCsv, type MailRow } from "@/lib/outreach/mail-service";
-import { postcardCopy, postcardFrontHtml, postcardText, SOLICITATION_DISCLAIMER } from "@/lib/outreach/postcard";
+import { postcardBackHtml, postcardCopy, postcardFrontHtml, postcardText, SOLICITATION_STATEMENT } from "@/lib/outreach/postcard";
 import { assessSituation } from "@/lib/outreach/segment";
 
 const OCT1 = "2026-10-01";
@@ -87,38 +88,133 @@ describe("postcard copy", () => {
     returnAddress: "PO Box 1, Allentown, PA 18101",
   });
   const text = postcardText(c);
+  const front = postcardFrontHtml(c);
+  const back = postcardBackHtml(c, "https://www.getfilewell.com/m/3f2a9c10-7380992-abcdefghij/qr.png");
 
-  it("leads with the solicitation / not-a-government-document banner and the private-service label", () => {
-    expect(c.banner).toBe("THIS IS A SOLICITATION. NOT A BILL OR OFFICIAL GOVERNMENT DOCUMENT. NOT SENT BY THE PENNSYLVANIA DEPARTMENT OF STATE.");
-    expect(c.brandLine).toBe("Filewell · Private filing service · Advertisement");
+  it("leads the front with the solicitation / not a bill / not government / not the Department of State banner", () => {
+    expect(c.banner).toBe("THIS IS A SOLICITATION. NOT A BILL. NOT A GOVERNMENT DOCUMENT.");
+    expect(c.bannerSub).toBe("Not sent by the Pennsylvania Department of State. Filewell is a private filing service. Advertisement.");
     expect(text.indexOf(c.banner)).toBe(0);
+    // The banner is the first element in the front's markup and repeats at the top of the back.
+    expect(front.indexOf('<div class="band">')).toBeLessThan(front.indexOf("<h1>"));
+    expect(back.indexOf('<div class="disc">')).toBeLessThan(back.indexOf('<div class="lead">'));
   });
 
-  it("says 'may be due', offers direct filing for $7, and shows $49 + $7 = $56", () => {
+  it("says 'may be due' and that the business can file directly with Pennsylvania for $7 instead of using Filewell", () => {
     expect(c.headline).toBe("Your 2026 Pennsylvania annual report may be due by December 31.");
-    expect(text).toContain("File it yourself at file.dos.pa.gov: $7.00 state fee ($0.00 for not-for-profit associations).");
+    expect(c.directOption).toBe(
+      "You can file directly with the Pennsylvania Department of State at file.dos.pa.gov for the $7.00 state fee ($0.00 for not-for-profit associations) instead of using Filewell.",
+    );
+    expect(front).toContain("instead of using Filewell");
+    expect(back).toContain("instead of using Filewell");
     expect(text).toContain("$49.00 service fee + $7.00 state fee = $56.00");
     expect(text).toContain("Already filed? Please ignore this card.");
   });
 
-  it("carries the 39 U.S.C. 3001(d) notice, operator identity, return address and how to stop mail", () => {
-    expect(text).toContain(SOLICITATION_DISCLAIMER);
+  it("carries the solicitation statement, operator identity, return address and how to stop mail", () => {
+    expect(text).toContain(SOLICITATION_STATEMENT);
     expect(text).toContain("operated by Amary Coulibaly, sole proprietor. It is not the Pennsylvania Department of State");
     expect(text).toContain("Filewell, PO Box 1, Allentown, PA 18101");
     expect(text).toContain("To stop mail from Filewell, email support@getfilewell.com.");
-    expect(c.cta).toBe("Start here: www.getfilewell.com/m/3f2a9c10-7380992-abcdefghij");
   });
 
-  it("never threatens or invents consequences", () => {
-    expect(text).not.toMatch(/dissol|penalt|final|urgent|immediately|must file|late fee of/i);
+  it("makes no legal-sufficiency claims and no threats", () => {
+    expect(text).not.toMatch(/required by|federal law|word.for.word|verbatim|legally|compliant|dissol|penalt|final|urgent|immediately|must file/i);
   });
 
-  it("produces print-ready HTML with vendor merge fields and escaped copy", () => {
-    const html = postcardFrontHtml(c);
-    expect(html).toContain("{{business_name}}");
-    expect(html).toContain("{{landing_url}}");
-    expect(html).toContain("size:6.25in 4.25in");
-    expect(html).not.toMatch(/<script/i);
+  it("is sized for a 4x6 card with bleed, and the back leaves the right side free for the address block", () => {
+    expect(front).toContain("size:6.25in 4.25in");
+    expect(back).toContain("width:2.6in");
+    expect(back).toContain('src="https://www.getfilewell.com/m/3f2a9c10-7380992-abcdefghij/qr.png"');
+    expect(front + back).not.toMatch(/<script/i);
+  });
+
+  it("escapes business names", () => {
+    expect(postcardFrontHtml(postcardCopy({ ...{ periodYear: 2026, stateFeeCents: 700, nonprofitStateFeeCents: 0, serviceFeeCents: 4900, landingUrl: "https://x/m/y", operator: "o", returnAddress: null }, businessName: "<b>Evil</b> LP" }))).toContain(
+      "For &lt;b&gt;Evil&lt;/b&gt; LP",
+    );
+  });
+});
+
+describe("pilot cohort rules", () => {
+  const s = lp();
+  const base = { entityType: "lp" as const, isForeign: false, address: addr, situation: s, isCustomer: false, sharedCount: 1, registerAddressCount: 1, legalName: "Example Partners LP" };
+
+  it("accepts a clean domestic LP at a unique Pennsylvania street address", () => {
+    expect(cohortExclusions(base)).toEqual([]);
+  });
+
+  it("excludes foreign, out-of-state, P.O. box, no street number, duplicate and over-long addresses", () => {
+    expect(cohortExclusions({ ...base, isForeign: true })).toEqual(["foreign_entity"]);
+    expect(cohortExclusions({ ...base, address: { ...addr, region: "NJ" } })).toEqual(["outside_pennsylvania"]);
+    expect(cohortExclusions({ ...base, address: { ...addr, line1: "PO Box 12" } })).toEqual(["po_box"]);
+    expect(cohortExclusions({ ...base, address: { ...addr, line1: "Rural Route Two" } })).toEqual(["no_street_number"]);
+    expect(cohortExclusions({ ...base, registerAddressCount: 2 })).toEqual(["duplicate_address"]);
+    expect(cohortExclusions({ ...base, address: { ...addr, line1: "1234 Exceptionally Long Boulevard Name Extension", line2: "Unit 5" } })).toContain("address_too_long");
+  });
+
+  it("excludes questionable names: type mismatch, public-body names, personal names, artifacts, too long", () => {
+    expect(cohortExclusions({ ...base, legalName: "Hidalgo Llc." })).toEqual(["name_type_mismatch"]);
+    expect(cohortExclusions({ ...base, legalName: "Allentown Mini Mart Corpor" })).toEqual(["name_type_mismatch"]);
+    expect(cohortExclusions({ ...base, legalName: "Pa Fugitive Apperhension Task Force" })).toEqual(["government_like_name"]);
+    expect(cohortExclusions({ ...base, legalName: "Jesse Jones" })).toEqual(["personal_name"]);
+    expect(cohortExclusions({ ...base, legalName: "Florence J Lawson" })).toEqual(["personal_name"]);
+    expect(cohortExclusions({ ...base, legalName: "Tt Nails & Spa_1" })).toEqual(["questionable_record"]);
+    expect(cohortExclusions({ ...base, legalName: "The Extremely Long Family Investment Partners LP" })).toEqual(["name_too_long"]);
+  });
+
+  it("does not flag ordinary business names as personal names", () => {
+    for (const n of ["Felino Shipping", "Matteos Pizzeria", "Club Moani", "Steeltown Plumbing", "Geigel Hill Peony Farm", "1629 Ellsworth LP"]) expect(looksLikePersonalName(n), n).toBe(false);
+  });
+
+  it("selects a stable, reproducible cohort and keeps every other row with its reasons", () => {
+    const rows = Array.from({ length: 30 }, (_, i) => ({ entityNumber: String(1000 + i).padStart(10, "0"), exclusions: (i % 3 === 0 ? ["po_box"] : []) as CohortExclusion[] }));
+    const a = selectCohort(rows, 10);
+    const b = selectCohort([...rows].reverse(), 10);
+    expect(a.selected.map((r) => r.entityNumber)).toEqual(b.selected.map((r) => r.entityNumber));
+    expect(a.selected).toHaveLength(10);
+    expect(a.excluded).toHaveLength(20);
+    expect(a.selected.every((r) => r.exclusions.length === 0)).toBe(true);
+  });
+});
+
+describe("Lob adapter safeguards", () => {
+  const to: LobAddress = { company: "Example Partners LP", address_line1: "12 Market St", address_city: "Harrisburg", address_state: "PA", address_zip: "17101", address_country: "US" };
+  const from = lobFromAddress({ MAIL_FROM_LINE1: "PO Box 1", MAIL_FROM_CITY: "Allentown", MAIL_FROM_STATE: "PA", MAIL_FROM_ZIP: "18101" })!;
+  const input = { idempotencyKey: "test-send-1", description: "pilot", to, from, front: "<html></html>", back: "<html></html>", metadata: { campaign: "3f2a9c10" } };
+
+  it("identifies test and live keys", () => {
+    expect(lobMode("test_abc")).toBe("test");
+    expect(lobMode("live_abc")).toBe("live");
+    expect(lobMode("sk_abc")).toBeNull();
+    expect(lobMode(undefined)).toBeNull();
+  });
+
+  it("refuses a live key unless MAIL_SENDS_ENABLED=true, MAIL_VENDOR=lob and the campaign is approved, before any network call", async () => {
+    const fetchImpl = vi.fn();
+    await expect(createLobPostcard("live_x", input, { campaignApproved: true, env: { MAIL_VENDOR: "lob", MAIL_SENDS_ENABLED: "false" }, fetchImpl })).rejects.toBeInstanceOf(MailBlockedError);
+    await expect(createLobPostcard("live_x", input, { campaignApproved: false, env: { MAIL_VENDOR: "lob", MAIL_SENDS_ENABLED: "true" }, fetchImpl })).rejects.toBeInstanceOf(MailBlockedError);
+    await expect(createLobPostcard("live_x", input, { campaignApproved: true, env: { MAIL_SENDS_ENABLED: "true" }, fetchImpl })).rejects.toBeInstanceOf(MailBlockedError);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("sends a test postcard with basic auth, an idempotency key, 4x6, marketing use and First-Class", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ id: "psc_test123" }), { status: 200 }));
+    const r = await createLobPostcard("test_key", input, { campaignApproved: false, env: {}, fetchImpl: fetchImpl as unknown as typeof fetch });
+    expect(r.id).toBe("psc_test123");
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://api.lob.com/v1/postcards");
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe(`Basic ${Buffer.from("test_key:").toString("base64")}`);
+    expect(headers["Idempotency-Key"]).toBe("test-send-1");
+    expect(JSON.parse(String(init.body))).toMatchObject({ size: "4x6", use_type: "marketing", mail_type: "usps_first_class", to, from: JSON.parse(JSON.stringify(from)) });
+  });
+
+  it("refuses without a return address", () => {
+    expect(lobFromAddress({})).toBeNull();
+    expect(mailBlockers({ mode: "test", vendor: undefined, sendsEnabled: undefined, campaignApproved: false, hasFromAddress: false })).toEqual([
+      "No return address (MAIL_FROM_LINE1, MAIL_FROM_CITY, MAIL_FROM_STATE, MAIL_FROM_ZIP)",
+    ]);
   });
 });
 

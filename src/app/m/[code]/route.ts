@@ -6,7 +6,8 @@ import { verifyLandingCode } from "@/lib/outreach/mail-codes";
 import { getPaRecord } from "@/lib/registry/pa-open-data";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash } from "@/lib/security/request";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { markMailEvent } from "@/lib/outreach/mail-cohort";
+import { MAIL_COOKIE } from "@/lib/outreach/mail-codes";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/m/[code]">) 
   const ip = (await clientIpHash()) ?? "unknown";
   if (!verified || !(await rateLimit(`mail-landing:${ip}`, 30, 60))) return NextResponse.redirect(fallback, { status: 303 });
 
-  await createAdminClient().from("marketing_sends").update({ clicked_at: new Date().toISOString() }).eq("landing_code", code).is("clicked_at", null);
+  await markMailEvent(verified, "visit");
   await trackServer("outreach_clicked", { stateCode: "PA", properties: { channel: "mail", campaign: verified.campaignShort } });
 
   try {
@@ -44,6 +45,8 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/m/[code]">) 
     if (!parsed.success) return NextResponse.redirect(fallback, { status: 303 });
     await setPendingLookup(parsed.data);
     const res = NextResponse.redirect(new URL(`/find/result?from=mail&c=${verified.campaignShort}`, request.nextUrl.origin), { status: 303 });
+    // The signed code itself; read back on the result page and at "start filing" to attribute the funnel.
+    res.cookies.set(MAIL_COOKIE, code, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 90 });
     res.headers.set("Cache-Control", "no-store");
     res.headers.set("X-Robots-Tag", "noindex, nofollow");
     return res;
