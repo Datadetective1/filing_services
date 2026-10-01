@@ -7,14 +7,18 @@ live site). Canonical site: https://www.getfilewell.com. Checklist:
 
 ## 1. Verdict
 
-**CAN FILEWELL TECHNICALLY ACCEPT ITS FIRST $56 CUSTOMER? NO, not yet.** Everything the
-engineer can do is done and verified. What remains needs you: resolve two past-due Stripe
-requirements (bank account, identity-verification challenge), paste the live secret key and
-webhook signing secret into Vercel, then run the controlled first payment (section 5) and
-switch on. After those steps, with the status panel green, the answer is YES.
+**CAN FILEWELL ACCEPT ITS FIRST REAL PAYING CUSTOMER? YES** (re-audited 2026-09-30 evening,
+after the first controlled live payment).
 
-Payments stay **off** (`PAYMENTS_LIVE_ENABLED=false` on Production). Search indexing stays
-**off**. No money has moved.
+- Live payment proven end to end: $56.00 (state fee $7.00 + service fee $49.00) paid with
+  Link, Stripe `succeeded`, webhook `checkout.session.completed` processed once
+  (`payment_succeeded`), one order `paid` (live), one payment `succeeded`, no review flag,
+  filing moved to Ready for review, exactly one customer "Order confirmed" and one staff
+  "New paid order" email (both `sent` via Resend), no duplicate payment, order or refund.
+- Production Payments are **live** (`PAYMENTS_LIVE_ENABLED=true` on Production only);
+  Preview/Development stay on the sandbox. Search indexing is **off**.
+- Housekeeping before announcing: refund and cancel the DAFF TRUCKING LLC test order
+  (section 5) so it leaves the queue.
 
 ## 2. Completed overnight
 
@@ -85,101 +89,56 @@ created in Filewell. Its `checkout.session.expired` event is being retried again
 webhook (503 until your keys are in) and will be ignored as unmatched; if Stripe emails you
 about a failed webhook delivery tonight, that is the cause.
 
-## 3. Stripe live status
+## 3. Stripe live status (re-checked 2026-09-30 evening)
 
 | Item | Status |
 |---|---|
 | Account | `acct_1ULCTn0kBic3wOhx`, US, individual (sole proprietor) |
-| Charges enabled | Yes |
-| Payouts enabled | Yes |
-| Details submitted | Yes |
-| Requirements outstanding | **Past due:** `external_account` (no bank account for payouts) and an identity-verification challenge. Nothing pending review. Stripe may pause charges or payouts until these are done |
-| Public details | Name Filewell, website www.getfilewell.com, MCC 7399, descriptor `FILEWELL`. Support email **empty** |
-| Webhook | Created and enabled (`we_1ULElQ0kBic3wOhxnXQTsnHJ`, 6 events, correct API version) |
-| Production keys connected | **No.** `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` must be added by you |
-| $49 service price | Approved and configured |
-| $7 PA fee | Configured (verified rule) |
-| Checkout | Verified live (unpaid session, expired) |
-| Stripe Tax | Off, as decided. No tax is added |
-| Live charging | Off (`PAYMENTS_LIVE_ENABLED=false`) |
+| Charges / payouts | Enabled / enabled; bank account on file |
+| Requirements | None currently due, past due or pending; no disabled reason |
+| Public details | Filewell, www.getfilewell.com, support@getfilewell.com, MCC 7399, descriptor FILEWELL. Time zone `Etc/UTC` (change to Eastern, section 5) |
+| Webhook | `we_1ULElQ0kBic3wOhxnXQTsnHJ` enabled, 6 events, API `2026-08-26.dahlia`; nothing pending |
+| Production keys | Connected (live key valid: the live payment and webhook succeeded) |
+| Prices | $49.00 service fee approved; $7.00 PA fee from the verified rule |
+| Live charging | On in Production (`PAYMENTS_LIVE_ENABLED=true`), off on Preview/Development |
 
-## 4. Remaining human actions (shortest path)
+## 4. Remaining human actions
 
-**4.1 Stripe past-due items (10 min).** https://dashboard.stripe.com (Filewell account,
-live) →
-1. Follow the banner at the top ("verify your identity" / "Action required") and complete
-   the identity challenge.
-2. Settings → Business → **Payouts** (or Balances → Payout account) → add your bank
-   account.
-3. Settings → Business → **Public details** → Support email `support@getfilewell.com`,
-   support URL `https://www.getfilewell.com/help` → Save.
-4. Settings → Business → Customer emails → **Successful payments** ON and **Refunds** ON.
+1. Refund and cancel the DAFF TRUCKING LLC test order (section 5).
+2. Stripe time zone → Eastern (section 5), so receipts match Filewell.
+3. Governing law: Vercel → add `NEXT_PUBLIC_GOVERNING_LAW` (Production), e.g.
+   `the Commonwealth of Pennsylvania` → Redeploy. Until then Terms section 17 shows a
+   bracketed placeholder.
+4. Your decisions: selling before an attorney reviews the terms; whether you must register
+   "Filewell" as a fictitious name where you do business; optional public postal address.
+5. Before search indexing: the gates in section 8 ("Future").
 
-**4.2 Keys into Vercel (5 min).**
-1. Stripe → Developers → **API keys** → Secret key → Reveal (or create one named
-   `filewell-production`) → copy. Use the `sk_live_...` key, not the Stripe CLI's key.
-2. Vercel → filewell → Settings → Environment Variables → Add: key `STRIPE_SECRET_KEY`,
-   value the key, environment **Production only**, **Sensitive** on → Save.
-3. Stripe → Developers → **Webhooks** → the endpoint
-   `https://www.getfilewell.com/api/webhooks/payments/stripe` → Signing secret → Reveal →
-   copy (`whsec_...`).
-4. Vercel → Add: `STRIPE_WEBHOOK_SECRET`, **Production only**, **Sensitive** → Save.
-5. Vercel → Deployments → the latest Production deployment → ⋯ → **Redeploy**.
-6. https://www.getfilewell.com/admin → System status: **Stripe account** "Live: charges on,
-   payouts on" with no "Stripe needs" note; **Stripe webhook** "Active: all required
-   events"; **Payments** still "Off" (note: live key present but PAYMENTS_LIVE_ENABLED is
-   not 'true'). **PA service price** "Approved".
+## 5. Controlled live payment test: done; refund and close it
 
-**4.3 Governing law (1 min, recommended before the first real customer).** Choose the
-state whose law governs your terms (typically the state where you live and operate the
-business). Vercel → Add `NEXT_PUBLIC_GOVERNING_LAW` = for example
-`the Commonwealth of Pennsylvania` (Production) → Redeploy. Until then Terms section 17
-shows a bracketed placeholder.
+Done 2026-09-30 9:16 PM EDT (01:16 UTC Oct 1): order `cf143b71`, payment intent
+`pi_3ULYbb0kBic3wOhx1icJfJSO`, charge `ch_3ULYbb0kBic3wOhx1lb3Maqf` (Link, risk normal,
+descriptor FILEWELL). The filing is **DAFF TRUCKING LLC**: test data. Never file it with
+Pennsylvania unless you independently confirm you are authorized to act for that company.
 
-**4.4 Decisions to record (your call, not engineering):**
-- Selling under terms that no attorney has reviewed (the legal pages say so), and whether
-  counsel should confirm the authorized-representative e-signature wording first.
-- Operating as "Filewell" under your own name: many states (Pennsylvania included) require
-  an individual using a business name other than their own to register it as a fictitious
-  name. Check the rule where you do business; the site claims no DBA registration.
-- Optional: a public postal address (a mailbox service, not your home) for
-  `NEXT_PUBLIC_POSTAL_ADDRESS`.
+**Refund and close it (owner, about 3 minutes):**
+1. https://www.getfilewell.com/admin → open the DAFF TRUCKING LLC filing (or
+   `/admin/filings/cbe14de5-c4a4-4d55-a7d0-f7775d321ec2`). Do **not** click Mark ready to
+   file, Start filing or Open official filing site.
+2. **Cancel filing** → Reason: `Owner payment test, not a real filing` → confirm. The
+   filing becomes Cancelled (it can no longer be filed) and you get a "Cancelled" email.
+3. **Refund (admin)** → leave the defaults (Government fee `7.00`, Service fee `49.00`) →
+   Reason: `Owner payment test` → **Issue refund** → confirm.
+4. Check: the filing shows **Refunded**; `/admin/payments` shows the order refunded
+   $56.00; Stripe → Payments → the $56.00 payment shows Refunded; you get "Refund issued"
+   from Filewell and Stripe's refund receipt. Stripe keeps its processing fee on a refund.
+5. Optional: on your dashboard, archive the DAFF TRUCKING LLC business (or mark the report
+   filed elsewhere) so overdue reminders for it stop.
 
-**4.5 The controlled first live payment** (section 5), then switch on.
-
-## 5. First live payment test
-
-The existing production draft is for **DAFF TRUCKING LLC**. Treat it as a test artifact:
-never file it with Pennsylvania unless you are authorized to act for that business.
-
-1. **Enable live checkout.** Vercel → Environment Variables → the **Production**
-   `PAYMENTS_LIVE_ENABLED` → Edit → `true` → Save → Deployments → latest Production → ⋯ →
-   Redeploy. `/admin` must read Payments **Live: real charges**.
-2. **Pay $56 yourself.** Signed in as yourself: Dashboard → the draft filing → continue
-   to Review (re-sign the authorization if asked) → Checkout. The page must show state fee
-   $7.00, service fee $49.00, total $56.00 → **Pay** → on Stripe, the same two lines and
-   $56.00 → pay with your own card.
-3. **Confirm Stripe.** Stripe → Payments: one $56.00 payment, Succeeded, descriptor
-   FILEWELL. Developers → Webhooks → the endpoint → Event deliveries: 200 for
-   `checkout.session.completed`.
-4. **Confirm Filewell.** You land on the confirmation page. `/admin/payments`: the order
-   is Paid, live mode, $56.00 ($7.00 + $49.00), no review flag. Emails: "Order confirmed"
-   to you and "New paid order" staff alert; `/admin/notifications` shows both `sent`.
-5. **Confirm the queue.** `/admin` → "Your next step for each paid customer" shows the
-   filing with **no** TEST badge, status Ready for review.
-6. **No state filing.** Do not click Start filing or open the state site for this order.
-7. **Refund decision.** Unless you are authorized for this business and want it filed:
-   open the filing → **Cancel** (reason "Owner payment test") → **Refund** the full $56.00.
-   Check: Stripe shows the refund; `/admin/payments` shows it refunded; you receive the
-   "Refund issued" email. Stripe keeps its processing fee (about $1.92) on a refunded
-   payment.
-8. **If anything is inconsistent** (payment succeeded but the order is not Paid, wrong
-   amount, a missing email, a webhook error on `/admin/payments`): set Production
-   `PAYMENTS_LIVE_ENABLED` back to `false` and redeploy immediately, refund from the Stripe
-   dashboard if needed, and keep the evidence (screenshots, event IDs) for the engineer.
-
-If every check passes, leave live payments on (or switch them off until you are ready to
-announce). The verdict is then YES.
+**Timestamps:** Filewell shows every time in Eastern with the zone (9:16 PM EDT, Sep 30).
+Stripe's receipt showed Oct 1, 1:16 AM because the Stripe account's time zone is
+`Etc/UTC` (same instant). Fix in Stripe: Settings → Business → Account details → Time
+zone → Eastern Time (US & Canada). Past receipts keep the old rendering; stored timestamps
+are unchanged.
 
 ## 6. First real customer runbook
 
@@ -251,4 +210,7 @@ Rejection, cancellation and refunds: OPERATIONS.md, "Problems".
 **Future**
 - Before Jan 1, 2027: confirm whether Pennsylvania accepts a 2026 report after Dec 31.
 - Error monitoring/alerting and a record of each reminder cron run.
-- Search indexing (only with your written approval; OPERATIONS.md).
+- Search indexing (only with your written approval; OPERATIONS.md). Gates: test order
+  refunded and closed; governing law set; legal pages reviewed by an attorney (or your
+  recorded decision to index without it); first real customer filed end to end; then
+  your written go-ahead to set `NEXT_PUBLIC_ALLOW_INDEXING=true` on Production.
