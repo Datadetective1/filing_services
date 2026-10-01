@@ -33,6 +33,7 @@ test("admin previews a dry-run campaign; every sending gate is closed", async ({
     await page.getByRole("button", { name: "Import" }).click();
     await expect(main).toContainText(/Imported \d+ businesses/, { timeout: 30_000 });
     await page.reload();
+    await expect(main).toContainText("PA businesses in dataset");
     await page.screenshot({ path: "test-results/outreach-overview-desktop.png", fullPage: true });
 
     const name = `E2E dry run ${uniqueSuffix()}`;
