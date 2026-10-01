@@ -50,6 +50,9 @@ test("pilot: cohort, dashboard, artwork, card URL -> record found -> prefilled d
       await expect(main.getByText(label, { exact: true }).first()).toBeVisible();
     }
     await expect(main).not.toContainText(/\b(Active|compliant|outstanding|Not filed|unfiled|delinquent)\b/);
+    await expect(page.frameLocator('iframe[title="Card front"]').locator("body")).toContainText("THIS IS A SOLICITATION. NOT A BILL. NOT A GOVERNMENT DOCUMENT.");
+    await expect(page.frameLocator('iframe[title="Card back"]').locator("body")).toContainText("instead of using Filewell");
+    await expect(page.frameLocator('iframe[title="Card back"]').locator("img")).toHaveJSProperty("complete", true);
     await page.screenshot({ path: "test-results/pilot-dashboard-desktop.png", fullPage: true });
 
     // Artwork for the first selected card, and its QR image.

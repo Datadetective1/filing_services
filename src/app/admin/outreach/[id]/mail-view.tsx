@@ -9,6 +9,8 @@ import { COHORT_EXCLUSION_TEXT, type CohortExclusion } from "@/lib/outreach/mail
 import { loadCohort, pilotFunnel } from "@/lib/outreach/mail-cohort";
 import { NET_PER_ORDER, STRIPE_FEE, VENDOR_PLANS } from "@/lib/outreach/mail-economics";
 import { lobStatus } from "@/lib/outreach/mail-lob";
+import { postcardForRow } from "@/lib/outreach/mail-service";
+import { postcardBackHtml, postcardFrontHtml } from "@/lib/outreach/postcard";
 import { approveMailPilotAction, createLobTestAction, freezeCohortAction } from "../actions";
 
 const LOB = VENDOR_PLANS.find((p) => p.id === "lob_developer")!;
@@ -31,6 +33,11 @@ export async function MailPilotView({ campaign }: { campaign: { id: string; name
   const byReason = new Map<string, number>();
   for (const r of notSelected) for (const x of r.reasons) byReason.set(x, (byReason.get(x) ?? 0) + 1);
   const sample = selected[0] ?? null;
+  // Rendered here and shown via srcdoc: the site forbids framing its own pages (frame-ancestors 'none').
+  const sampleCopy = sample ? postcardForRow(sample) : null;
+  const artwork = sample && sampleCopy && sample.landingCode
+    ? { front: postcardFrontHtml(sampleCopy), back: postcardBackHtml(sampleCopy, `/m/${sample.landingCode}/qr.png`) }
+    : null;
 
   return (
     <div className="grid grid-cols-1 gap-8">
@@ -130,7 +137,7 @@ export async function MailPilotView({ campaign }: { campaign: { id: string; name
               <div key={side} className="grid gap-2">
                 <p className="text-sm font-semibold capitalize text-fg">{side}</p>
                 <div className="w-full max-w-[600px] overflow-hidden rounded-[6px] border border-border-strong bg-white shadow-card">
-                  <iframe title={`Card ${side}`} src={`/admin/outreach/${campaign.id}/card?send=${sample.sendId}&side=${side}`} className="block h-[408px] w-[600px] border-0" />
+                  <iframe title={`Card ${side}`} srcDoc={artwork?.[side]} sandbox="" className="block h-[408px] w-[600px] border-0" />
                 </div>
                 <a className="text-sm underline underline-offset-4" href={`/admin/outreach/${campaign.id}/card?send=${sample.sendId}&side=${side}`} target="_blank" rel="noreferrer">
                   Open {side} at full size
