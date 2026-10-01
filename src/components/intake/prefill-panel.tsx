@@ -44,7 +44,7 @@ export function PrefillPanel({
     <section aria-labelledby="prefill-title" className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-9">
       <div className="grid gap-2 border-b border-border pb-6">
         <h2 id="prefill-title" className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-fg sm:text-[28px]">
-          {fromRegistry ? "We found your Pennsylvania record" : "We filled in what we already know"}
+          {fromRegistry ? "Pennsylvania record found" : "We filled in what we already know"}
         </h2>
         <p className="max-w-[62ch] text-[15px] leading-relaxed text-muted">
           From {sources.map((s) => SOURCE_TEXT[s]).join(" and ")}

@@ -24,7 +24,7 @@ test.describe("public pages", () => {
     await expect(page.locator("main")).toContainText("not affiliated with the Department of State");
     await result.click();
     await page.waitForURL(/\/find\/result/);
-    await expect(page.locator("main")).toContainText("From Pennsylvania's business register");
+    await expect(page.locator("main")).toContainText("Pennsylvania record found");
     await expect(page.locator("main")).toContainText("$7.00");
   });
 

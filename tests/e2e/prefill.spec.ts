@@ -30,7 +30,7 @@ test("a register pick prefills the draft and asks only what's missing", async ({
   await page.waitForURL(/\/file\/[0-9a-f-]{36}\/details/);
 
   const main = page.locator("main");
-  await expect(page.getByRole("heading", { name: "We found your Pennsylvania record" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pennsylvania record found" })).toBeVisible();
   await expect(main).toContainText("Daff Trucking LLC");
   await expect(main).toContainText("0007380992");
   await expect(main).toContainText("85 Willow St");

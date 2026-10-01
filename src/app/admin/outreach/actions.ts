@@ -1,11 +1,14 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionState } from "@/components/admin/action-state";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/session";
 import { contentSha256, DEFAULT_SUBJECTS, subjectProblem } from "@/lib/outreach/email";
+import { buildMailPilot } from "@/lib/outreach/mail-service";
+import { POSTCARD_TEMPLATE_VERSION } from "@/lib/outreach/postcard";
 import { dryRunCampaign, importPaProspects, suppressEmail, type CampaignRow } from "@/lib/outreach/service";
 import { RegistryUnavailableError } from "@/lib/registry/pa-open-data";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -116,4 +119,60 @@ export async function suppressAction(_prev: ActionState, formData: FormData): Pr
   await audit({ actorUserId: admin.id, actorType: "staff", action: "outreach.suppressed", entityType: "marketing_suppression", entityId: null, after: { reason: "manual" } });
   revalidatePath("/admin/outreach");
   return ok("Added to the permanent do-not-contact list.");
+}
+
+// ---------------------------------------------------------------------------
+// Physical-mail pilot (design and export only: nothing is purchased or mailed)
+// ---------------------------------------------------------------------------
+
+export async function createMailPilotAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 120);
+  if (!name) return fail("Name the pilot.");
+  const { data, error } = await createAdminClient()
+    .from("marketing_campaigns")
+    .insert({
+      name,
+      state_code: "PA",
+      channel: "mail",
+      segment: "upcoming_deadline",
+      entity_group: "other",
+      template_key: "pa_dec31_postcard",
+      subject: "Postcard: Pennsylvania December 31 annual report",
+      status: "draft",
+      created_by: admin.id,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return fail(`Could not create the pilot: ${error?.message ?? "unknown"}`);
+  await audit({ actorUserId: admin.id, actorType: "staff", action: "outreach.mail_pilot_created", entityType: "marketing_campaign", entityId: data.id, after: { name } });
+  revalidatePath("/admin/outreach");
+  return ok("Postcard pilot created. Open it to see who would get a card, the exclusions, the card and the export.");
+}
+
+export async function mailDryRunAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const id = String(formData.get("campaignId") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(id)) return fail("Pilot not found.");
+  const rows = await buildMailPilot(id, { persist: true });
+  const included = rows.filter((r) => r.included).length;
+  await audit({ actorUserId: admin.id, actorType: "staff", action: "outreach.mail_dry_run", entityType: "marketing_campaign", entityId: id, after: { evaluated: rows.length, included } });
+  revalidatePath(`/admin/outreach/${id}`);
+  return ok(`Dry run recorded: ${rows.length} businesses evaluated, ${included} would get a card. Nothing was purchased or mailed.`);
+}
+
+export async function approveMailPilotAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const id = String(formData.get("campaignId") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(id)) return fail("Pilot not found.");
+  const sha = createHash("sha256").update(POSTCARD_TEMPLATE_VERSION).digest("hex");
+  const { error } = await createAdminClient()
+    .from("marketing_campaigns")
+    .update({ status: "approved", approved_by: admin.id, approved_at: new Date().toISOString(), approved_content_sha256: sha })
+    .eq("id", id)
+    .eq("channel", "mail");
+  if (error) return fail(`Could not approve: ${error.message}`);
+  await audit({ actorUserId: admin.id, actorType: "staff", action: "outreach.mail_pilot_approved", entityType: "marketing_campaign", entityId: id, after: { template: POSTCARD_TEMPLATE_VERSION } });
+  revalidatePath(`/admin/outreach/${id}`);
+  return ok("Card content approved. Nothing is purchased or mailed: a vendor, a return address and the mail switch are still required.");
 }

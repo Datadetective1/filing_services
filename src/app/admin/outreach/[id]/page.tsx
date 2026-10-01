@@ -12,6 +12,7 @@ import { GATE_TEXT } from "@/lib/outreach/gate";
 import { dryRunCampaign, previewEmail, type CampaignRow } from "@/lib/outreach/service";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { approveCampaignAction, dryRunAction } from "../actions";
+import { MailPilotView } from "./mail-view";
 
 export const metadata: Metadata = { title: "Campaign preview" };
 
@@ -23,11 +24,12 @@ export default async function CampaignPage({ params }: PageProps<"/admin/outreac
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { data } = await createAdminClient()
     .from("marketing_campaigns")
-    .select("id, name, segment, entity_group, subject, status, approved_content_sha256, approved_at")
+    .select("id, name, segment, entity_group, subject, status, approved_content_sha256, approved_at, channel")
     .eq("id", id)
     .maybeSingle();
-  const campaign = data as CampaignRow | null;
+  const campaign = data as (CampaignRow & { channel: string }) | null;
   if (!campaign) notFound();
+  if (campaign.channel === "mail") return <MailPilotView campaign={campaign} />;
 
   // Evaluated live for the page (not stored); "Record dry run" stores the result.
   const run = await dryRunCampaign(campaign, { persist: false });
