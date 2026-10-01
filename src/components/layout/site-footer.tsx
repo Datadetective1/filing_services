@@ -10,7 +10,7 @@ const linkClass = "text-[15px] text-muted transition-colors hover:text-fg";
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-border bg-surface-2">
-      <Container className="grid gap-12 py-14 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-20">
+      <Container className="grid gap-12 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:gap-16">
         <div className="grid content-start gap-6">
           <Logo />
           <p className="max-w-md text-[15px] leading-7 text-muted">
@@ -35,7 +35,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           <nav aria-label="Product" className="grid content-start gap-3">
             <p className="text-sm font-semibold text-fg">{site.name}</p>
             <Link className={linkClass} href="/find">Find my business</Link>
@@ -43,6 +43,14 @@ export function SiteFooter() {
             <Link className={linkClass} href="/states">Filing requirements by state</Link>
             <Link className={linkClass} href="/pricing">Pricing</Link>
             <Link className={linkClass} href="/help">Help</Link>
+          </nav>
+          <nav aria-label="Pennsylvania guides" className="grid content-start gap-3">
+            <p className="text-sm font-semibold text-fg">Pennsylvania guides</p>
+            <Link className={linkClass} href="/pennsylvania/annual-report-deadline">Annual report deadline</Link>
+            <Link className={linkClass} href="/pennsylvania/annual-report-fee">Annual report fee</Link>
+            <Link className={linkClass} href="/pennsylvania/how-to-file-annual-report">How to file</Link>
+            <Link className={linkClass} href="/pennsylvania/annual-report-after-deadline">Filing after the deadline</Link>
+            <Link className={linkClass} href="/pennsylvania/business-search">Business search</Link>
           </nav>
           <nav aria-label="Legal" className="grid content-start gap-3">
             <p className="text-sm font-semibold text-fg">Legal</p>

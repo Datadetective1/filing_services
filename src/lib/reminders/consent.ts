@@ -1,0 +1,3 @@
+/** Exactly what a visitor agrees to when opting in to free filing reminders (stored with the subscription). */
+export const REMINDER_CONSENT_TEXT =
+  "Yes, email me reminders about this business's Pennsylvania annual report: a confirmation email now, then up to three reminders a year (about 60, 30 and 7 days before the due date). I can unsubscribe at any time.";

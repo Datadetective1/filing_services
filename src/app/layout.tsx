@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
   robots: isIndexable() ? { index: true, follow: true } : { index: false, follow: false },
   formatDetection: { telephone: false, address: false, email: false },
+  // Search Console / Bing Webmaster verification codes (public by design), only when configured.
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() || undefined,
+    other: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim()
+      ? { "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION.trim() }
+      : undefined,
+  },
 };
 
 export const viewport: Viewport = {

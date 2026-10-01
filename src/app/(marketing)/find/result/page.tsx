@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowSquareOut, BellSimpleRinging, CaretDown, Info } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, ArrowSquareOut, CaretDown, Info } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -28,7 +28,9 @@ import { cn } from "@/components/ui/cn";
 import { Container, Facts } from "@/components/ui/surface";
 import { CountdownRing } from "@/components/visual/countdown-ring";
 import { Receipt } from "@/components/visual/receipt";
+import { ReminderOptIn } from "@/components/funnel/reminder-opt-in";
 import { readLookupHomeJurisdiction } from "../lookup-extras";
+import { optInToReminders } from "../reminder-actions";
 
 export const metadata: Metadata = {
   title: "Your filing requirement",
@@ -303,34 +305,30 @@ export default async function FindResultPage() {
   ) : null;
 
   const aside = reminderMode ? (
-    <div className="grid gap-5 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-7">
-      <div className="flex items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-highlight-soft text-highlight-fg">
-          <BellSimpleRinging size={22} weight="fill" aria-hidden />
-        </span>
-        <p className="font-display text-xl font-semibold leading-tight text-fg">We&apos;ll remind you before it&apos;s due</p>
+    <>
+      <ReminderOptIn action={optInToReminders} businessName={lookup.legalName} />
+      <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
+        <p className="text-[15px] leading-6 text-muted">
+          Prefer an account? Add the business to a free {site.name} account and track it there. There&apos;s nothing to pay now.
+        </p>
+        <form action={signedIn ? "/file/start" : "/signup"} method="get" className="grid">
+          {signedIn ? <input type="hidden" name="mode" value="track" /> : <input type="hidden" name="next" value={startPath} />}
+          <button type="submit" className={buttonClasses("secondary", "md", "w-full")}>
+            Track it in an account
+          </button>
+        </form>
+        {signInLine}
+        {quote ? (
+          <details className="group border-t border-border pt-1">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-semibold text-fg [&::-webkit-details-marker]:hidden">
+              What it costs if we file it later
+              <CaretDown size={16} weight="bold" aria-hidden className="shrink-0 text-muted transition-transform group-open:rotate-180" />
+            </summary>
+            <PriceBreakdown className="mt-3" quote={quote} stateName={stateName} totalLabel="Total if we file it" />
+          </details>
+        ) : null}
       </div>
-      <p className="text-[15px] leading-6 text-muted">
-        We email you 90, 60 and 30 days ahead, then closer to the date. There&apos;s nothing to pay now.
-      </p>
-      <form action={signedIn ? "/file/start" : "/signup"} method="get" className="grid">
-        {signedIn ? <input type="hidden" name="mode" value="track" /> : <input type="hidden" name="next" value={startPath} />}
-        <button type="submit" className={buttonClasses("primary", "lg", "w-full")}>
-          <BellSimpleRinging size={18} weight="bold" aria-hidden />
-          Get a reminder when it&apos;s due
-        </button>
-      </form>
-      {signInLine}
-      {quote ? (
-        <details className="group border-t border-border pt-1">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-[15px] font-semibold text-fg [&::-webkit-details-marker]:hidden">
-            What it costs if we file it later
-            <CaretDown size={16} weight="bold" aria-hidden className="shrink-0 text-muted transition-transform group-open:rotate-180" />
-          </summary>
-          <PriceBreakdown className="mt-3" quote={quote} stateName={stateName} totalLabel="Total if we file it" />
-        </details>
-      ) : null}
-    </div>
+    </>
   ) : (
     <>
       <Receipt
@@ -373,6 +371,8 @@ export default async function FindResultPage() {
           <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
         </a>
       </div>
+
+      <ReminderOptIn action={optInToReminders} businessName={lookup.legalName} />
     </>
   );
 
@@ -387,8 +387,9 @@ export default async function FindResultPage() {
           {reminderMode ? (
             "Nothing to file right now"
           ) : period ? (
+            // We can't see filing status on the public register, so this is never stated as fact.
             <>
-              {lookup.legalName} needs to file its {filingLabel}.
+              {lookup.legalName}&apos;s {filingLabel} may be due.
             </>
           ) : (
             `What ${lookup.legalName} needs to file`

@@ -1,5 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { type Attribution, attributionProperties } from "./attribution";
+import { readAttribution } from "./attribution-server";
 import type { AnalyticsEvent } from "./events";
 
 /**
@@ -19,11 +21,18 @@ export async function trackServer(
     properties?: Record<string, unknown>;
     /** Skip if an event with the same key was already recorded. */
     dedupeKey?: string;
+    /** Attribution to record; defaults to the visitor's cookie (null outside a browser request). */
+    attribution?: Attribution | null;
   } = {},
 ): Promise<void> {
   try {
     const db = createAdminClient();
-    const properties = { ...(opts.properties ?? {}), ...(opts.dedupeKey ? { dedupe_key: opts.dedupeKey } : {}) };
+    const attribution = opts.attribution !== undefined ? opts.attribution : await readAttribution();
+    const properties = {
+      ...attributionProperties(attribution),
+      ...(opts.properties ?? {}),
+      ...(opts.dedupeKey ? { dedupe_key: opts.dedupeKey } : {}),
+    };
     if (opts.dedupeKey) {
       const { data } = await db
         .from("analytics_events")
