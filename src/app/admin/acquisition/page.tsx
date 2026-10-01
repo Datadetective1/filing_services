@@ -115,7 +115,7 @@ export default async function AcquisitionPage(props: PageProps<"/admin/acquisiti
         <ol className="grid gap-2">
           {summary.steps.map((s, i) => {
             const prev = i > 0 ? summary.steps[i - 1].total : null;
-            const width = visits ? Math.max(2, Math.round((s.total / visits) * 100)) : 0;
+            const width = visits ? Math.min(100, Math.max(2, Math.round((s.total / visits) * 100))) : 0;
             return (
               <li key={s.key} className="grid grid-cols-[10rem_1fr_6rem] items-center gap-3 text-sm">
                 <span className="text-fg">{s.label}</span>
