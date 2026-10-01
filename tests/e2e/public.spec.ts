@@ -14,6 +14,20 @@ test.describe("public pages", () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
+  test("Pennsylvania register search finds a business and labels the source", async ({ page }) => {
+    await page.goto("/find");
+    await page.getByRole("textbox", { name: "Business name or Pennsylvania entity number" }).fill("7380992");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    const result = page.getByRole("button", { name: /Daff Trucking LLC/ });
+    await expect(result).toBeVisible({ timeout: 15_000 });
+    await expect(result).toContainText("Entity #0007380992");
+    await expect(page.locator("main")).toContainText("not affiliated with the Department of State");
+    await result.click();
+    await page.waitForURL(/\/find\/result/);
+    await expect(page.locator("main")).toContainText("From Pennsylvania's business register");
+    await expect(page.locator("main")).toContainText("$7.00");
+  });
+
   test("help page offers a human support path", async ({ page }) => {
     await page.goto("/help");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Talk to a person");

@@ -31,6 +31,13 @@ export const lookupSchema = z.object({
   isForeign: z.boolean().default(false),
   isNonprofit: z.boolean().default(false),
   alreadyFiledThisYear: z.boolean().default(false),
+  /** Set only by the server after it fetched this entity from the state's register itself. */
+  registryEntityNumber: z
+    .string()
+    .regex(/^[0-9]{1,10}$/)
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
 });
 
 export type PendingLookup = z.infer<typeof lookupSchema>;

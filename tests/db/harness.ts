@@ -64,6 +64,12 @@ export type Db = PGlite;
 export async function createTestDb(): Promise<Db> {
   const db = new PGlite();
   await db.exec(SHIM);
+  // Supabase also grants on tables created later (default privileges), so a new table is
+  // reachable by anon/authenticated unless a migration revokes it. Mirror that.
+  await db.exec(`
+    alter default privileges in schema public grant select, insert, update, delete on tables to anon, authenticated, service_role;
+    alter default privileges in schema public grant usage, select on sequences to anon, authenticated, service_role;
+  `);
   // Supabase's default grants happen before migrations; mirror by granting after
   // table creation but BEFORE the RLS migration's column-level revokes run.
   if (!MIGRATIONS.some((f) => f.endsWith("_rls.sql"))) throw new Error("RLS migration not found");

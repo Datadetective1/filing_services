@@ -9,6 +9,7 @@ import {
   ClockCounterClockwise,
   CreditCard,
   EnvelopeSimple,
+  MegaphoneSimple,
   Scales,
   Storefront,
   SunHorizon,
@@ -44,6 +45,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/reminders", label: "Reminders", icon: BellSimple },
       { href: "/admin/notifications", label: "Emails", icon: EnvelopeSimple },
+      { href: "/admin/outreach", label: "Outreach", icon: MegaphoneSimple },
     ],
   },
   {

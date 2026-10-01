@@ -12,6 +12,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function TermsPage() {
+  const governingLaw = governingLawText();
   const brand = site.name;
   return (
     <LegalPage
@@ -185,12 +186,14 @@ export default function TermsPage() {
         the terms and refund policy you agreed to.
       </p>
 
-      <h2>17. Governing law</h2>
-      <p>
-        These terms are governed by the laws of {governingLawText()}, without regard to its conflict-of-law rules.
-      </p>
+      {governingLaw ? (
+        <>
+          <h2>17. Governing law</h2>
+          <p>These terms are governed by the laws of {governingLaw}, without regard to its conflict-of-law rules.</p>
+        </>
+      ) : null}
 
-      <h2>18. Contact</h2>
+      <h2>{governingLaw ? 18 : 17}. Contact</h2>
       <p>
         Questions about these terms: <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>, or send us a message from
         a filing&apos;s page in your dashboard. Postal address for legal notices: {postalAddressText()}.

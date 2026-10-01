@@ -12,9 +12,11 @@ import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { todayInTimeZone } from "@/lib/domain/dates";
 import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen, type FilingPeriod } from "@/lib/domain/deadlines";
 import { formatLongDate } from "@/lib/domain/dates";
-import { CUSTOMER_EDITABLE_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
+import { CUSTOMER_EDITABLE_STATUSES, FILED_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
 import { buildQuote, governmentFeeFor, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
 import type { EntityType } from "@/lib/domain/types";
+import { buildPrefill, sameValue } from "@/lib/intake/prefill";
+import { loadStateRecord } from "@/lib/registry/state-records";
 import { validateAll, validateSection, type IntakeAnswers, type Person, type RegisteredOffice, type Address } from "@/lib/intake/validate";
 import { getPaymentProvider, requiresApprovedPrice } from "@/lib/payments";
 import { checkoutDescription, checkoutLineItemName } from "@/lib/payments/checkout-text";
@@ -233,25 +235,61 @@ export async function startFiling(user: SessionUser, businessId: string): Promis
     .single();
   if (error || !filing) throw new FilingError(`Could not start the filing: ${error?.message}`);
 
-  // Pre-fill intake from what we know.
-  const prefill: IntakeAnswers = {
-    legal_name: business.legal_name,
-    entity_number: business.state_entity_number ?? "",
-    jurisdiction_of_formation: business.is_foreign ? (business.home_jurisdiction ?? "") : (getJurisdiction(business.state_code)?.name ?? ""),
-  };
+  // Pre-fill intake from what we know: the previous filing, the saved profile, then the
+  // state's register (server-fetched records only). Every prefilled field gets a provenance row.
   const { data: addresses } = await userDb.from("business_addresses").select("*").eq("business_id", business.id);
   const { data: people } = await userDb.from("business_owners").select("*").eq("business_id", business.id).order("sort_order");
   const principal = addresses?.find((a) => a.kind === "principal_office");
   const registered = addresses?.find((a) => a.kind === "registered_office");
-  if (principal) prefill.principal_office = pickAddress(principal);
-  if (registered) {
-    prefill.registered_office = registered.crop_name
-      ? { mode: "crop", crop_name: registered.crop_name, county: registered.county ?? "" }
-      : { mode: "address", ...pickAddress(registered), county: registered.county ?? "" };
-  }
-  if (people?.length) {
-    prefill.governors = people.filter((p) => p.role_kind !== "officer").map((p) => ({ name: p.full_name, title: p.title }));
-    prefill.principal_officers = people.filter((p) => p.role_kind !== "governor").map((p) => ({ name: p.full_name, title: p.title }));
+  const { data: prevFiling } = await db
+    .from("filings")
+    .select("id, updated_at, filing_answers(answers)")
+    .eq("business_id", business.id)
+    .eq("user_id", user.id)
+    .in("status", [...FILED_STATUSES])
+    .neq("id", filing.id)
+    .order("period_year", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const prevAnswers = (Array.isArray(prevFiling?.filing_answers) ? prevFiling?.filing_answers[0] : prevFiling?.filing_answers) as { answers?: IntakeAnswers } | null | undefined;
+  const registry = await loadStateRecord(business.state_code, business.state_entity_number);
+  const built = buildPrefill({
+    business: {
+      legalName: business.legal_name,
+      entityNumber: business.state_entity_number ?? null,
+      isForeign: business.is_foreign,
+      homeJurisdiction: business.home_jurisdiction ?? null,
+      stateName: getJurisdiction(business.state_code)?.name ?? "",
+    },
+    profile: {
+      principalOffice: principal ? { ...pickAddress(principal) } : null,
+      registeredOffice: registered
+        ? registered.crop_name
+          ? { mode: "crop", crop_name: registered.crop_name, county: registered.county ?? "" }
+          : { mode: "address", ...pickAddress(registered), county: registered.county ?? "" }
+        : null,
+      governors: (people ?? []).filter((p) => p.role_kind !== "officer").map((p) => ({ name: p.full_name, title: p.title })),
+      officers: (people ?? []).filter((p) => p.role_kind !== "governor").map((p) => ({ name: p.full_name, title: p.title })),
+    },
+    registry,
+    previous: prevAnswers?.answers ? { answers: prevAnswers.answers, at: String(prevFiling?.updated_at ?? new Date().toISOString()) } : null,
+    now: new Date().toISOString(),
+  });
+  const prefill: IntakeAnswers = built.answers;
+  if (built.provenance.length) {
+    await db.from("filing_prefill").insert(built.provenance.map((p) => ({ ...p, filing_id: filing.id, user_id: user.id })));
+    await trackServer("prefill_applied", {
+      userId: user.id,
+      stateCode: business.state_code,
+      filingTypeCode: "annual_report",
+      entityType: business.entity_type,
+      properties: {
+        fields: built.provenance.length,
+        from_registry: built.provenance.filter((p) => p.source === "state_registry").length,
+        from_previous: built.provenance.filter((p) => p.source === "previous_filing").length,
+      },
+      dedupeKey: `prefill_applied:${filing.id}`,
+    });
   }
 
   await userDb.from("filing_answers").insert({ filing_id: filing.id, user_id: user.id, answers: prefill });
@@ -331,9 +369,68 @@ export async function saveIntakeSection(user: SessionUser, filingId: string, sec
   return { ok: true as const, isComplete: all.ok, nextIncomplete: all.incompleteSections[0] ?? null };
 }
 
+/**
+ * "Nothing has changed": keep the prefilled answers, record the customer's answer to the
+ * changes question, and mark every section that is already complete as done. Sections
+ * with missing required details stay open. Nothing is signed or submitted here.
+ */
+export async function acceptPrefill(user: SessionUser, filingId: string) {
+  const loaded = await getCustomerFiling(filingId);
+  if (!loaded || loaded.filing.user_id !== user.id) throw new FilingError("Filing not found", "not_found");
+  if (!CUSTOMER_EDITABLE_STATUSES.includes(loaded.filing.status as FilingStatus)) throw new FilingError("This filing can no longer be edited.", "not_allowed");
+  const answers: IntakeAnswers = { ...loaded.answers };
+  const hasChangesQuestion = loaded.schema.sections.some((sec) => sec.fields.some((f) => f.key === "changes_since_last_report"));
+  if (hasChangesQuestion && !answers.changes_since_last_report) answers.changes_since_last_report = "no";
+  const done = loaded.schema.sections.filter((sec) => validateSection(sec, answers).ok).map((sec) => sec.key);
+  const all = validateAll(loaded.schema, answers);
+  const userDb = await createClient();
+  const { error } = await userDb
+    .from("filing_answers")
+    .update({ answers, completed_steps: Array.from(new Set([...loaded.completedSteps, ...done])) })
+    .eq("filing_id", filingId)
+    .eq("user_id", user.id);
+  if (error) throw new FilingError(`Could not save: ${error.message}`);
+  await createAdminClient().from("filing_answers").update({ is_complete: all.ok }).eq("filing_id", filingId).eq("user_id", user.id);
+  if (all.ok) {
+    await trackServer("intake_completed", { userId: user.id, stateCode: loaded.filing.state_code, filingTypeCode: "annual_report", dedupeKey: `intake_completed:${filingId}` });
+  }
+  return { isComplete: all.ok, nextIncomplete: all.incompleteSections[0] ?? null };
+}
+
+/** Provenance rows for a customer's own filing (RLS-scoped read). */
+export async function getFilingPrefill(filingId: string) {
+  const userDb = await createClient();
+  const { data } = await userDb.from("filing_prefill").select("field_key, source, retrieved_at, edited").eq("filing_id", filingId);
+  return (data ?? []) as { field_key: string; source: "state_registry" | "previous_filing" | "business_profile"; retrieved_at: string; edited: boolean | null }[];
+}
+
 // ---------------------------------------------------------------------------
 // Authorization (attestation + consent to file)
 // ---------------------------------------------------------------------------
+
+/**
+ * At signing, record what the customer confirmed for each prefilled field and whether
+ * they changed it. Never touches the answers themselves. Re-signing updates the record.
+ */
+async function confirmPrefill(user: SessionUser, stateCode: string, filingId: string, snapshot: IntakeAnswers, signedAt: string) {
+  const db = createAdminClient();
+  const { data: rows } = await db.from("filing_prefill").select("id, field_key, original_value, created_at").eq("filing_id", filingId);
+  if (!rows?.length) return;
+  let edited = 0;
+  for (const r of rows) {
+    const confirmed = snapshot[r.field_key] ?? null;
+    const changed = !sameValue(r.original_value, confirmed);
+    if (changed) edited++;
+    await db.from("filing_prefill").update({ confirmed_value: confirmed, edited: changed, confirmed_at: signedAt }).eq("id", r.id);
+  }
+  const startedAt = rows.reduce((min, r) => (String(r.created_at) < min ? String(r.created_at) : min), String(rows[0].created_at));
+  await trackServer("prefill_confirmed", {
+    userId: user.id,
+    stateCode,
+    filingTypeCode: "annual_report",
+    properties: { fields: rows.length, edited, seconds_to_sign: Math.max(0, Math.round((Date.parse(signedAt) - Date.parse(startedAt)) / 1000)) },
+  });
+}
 
 export async function authorizeFiling(
   user: SessionUser,
@@ -385,6 +482,7 @@ export async function authorizeFiling(
   if (error || !auth) throw new FilingError(`Could not record authorization: ${error?.message}`);
 
   await syncBusinessProfile(user, loaded.filing.business_id, snapshot);
+  await confirmPrefill(user, loaded.filing.state_code, filingId, snapshot, auth.created_at as string);
   await audit({
     actorUserId: user.id,
     actorType: "customer",

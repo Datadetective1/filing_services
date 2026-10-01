@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
-import { saveIntakeSection } from "@/lib/filings/customer";
+import { acceptPrefill, saveIntakeSection } from "@/lib/filings/customer";
 import { formDataToSectionAnswers } from "@/components/intake/form-data";
 import type { IntakeFormState } from "@/components/intake/types";
 import { FILING_ID_RE, friendlyError } from "../../_lib/errors";
@@ -53,4 +53,18 @@ export async function saveSectionAction(
   if (next) redirect(`/file/${filingId}/details?step=${encodeURIComponent(next)}`);
   if (result.isComplete) redirect(`/file/${filingId}/review`);
   redirect(`/file/${filingId}/details?step=${encodeURIComponent(result.nextIncomplete ?? order[0])}`);
+}
+
+/** "Nothing has changed": keep the prefilled values and go to what's still missing, or review. */
+export async function acceptPrefillAction(filingId: string): Promise<void> {
+  if (!FILING_ID_RE.test(filingId)) redirect("/dashboard");
+  const user = await requireUser(`/file/${filingId}/details`);
+  let result: Awaited<ReturnType<typeof acceptPrefill>>;
+  try {
+    result = await acceptPrefill(user, filingId);
+  } catch {
+    redirect(`/file/${filingId}/details`);
+  }
+  if (result.isComplete) redirect(`/file/${filingId}/review`);
+  redirect(`/file/${filingId}/details?step=${encodeURIComponent(result.nextIncomplete ?? "")}&prefill=missing`);
 }

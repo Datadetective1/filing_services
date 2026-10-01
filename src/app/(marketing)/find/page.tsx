@@ -8,10 +8,12 @@ import { todayInTimeZone } from "@/lib/domain/dates";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPES, isEntityType } from "@/lib/domain/types";
 import { readPendingLookup } from "@/lib/lookup/pending";
 import { LookupForm } from "@/components/funnel/lookup-form";
+import { RegistrySearch } from "@/components/funnel/registry-search";
 import type { LookupJurisdictionOption, LookupValues } from "@/components/funnel/types";
 import { Photo } from "@/components/media/photo";
 import { Container, Notice } from "@/components/ui/surface";
 import { submitLookup } from "./actions";
+import { searchRegistry, selectRegistryEntity } from "./registry-actions";
 import { readLookupHomeJurisdiction } from "./lookup-extras";
 
 export const metadata: Metadata = {
@@ -82,6 +84,16 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
               We couldn&apos;t find the details you entered earlier in this browser. Enter them again to continue.
             </Notice>
           ) : null}
+
+          <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
+            <RegistrySearch search={searchRegistry} select={selectRegistryEntity} />
+          </div>
+
+          <div className="flex items-center gap-3 text-sm text-subtle" aria-hidden>
+            <span className="h-px flex-1 bg-border" />
+            Not in Pennsylvania, or not listed? Enter your details
+            <span className="h-px flex-1 bg-border" />
+          </div>
 
           <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
             <LookupForm

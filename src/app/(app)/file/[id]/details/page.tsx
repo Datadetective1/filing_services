@@ -3,15 +3,17 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { CUSTOMER_EDITABLE_STATUSES, CUSTOMER_STATUS_DESCRIPTIONS, type FilingStatus } from "@/lib/domain/filing-status";
-import { validateAll } from "@/lib/intake/validate";
+import { getFilingPrefill } from "@/lib/filings/customer";
+import { validateAll, validateSection } from "@/lib/intake/validate";
 import { FilingContext } from "@/components/funnel/filing-context";
 import { FunnelSteps } from "@/components/funnel/funnel-steps";
 import { FilingTicket } from "@/components/funnel/filing-ticket";
 import { IntakeForm } from "@/components/intake/intake-form";
+import { PrefillPanel } from "@/components/intake/prefill-panel";
 import { SectionNav } from "@/components/intake/section-nav";
 import { Container, Notice } from "@/components/ui/surface";
 import { filingSummary, loadOwnFiling } from "../../_lib/filing";
-import { saveSectionAction } from "./actions";
+import { acceptPrefillAction, saveSectionAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Business details",
@@ -52,6 +54,20 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
   const action = saveSectionAction.bind(null, id, current.key);
   const paid = status !== "draft";
 
+  // Prefilled filing, not started yet: offer "has anything changed?" before the step-by-step form.
+  const prefill = !paid && !requested && loaded.completedSteps.length === 0 ? await getFilingPrefill(id) : [];
+  const showPrefill = prefill.length > 0;
+  const fieldLabels = new Map(sections.flatMap((s) => s.fields).map((f) => [f.key, f.label]));
+  const missing = showPrefill
+    ? [
+        ...new Set(
+          sections.flatMap((s) => Object.keys(validateSection(s, loaded.answers).errors).map((k) => k.split(".")[0].split("[")[0])),
+        ),
+      ]
+        .filter((k) => fieldLabels.has(k))
+        .map((k) => ({ key: k, label: fieldLabels.get(k)! }))
+    : [];
+
   return (
     <Container className="max-w-6xl pt-8 sm:pt-10">
       <FunnelSteps current="details" paid={paid} className="mb-10" />
@@ -67,8 +83,9 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
         </div>
         <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.025em] text-fg sm:text-[38px]">Business details</h1>
         <p className="max-w-[60ch] text-[16px] leading-relaxed text-muted">
-          Enter these as they appear on your {summary.stateName} business record. You&apos;ll review everything before you
-          sign.
+          {showPrefill
+            ? "We filled in what we could. Check it, add anything missing, and you'll review everything before you sign."
+            : `Enter these as they appear on your ${summary.stateName} business record. You'll review everything before you sign.`}
         </p>
       </div>
 
@@ -99,8 +116,22 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
               </Link>
               .
             </Notice>
+          ) : sp.prefill === "missing" ? (
+            <Notice tone="info" role="status" title="Everything else is saved">
+              Add the details below that Pennsylvania&apos;s record doesn&apos;t include, then review and sign.
+            </Notice>
           ) : null}
 
+          {showPrefill ? (
+            <PrefillPanel
+              sections={sections}
+              answers={loaded.answers}
+              prefill={prefill}
+              missing={missing}
+              acceptAction={acceptPrefillAction.bind(null, id)}
+              editHref={`/file/${id}/details?step=${encodeURIComponent(sections[0].key)}`}
+            />
+          ) : (
           <section
             aria-labelledby="section-title"
             className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-9"
@@ -125,6 +156,7 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
               />
             </div>
           </section>
+          )}
 
           <p className="text-sm leading-6 text-subtle">Your answers save each time you continue.</p>
         </div>
