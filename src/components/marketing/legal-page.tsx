@@ -63,7 +63,7 @@ export function LegalPage({
               <p className="font-semibold text-fg">Draft for legal review</p>
               <p className="mt-0.5 leading-6 text-muted">
                 This document is a working draft pending attorney review. It has not yet been reviewed by an attorney and may
-                be updated. Bracketed text marks details still to be confirmed.
+                be updated.
               </p>
             </div>
           </div>

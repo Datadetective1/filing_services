@@ -7,7 +7,7 @@ function asRecord(v: unknown): Record<string, unknown> | null {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
 }
 
-function FieldValue({ field, value }: { field: IntakeField; value: unknown }) {
+export function FieldValue({ field, value }: { field: IntakeField; value: unknown }) {
   const empty = <span className="text-subtle">Not provided</span>;
   switch (field.type) {
     case "text":

@@ -150,6 +150,7 @@ function DeadlineCard({
 
 export default async function FindResultPage() {
   const lookup = await readPendingLookup();
+  const fromRegistry = Boolean(lookup?.registryEntityNumber);
   if (!lookup) redirect("/find");
 
   const homeJurisdiction = lookup.isForeign ? await readLookupHomeJurisdiction() : null;
@@ -171,7 +172,7 @@ export default async function FindResultPage() {
     <details className="group rounded-[var(--radius-surface)] border border-border bg-surface">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-[var(--radius-surface)] px-5 py-3 hover:bg-surface-2/60 sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="grid gap-0.5">
-          <span className="font-display text-[17px] font-semibold text-fg">Details you entered</span>
+          <span className="font-display text-[17px] font-semibold text-fg">{fromRegistry ? "From Pennsylvania's business register" : "Details you entered"}</span>
           <span className="text-sm text-muted [overflow-wrap:anywhere]">
             {lookup.legalName} · {stateName} {entityLabel}
           </span>
@@ -191,12 +192,17 @@ export default async function FindResultPage() {
               value: lookup.isForeign ? `Yes${homeJurisdiction ? `, formed in ${homeJurisdiction}` : ""}` : "No",
             },
             { term: "Not-for-profit purpose", value: lookup.isNonprofit ? "Yes" : "No" },
-            { term: "This year's report", value: lookup.alreadyFiledThisYear ? "Already filed" : "Not filed yet" },
+            {
+              term: "This year's report",
+              value: fromRegistry ? "Not shown on the register" : lookup.alreadyFiledThisYear ? "Already filed" : "Not filed yet",
+            },
           ]}
         />
         <p className="flex gap-2 text-sm leading-6 text-muted">
           <Info size={18} aria-hidden className="mt-0.5 shrink-0" />
-          These are the details you typed. We haven&apos;t checked them against the state record.
+          {fromRegistry
+            ? "From the Department of State's public register (published on data.pa.gov, updated monthly). It doesn't show standing or whether this year's report was filed. You'll check every detail before you sign."
+            : "These are the details you typed. We haven't checked them against the state record."}
         </p>
         <EditLink className="justify-self-start" />
       </div>
@@ -386,7 +392,7 @@ export default async function FindResultPage() {
           <p className="max-w-[60ch] text-[17px] leading-relaxed text-muted">
             {lookup.alreadyFiledThisYear
               ? `You told us this year's report is already filed. The next one is the ${period.periodYear} report.`
-              : `Based on the formation date you entered, the first report is the ${period.periodYear} report.`}
+              : `Based on the formation date ${fromRegistry ? "on the register" : "you entered"}, the first report is the ${period.periodYear} report.`}
           </p>
         ) : null}
       </div>

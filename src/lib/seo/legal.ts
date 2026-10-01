@@ -28,9 +28,12 @@ export function postalAddressText(): string {
   return site.postalAddress ?? `available on request from ${site.supportEmail}`;
 }
 
-/** Governing-law jurisdiction for the terms, or a bracketed placeholder until the owner chooses one. */
-export function governingLawText(): string {
-  return site.governingLaw ?? "[governing-law state to be confirmed]";
+/**
+ * Governing-law jurisdiction for the terms, or null until the owner chooses one. The
+ * terms omit the clause entirely while it is null: never a placeholder, never a guess.
+ */
+export function governingLawText(): string | null {
+  return site.governingLaw;
 }
 
 /** Who operates the service, for copyright lines: the legal entity once configured, otherwise the brand. */

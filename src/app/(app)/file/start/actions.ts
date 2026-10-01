@@ -7,6 +7,9 @@ import { findRule, getJurisdiction } from "@/lib/compliance/registry";
 import { todayInTimeZone } from "@/lib/domain/dates";
 import { addBusiness, periodFor, startFiling } from "@/lib/filings/customer";
 import { clearPendingLookup, type PendingLookup, readPendingLookup } from "@/lib/lookup/pending";
+import { getPaRecord } from "@/lib/registry/pa-open-data";
+import { saveStateRecord } from "@/lib/registry/state-records";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionMessageState } from "@/components/funnel/types";
 import { clearLookupHomeJurisdiction, readLookupHomeJurisdiction } from "@/app/(marketing)/find/lookup-extras";
@@ -71,6 +74,7 @@ export async function confirmStart(_prev: ActionMessageState, formData: FormData
       });
       businessId = created.businessId;
     }
+    if (lookup.registryEntityNumber && lookup.stateCode === "PA") await linkRegistryRecord(user, businessId, lookup.registryEntityNumber);
     // A report for a future year can't be filed yet: add the business and remind instead.
     const period = periodFor(rule, { formationDate: lookup.formationDate ?? null, alreadyFiledThisYear: lookup.alreadyFiledThisYear });
     const currentYear = Number(todayInTimeZone(getJurisdiction(rule.stateCode)?.timezone ?? "America/New_York").slice(0, 4));
@@ -102,4 +106,26 @@ export async function confirmStart(_prev: ActionMessageState, formData: FormData
 
   await clearLookup();
   redirect(`/file/${filingId}/details`);
+}
+
+/**
+ * Re-read the register record the visitor picked and keep it server-side for prefill.
+ * Best effort: if the register is unavailable now, the customer simply types the details.
+ */
+async function linkRegistryRecord(user: SessionUser, businessId: string, entityNumber: string) {
+  try {
+    const detail = await getPaRecord(entityNumber);
+    if (!detail) return;
+    const stored = await saveStateRecord("PA", detail);
+    await createAdminClient()
+      .from("businesses")
+      .update({
+        state_entity_number: detail.entityNumber,
+        registry_record: { source: "state_registry", state_entity_record_id: stored.id, source_url: stored.sourceUrl, retrieved_at: stored.retrievedAt },
+      })
+      .eq("id", businessId)
+      .eq("owner_user_id", user.id);
+  } catch {
+    // Prefill is a convenience; never block starting the filing on it.
+  }
 }

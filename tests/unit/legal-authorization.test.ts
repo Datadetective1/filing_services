@@ -84,10 +84,10 @@ describe("legal page values", () => {
     expect(legal.postalAddressText()).toBe("PO Box 1, Pittsburgh, PA 15201");
   });
 
-  it("keeps the governing law bracketed until the owner chooses it, then uses the chosen value", async () => {
+  it("omits the governing law (no placeholder, no guess) until the owner chooses it, then uses the chosen value", async () => {
     vi.stubEnv("NEXT_PUBLIC_GOVERNING_LAW", "");
     vi.resetModules();
-    expect((await import("@/lib/seo/legal")).governingLawText()).toMatch(/^\[.*to be confirmed\]$/);
+    expect((await import("@/lib/seo/legal")).governingLawText()).toBeNull();
     vi.stubEnv("NEXT_PUBLIC_GOVERNING_LAW", "the Commonwealth of Pennsylvania");
     vi.resetModules();
     expect((await import("@/lib/seo/legal")).governingLawText()).toBe("the Commonwealth of Pennsylvania");
