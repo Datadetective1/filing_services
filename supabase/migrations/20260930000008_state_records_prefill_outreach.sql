@@ -1,6 +1,7 @@
 -- State entity records, prefill provenance, and the (dry-run only) prospect outreach model.
 --
--- Additive and backward compatible: new tables only; no existing table or column changes.
+-- Additive and backward compatible: new tables, plus a widened (superset) analytics_events
+-- event_name check. No existing column changes; existing rows stay valid.
 --
 -- Separation (never mix marketing prospects into customer filing records):
 --   state_entity_records  public registry data as retrieved from a named source
