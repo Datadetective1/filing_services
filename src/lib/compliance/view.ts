@@ -16,7 +16,10 @@ export function dueRuleText(rule: DueRule): string {
   }
 }
 
-export function stateFeeText(rule: Pick<ComplianceRuleDef, "stateFeeCents" | "nonprofitStateFeeCents">): string {
+export function stateFeeText(rule: Pick<ComplianceRuleDef, "stateFeeCents" | "nonprofitStateFeeCents"> & Partial<Pick<ComplianceRuleDef, "feeComponents">>): string {
+  if (rule.feeComponents && rule.feeComponents.length > 1) {
+    return `${rule.feeComponents.map((c) => `${formatCents(c.cents, { trimZeros: true })} ${c.label}`).join(" + ")} (${formatCents(rule.stateFeeCents, { trimZeros: true })} total)`;
+  }
   if (rule.stateFeeCents === 0) return "No state fee";
   const base = formatCents(rule.stateFeeCents, { trimZeros: true });
   if (rule.nonprofitStateFeeCents === 0) return `${base} (no fee with a not-for-profit purpose)`;

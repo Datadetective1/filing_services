@@ -11,7 +11,7 @@ import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
-import { isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
+import { isRuleSellable, isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import type { FaqItem } from "@/lib/compliance/types";
 import { verifiedText } from "@/lib/compliance/view";
 import { formatCents } from "@/lib/domain/money";
@@ -51,7 +51,8 @@ const REFUND_TEXT =
   "Cancel before we submit to the state and you get a full refund. Once it's submitted, the state keeps its fee, so that part can't be refunded. We refund our service fee if we made an error or can't complete the filing.";
 
 export default async function PricingPage() {
-  const states = listJurisdictions().filter((j) => isStateVerified(j.code));
+  // Only states where Filewell actually sells filing (approved price + live switch decide checkout).
+  const states = listJurisdictions().filter((j) => isStateVerified(j.code) && rulesForState(j.code).some((r) => isRuleSellable(r)));
   const tables = await Promise.all(
     states.map(async (j) => {
       const rules = sortByDue(rulesForState(j.code).filter((r) => r.verificationStatus === "verified"));

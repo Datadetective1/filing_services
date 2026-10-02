@@ -33,7 +33,7 @@ import { CalendarDate } from "@/components/visual/calendar-date";
 import { FilingYearChart } from "@/components/visual/filing-year-chart";
 import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
-import { getJurisdictionBySlug, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
+import { getJurisdictionBySlug, isRuleSellable, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef, FaqItem, JurisdictionDef } from "@/lib/compliance/types";
 import { lateFeeText, stateFeeText, verifiedText } from "@/lib/compliance/view";
@@ -138,6 +138,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
   const feeNote = /\((.+)\)$/.exec(feeText)?.[1] ?? null;
   const filingHost = new URL(first.officialFilingUrl).host;
   const groups = dueGroups(rules);
+  const sellable = rules.some((r) => isRuleSellable(r));
   const today = todayInTimeZone(j.timezone);
   const chartRows = groups.every((g) => g.month && g.dayOfMonth)
     ? groups.map((g) => ({ label: g.who, month: g.month as number, day: g.dayOfMonth as number }))
@@ -216,7 +217,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
         actions={
           <div className="flex flex-col gap-3 sm:flex-row">
             <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code}>
-              Have us file it
+              {sellable ? "Have us file it" : "Check my business"}
               <ArrowRight size={18} weight="bold" aria-hidden />
             </FilingCtaLink>
             <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
@@ -420,15 +421,16 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
           >
             <div className="grid content-start gap-5">
               <h2 id="cta-title" className="text-[30px] font-semibold leading-[1.08] text-accent-fg sm:text-[38px]">
-                Have us file it
+                {sellable ? "Have us file it" : "Get a free reminder"}
               </h2>
               <p className="max-w-[44ch] text-[16px] leading-7 text-accent-fg/85">
-                Answer a short form, review everything, and authorize the filing. We prepare it, submit it to the {agency},
-                and send you the state&apos;s confirmation.
+                {sellable
+                  ? `Answer a short form, review everything, and authorize the filing. We prepare it, submit it to the ${agency}, and send you the state's confirmation.`
+                  : `${site.name} filing for ${j.name} isn't open yet. Look up your business to see its due date and the state fees, and get a free email reminder before it's due.`}
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code} variant="inverse">
-                  Have us file it
+                  {sellable ? "Have us file it" : "Check my business"}
                 </FilingCtaLink>
                 <Link
                   href="/pricing"
@@ -555,7 +557,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
 
         <OnThisPageAside items={TOC} className="pt-4">
           <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code} size="md" className="w-full">
-            Have us file it
+            {sellable ? "Have us file it" : "Check my business"}
           </FilingCtaLink>
           <p className="text-[13px] leading-5 text-muted">
             Or file it yourself at{" "}
