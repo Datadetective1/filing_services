@@ -78,7 +78,8 @@ export function researchExclusion(row: Pick<CandidateRow, "legal_name" | "format
  * businesses in a mail pilot cohort, anything already researched, personal names,
  * agent addresses and first-year entities.
  */
-export async function ensureDailyList(size = DAILY_LIST_SIZE, now = new Date()): Promise<{ date: string; added: number; available: number }> {
+export async function ensureDailyList(size = DAILY_LIST_SIZE, now = new Date(), state = "PA"): Promise<{ date: string; added: number; available: number }> {
+  if (state !== "PA") return ensureDailyListFromExports(state, size, now);
   const today = todayInTimeZone(TZ, now);
   const { count: existing } = await db().from("founder_prospects").select("id", { count: "exact", head: true }).eq("list_date", today);
   const need = size - (existing ?? 0);
@@ -232,4 +233,45 @@ export async function founderActivity(sinceIso: string): Promise<{ byStatus: Rec
     if (r.contacted_on && (r.contacted_on as string) >= sinceIso.slice(0, 10)) contactedSince++;
   }
   return { byStatus, contactedSince, total: (data ?? []).length };
+}
+
+/**
+ * Expansion states: candidates come only from official exports an operator imported (see
+ * state-cohort.ts), soonest due date first, supported entity types only.
+ */
+async function ensureDailyListFromExports(state: string, size: number, now: Date): Promise<{ date: string; added: number; available: number }> {
+  const today = todayInTimeZone(TZ, now);
+  const { count: existing } = await db()
+    .from("founder_prospects")
+    .select("id, state_entity_records!inner(state_code)", { count: "exact", head: true })
+    .eq("list_date", today)
+    .eq("state_entity_records.state_code", state);
+  const need = size - (existing ?? 0);
+  if (need <= 0) return { date: today, added: 0, available: 0 };
+  const until = new Date(now.getTime() + 75 * 86_400_000).toISOString().slice(0, 10);
+  const [{ data: taken }, { data: customers }, { data: pool }] = await Promise.all([
+    db().from("founder_prospects").select("state_entity_record_id").limit(20000),
+    db().from("businesses").select("state_entity_number").eq("state_code", state).not("state_entity_number", "is", null).limit(20000),
+    db()
+      .from("state_entity_records")
+      .select("id, entity_number, legal_name, entity_type, formation_date, registered_office, due_date")
+      .eq("state_code", state)
+      .like("source", "%_export")
+      .not("entity_type", "is", null)
+      .gte("due_date", today)
+      .lte("due_date", until)
+      .order("due_date", { ascending: true })
+      .limit(5000),
+  ]);
+  const skip = new Set((taken ?? []).map((r) => r.state_entity_record_id as string));
+  const custs = new Set((customers ?? []).map((b) => String(b.state_entity_number)));
+  const year = Number(today.slice(0, 4));
+  const eligible = ((pool ?? []) as (CandidateRow & { due_date: string })[]).filter(
+    (r) => !skip.has(r.id) && !custs.has(r.entity_number) && !researchExclusion(r, year + 1),
+  );
+  const chosen = eligible.slice(0, need);
+  if (chosen.length) {
+    await db().from("founder_prospects").upsert(chosen.map((r) => ({ state_entity_record_id: r.id, list_date: today })), { onConflict: "state_entity_record_id", ignoreDuplicates: true });
+  }
+  return { date: today, added: chosen.length, available: eligible.length };
 }

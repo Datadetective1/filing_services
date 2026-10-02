@@ -7,8 +7,10 @@ import type { CheckoutLineItem } from "./types";
  * brand, so neither can be read as a government charge.
  */
 
-export function checkoutLineItemName(kind: CheckoutLineItem["kind"], agencyName: string): string {
-  return kind === "government_fee" ? `${agencyName} filing fee (passed through at cost)` : `${site.name} service fee`;
+export function checkoutLineItemName(kind: CheckoutLineItem["kind"], agencyName: string, label?: string): string {
+  if (kind === "service_fee") return `${site.name} service fee`;
+  if (kind === "government_late_fee") return `${agencyName} ${label ?? "late fee"} (state charge, passed through at cost)`;
+  return label ? `${agencyName} ${label} (passed through at cost)` : `${agencyName} filing fee (passed through at cost)`;
 }
 
 export function checkoutDescription(input: { stateName: string; filingName: string; businessName: string }): string {

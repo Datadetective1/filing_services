@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { RULES } from "@/lib/compliance/registry";
 import { asAnon, asUser, count, createTestDb, createUser, type Db, expectDenied, makeStaff } from "./harness";
 
 /**
@@ -36,7 +37,7 @@ describe("service_prices column grants", () => {
     const res = await asAnon(db, (tx) =>
       tx.query<{ service_fee_cents: number; active: boolean }>(`select ${PUBLIC_PRICE_COLUMNS} from public.service_prices where active = true`),
     );
-    expect(res.rows).toHaveLength(1);
+    expect(res.rows).toHaveLength(4);
     expect(res.rows[0].active).toBe(true);
     expect(res.rows[0].service_fee_cents).toBeGreaterThanOrEqual(0);
     // Inactive prices stay hidden from anon.
@@ -64,14 +65,14 @@ describe("service_prices column grants", () => {
   it("staff still read every price with its internal columns (the /admin/pricing query)", async () => {
     const res = await asUser(db, staff, (tx) =>
       tx.query<{ active: boolean; notes: string | null; approved_by: string | null; updated_by: string | null }>(
-        `select ${ADMIN_PRICE_COLUMNS} from public.service_prices order by active desc`,
+        `select ${ADMIN_PRICE_COLUMNS} from public.service_prices where state_code = 'PA' order by active desc`,
       ),
     );
     expect(res.rows).toHaveLength(2);
     expect(res.rows[0]).toMatchObject({ active: true, notes: "internal: margin check", approved_by: staff, updated_by: staff });
     expect(res.rows[1]).toMatchObject({ active: false, notes: "old draft" });
     // The /admin dashboard query (active prices, public columns).
-    expect(await asUser(db, staff, (tx) => count(tx, `select ${PUBLIC_PRICE_COLUMNS} from public.service_prices where active`))).toBe(1);
+    expect(await asUser(db, staff, (tx) => count(tx, `select ${PUBLIC_PRICE_COLUMNS} from public.service_prices where active`))).toBe(4);
   });
 });
 
@@ -91,7 +92,7 @@ describe("state_rule_versions column grants", () => {
         "select id, filing_name, state_fee_cents, due_rule, faq, official_filing_url, last_verified_at from public.state_rule_versions where publication_status = 'published'",
       ),
     );
-    expect(res.rows).toHaveLength(8);
+    expect(res.rows).toHaveLength(RULES.length);
     // The sources policy checks visibility through a subquery on state_rule_versions, run as anon.
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.state_rule_sources"))).toBeGreaterThan(8);
   });

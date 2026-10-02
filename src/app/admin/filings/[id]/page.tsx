@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RunbookPanel } from "./runbook-panel";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowSquareOut, CaretDown, DownloadSimple, FileText, ShieldCheck, UploadSimple } from "@phosphor-icons/react/dist/ssr";
@@ -132,6 +133,7 @@ export default async function FilingDetailPage(props: PageProps<"/admin/filings/
               { id: "audit", label: "Audit" },
             ]}
           />
+          <RunbookPanel d={d} />
           <CustomerPanel customer={d.customer} userId={filing.user_id} />
           <BusinessPanel d={d} />
           <Panel

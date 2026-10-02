@@ -26,6 +26,8 @@ export interface LookupJurisdictionOption {
   searchUrl: string;
   /** True when searchUrl is a business search page rather than the agency home page. */
   isBusinessSearch: boolean;
+  /** The state's due date is set from the formation/registration month, so it's required. */
+  formationRequired?: boolean;
 }
 
 export interface ActionMessageState {

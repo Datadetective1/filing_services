@@ -69,6 +69,9 @@ export function versionRow(rule: ComplianceRuleDef, contentHash: string) {
     state_fee_cents: rule.stateFeeCents,
     nonprofit_state_fee_cents: rule.nonprofitStateFeeCents ?? null,
     late_fee_cents: rule.lateFeeCents,
+    fee_components: rule.feeComponents ?? null,
+    late_fees: rule.lateFees ?? null,
+    filing_window_days_before: rule.filingWindowDaysBefore ?? null,
     late_fee_summary: rule.lateFeeSummary,
     consequence_summary: rule.consequenceSummary,
     who_must_file: rule.whoMustFile,
@@ -114,17 +117,18 @@ export function contentHashOf(rule: ComplianceRuleDef, hash: (s: string) => stri
 export const PROVISIONAL_SERVICE_FEE_CENTS = 4900;
 
 export function defaultPriceRows() {
-  return [
-    {
-      filing_type_code: "annual_report",
-      state_code: "PA",
-      entity_type: null,
-      service_fee_cents: PROVISIONAL_SERVICE_FEE_CENTS,
-      approved: false,
-      active: true,
-      notes: "Provisional placeholder: owner must set and approve the service fee before live payments.",
-    },
-  ];
+  return ["PA", "WA", "NV", "UT"].map((state) => ({
+    filing_type_code: "annual_report",
+    state_code: state,
+    entity_type: null,
+    service_fee_cents: PROVISIONAL_SERVICE_FEE_CENTS,
+    approved: false,
+    active: true,
+    notes:
+      state === "PA"
+        ? "Provisional placeholder: owner must set and approve the service fee before live payments."
+        : "Proposed $49 service fee for staging and calculations. Not approved: live checkout refuses it until the owner approves this state's total.",
+  }));
 }
 
 export function reminderScheduleRows() {

@@ -9,6 +9,7 @@ import { deadlineLabel } from "@/lib/domain/deadline-copy";
 import { formatCents } from "@/lib/domain/money";
 import { agencyShortName, dueGroups, feeSummary, latestVerified } from "@/lib/seo/content";
 import { marketingPeriod } from "@/lib/seo/period";
+import { stateSalesEnabled } from "@/lib/compliance/launch";
 
 /** Splits "$7 ($0 for nonprofits)" into the headline amount and its note, for display only. */
 function splitFee(text: string): { amount: string; note: string | null } {
@@ -37,7 +38,7 @@ export function StateStatusPanel({
   const first = rules[0];
   const groups = dueGroups(rules).map((g) => ({ ...g, period: marketingPeriod(g.rules[0]).period }));
   const soonest = groups.reduce<(typeof groups)[number] | null>(
-    (best, g) => (g.period.daysRemaining >= 0 && (!best || g.period.daysRemaining < best.period.daysRemaining) ? g : best),
+    (best, g) => (g.period && g.period.daysRemaining >= 0 && (!best?.period || g.period.daysRemaining < best.period.daysRemaining) ? g : best),
     null,
   );
   const fee = splitFee(feeText ?? feeSummary(rules));
@@ -57,7 +58,7 @@ export function StateStatusPanel({
             {first.formNumber ? <p className="font-mono text-[11px] uppercase tracking-wider text-subtle">Form {first.formNumber}</p> : null}
           </div>
         </div>
-        <Badge tone="success">Filing supported</Badge>
+        <Badge tone="success">{stateSalesEnabled(j.code) ? "Filing supported" : "Guide and free reminders"}</Badge>
       </div>
 
       <p className="mt-5 text-[12px] font-semibold uppercase tracking-wider text-subtle">Due each year, by entity type</p>
@@ -71,7 +72,7 @@ export function StateStatusPanel({
                 <p className="text-[15px] font-semibold leading-snug text-fg">{g.who}</p>
                 <p className="tnum text-[13px] text-muted">By {g.day}</p>
               </div>
-              {next ? (
+              {next && g.period ? (
                 <span className="tnum shrink-0 rounded-full bg-highlight-soft px-2.5 py-1 text-[12px] font-bold text-highlight-fg">
                   {deadlineLabel(g.period.daysRemaining, g.period.dueDate)}
                 </span>

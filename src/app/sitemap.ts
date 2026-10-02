@@ -3,7 +3,7 @@ import { absoluteUrl } from "@/config/site";
 import { isStateVerified, listJurisdictions, RULES } from "@/lib/compliance/registry";
 import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { LEGAL_LAST_UPDATED, LEGAL_PAGES } from "@/lib/seo/legal";
-import { PA_GUIDES, PA_GUIDES_CHECKED } from "@/lib/seo/pa-guides";
+import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
 
 /**
  * Only indexable pages. Unverified state pages are noindex and deliberately left out,
@@ -39,10 +39,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     );
   }
 
-  if (verifiedStates.some((j) => j.code === "PA")) {
-    const checked = new Date(`${PA_GUIDES_CHECKED}T00:00:00Z`);
-    for (const g of PA_GUIDES) {
-      entries.push({ url: absoluteUrl(`/pennsylvania/${g.slug}`), lastModified: checked, changeFrequency: "monthly", priority: 0.8 });
+  for (const set of STATE_GUIDE_SETS) {
+    if (!verifiedStates.some((j) => j.code === set.stateCode)) continue;
+    const checked = new Date(`${set.checked}T00:00:00Z`);
+    for (const g of set.guides) {
+      entries.push({ url: absoluteUrl(`/${set.slug}/${g.slug}`), lastModified: checked, changeFrequency: "monthly", priority: 0.8 });
     }
   }
 

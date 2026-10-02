@@ -36,6 +36,7 @@ import {
 import { article, ENTITY_COPY } from "@/lib/seo/entities";
 import { breadcrumbJsonLd, faqJsonLd, graph, serviceJsonLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { isRuleSellable } from "@/lib/compliance/registry";
 import { marketingPeriod } from "@/lib/seo/period";
 
 export const dynamicParams = false;
@@ -118,7 +119,11 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
   const quote = await publicQuote(rule);
   const governor = governorInfo(rule);
   const filingWindow = filingWindowText(rule);
-  const dueDay = dueRuleText(rule.dueRule).replace(" each year", "");
+  const dueDay =
+    rule.dueRule.kind === "fixed_annual"
+      ? dueRuleText(rule.dueRule).replace(" each year", "")
+      : `the ${dueRuleText(rule.dueRule).replace(" each year", "").replace(/^\w/, (c) => c.toLowerCase())}`;
+  const sellable = isRuleSellable(rule);
   const siblings = rulesForState(j.code).filter((r) => r.ruleKey !== rule.ruleKey && r.verificationStatus === "verified");
   const findHref = `/find?state=${j.code}&entity=${rule.entityType}`;
   const scene = ENTITY_PHOTOS[rule.entityType];
@@ -200,7 +205,7 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
               headingAs="h2"
               actions={
                 <FilingCtaLink href={findHref} stateCode={j.code} entityType={rule.entityType}>
-                  Have us file it
+                  {sellable ? "Have us file it" : "Check my business"}
                   <ArrowRight size={18} weight="bold" aria-hidden />
                 </FilingCtaLink>
               }

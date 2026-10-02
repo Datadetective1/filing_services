@@ -13,7 +13,9 @@ import { todayInTimeZone } from "@/lib/domain/dates";
 import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen, type FilingPeriod } from "@/lib/domain/deadlines";
 import { formatLongDate } from "@/lib/domain/dates";
 import { CUSTOMER_EDITABLE_STATUSES, FILED_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
-import { buildQuote, governmentFeeFor, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
+import { buildQuote, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
+import { evaluateFees, feeSourceFromSnapshot, quoteGovernmentLines } from "@/lib/compliance/fees";
+import { knownStateStatus } from "@/lib/registry/state-status";
 import type { EntityType } from "@/lib/domain/types";
 import { buildPrefill, sameValue } from "@/lib/intake/prefill";
 import { loadStateRecord } from "@/lib/registry/state-records";
@@ -556,8 +558,29 @@ function addressCols(a: Address) {
 // Pricing + checkout
 // ---------------------------------------------------------------------------
 
-export async function quoteForFiling(filing: { state_code: string; rule_snapshot: unknown; business_id: string }, business: { entity_type: string; is_nonprofit: boolean }): Promise<Quote | null> {
-  const snapshot = filing.rule_snapshot as { state_fee_cents: number; nonprofit_state_fee_cents: number | null; filing_name: string };
+/** The full government fee evaluation for a filing (due, possible and avoidable charges). */
+export async function governmentFeeDetails(
+  filing: { state_code: string; rule_snapshot: unknown; due_date?: string | null },
+  business: { is_nonprofit: boolean; state_entity_number?: string | null },
+) {
+  const tz = getJurisdiction(filing.state_code)?.timezone ?? "America/New_York";
+  const status = await knownStateStatus(filing.state_code, business.state_entity_number ?? null);
+  return {
+    status,
+    evaluation: evaluateFees(feeSourceFromSnapshot((filing.rule_snapshot ?? {}) as Record<string, unknown>), {
+      isNonprofit: business.is_nonprofit,
+      dueDate: filing.due_date ?? null,
+      filingDate: todayInTimeZone(tz),
+      status,
+    }),
+  };
+}
+
+export async function quoteForFiling(
+  filing: { state_code: string; rule_snapshot: unknown; business_id: string; due_date?: string | null },
+  business: { entity_type: string; is_nonprofit: boolean; state_entity_number?: string | null },
+): Promise<Quote | null> {
+  const snapshot = (filing.rule_snapshot ?? {}) as Record<string, unknown>;
   const prices = await listActivePricesAdmin();
   const price = resolveServicePrice(prices, {
     filingTypeCode: "annual_report",
@@ -565,14 +588,23 @@ export async function quoteForFiling(filing: { state_code: string; rule_snapshot
     entityType: business.entity_type as EntityType,
   });
   if (!price) return null;
-  const gov = governmentFeeFor(
-    { stateFeeCents: snapshot.state_fee_cents, nonprofitStateFeeCents: snapshot.nonprofit_state_fee_cents },
-    { isNonprofit: business.is_nonprofit },
+  const tz = getJurisdiction(filing.state_code)?.timezone ?? "America/New_York";
+  // A status-based state charge (e.g. Washington's delinquency fee) is applied only from a
+  // dated official record of this entity; otherwise it is "possible" and not charged.
+  const status = await knownStateStatus(filing.state_code, business.state_entity_number ?? null);
+  const gov = quoteGovernmentLines(
+    evaluateFees(feeSourceFromSnapshot(snapshot), {
+      isNonprofit: business.is_nonprofit,
+      dueDate: filing.due_date ?? null,
+      filingDate: todayInTimeZone(tz),
+      status,
+    }),
   );
   return buildQuote({
     stateName: getJurisdiction(filing.state_code)?.name ?? filing.state_code,
-    filingName: snapshot.filing_name,
-    governmentFeeCents: gov,
+    filingName: String(snapshot.filing_name ?? "Annual Report"),
+    governmentFeeCents: gov.totalCents,
+    governmentLines: gov.lines,
     price,
   });
 }
@@ -675,7 +707,11 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
   const session = await provider.createCheckoutSession({
     orderId: orderId!,
     paymentId: payment.id,
-    lineItems: quote.lineItems.map((li) => ({ kind: li.kind, name: checkoutLineItemName(li.kind, agencyName), amountCents: li.amountCents })),
+    lineItems: quote.lineItems.map((li) => ({
+      kind: li.kind,
+      name: checkoutLineItemName(li.kind, agencyName, quote.lineItems.filter((x) => x.kind !== "service_fee").length > 1 || li.kind === "government_late_fee" ? li.description.replace(`${stateName} `, "").replace(/, paid to the state$/, "") : undefined),
+      amountCents: li.amountCents,
+    })),
     totalCents: quote.totalCents,
     currency: "usd",
     customerEmail: user.email,

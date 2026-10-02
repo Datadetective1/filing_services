@@ -175,11 +175,16 @@ export function LookupForm({
           name="formationDate"
           type="date"
           label="Formation date"
-          hint={`For a business formed elsewhere, the date it registered in ${selected.name}.`}
+          hint={
+            selected.formationRequired
+              ? `Required: ${selected.name} sets the due date from the month the business formed (or registered in ${selected.name}, if formed elsewhere).`
+              : `For a business formed elsewhere, the date it registered in ${selected.name}.`
+          }
           value={v.formationDate}
           error={e.formationDate}
           max={maxDate}
           min="1800-01-01"
+          required={Boolean(selected.formationRequired)}
         />
         <LabeledInput
           name="entityNumber"

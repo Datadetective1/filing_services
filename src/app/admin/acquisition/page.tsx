@@ -9,6 +9,8 @@ import { acquisitionSummary } from "@/lib/acquisition/dashboard";
 import { founderActivity } from "@/lib/acquisition/founder";
 import { listPartners } from "@/lib/acquisition/partners";
 import { requireStaff } from "@/lib/auth/session";
+import { stateLookupEnabled, stateSalesEnabled } from "@/lib/compliance/launch";
+import { getJurisdiction } from "@/lib/compliance/registry";
 import { getEmailReadiness } from "@/lib/email/provider";
 
 export const metadata: Metadata = { title: "Acquisition" };
@@ -66,6 +68,9 @@ export default async function AcquisitionPage(props: PageProps<"/admin/acquisiti
             </Link>
             <Link className="text-sm font-medium text-fg underline underline-offset-4" href="/admin/acquisition/partners">
               Referral partners
+            </Link>
+            <Link className="text-sm font-medium text-fg underline underline-offset-4" href="/admin/acquisition/october">
+              Deadline cohorts (WA, NV, UT)
             </Link>
           </>
         }
@@ -186,6 +191,46 @@ export default async function AcquisitionPage(props: PageProps<"/admin/acquisiti
         </TableScroll>
       </Panel>
 
+      <Panel title="By state" description="Pennsylvania takes live orders. Washington, Nevada and Utah have lookup, guides and reminders; paid filing is off until the owner approves each state's price." bodyClassName="p-0">
+        <TableScroll variant="inset">
+          <Table>
+            <THead>
+              <tr>
+                <TH>State</TH>
+                <TH className="text-right">State page views</TH>
+                <TH className="text-right">Searches</TH>
+                <TH className="text-right">Records viewed</TH>
+                <TH className="text-right">Reminder opt-ins</TH>
+                <TH className="text-right">Filing starts</TH>
+                <TH className="text-right">Checkouts</TH>
+                <TH className="text-right">Paid</TH>
+                <TH className="text-right">Records to paid</TH>
+                <TH className="text-right">Service revenue</TH>
+              </tr>
+            </THead>
+            <tbody>
+              {summary.byState.map((r) => (
+                <TR key={r.state}>
+                  <TD className="font-medium text-fg">
+                    {getJurisdiction(r.state)?.name ?? r.state}
+                    <span className="block text-xs text-muted">{stateSalesEnabled(r.state) ? "Live orders" : "Lookup only"}</span>
+                  </TD>
+                  <TD className="tnum text-right">{r.pageViews}</TD>
+                  <TD className="tnum text-right">{r.searches}</TD>
+                  <TD className="tnum text-right">{r.records}</TD>
+                  <TD className="tnum text-right">{r.optins}</TD>
+                  <TD className="tnum text-right">{r.starts}</TD>
+                  <TD className="tnum text-right">{r.checkouts}</TD>
+                  <TD className="tnum text-right font-semibold">{r.paid}</TD>
+                  <TD className="tnum text-right">{pct(r.paid, r.records)}</TD>
+                  <TD className="tnum text-right">{money(r.revenueCents)}</TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        </TableScroll>
+      </Panel>
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Panel title="Free reminders">
           <KeyValues
@@ -234,6 +279,10 @@ export default async function AcquisitionPage(props: PageProps<"/admin/acquisiti
             { term: "Postcard mailing", value: process.env.MAIL_SENDS_ENABLED === "true" ? "ON" : "Off (MAIL_SENDS_ENABLED not true)" },
             { term: "Cold email", value: process.env.MARKETING_SENDS_ENABLED === "true" ? "ON" : "Off (MARKETING_SENDS_ENABLED not true)" },
             { term: "Partner link format", value: "https://www.getfilewell.com/?ref=<code>" },
+            ...["PA", "WA", "NV", "UT"].map((st) => ({
+              term: `${getJurisdiction(st)?.name ?? st} switches`,
+              value: `Lookup ${stateLookupEnabled(st) ? "on" : "off"} · Live filing sales ${stateSalesEnabled(st) ? "ON" : "off"}`,
+            })),
           ]}
         />
         {summary.truncated ? <p className="mt-3 text-sm text-warning">Only the first 100,000 events in this period were counted.</p> : null}

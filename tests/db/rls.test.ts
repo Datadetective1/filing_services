@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { RULES } from "@/lib/compliance/registry";
 import type { Transaction } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -245,12 +246,12 @@ describe("tenant isolation: reads", () => {
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.states"))).toBe(51);
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.state_agencies"))).toBe(51);
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.filing_types"))).toBeGreaterThan(0);
-    expect(await asAnon(db, (tx) => count(tx, "select 1 from public.compliance_rules"))).toBe(8);
+    expect(await asAnon(db, (tx) => count(tx, "select 1 from public.compliance_rules"))).toBe(RULES.length);
     expect(
       await asAnon(db, (tx) => count(tx, "select 1 from public.state_rule_versions where publication_status = 'published'")),
-    ).toBe(8);
+    ).toBe(RULES.length);
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.state_rule_sources"))).toBeGreaterThan(8);
-    expect(await asAnon(db, (tx) => count(tx, "select 1 from public.service_prices where active"))).toBe(1);
+    expect(await asAnon(db, (tx) => count(tx, "select 1 from public.service_prices where active"))).toBe(4);
   });
 
   it("anon cannot read draft rule versions, their sources, or inactive prices; staff can", async () => {

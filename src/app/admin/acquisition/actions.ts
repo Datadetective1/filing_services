@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { ActionState } from "@/components/admin/action-state";
 import { CHANNELS, ensureDailyList, PROSPECT_STATUSES, updateFounderProspect } from "@/lib/acquisition/founder";
 import { PARTNER_KINDS, PARTNER_STATUSES, savePartner } from "@/lib/acquisition/partners";
+import { EXPORT_SOURCES, importStateExport } from "@/lib/acquisition/state-cohort";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/session";
 import { actionError, fail, ok, parseForm } from "../_lib/action-helpers";
@@ -34,10 +35,11 @@ const optionalDate = z
   .transform((v) => v || null)
   .refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), "Use a valid date");
 
-export async function buildDailyListAction(): Promise<ActionState> {
+export async function buildDailyListAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const admin = await requireAdmin();
+  const state = ["PA", "WA", "NV", "UT"].includes(String(formData.get("state") ?? "PA")) ? String(formData.get("state") ?? "PA") : "PA";
   try {
-    const r = await ensureDailyList();
+    const r = await ensureDailyList(undefined, undefined, state);
     await audit({ actorUserId: admin.id, actorType: "staff", action: "acquisition.daily_list_built", entityType: "founder_prospect", entityId: null, after: r });
     revalidatePath("/admin/acquisition/prospects");
     if (r.added === 0 && r.available === 0) return ok("Today's list is already full, or there are no more register records to choose from. Import more from Outreach.");
@@ -122,6 +124,34 @@ export async function savePartnerAction(_prev: ActionState, formData: FormData):
     return ok(id ? "Partner updated." : "Partner added.");
   } catch (e) {
     if (e instanceof Error && e.message.includes("referral code")) return fail(e.message);
+    return actionError(e);
+  }
+}
+
+/**
+ * Import an official state search export (CSV) that the operator downloaded in a browser.
+ * Records the export date as the status timestamp. Contacts no one.
+ */
+export async function importStateExportAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const state = String(formData.get("state") ?? "").toUpperCase();
+  const meta = EXPORT_SOURCES[state];
+  if (!meta?.available) return fail("Imports aren't available for this state.");
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return fail("Choose the CSV file you downloaded.");
+  if (file.size > 4 * 1024 * 1024) return fail("Files must be 4 MB or smaller. Narrow the search (for example one business type at a time).");
+  const exportedOn = String(formData.get("exportedOn") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(exportedOn)) return fail("Enter the date you downloaded the export.");
+  try {
+    const text = await file.text();
+    const r = await importStateExport(state, text, `${exportedOn}T12:00:00Z`);
+    await audit({ actorUserId: admin.id, actorType: "staff", action: "acquisition.state_export_imported", entityType: "state_entity_record", entityId: null, after: { state, ...r } });
+    revalidatePath("/admin/acquisition/october");
+    if (!r.imported) return fail(`Nothing imported. ${r.firstSkips.map((s) => `Line ${s.line}: ${s.reason}`).join("; ")}`);
+    return ok(`Imported ${r.imported} ${state} records${r.skipped ? `, skipped ${r.skipped}` : ""}${r.unsupportedType ? ` (${r.unsupportedType} with a type Filewell doesn't cover yet)` : ""}.`, [
+      { label: "Columns used", value: Object.entries(r.columns).map(([k, v]) => `${k}: ${v ?? "not found"}`).join(" · ") },
+    ]);
+  } catch (e) {
     return actionError(e);
   }
 }

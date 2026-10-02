@@ -17,7 +17,7 @@ export interface ServicePrice {
 }
 
 export interface QuoteLineItem {
-  kind: "government_fee" | "service_fee";
+  kind: "government_fee" | "government_late_fee" | "service_fee";
   description: string;
   amountCents: number;
 }
@@ -59,13 +59,23 @@ export function governmentFeeFor(
   return rule.stateFeeCents;
 }
 
+export interface GovernmentLine {
+  kind: "government_fee" | "government_late_fee";
+  label: string;
+  cents: number;
+}
+
 export function buildQuote(input: {
   stateName: string;
   filingName: string;
   governmentFeeCents: number;
   price: ServicePrice;
+  /** Itemized government charges (e.g. Nevada list + license fees). When given, they must sum to governmentFeeCents. */
+  governmentLines?: GovernmentLine[];
 }): Quote {
   const { governmentFeeCents, price } = input;
+  const lines = input.governmentLines?.length ? input.governmentLines : null;
+  if (lines && lines.reduce((n, l) => n + l.cents, 0) !== governmentFeeCents) throw new Error("Government lines don't add up");
   if (!Number.isInteger(governmentFeeCents) || governmentFeeCents < 0) {
     throw new Error("Invalid government fee");
   }
@@ -78,11 +88,19 @@ export function buildQuote(input: {
     serviceFeeCents: price.serviceFeeCents,
     totalCents: governmentFeeCents + price.serviceFeeCents,
     lineItems: [
-      {
-        kind: "government_fee",
-        description: `${input.stateName} ${input.filingName}: state filing fee, paid to the state`,
-        amountCents: governmentFeeCents,
-      },
+      ...(lines
+        ? lines.map((l) => ({
+            kind: l.kind,
+            description: `${input.stateName} ${l.label}, paid to the state`,
+            amountCents: l.cents,
+          }))
+        : [
+            {
+              kind: "government_fee" as const,
+              description: `${input.stateName} ${input.filingName}: state filing fee, paid to the state`,
+              amountCents: governmentFeeCents,
+            },
+          ]),
       {
         kind: "service_fee",
         description: `Filing service fee: preparation and submission`,

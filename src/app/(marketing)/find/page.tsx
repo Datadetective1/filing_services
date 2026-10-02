@@ -2,6 +2,7 @@ import { SealCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import { site } from "@/config/site";
 import { findRule, getJurisdiction, listJurisdictions } from "@/lib/compliance/registry";
+import { formationDateRequired } from "@/lib/compliance/state-meta";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import { verifiedText } from "@/lib/compliance/view";
 import { todayInTimeZone } from "@/lib/domain/dates";
@@ -35,7 +36,13 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((j) => {
       const searchUrl = j.code === "PA" ? PENNSYLVANIA_FACTS.businessSearchUrl : (j.agency.businessSearchUrl ?? j.agency.websiteUrl);
-      return { code: j.code, name: j.name, searchUrl, isBusinessSearch: j.code === "PA" || Boolean(j.agency.businessSearchUrl) };
+      return {
+        code: j.code,
+        name: j.name,
+        searchUrl,
+        isBusinessSearch: j.code === "PA" || Boolean(j.agency.businessSearchUrl),
+        formationRequired: formationDateRequired(j.code),
+      };
     });
 
   // Start from what the visitor entered earlier (the "Edit details" path), then let
@@ -45,7 +52,7 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
   const qsEntity = one(sp.entity);
 
   const defaults: LookupValues = {
-    legalName: pending?.legalName ?? "",
+    legalName: one(sp.name)?.replace(/\s+/g, " ").trim().slice(0, 300) || pending?.legalName || "",
     stateCode: qsState && codes.has(qsState) ? qsState : (pending?.stateCode ?? "PA"),
     entityType: qsEntity && isEntityType(qsEntity) ? qsEntity : (pending?.entityType ?? ""),
     formationDate: pending?.formationDate ?? "",
@@ -85,15 +92,19 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
             </Notice>
           ) : null}
 
-          <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
-            <RegistrySearch search={searchRegistry} select={selectRegistryEntity} />
-          </div>
+          {defaults.stateCode === "PA" ? (
+            <>
+              <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
+                <RegistrySearch search={searchRegistry} select={selectRegistryEntity} />
+              </div>
 
-          <div className="flex items-center gap-3 text-sm text-subtle" aria-hidden>
-            <span className="h-px flex-1 bg-border" />
-            Not in Pennsylvania, or not listed? Enter your details
-            <span className="h-px flex-1 bg-border" />
-          </div>
+              <div className="flex items-center gap-3 text-sm text-subtle" aria-hidden>
+                <span className="h-px flex-1 bg-border" />
+                Not in Pennsylvania, or not listed? Enter your details
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            </>
+          ) : null}
 
           <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
             <LookupForm

@@ -131,7 +131,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
   const exampleQuote = exampleIndex >= 0 ? quotes[exampleIndex] : null;
   const reviewed = latestVerified(rules);
   const noLateFee = rules.every((r) => r.lateFeeCents === null);
-  const lateSentence = noLateFee ? "there is no state late fee" : "a state late fee applies";
+  const lateSentence = noLateFee ? "there is no state late fee" : "a state late charge can apply in some cases (see below)";
   const firstReportYearAfter = rules.every((r) => r.firstDueRule.kind === "year_after_formation");
   const feeText = facts?.directFilingFeeText ?? feeSummary(rules);
   const feeAmount = /^\$\d+(?:\.\d+)?/.exec(feeText)?.[0] ?? feeText;
@@ -251,8 +251,13 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
             lede={
               <p>
                 Based on the {agency}&apos;s published requirements, most domestic and foreign entities registered in {j.name}{" "}
-                must file an annual report every year: {dueSummary(rules)}. The state fee is {feeText}, and {lateSentence}. The
-                filing window opens January 1 of the report year.
+                must file {rules[0].filingName === "Annual Report" ? "an annual report" : `the ${rules[0].filingName}`} every year:{" "}
+                {dueSummary(rules)}. The state fee is {feeText}, and {lateSentence}.{" "}
+                {rules.every((r) => r.dueRule.kind === "fixed_annual")
+                  ? "The filing window opens January 1 of the report year."
+                  : rules[0].filingWindowDaysBefore
+                    ? `It can be filed up to ${rules[0].filingWindowDaysBefore} days before the due date.`
+                    : null}
               </p>
             }
           >

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { RULES } from "@/lib/compliance/registry";
 import { createTestDb } from "./harness";
 
 describe("migrations", () => {
@@ -7,6 +8,6 @@ describe("migrations", () => {
     const states = await db.query<{ n: number }>("select count(*)::int as n from public.states");
     expect(states.rows[0].n).toBe(51);
     const versions = await db.query<{ n: number }>("select count(*)::int as n from public.state_rule_versions where verification_status = 'verified'");
-    expect(versions.rows[0].n).toBe(8);
+    expect(versions.rows[0].n).toBe(RULES.length);
   });
 });

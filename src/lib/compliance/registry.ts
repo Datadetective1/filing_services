@@ -1,6 +1,10 @@
 import type { EntityType } from "@/lib/domain/types";
 import { JURISDICTIONS } from "./jurisdictions";
+import { stateSalesEnabled } from "./launch";
+import { NEVADA_RULES } from "./states/nevada";
 import { PENNSYLVANIA_RULES } from "./states/pennsylvania";
+import { UTAH_RULES } from "./states/utah";
+import { WASHINGTON_RULES } from "./states/washington";
 import type { ComplianceRuleDef, JurisdictionDef } from "./types";
 
 /**
@@ -11,7 +15,7 @@ import type { ComplianceRuleDef, JurisdictionDef } from "./types";
  * Only rules with verificationStatus "verified" may be shown as definitive facts or
  * sold. Adding a state = adding a rules module here, with official sources.
  */
-export const RULES: ComplianceRuleDef[] = [...PENNSYLVANIA_RULES];
+export const RULES: ComplianceRuleDef[] = [...PENNSYLVANIA_RULES, ...WASHINGTON_RULES, ...NEVADA_RULES, ...UTAH_RULES];
 
 export const FILING_TYPES = [
   {
@@ -70,8 +74,11 @@ export function isStateVerified(stateCode: string): boolean {
   return RULES.some((r) => r.stateCode === stateCode && r.verificationStatus === "verified");
 }
 
-/** A rule can be sold only when it is verified AND the state is enabled for filing. */
+/**
+ * A rule can be sold only when it is verified, the state is supported, and the state's
+ * live-filing switch is on (see ./launch). Checkout separately requires an approved price.
+ */
 export function isRuleSellable(rule: ComplianceRuleDef): boolean {
   const j = getJurisdiction(rule.stateCode);
-  return rule.verificationStatus === "verified" && !!j?.filingEnabled && j.supportLevel !== "unsupported";
+  return rule.verificationStatus === "verified" && !!j && j.supportLevel !== "unsupported" && stateSalesEnabled(rule.stateCode);
 }

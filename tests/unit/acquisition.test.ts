@@ -169,10 +169,10 @@ describe("Pennsylvania guide pages", () => {
   });
 
   it("the shared template shows the fee split, direct filing and the last-checked date", () => {
-    const src = readFileSync("src/app/(marketing)/pennsylvania/[topic]/page.tsx", "utf8");
+    const src = readFileSync("src/components/marketing/state-guide-page.tsx", "utf8");
     expect(src).toContain("PriceBreakdown");
     expect(src).toContain("You don&apos;t need a filing service");
-    expect(src).toContain("Checked against official Pennsylvania sources on");
+    expect(src).toContain("Checked against official {stateName} sources on");
   });
 });
 

@@ -99,7 +99,7 @@ describe("homepage cards after the deadline", () => {
     vi.setSystemTime(at("2026-10-01T14:00:00Z"));
     const { period, missed } = marketingPeriod(llc);
     const html = renderToStaticMarkup(
-      createElement(HeroStatusCard, { rule: llc, period, missed, stateName: "Pennsylvania", agency: "Pennsylvania Department of State" }),
+      createElement(HeroStatusCard, { rule: llc, period: period!, missed, stateName: "Pennsylvania", agency: "Pennsylvania Department of State" }),
     );
     const t = text(html);
     expect(t).toContain("2026 annual report");
@@ -116,7 +116,7 @@ describe("homepage cards after the deadline", () => {
     const { period, missed } = marketingPeriod(llc);
     const t = text(
       renderToStaticMarkup(
-        createElement(HeroStatusCard, { rule: llc, period, missed, stateName: "Pennsylvania", agency: "Pennsylvania Department of State" }),
+        createElement(HeroStatusCard, { rule: llc, period: period!, missed, stateName: "Pennsylvania", agency: "Pennsylvania Department of State" }),
       ),
     );
     expect(t).toContain("2026 annual report");
@@ -130,7 +130,7 @@ describe("homepage cards after the deadline", () => {
     vi.setSystemTime(at("2026-10-01T14:00:00Z"));
     const { period } = marketingPeriod(llc);
     const t = text(
-      renderToStaticMarkup(createElement(HeroStatusCard, { rule: llc, period, stateName: "Pennsylvania", agency: "Pennsylvania Department of State" })),
+      renderToStaticMarkup(createElement(HeroStatusCard, { rule: llc, period: period!, stateName: "Pennsylvania", agency: "Pennsylvania Department of State" })),
     );
     expect(t).toContain("Filing for the 2027 report opens Jan 1, 2027");
   });
