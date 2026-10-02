@@ -1,6 +1,10 @@
 # State expansion: Washington, Nevada, Utah
 
-Prepared 2026-10-01. Pennsylvania is the only state taking live orders. Washington, Nevada and
+Prepared 2026-10-01, updated 2026-10-02. Washington's $49 fee is approved (sales still off; see
+[WASHINGTON_LAUNCH.md](WASHINGTON_LAUNCH.md)). Nevada and Utah owner steps are in
+[NEVADA_UTAH_ACCESS.md](NEVADA_UTAH_ACCESS.md).
+
+Pennsylvania is the only state taking live orders. Washington, Nevada and
 Utah are in the same engine with verified rules, lookup, guides and free reminders. Their paid
 filing is OFF in production (`WA/NV/UT_LIVE_FILING_SALES` unset). Their $49 service prices are
 seeded **unapproved**, so live checkout refuses them even if a switch were set by mistake.

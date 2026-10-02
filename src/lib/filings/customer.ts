@@ -2,7 +2,7 @@ import "server-only";
 import { businessNow } from "@/lib/domain/clock";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { absoluteUrl } from "@/config/site";
+import { absoluteUrl, isProductionEnvironment } from "@/config/site";
 import { trackServer } from "@/lib/analytics/server";
 import { audit } from "@/lib/audit";
 import type { SessionUser } from "@/lib/auth/session";
@@ -81,7 +81,7 @@ export function authorizationText(input: {
   /** States that require the customer to confirm the full packet the agent will certify (Washington). */
   state?: StateAuthorizationTextInput;
 }) {
-  const who = input.state ? `${input.state.filingAgent}, doing business as ${input.brand},` : input.brand;
+  const who = input.state && !input.state.filingAgent.startsWith(input.brand) ? `${input.state.filingAgent}, doing business as ${input.brand},` : input.state?.filingAgent ?? input.brand;
   const statePart = input.state
     ? `I have reviewed every item of the ${input.stateName} filing information shown above, in the order the state's form asks for it, and I confirm that each item is true, correct and complete. ` +
       `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the state's certification: “${input.state.certificationText}” ` +
@@ -555,6 +555,10 @@ export async function authorizeFiling(
   let agentConsent: RegisteredAgentConsent | null = null;
   const signedAt = new Date().toISOString();
   if (stateAuth) {
+    // The person who certifies must be named: production refuses until the legal operator is configured.
+    if (isProductionEnvironment() && !input.legalEntity?.configured) {
+      throw new FilingError("We can't accept this authorization yet. Nothing has been charged, and your details are saved.", "unavailable");
+    }
     if (!input.certifyFacts) throw new FilingError("Confirm that you reviewed every item and that it is true and correct.", "invalid");
     packet = buildFilingPacket(stateAuth.runbook, loaded.schema, snapshot);
     if (registeredAgentConsentRequired(stateAuth.auth, snapshot)) {

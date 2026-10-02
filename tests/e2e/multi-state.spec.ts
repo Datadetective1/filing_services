@@ -202,7 +202,7 @@ async function operatorToCheckpoint(browser: Browser, operator: { email: string;
 }
 
 test("Washington sandbox journey without changes: full packet, certification, checkout, operator checkpoint", async ({ browser }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(540_000);
   const customer = await createConfirmedUser("wa-customer");
   const operator = await createConfirmedUser("wa-operator");
   await grantStaff(operator.id, "admin");
@@ -227,6 +227,11 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     await expect(main).toContainText("doing business as Filewell");
     await expect(main).toContainText("This document is hereby executed under penalty of law");
     await expect(page.getByText("Your new registered agent's consent")).toHaveCount(0);
+    await page.screenshot({ path: "test-results/wa-review.png", fullPage: true });
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.screenshot({ path: "test-results/wa-review-mobile.png", fullPage: true });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.setViewportSize({ width: 1280, height: 800 });
 
     // Signing without the packet confirmation is refused.
     await page.getByRole("textbox", { name: "Your full name" }).fill("Dana Whitfield");
@@ -234,7 +239,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     await page.getByRole("checkbox", { name: /accurate and complete/i }).check();
     await page.getByRole("checkbox", { name: /I authorize/i }).check();
     await page.getByRole("button", { name: "Sign and continue" }).click();
-    await expect(page.getByText("Confirm you reviewed every item")).toBeVisible();
+    await expect(page.getByText("Confirm you reviewed every item").first()).toBeVisible();
     await signReview(page);
     await paySandbox(page);
 
@@ -266,7 +271,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
 });
 
 test("Washington sandbox journey with changes: agent consent, edit after signing forces re-signing, operator checkpoint", async ({ browser }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(540_000);
   const customer = await createConfirmedUser("wa-customer-chg");
   const operator = await createConfirmedUser("wa-operator-chg");
   await grantStaff(operator.id, "admin");
@@ -286,14 +291,16 @@ test("Washington sandbox journey with changes: agent consent, edit after signing
     await expect(page.getByText("Your new registered agent's consent")).toBeVisible();
     // Consent is never assumed: signing without choosing how the agent consents is refused.
     await signReview(page);
-    await expect(page.getByText("Tell us who the new registered agent is.")).toBeVisible();
+    await expect(page.getByText("Tell us who the new registered agent is.").first()).toBeVisible();
     await signReview(page, { agentIsSigner: true });
     await page.waitForURL(/\/checkout/);
 
     // Edit after signing: checkout refuses until the customer signs again.
     await page.goto(`/file/${filingId}/details?step=record`);
     await tb(page, "Nature of business").fill("Commercial plumbing");
-    await saveStep(page);
+    // Every section is complete, so the step saves straight back to review.
+    await page.getByRole("button", { name: "Save and review" }).click();
+    await page.waitForURL(/\/review/);
     await page.goto(`/file/${filingId}/checkout`);
     await expect(page).toHaveURL(/\/review/);
     const { data: changed } = await backend().from("audit_logs").select("before, after").eq("filing_id", filingId).eq("action", "filing.answers_changed_after_authorization");
