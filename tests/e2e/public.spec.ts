@@ -87,7 +87,9 @@ test.describe("public pages", () => {
       await expect(page.getByRole("heading", { level: 1 })).toContainText(h1);
       const main = page.locator("main");
       await expect(page.getByText(DISCLAIMER).first()).toBeVisible();
-      await expect(main).toContainText(agency);
+      // Official sources: the agency named in the text (hubs) or linked (guides).
+      if (agency.includes(".")) await expect(page.locator(`main a[href*="${agency}"]`).first()).toBeAttached();
+      else await expect(main).toContainText(agency);
       // Production doesn't sell filing in these states: never offered as if it did.
       if (process.env.E2E_TARGET_IS_PRODUCTION === "true") await expect(main).not.toContainText("Have us file it");
       await expect(main).not.toContainText("January 1");
