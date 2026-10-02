@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { isProductionHost, isProductionSupabaseUrl } from "../../src/config/environments";
 import { STORAGE_STATE } from "./global-setup";
 import { backend, createConfirmedUser, grantStaff, uniqueSuffix } from "./support/backend";
@@ -83,8 +83,126 @@ test("Washington: reminder opt-in names the state and stores the state's consent
   }
 });
 
-test("Washington sandbox journey: intake, authorization, itemized checkout, operator runbook", async ({ browser }) => {
-  test.setTimeout(240_000);
+const radio = (page: Page, group: RegExp, option: string | RegExp) =>
+  page.getByRole("group", { name: group }).getByRole("radio", { name: option, exact: typeof option === "string" });
+
+async function signIn(page: Page, email: string, password: string, next: string) {
+  await page.goto(`/login?next=${encodeURIComponent(next)}`);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL((u) => u.pathname === next.split("?")[0]);
+}
+
+async function fillAddress(page: Page, line1: string, city: string, zip: string) {
+  await tb(page, "Street address").fill(line1);
+  await tb(page, "City").fill(city);
+  const region = page.getByRole("combobox", { name: "State" });
+  if (await region.isVisible()) await region.selectOption("WA");
+  await tb(page, "ZIP code").fill(zip);
+}
+
+/** Washington intake through the review page. `changes` = new registered agent + a reported ownership transfer. */
+async function waIntake(page: Page, name: string, changes: boolean) {
+  await expect(tb(page, "Legal name")).toHaveValue(name);
+  await page.getByLabel("UBI number").fill("604 123 456");
+  await tb(page, "Jurisdiction of formation").fill("Washington");
+  await tb(page, "Nature of business").fill("Residential plumbing");
+  await saveStep(page);
+  await page.waitForURL(/step=registered_agent/);
+  await radio(page, /registered agent changing/i, changes ? /^Yes: a new registered agent/ : /^No: keep/).check();
+  await radio(page, /kind of registered agent/i, /^Noncommercial/).check();
+  await tb(page, "Registered agent name").fill(changes ? "Dana Whitfield" : "Jane Agent");
+  await fillAddress(page, "500 Pine Street", "Seattle", "98101");
+  if (changes) await page.getByLabel("Registered agent email").fill("dana@e2e.filewell.test");
+  await saveStep(page);
+  await page.waitForURL(/step=principal_office/);
+  await fillAddress(page, "1 Main Street", "Tacoma", "98402");
+  await page.getByLabel("Business email").fill("owner@e2e.filewell.test");
+  await saveStep(page);
+  await page.waitForURL(/step=people/);
+  await page.getByRole("textbox", { name: /Full name.*person 1/ }).first().fill("Dana Whitfield");
+  await page.getByRole("combobox", { name: /Title.*person 1/ }).first().fill("Governor");
+  await saveStep(page);
+  await page.waitForURL(/step=controlling_interest/);
+  await radio(page, /^1\. Does this entity own/, "No").check();
+  await radio(page, /^2\. In the past 12 months/, changes ? "Yes" : "No").check();
+  if (changes) await radio(page, /^2a\./, "No").check();
+  await saveStep(page);
+  await page.waitForURL(/step=extras/);
+  await radio(page, /changed since your last annual report/i, changes ? /^Yes, something changed/ : /^No changes/).check();
+  await page.getByRole("button", { name: "Save and review" }).click();
+  await page.waitForURL(/\/review/);
+}
+
+async function signReview(page: Page, opts: { agentIsSigner?: boolean } = {}) {
+  await page.getByRole("textbox", { name: "Your full name" }).fill("Dana Whitfield");
+  await page.getByRole("combobox", { name: "Your title or role" }).fill("Governor");
+  if (opts.agentIsSigner) {
+    await page.getByRole("radio", { name: /I am the registered agent/ }).check();
+    await page.getByRole("checkbox", { name: /Only if you are the agent/ }).check();
+  }
+  await page.getByRole("checkbox", { name: /I reviewed every item of the Washington filing information/ }).check();
+  await page.getByRole("checkbox", { name: /accurate and complete/i }).check();
+  await page.getByRole("checkbox", { name: /I authorize/i }).check();
+  await page.getByRole("button", { name: /^Sign and (continue|resubmit)$/ }).click();
+}
+
+async function paySandbox(page: Page) {
+  await page.waitForURL(/\/checkout/);
+  const main = page.locator("main");
+  await expect(main).toContainText("$70.00");
+  await expect(main).toContainText("$119.00");
+  await expect(main).toContainText("only if its own record shows the business as Delinquent");
+  await page.getByRole("button", { name: /^pay \$/i }).click();
+  await page.waitForURL(/\/sandbox\/checkout\//);
+  await page.getByRole("button", { name: /pay \(test\)/i }).click();
+  await page.waitForURL(/\/confirmation/);
+}
+
+/** Operator: provenance, review -> ready -> start filing -> comparison checkpoint. Never marks submitted. */
+async function operatorToCheckpoint(browser: Browser, operator: { email: string; password: string }, filingId: string, expectText: string[]) {
+  const op = await browser.newContext({ storageState: STORAGE_STATE });
+  const opPage = await op.newPage();
+  try {
+    await signIn(opPage, operator.email, operator.password, `/admin/filings/${filingId}`);
+    const runbook = opPage.locator("#runbook");
+    await expect(runbook).toContainText("Washington filing runbook");
+    await expect(runbook).toContainText("Express Annual Report");
+    await expect(runbook).toContainText("Business Information");
+    await expect(runbook).toContainText("Controlling Interest");
+    await expect(runbook).toContainText("Customer-confirmed");
+    await expect(runbook).not.toContainText("Changed after authorization: customer must reconfirm");
+    await expect(runbook).toContainText("Collected for the state: $70.00");
+    for (const t of expectText) await expect(runbook).toContainText(t);
+
+    // The printable packet is the signed copy in CCFS order, with the certification.
+    await opPage.goto(`/admin/filings/${filingId}/packet`);
+    await expect(opPage.locator("main")).toContainText("customer-authorized, in CCFS order");
+    await expect(opPage.locator("main")).toContainText("This document is hereby executed under penalty of law");
+    await opPage.goto(`/admin/filings/${filingId}`);
+
+    await opPage.getByRole("button", { name: "Mark ready to file" }).click();
+    await expect(opPage.getByRole("button", { name: "Start filing" })).toBeVisible();
+    await opPage.getByRole("button", { name: "Start filing" }).click();
+    // Mark submitted waits for the checkpoint.
+    await expect(opPage.getByText("Checkpoint first")).toBeVisible();
+    await expect(opPage.getByRole("button", { name: "Mark submitted" })).toHaveCount(0);
+    await opPage.getByRole("checkbox", { name: "I have compared the state filing against the customer-authorized filing packet." }).check();
+    await opPage.getByRole("button", { name: "Record checkpoint" }).click();
+    await expect(opPage.getByText("Checkpoint recorded")).toBeVisible();
+    await expect(opPage.getByRole("button", { name: "Mark submitted" })).toBeVisible();
+    await opPage.screenshot({ path: `test-results/wa-operator-${filingId.slice(0, 8)}.png`, fullPage: true });
+
+    const { data: cp } = await backend().from("audit_logs").select("after").eq("filing_id", filingId).eq("action", "filing.state_comparison_confirmed");
+    expect(cp).toHaveLength(1);
+  } finally {
+    await op.close();
+  }
+}
+
+test("Washington sandbox journey without changes: full packet, certification, checkout, operator checkpoint", async ({ browser }) => {
+  test.setTimeout(300_000);
   const customer = await createConfirmedUser("wa-customer");
   const operator = await createConfirmedUser("wa-operator");
   await grantStaff(operator.id, "admin");
@@ -93,64 +211,46 @@ test("Washington sandbox journey: intake, authorization, itemized checkout, oper
   const page = await ctx.newPage();
   try {
     await manualLookup(page, "WA", name, /^LLC/, "2016-10-12");
-    await page.goto("/login?next=/file/start");
-    await page.getByLabel("Email").fill(customer.email);
-    await page.getByLabel("Password", { exact: true }).fill(customer.password);
-    await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL((u) => u.pathname === "/file/start");
+    await signIn(page, customer.email, customer.password, "/file/start");
     await page.getByRole("button", { name: /continue/i }).click();
     await page.waitForURL(/\/file\/[0-9a-f-]{36}\/details/);
     const filingId = page.url().match(/\/file\/([0-9a-f-]{36})\//)![1];
+    await waIntake(page, name, false);
 
-    // Record (Washington asks for UBI and the nature of business).
-    await expect(tb(page, "Legal name")).toHaveValue(name);
-    await page.getByLabel("UBI number").fill("604123456");
-    await tb(page, "Jurisdiction of formation").fill("Washington");
-    await tb(page, "Nature of business").fill("Residential plumbing");
-    await saveStep(page);
-    await page.waitForURL(/step=registered_agent/);
-    await tb(page, "Registered agent name").fill("Jane Agent");
-    await tb(page, "Street address").fill("500 Pine Street");
-    await tb(page, "City").fill("Seattle");
-    const region = page.getByRole("combobox", { name: "State" });
-    if (await region.isVisible()) await region.selectOption("WA");
-    await tb(page, "ZIP code").fill("98101");
-    await saveStep(page);
-    await page.waitForURL(/step=principal_office/);
-    await tb(page, "Street address").fill("1 Main Street");
-    await tb(page, "City").fill("Tacoma");
-    await page.getByRole("combobox", { name: "State" }).selectOption("WA");
-    await tb(page, "ZIP code").fill("98402");
-    await page.getByLabel("Business email").fill("owner@e2e.filewell.test");
-    await saveStep(page);
-    await page.waitForURL(/step=people/);
-    await page.getByRole("textbox", { name: /Full name.*person 1/ }).first().fill("Dana Whitfield");
-    await page.getByRole("combobox", { name: /Title.*person 1/ }).first().fill("Governor");
-    await saveStep(page);
-    await page.waitForURL(/step=extras/);
-    await page.getByRole("radio", { name: "No" }).first().check();
-    await page.getByRole("button", { name: "Save and review" }).click();
+    // Review: the complete Washington packet, in CCFS order, before payment.
+    const main = page.locator("main");
+    for (const t of ["Business Information", "Registered Agent", "Principal Office", "Governors", "Nature of Business", "Controlling Interest", "Authorized Person"]) {
+      await expect(main).toContainText(t);
+    }
+    await expect(main).toContainText("604 123 456");
+    await expect(main).toContainText("Date of Filing");
+    await expect(main).toContainText("doing business as Filewell");
+    await expect(main).toContainText("This document is hereby executed under penalty of law");
+    await expect(page.getByText("Your new registered agent's consent")).toHaveCount(0);
 
-    await page.waitForURL(/\/review/);
-    await expect(page.locator("main")).toContainText("Residential plumbing");
+    // Signing without the packet confirmation is refused.
     await page.getByRole("textbox", { name: "Your full name" }).fill("Dana Whitfield");
     await page.getByRole("combobox", { name: "Your title or role" }).fill("Governor");
     await page.getByRole("checkbox", { name: /accurate and complete/i }).check();
-    await page.getByRole("checkbox", { name: /authorize/i }).check();
+    await page.getByRole("checkbox", { name: /I authorize/i }).check();
     await page.getByRole("button", { name: "Sign and continue" }).click();
+    await expect(page.getByText("Confirm you reviewed every item")).toBeVisible();
+    await signReview(page);
+    await paySandbox(page);
 
-    await page.waitForURL(/\/checkout/);
-    const main = page.locator("main");
-    await expect(main).toContainText("$70.00");
-    await expect(main).toContainText("Our service fee");
-    await expect(main).toContainText("$119.00");
-    await expect(main).toContainText("only if its own record shows the business as Delinquent");
-    await expect(main).toContainText(/test mode|no real/i);
-    await page.getByRole("button", { name: /^pay \$/i }).click();
-    await page.waitForURL(/\/sandbox\/checkout\//);
-    await page.getByRole("button", { name: /pay \(test\)/i }).click();
-    await page.waitForURL(/\/confirmation/);
-
+    const { data: auth } = await backend()
+      .from("filing_authorizations")
+      .select("facts_certified, packet_sha256, packet_snapshot, filing_agent_name, certification_text, registered_agent_consent, terms_version")
+      .eq("filing_id", filingId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+    expect(auth!.facts_certified).toBe(true);
+    expect(auth!.packet_sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect((auth!.packet_snapshot as { section: string }[])[0].section).toBe("Business Information");
+    expect(auth!.certification_text).toContain("penalty of law");
+    expect(auth!.registered_agent_consent).toBeNull();
+    expect(auth!.terms_version).toMatch(/\.state1$/);
     const { data: f } = await backend().from("filings").select("order_id").eq("id", filingId).single();
     const { data: items } = await backend().from("order_items").select("kind, amount_cents").eq("order_id", f!.order_id);
     expect(items!.map((i) => [i.kind, i.amount_cents]).sort()).toEqual([
@@ -158,24 +258,64 @@ test("Washington sandbox journey: intake, authorization, itemized checkout, oper
       ["service_fee", 4900],
     ]);
 
-    // Operator view: the Washington runbook.
-    const op = await browser.newContext({ storageState: STORAGE_STATE });
-    const opPage = await op.newPage();
-    await opPage.goto(`/login?next=/admin/filings/${filingId}`);
-    await opPage.getByLabel("Email").fill(operator.email);
-    await opPage.getByLabel("Password", { exact: true }).fill(operator.password);
-    await opPage.getByRole("button", { name: "Sign in" }).click();
-    await opPage.waitForURL((u) => u.pathname === `/admin/filings/${filingId}`);
-    const runbook = opPage.locator("#runbook");
-    await expect(runbook).toContainText("Washington filing runbook");
-    await expect(runbook).toContainText("Express Annual Report");
-    await expect(runbook).toContainText("604123456");
-    await expect(runbook).toContainText("Residential plumbing");
-    await expect(runbook).toContainText("Collected for the state: $70.00");
-    await expect(runbook).toContainText("Delinquency fee");
-    await expect(runbook).toContainText("CCFS submission / filing confirmation number");
-    await opPage.screenshot({ path: "test-results/wa-runbook.png", fullPage: true });
-    await op.close();
+    await operatorToCheckpoint(browser, operator, filingId, ["Jane Agent"]);
+  } finally {
+    await backend().from("staff_members").update({ active: false }).eq("user_id", operator.id);
+    await ctx.close();
+  }
+});
+
+test("Washington sandbox journey with changes: agent consent, edit after signing forces re-signing, operator checkpoint", async ({ browser }) => {
+  test.setTimeout(300_000);
+  const customer = await createConfirmedUser("wa-customer-chg");
+  const operator = await createConfirmedUser("wa-operator-chg");
+  await grantStaff(operator.id, "admin");
+  const name = `Cascade Change ${uniqueSuffix()} LLC`;
+  const ctx = await browser.newContext({ storageState: STORAGE_STATE });
+  const page = await ctx.newPage();
+  try {
+    await manualLookup(page, "WA", name, /^LLC/, "2016-10-12");
+    await signIn(page, customer.email, customer.password, "/file/start");
+    await page.getByRole("button", { name: /continue/i }).click();
+    await page.waitForURL(/\/file\/[0-9a-f-]{36}\/details/);
+    const filingId = page.url().match(/\/file\/([0-9a-f-]{36})\//)![1];
+    await waIntake(page, name, true);
+
+    const main = page.locator("main");
+    await expect(main).toContainText("Yes: a new registered agent");
+    await expect(page.getByText("Your new registered agent's consent")).toBeVisible();
+    // Consent is never assumed: signing without choosing how the agent consents is refused.
+    await signReview(page);
+    await expect(page.getByText("Tell us who the new registered agent is.")).toBeVisible();
+    await signReview(page, { agentIsSigner: true });
+    await page.waitForURL(/\/checkout/);
+
+    // Edit after signing: checkout refuses until the customer signs again.
+    await page.goto(`/file/${filingId}/details?step=record`);
+    await tb(page, "Nature of business").fill("Commercial plumbing");
+    await saveStep(page);
+    await page.goto(`/file/${filingId}/checkout`);
+    await expect(page).toHaveURL(/\/review/);
+    const { data: changed } = await backend().from("audit_logs").select("before, after").eq("filing_id", filingId).eq("action", "filing.answers_changed_after_authorization");
+    expect(changed!.length).toBeGreaterThan(0);
+    expect((changed![0].before as Record<string, unknown>).nature_of_business).toBe("Residential plumbing");
+    await expect(page.locator("main")).toContainText("Commercial plumbing");
+    await signReview(page, { agentIsSigner: true });
+    await paySandbox(page);
+
+    const { data: auths } = await backend()
+      .from("filing_authorizations")
+      .select("registered_agent_consent, packet_snapshot, created_at")
+      .eq("filing_id", filingId)
+      .order("created_at", { ascending: true });
+    expect(auths).toHaveLength(2);
+    // The first signature is preserved exactly as signed.
+    expect(JSON.stringify(auths![0].packet_snapshot)).toContain("Residential plumbing");
+    expect(JSON.stringify(auths![1].packet_snapshot)).toContain("Commercial plumbing");
+    expect((auths![1].registered_agent_consent as { mode: string; consentText: string }).mode).toBe("signer_is_agent");
+    expect((auths![1].registered_agent_consent as { consentText: string }).consentText).toContain("I hereby consent to serve as Registered Agent");
+
+    await operatorToCheckpoint(browser, operator, filingId, ["signed Washington's consent to serve", "Commercial plumbing"]);
   } finally {
     await backend().from("staff_members").update({ active: false }).eq("user_id", operator.id);
     await ctx.close();

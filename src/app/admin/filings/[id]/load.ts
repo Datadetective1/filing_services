@@ -1,3 +1,6 @@
+import { stateAuthorizationForState } from "@/lib/compliance/registry";
+import { comparisonCheckpointBlocker } from "@/lib/filings/operations";
+import { registeredAgentConsentRequired } from "@/lib/filings/packet";
 import "server-only";
 import { createHash } from "node:crypto";
 import { isUuid } from "@/components/admin/format";
@@ -92,6 +95,14 @@ export interface AuthorizationRow {
   terms_version: string;
   authorization_text: string;
   answers_sha256: string;
+  answers_snapshot: Record<string, unknown> | null;
+  packet_snapshot: unknown;
+  packet_sha256: string | null;
+  facts_certified: boolean | null;
+  certification_text: string | null;
+  filing_agent_name: string | null;
+  registered_agent_consent: Record<string, unknown> | null;
+  rule_version_id: string | null;
   created_at: string;
 }
 
@@ -252,7 +263,9 @@ export async function loadFilingDetail(id: string) {
     db.from("filing_answers").select("answers, is_complete, updated_at").eq("filing_id", id).maybeSingle(),
     db
       .from("filing_authorizations")
-      .select("id, signer_name, signer_title, terms_version, authorization_text, answers_sha256, created_at")
+      .select(
+        "id, signer_name, signer_title, terms_version, authorization_text, answers_sha256, answers_snapshot, packet_snapshot, packet_sha256, facts_certified, certification_text, filing_agent_name, registered_agent_consent, rule_version_id, created_at",
+      )
       .eq("filing_id", id)
       .order("created_at", { ascending: false }),
     filing.order_id
@@ -311,6 +324,28 @@ export async function loadFilingDetail(id: string) {
   const currentHash = answersHash(snapshot.intake_schema, answers);
   const answersChangedSinceAuthorization = Boolean(authorization && currentHash && currentHash !== authorization.answers_sha256);
 
+  // State-specific authorization (Washington): packet confirmation, registered-agent consent
+  // and the operator's comparison checkpoint. Same inputs the server checks before filing.
+  const stateAuth = stateAuthorizationForState(filing.state_code);
+  const currentValues = snapshot.intake_schema ? validateAll(snapshot.intake_schema, answers).values : answers;
+  const consentRequired = stateAuth ? registeredAgentConsentRequired(stateAuth.auth, currentValues) : false;
+  const consentDocumentOnFile = documents.some((doc) => doc.kind === "registered_agent_consent");
+  const stateAuthorization = stateAuth
+    ? {
+        factsCertified: Boolean(authorization?.facts_certified),
+        consentRequired,
+        consentMode: (authorization?.registered_agent_consent?.mode as string | undefined) ?? null,
+        consentDocumentOnFile,
+      }
+    : null;
+  const checkpointRow = auditRows.find((a) => a.action === "filing.state_comparison_confirmed") ?? null;
+  const checkpoint = checkpointRow
+    ? { answers_sha256: ((checkpointRow.after ?? {}) as { answers_sha256?: string }).answers_sha256 ?? null, created_at: checkpointRow.created_at }
+    : null;
+  const comparison = stateAuth?.auth.operatorCheckpoint
+    ? { checkpoint, blocker: comparisonCheckpointBlocker({ required: true, authorization, checkpoint }) }
+    : null;
+
   return {
     filing,
     business,
@@ -322,6 +357,8 @@ export async function loadFilingDetail(id: string) {
     authorization,
     authorizationCount: authorizations.length,
     answersChangedSinceAuthorization,
+    stateAuthorization,
+    comparison,
     payments,
     refunds,
     refundedGov,

@@ -19,7 +19,15 @@ export interface IntakeFormState {
 export interface AuthorizeFormState {
   errors: FieldErrorMap;
   formError?: string;
-  values?: { signerName: string; signerTitle: string; attest: boolean; authorize: boolean };
+  values?: {
+    signerName: string;
+    signerTitle: string;
+    attest: boolean;
+    authorize: boolean;
+    certifyFacts?: boolean;
+    agentConsentMode?: "signer_is_agent" | "agent_to_sign" | "";
+    agentConsent?: boolean;
+  };
   nonce: number;
 }
 

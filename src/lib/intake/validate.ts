@@ -141,10 +141,21 @@ function normalize(field: IntakeField, value: unknown): unknown {
   return value;
 }
 
+/** True when the field applies: it has no `requiredWhen`, or every condition holds. */
+export function conditionMet(field: IntakeField, raw: IntakeAnswers): boolean {
+  if (!field.requiredWhen?.length) return true;
+  return field.requiredWhen.every((c) => c.in.includes(String(raw[c.key] ?? "")));
+}
+
 export function validateSection(section: IntakeSection, raw: IntakeAnswers): { ok: boolean; values: IntakeAnswers; errors: FieldErrors } {
   const values: IntakeAnswers = {};
   const errors: FieldErrors = {};
   for (const field of section.fields) {
+    if (!conditionMet(field, raw)) {
+      // Not asked in this case: drop any earlier answer so it is never filed.
+      values[field.key] = field.type === "people" ? [] : "";
+      continue;
+    }
     const parsed = fieldSchema(field).safeParse(normalize(field, raw[field.key]));
     if (parsed.success) values[field.key] = parsed.data;
     else {

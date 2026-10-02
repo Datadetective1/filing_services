@@ -70,6 +70,15 @@ export function findRule(
   );
 }
 
+/**
+ * A state's customer-authorization requirements and portal runbook (Washington), shared by
+ * all its annual-report rules. null for states without one.
+ */
+export function stateAuthorizationForState(stateCode: string, filingTypeCode = "annual_report") {
+  const rule = RULES.find((r) => r.stateCode === stateCode && r.filingTypeCode === filingTypeCode && r.stateAuthorization && r.operatorRunbook);
+  return rule ? { rule, auth: rule.stateAuthorization!, runbook: rule.operatorRunbook! } : null;
+}
+
 export function isStateVerified(stateCode: string): boolean {
   return RULES.some((r) => r.stateCode === stateCode && r.verificationStatus === "verified");
 }

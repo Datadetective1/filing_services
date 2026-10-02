@@ -6,7 +6,7 @@
  * Existing (rule, version) rows are left untouched.
  */
 import { createHash } from "node:crypto";
-import { contentHashOf, defaultPriceRows, RULES, ruleRow, sourceRows, stateRows, versionRow } from "../src/lib/compliance/seed-data";
+import { contentHashOf, defaultPriceRows, RULES, ruleRow, sourceRows, stateRows, supersededEffectiveTo, versionRow } from "../src/lib/compliance/seed-data";
 
 const states = process.argv.slice(2).map((s) => s.toUpperCase());
 if (!states.length) {
@@ -43,6 +43,11 @@ s as (
   returning 1
 )
 update public.compliance_rules c set current_version_id = v.id from v where c.id = v.rule_id;`);
+  // Older published versions of this rule are superseded the day before this one takes effect
+  // (as scripts/seed.ts does). Idempotent: already-superseded rows are left alone.
+  out.push(`update public.state_rule_versions sv set publication_status = 'superseded', effective_to = ${lit(supersededEffectiveTo(rule))}
+from public.compliance_rules c
+where c.id = sv.rule_id and c.rule_key = ${lit(rule.ruleKey)} and sv.version < ${rule.version} and sv.publication_status = 'published';`);
 }
 for (const p of defaultPriceRows().filter((p) => states.includes(p.state_code))) {
   out.push(`insert into public.service_prices (filing_type_code, state_code, entity_type, service_fee_cents, approved, active, notes)

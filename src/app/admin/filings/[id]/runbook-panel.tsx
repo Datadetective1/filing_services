@@ -1,7 +1,10 @@
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 import { Panel } from "@/components/admin/layout-bits";
 import { money } from "@/components/admin/format";
-import { FieldValue } from "@/components/intake/answer-summary";
+import type { ReactNode } from "react";
+import { FilingPacketView } from "@/components/intake/filing-packet-view";
+import { buildFilingPacket, type PacketRow } from "@/lib/filings/packet";
+import { validateAll } from "@/lib/intake/validate";
 import { Notice } from "@/components/ui/surface";
 import { findRule } from "@/lib/compliance/registry";
 import type { IntakeField, IntakeSchema } from "@/lib/compliance/types";
@@ -47,11 +50,36 @@ export async function RunbookPanel({ d }: { d: FilingDetail }) {
     governmentFeeDetails(d.filing, { is_nonprofit: Boolean(business?.is_nonprofit), state_entity_number: (business?.state_entity_number as string | null) ?? null }).catch(() => null),
   ]);
   const changed = (prefill ?? []).filter((p) => !sameValue(p.original_value, answers[p.field_key as string]));
+  // What the operator files is what the customer signed. Each row says where its value came from.
+  const signed = (d.authorization?.answers_snapshot ?? null) as Record<string, unknown> | null;
+  const current = validateAll(schema, answers).values;
+  const packetRows = buildFilingPacket(runbook, schema, signed ?? current);
+  const stateRegistry = new Map((prefill ?? []).filter((p) => p.source === "state_registry").map((p) => [String(p.field_key), p.original_value]));
+  const provenance = (row: PacketRow): ReactNode => {
+    if (!row.answerKey) return <Tag tone="muted">Fixed instruction</Tag>;
+    const key = row.answerKey;
+    const tags: ReactNode[] = [];
+    if (signed && !sameValue(signed[key], current[key])) {
+      tags.push(<Tag key="chg" tone="danger">Changed after authorization: customer must reconfirm</Tag>);
+    }
+    if (stateRegistry.has(key)) {
+      tags.push(
+        <Tag key="pre" tone="info">
+          {signed && !sameValue(stateRegistry.get(key), signed[key]) ? "State-prefilled, corrected by customer" : "State-prefilled"}
+        </Tag>,
+      );
+    }
+    tags.push(signed ? <Tag key="ok" tone="success">Customer-confirmed</Tag> : <Tag key="no" tone="warning">Not yet confirmed</Tag>);
+    return <span className="flex flex-wrap gap-1.5">{tags}</span>;
+  };
   const orderLines = (items ?? [])
     .filter((l) => l.kind !== "service_fee")
     .map((l) => ({ kind: String(l.kind), description: String(l.description), amountCents: Number(l.amount_cents) }));
   const orderGov = orderLines.reduce((n, l) => n + l.amountCents, 0);
   const entityNumber = String(answers.entity_number ?? business?.state_entity_number ?? "") || "Not provided: search by name";
+  const consentOk = d.stateAuthorization
+    ? d.stateAuthorization.consentMode === "signer_is_agent" || (d.stateAuthorization.consentMode === "agent_to_sign" && d.stateAuthorization.consentDocumentOnFile)
+    : true;
 
   return (
     <Panel
@@ -120,23 +148,28 @@ export async function RunbookPanel({ d }: { d: FilingDetail }) {
           ) : null}
         </li>
         <li>
-          <p className="font-semibold text-fg">9. Portal fields</p>
-          <div className="mt-1 divide-y divide-border rounded-[var(--radius-control)] border border-border">
-            {runbook.fieldMap.map((m) => (
-              <div key={m.portalField} className="grid gap-1 px-3 py-2 sm:grid-cols-[14rem_1fr]">
-                <span className="text-muted">{m.portalField}</span>
-                <span className="text-fg">
-                  {m.answerKey && fields.get(m.answerKey) ? (
-                    <FieldValue field={fields.get(m.answerKey)!} value={answers[m.answerKey]} />
-                  ) : m.answerKey ? (
-                    String(answers[m.answerKey] ?? "-")
-                  ) : (
-                    m.note
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
+          <p className="font-semibold text-fg">9. Portal fields, in the portal&apos;s order</p>
+          <p className="mb-2 text-muted">
+            {signed
+              ? `Values the customer signed on ${d.authorization ? d.authorization.created_at.slice(0, 10) : ""}. Enter exactly these.`
+              : "No authorization yet: these are the current answers, not yet confirmed by the customer."}
+          </p>
+          {d.answersChangedSinceAuthorization ? (
+            <Notice tone="danger" className="mb-2" title="Changed after authorization">
+              Some values changed after the customer signed. Use Request customer information so they review and sign again. Never file the
+              changed values without that.
+            </Notice>
+          ) : null}
+          {d.stateAuthorization?.consentRequired ? (
+            <Notice tone={consentOk ? "success" : "warning"} className="mb-2" title="Registered agent changes">
+              {d.stateAuthorization.consentMode === "signer_is_agent"
+                ? "The customer signed Washington's consent to serve as the new registered agent in Filewell (stored with the authorization)."
+                : consentOk
+                  ? "The new agent's signed consent is uploaded."
+                  : "The new agent must sign Washington's consent to serve. Upload it (Registered agent consent) before filing. Never select a consent statement on the state form without it."}
+            </Notice>
+          ) : null}
+          <FilingPacketView rows={packetRows} rowNote={provenance} dense />
           <ol className="mt-3 grid list-decimal gap-1 pl-5 text-muted">
             {runbook.steps.map((s) => (
               <li key={s}>{s}</li>
@@ -156,4 +189,15 @@ export async function RunbookPanel({ d }: { d: FilingDetail }) {
       </ol>
     </Panel>
   );
+}
+
+function Tag({ tone, children }: { tone: "success" | "warning" | "danger" | "info" | "muted"; children: ReactNode }) {
+  const tones = {
+    success: "border-accent/30 bg-accent-soft text-accent-soft-fg",
+    warning: "border-warning/30 bg-warning-soft text-fg",
+    danger: "border-danger/30 bg-danger-soft text-fg",
+    info: "border-info/25 bg-info-soft text-fg",
+    muted: "border-border bg-bg text-muted",
+  } as const;
+  return <span className={`inline-flex items-center rounded-[6px] border px-1.5 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>;
 }

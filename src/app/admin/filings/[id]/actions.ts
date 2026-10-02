@@ -23,8 +23,7 @@ import {
   refundFiling,
   reopenFiling,
   requestCustomerInformation,
-  uploadFilingDocument,
-} from "@/lib/filings/operations";
+  uploadFilingDocument, recordComparisonCheckpoint } from "@/lib/filings/operations";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { actionError, fail, ok, parseForm } from "../../_lib/action-helpers";
@@ -131,6 +130,26 @@ export async function startFilingAction(_prev: ActionState, formData: FormData):
     return actionError(e);
   }
   return done(filing.id, "Filing started. Open the packet and the official filing site.");
+}
+
+export async function recordCheckpointAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const staff = await requireStaff();
+  const parsed = parseForm(
+    z.object({
+      filingId,
+      compared: z.literal("on", { error: "Tick the box to confirm you compared the state filing against the packet." }),
+    }),
+    formData,
+  );
+  if (!parsed.ok) return fail(parsed.error);
+  const filing = await loadFiling(parsed.data.filingId);
+  if (!filing) return fail("Filing not found.");
+  try {
+    await recordComparisonCheckpoint(staff, filing.id);
+  } catch (e) {
+    return actionError(e);
+  }
+  return done(filing.id, "Checkpoint recorded. You can certify and pay on the state site, then Mark submitted.");
 }
 
 export async function markSubmittedAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -412,7 +431,7 @@ export async function sendMessageAction(_prev: ActionState, formData: FormData):
   return done(filing.id, "Message posted to the customer's dashboard. No email was sent and the status did not change.");
 }
 
-const DOCUMENT_KINDS = ["state_receipt", "filed_report", "acknowledgement", "other"] as const;
+const DOCUMENT_KINDS = ["state_receipt", "filed_report", "acknowledgement", "registered_agent_consent", "other"] as const;
 
 export async function uploadDocumentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const staff = await requireStaff();

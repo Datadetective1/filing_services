@@ -24,5 +24,6 @@ export const DOCUMENT_KIND_LABELS: Record<string, string> = {
   acknowledgement: "Acknowledgement letter",
   filing_packet: "Filing packet",
   customer_upload: "Customer upload",
+  registered_agent_consent: "Registered agent consent",
   other: "Other",
 };

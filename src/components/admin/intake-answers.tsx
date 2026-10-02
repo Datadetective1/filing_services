@@ -31,6 +31,7 @@ export function answerText(field: IntakeField, value: unknown): string {
   }
 }
 
+
 export function PeopleList({ people }: { people: Person[] }) {
   if (!people.length) return <span className="text-muted">None listed</span>;
   return (

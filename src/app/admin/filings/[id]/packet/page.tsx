@@ -10,13 +10,15 @@ import { isTestPayment } from "@/components/admin/operator-guidance";
 import { PrintButton } from "@/components/admin/print-button";
 import { cn } from "@/components/ui/cn";
 import { site } from "@/config/site";
-import { getJurisdiction } from "@/lib/compliance/registry";
+import { getJurisdiction, stateAuthorizationForState } from "@/lib/compliance/registry";
+import { FilingPacketView } from "@/components/intake/filing-packet-view";
+import { buildFilingPacket, type PacketRow } from "@/lib/filings/packet";
 import { PA_URLS } from "@/lib/compliance/states/pennsylvania";
-import type { IntakeField } from "@/lib/compliance/types";
+import type { IntakeField, IntakeSchema } from "@/lib/compliance/types";
 import { describeDaysRemaining, daysBetween, formatLongDate } from "@/lib/domain/dates";
 import { requireStaff } from "@/lib/auth/session";
 import { governmentFeeFor } from "@/lib/domain/pricing";
-import { formatAddress, formatRegisteredOffice, type Address, type Person, type RegisteredOffice } from "@/lib/intake/validate";
+import { formatAddress, formatRegisteredOffice, validateAll, type Address, type Person, type RegisteredOffice } from "@/lib/intake/validate";
 import { staffLabel } from "../../../_lib/data";
 import { loadFilingDetail } from "../load";
 
@@ -61,6 +63,12 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
   const signerOperator = assigned ? staffLabel(assigned) : staff.displayName || staff.email;
   const days = daysBetween(today, filing.due_date);
   const testOrder = isTestPayment(order?.payment_mode);
+  // Washington: the packet is the customer-signed copy, in CCFS order.
+  const stateAuth = stateAuthorizationForState(filing.state_code);
+  const signedPacket = Array.isArray(authorization?.packet_snapshot) ? (authorization.packet_snapshot as PacketRow[]) : null;
+  const schema = (snapshot.intake_schema ?? { sections: [] }) as IntakeSchema;
+  const statePacket = stateAuth ? (signedPacket ?? buildFilingPacket(stateAuth.runbook, schema, validateAll(schema, answers).values)) : null;
+  const consent = authorization?.registered_agent_consent as { mode?: string; agentName?: string; signerName?: string; signedAt?: string } | null | undefined;
 
   return (
     <article className="packet mx-auto grid max-w-3xl gap-5 text-fg print:max-w-none print:gap-0">
@@ -120,6 +128,23 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
           />
         </PacketSection>
 
+        {statePacket ? (
+          <PacketSection
+            n={2}
+            title={signedPacket ? "Information to enter (customer-authorized, in CCFS order)" : "Information to enter (NOT yet authorized)"}
+            hint="Copy each value exactly as shown, section by section."
+          >
+            <FilingPacketView rows={statePacket} dense />
+            {consent?.mode ? (
+              <p className="text-sm text-muted">
+                Registered agent consent:{" "}
+                {consent.mode === "signer_is_agent"
+                  ? `signed in ${site.name} by ${consent.signerName ?? "the customer"} as the agent (${consent.agentName ?? ""}), ${consent.signedAt ? formatDateTime(consent.signedAt) : ""}.`
+                  : `${consent.agentName ?? "The agent"} must sign Washington's consent to serve; check that it is uploaded before filing.`}
+              </p>
+            ) : null}
+          </PacketSection>
+        ) : (
         <PacketSection n={2} title="Information to enter" hint="Copy each value exactly as shown.">
           <Rows
             rows={[
@@ -149,6 +174,7 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
             ]}
           />
         </PacketSection>
+        )}
 
         <PacketSection n={3} title="State fee and official site">
           <div className="grid gap-4">
@@ -204,6 +230,18 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
         </PacketSection>
 
         <PacketSection n={5} title="Signature block">
+          {stateAuth && authorization?.certification_text ? (
+            <div className="grid gap-2">
+              <p className="rounded-[var(--radius-control)] border border-border-strong bg-bg p-4 font-mono text-[14px] leading-relaxed print:bg-white">
+                Authorized Person: {signerOperator}, for {authorization.filing_agent_name ?? site.name}, as the business&apos;s authorized filing agent. Certification
+                (tick only after the comparison checkpoint): &ldquo;{authorization.certification_text}&rdquo;
+              </p>
+              <p className="text-xs text-muted">
+                The customer confirmed every item above on {formatDateTime(authorization.created_at)} ({authorization.signer_name}, {authorization.signer_title}). Certify
+                only these values.
+              </p>
+            </div>
+          ) : (
           <div className="grid gap-2">
             <p className="rounded-[var(--radius-control)] border border-border-strong bg-bg p-4 font-mono text-[14px] leading-relaxed print:bg-white">
               Signed by: {site.name} by {signerOperator}, Authorized Representative, per customer authorization recorded{" "}
@@ -212,6 +250,7 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
             </p>
             <p className="text-xs text-muted">Signature wording pending counsel review.</p>
           </div>
+          )}
         </PacketSection>
 
         <PacketSection n={6} title="Customer authorization">
@@ -221,6 +260,13 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
               ["Recorded at", authorization ? formatDateTime(authorization.created_at) : "Not recorded"],
               ["Signer", authorization ? `${authorization.signer_name}, ${authorization.signer_title}` : "Not recorded"],
               ["Answers hash", authorization ? <span key="hash" className="break-all font-mono text-xs">{authorization.answers_sha256}</span> : "Not recorded"],
+              ...(stateAuth
+                ? ([
+                    ["Packet hash", authorization?.packet_sha256 ? <span key="ph" className="break-all font-mono text-xs">{authorization.packet_sha256}</span> : "Not recorded"],
+                    ["Packet confirmed", authorization?.facts_certified ? "Yes" : <span key="fc" className="font-semibold text-danger">No</span>],
+                    ["Filing agent named", authorization?.filing_agent_name ?? "Not recorded"],
+                  ] as [string, ReactNode][])
+                : []),
               ["Terms version", authorization?.terms_version ?? "Not recorded"],
             ]}
           />
