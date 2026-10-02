@@ -36,6 +36,13 @@ interface BaseField {
   label: string;
   help?: string;
   required: boolean;
+  /**
+   * Required only when every listed answer in the same section has one of the given
+   * values (e.g. Washington's controlling-interest question 2a only after "yes" to 2).
+   * When the condition isn't met the field is optional and its answer is dropped, so a
+   * stale answer is never filed.
+   */
+  requiredWhen?: { key: string; in: string[] }[];
 }
 
 export type IntakeField =
@@ -126,12 +133,43 @@ export interface OperatorRunbook {
   /** What access the operator needs (account, credential, entity authorization). */
   access: string;
   steps: string[];
-  /** State portal field -> intake answer key (null = a fixed instruction in `note`). */
-  fieldMap: { portalField: string; answerKey: string | null; note?: string }[];
+  /**
+   * State portal field -> intake answer key (null = a fixed instruction in `note`), in the
+   * portal's own order. `section` names the portal screen/section the field is on.
+   */
+  fieldMap: { portalField: string; answerKey: string | null; note?: string; section?: string }[];
   /** What the state calls the confirmation to record in "Mark submitted". */
   confirmationLabel: string;
   /** What to upload as the customer's receipt. */
   receipt: string;
+}
+
+/**
+ * What the customer must explicitly confirm before a filing agent may certify a state
+ * filing for them (Washington first). Filewell never certifies facts the customer hasn't
+ * reviewed: the customer confirms the full packet, and the state's own certification text
+ * is shown so they know exactly what the agent will affirm.
+ */
+export interface StateAuthorization {
+  /** The state's certification, verbatim, that the authorized person makes when filing. */
+  certificationText: string;
+  certificationSourceFactKey: string;
+  /**
+   * When the answers change the registered agent (other than contact details), the new
+   * agent's own consent is required. Filewell never assumes or fabricates it.
+   */
+  registeredAgentConsent?: {
+    /** Choice answer that says whether/how the agent changes. */
+    changeKey: string;
+    /** Values of `changeKey` that require the new agent's consent. */
+    consentRequiredWhen: string[];
+    agentNameKey: string;
+    /** The state's consent statement, verbatim. */
+    consentText: string;
+    sourceFactKey: string;
+  };
+  /** The operator must record a packet-vs-portal comparison before marking submitted. */
+  operatorCheckpoint: boolean;
 }
 
 export interface ComplianceRuleDef {
@@ -162,6 +200,8 @@ export interface ComplianceRuleDef {
   filingWindowDaysBefore?: number;
   /** State-specific manual filing instructions for operators (optional). */
   operatorRunbook?: OperatorRunbook;
+  /** State-specific customer authorization requirements (optional). */
+  stateAuthorization?: StateAuthorization;
   lateFeeSummary: string;
   consequenceSummary: string;
   whoMustFile: string;

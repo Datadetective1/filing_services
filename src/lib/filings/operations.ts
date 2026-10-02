@@ -17,7 +17,9 @@ import { afterRefundSucceeded } from "@/lib/payments/process-event";
 import { sendNotification, type SendNotificationInput, type SendResult } from "@/lib/notifications/send";
 import { rollForwardRequirement } from "@/lib/reminders/engine";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { stateAuthorizationForState } from "@/lib/compliance/registry";
 import { loadFilingContext } from "./context";
+import { registeredAgentConsentRequired } from "./packet";
 
 /**
  * Operator actions. Every function takes an already-authorized StaffUser (the
@@ -77,6 +79,18 @@ export interface ReadyToFileInput {
   ruleVerificationStatus: string | null | undefined;
   /** True on the production deployment, where only live payments may be filed. */
   production: boolean;
+  /**
+   * States with a state-specific authorization (Washington). The latest authorization must
+   * carry the customer's packet confirmation, and a registered-agent change needs the new
+   * agent's consent on file: the customer signed it as the agent, or a signed consent is
+   * uploaded. Filewell never supplies it.
+   */
+  stateAuthorization?: {
+    factsCertified: boolean;
+    consentRequired: boolean;
+    consentMode: string | null;
+    consentDocumentOnFile: boolean;
+  } | null;
 }
 
 /**
@@ -104,7 +118,37 @@ export function readyToFileBlockers(input: ReadyToFileInput): string[] {
   if (input.ruleVerificationStatus !== "verified") {
     blockers.push("This filing's rule is not verified. Escalate before filing.");
   }
+  const sa = input.stateAuthorization;
+  if (sa && input.authorizationSha256) {
+    if (!sa.factsCertified) {
+      blockers.push("The customer hasn't confirmed the full filing packet under the current authorization wording. Ask them to review and sign again.");
+    }
+    if (sa.consentRequired && !(sa.consentMode === "signer_is_agent" || (sa.consentMode === "agent_to_sign" && sa.consentDocumentOnFile))) {
+      blockers.push(
+        "The registered agent changes and the new agent's signed consent isn't on file. Upload it (document type: Registered agent consent) once the customer sends it. Never select a consent statement on the state form without it.",
+      );
+    }
+  }
   return blockers;
+}
+
+/**
+ * Why Mark submitted must wait, for states that require the operator's packet-vs-portal
+ * comparison (Washington): a checkpoint recorded after the latest authorization, for the
+ * same signed answers. Pure.
+ */
+export function comparisonCheckpointBlocker(input: {
+  required: boolean;
+  authorization: { answers_sha256: string; created_at: string } | null;
+  checkpoint: { answers_sha256: string | null; created_at: string } | null;
+}): string | null {
+  if (!input.required) return null;
+  const { authorization: a, checkpoint: c } = input;
+  if (!a) return null; // readyToFileBlockers already refuses.
+  if (!c || c.created_at < a.created_at || c.answers_sha256 !== a.answers_sha256) {
+    return "Record the comparison checkpoint first: compare the state's review screen against the customer-authorized filing packet.";
+  }
+  return null;
 }
 
 async function transition(
@@ -166,11 +210,12 @@ async function notify(
 /** Load everything readyToFileBlockers needs, from the database (never from the form). */
 async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise<string[]> {
   const db = createAdminClient();
-  const [answersRes, authRes, orderRes] = await Promise.all([
+  const stateAuth = stateAuthorizationForState(ctx.filing.stateCode);
+  const [answersRes, authRes, orderRes, consentDocs] = await Promise.all([
     db.from("filing_answers").select("answers, is_complete").eq("filing_id", ctx.filing.id).maybeSingle(),
     db
       .from("filing_authorizations")
-      .select("answers_sha256")
+      .select("answers_sha256, facts_certified, registered_agent_consent")
       .eq("filing_id", ctx.filing.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -178,13 +223,27 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
     ctx.filing.orderId
       ? db.from("orders").select("status, payment_mode").eq("id", ctx.filing.orderId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    stateAuth
+      ? db.from("filing_documents").select("id", { count: "exact", head: true }).eq("filing_id", ctx.filing.id).eq("kind", "registered_agent_consent")
+      : Promise.resolve({ count: 0, error: null }),
   ]);
-  const loadError = answersRes.error ?? authRes.error ?? orderRes.error;
+  const loadError = answersRes.error ?? authRes.error ?? orderRes.error ?? consentDocs.error;
   if (loadError) throw new OperationError(`Could not check the filing before filing: ${loadError.message}`);
   const snapshot = ctx.filing.ruleSnapshot as { intake_schema?: IntakeSchema; verification_status?: string };
+  const answers = (answersRes.data?.answers ?? {}) as Record<string, unknown>;
+  const auth = authRes.data as { facts_certified: boolean | null; registered_agent_consent: { mode?: string } | null } | null;
+  const values = snapshot.intake_schema ? validateAll(snapshot.intake_schema, answers).values : answers;
   return readyToFileBlockers({
+    stateAuthorization: stateAuth
+      ? {
+          factsCertified: Boolean(auth?.facts_certified),
+          consentRequired: registeredAgentConsentRequired(stateAuth.auth, values),
+          consentMode: auth?.registered_agent_consent?.mode ?? null,
+          consentDocumentOnFile: (consentDocs.count ?? 0) > 0,
+        }
+      : null,
     schema: snapshot.intake_schema,
-    answers: (answersRes.data?.answers ?? {}) as Record<string, unknown>,
+    answers,
     intakeComplete: Boolean(answersRes.data?.is_complete),
     authorizationSha256: (authRes.data?.answers_sha256 as string | undefined) ?? null,
     order: (orderRes.data as { status: string; payment_mode: string | null } | null) ?? null,
@@ -197,6 +256,75 @@ async function assertReadyToFile(ctx: Awaited<ReturnType<typeof ctxOrThrow>>) {
   const blockers = await blockersFor(ctx);
   if (blockers.length) throw new OperationError(`Don't file yet. ${blockers.join(" ")}`);
 }
+
+async function latestAuthAndCheckpoint(filingId: string) {
+  const db = createAdminClient();
+  const [authRes, cpRes] = await Promise.all([
+    db
+      .from("filing_authorizations")
+      .select("answers_sha256, packet_sha256, created_at")
+      .eq("filing_id", filingId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    db
+      .from("audit_logs")
+      .select("after, created_at")
+      .eq("filing_id", filingId)
+      .eq("action", "filing.state_comparison_confirmed")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const error = authRes.error ?? cpRes.error;
+  if (error) throw new OperationError(`Could not check the comparison checkpoint: ${error.message}`);
+  const auth = authRes.data as { answers_sha256: string; packet_sha256: string | null; created_at: string } | null;
+  const cp = cpRes.data as { after: { answers_sha256?: string } | null; created_at: string } | null;
+  return { auth, checkpoint: cp ? { answers_sha256: cp.after?.answers_sha256 ?? null, created_at: cp.created_at } : null };
+}
+
+async function checkpointBlockerFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise<string | null> {
+  const stateAuth = stateAuthorizationForState(ctx.filing.stateCode);
+  if (!stateAuth?.auth.operatorCheckpoint) return null;
+  const { auth, checkpoint } = await latestAuthAndCheckpoint(ctx.filing.id);
+  return comparisonCheckpointBlocker({ required: true, authorization: auth, checkpoint });
+}
+
+/** The comparison checkpoint state for the order page. */
+export async function comparisonCheckpointStatus(filingId: string, stateCode: string) {
+  const stateAuth = stateAuthorizationForState(stateCode);
+  if (!stateAuth?.auth.operatorCheckpoint) return null;
+  const { auth, checkpoint } = await latestAuthAndCheckpoint(filingId);
+  return { checkpoint, blocker: comparisonCheckpointBlocker({ required: true, authorization: auth, checkpoint }) };
+}
+
+/**
+ * Final operator checkpoint before submitting to the state (Washington): the operator
+ * confirms they compared the state's review screen against the customer-authorized packet.
+ * Recorded in the append-only audit log with the signed answers' hash. Only while filing.
+ */
+export async function recordComparisonCheckpoint(staff: StaffUser, filingId: string) {
+  const ctx = await ctxOrThrow(filingId);
+  if (ctx.filing.status !== "in_progress") throw new OperationError("Start filing first. The checkpoint is recorded while the filing is in progress.");
+  await assertReadyToFile(ctx);
+  const { auth } = await latestAuthAndCheckpoint(filingId);
+  if (!auth) throw new OperationError("No customer authorization is recorded.");
+  await audit({
+    actorUserId: staff.id,
+    actorType: "staff",
+    action: "filing.state_comparison_confirmed",
+    entityType: "filing",
+    entityId: filingId,
+    filingId,
+    after: {
+      statement: COMPARISON_CHECKPOINT_STATEMENT,
+      answers_sha256: auth.answers_sha256,
+      packet_sha256: auth.packet_sha256,
+    },
+  });
+}
+
+export const COMPARISON_CHECKPOINT_STATEMENT = "I have compared the state filing against the customer-authorized filing packet.";
 
 export async function markReadyToFile(staff: StaffUser, filingId: string, note?: string) {
   const ctx = await ctxOrThrow(filingId);
@@ -225,6 +353,8 @@ export async function markSubmitted(
   // Same check as Mark ready to file and Start filing: a refunded, unpaid or re-edited
   // filing must never be recorded as submitted (Mark submitted is offered at ready_to_file too).
   await assertReadyToFile(ctx);
+  const checkpointProblem = await checkpointBlockerFor(ctx);
+  if (checkpointProblem) throw new OperationError(checkpointProblem);
   const submittedAt = input.submittedAt ? new Date(input.submittedAt).toISOString() : new Date().toISOString();
   await transition(filingId, "submitted", staff, {
     note: input.note || "Submitted to the state",

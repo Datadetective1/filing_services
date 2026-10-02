@@ -38,6 +38,7 @@ import {
   markReadyAction,
   markRejectedAction,
   markSubmittedAction,
+  recordCheckpointAction,
   refundAction,
   reopenAction,
   requestInformationAction,
@@ -254,6 +255,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
           order: d.order,
           ruleVerificationStatus: d.snapshot.verification_status,
           production: isProductionEnvironment(),
+          stateAuthorization: d.stateAuthorization,
         })
       : [];
   const blockerNotice = blockers.length ? (
@@ -293,11 +295,45 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
       </ActionBlock>,
     );
   }
+  // Washington: final checkpoint before certifying and paying on the state site.
+  if (status === "in_progress" && d.comparison && !blockerNotice) {
+    primary.push(
+      <ActionBlock
+        key="checkpoint"
+        title="Comparison checkpoint"
+        description="On the state's review screen, before you certify and pay: compare every value against the customer-authorized packet."
+      >
+        {d.comparison.blocker ? (
+          <ActionForm action={recordCheckpointAction} submitLabel="Record checkpoint" variant="primary" pendingLabel="Saving...">
+            {hidden}
+            <p className="text-sm text-muted">
+              <a href={`/admin/filings/${id}/packet`} className="font-semibold underline underline-offset-4">
+                Open the customer-authorized packet
+              </a>
+            </p>
+            <label htmlFor="cp-compared" className="flex min-h-11 items-start gap-2.5 text-sm text-fg">
+              <Checkbox id="cp-compared" name="compared" required />
+              <span>I have compared the state filing against the customer-authorized filing packet.</span>
+            </label>
+          </ActionForm>
+        ) : (
+          <Notice tone="success" title="Checkpoint recorded">
+            Recorded {d.comparison.checkpoint ? formatDateTime(d.comparison.checkpoint.created_at) : ""} for the current authorization.
+          </Notice>
+        )}
+      </ActionBlock>,
+    );
+  }
   // At ready_to_file the Start filing block already shows any blockers; don't repeat them here.
   if (status === "in_progress" || (status === "ready_to_file" && !blockerNotice)) {
     primary.push(
       <ActionBlock key="submitted" title="Mark submitted" description="Record the state's confirmation number. The customer is emailed.">
-        {blockerNotice ?? (
+        {blockerNotice ??
+          (d.comparison?.blocker ? (
+            <Notice tone="warning" title="Checkpoint first">
+              {status === "ready_to_file" ? "Start filing, then record the comparison checkpoint before you submit on the state site." : d.comparison.blocker}
+            </Notice>
+          ) : null) ?? (
           <ActionForm action={markSubmittedAction} submitLabel="Mark submitted" variant={status === "in_progress" ? "primary" : "secondary"} pendingLabel="Saving...">
             {hidden}
             <Field label="State confirmation number" htmlFor="sub-conf">
@@ -926,6 +962,7 @@ function DocumentsPanel({ d }: { d: FilingDetail }) {
                   <option value="state_receipt">State receipt</option>
                   <option value="filed_report">Filed report</option>
                   <option value="acknowledgement">Acknowledgement letter</option>
+                  <option value="registered_agent_consent">Registered agent consent (signed by the agent)</option>
                   <option value="other">Other</option>
                 </Select>
               </Field>

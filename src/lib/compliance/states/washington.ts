@@ -17,11 +17,17 @@ import type { ComplianceRuleDef, IntakeSchema, RuleSource } from "../types";
  * CSV export is available to a person using a browser; Filewell imports such an export
  * (done by an operator) and never automates CCFS.
  *
- * Scope (v1): domestic and foreign profit corporations, LLCs, LPs/LLLPs and LLPs.
+ * v2 (2026-10-02) follows the current form (Annual Report, Revised 6.2025) and the online
+ * instructions: UBI required, the four Department of Revenue controlling-interest questions
+ * as the state asks them, registered-agent change/type with the new agent's consent, and the
+ * state's authorized-person certification shown to the customer before they sign.
+ *
+ * Scope: domestic and foreign profit corporations, LLCs, LPs/LLLPs and LLPs.
  * Not yet: nonprofit corporations ($60/$20 + charitable rules), Title 24.06 entities.
  */
 
 const VERIFIED = "2026-10-01";
+const VERIFIED_V2 = "2026-10-02";
 const REVIEWER = "Official-source verification (sos.wa.gov, WAC, RCW; automated research, quotes verbatim)";
 const SOS = "Washington Secretary of State";
 const LEG = "Washington State Legislature";
@@ -43,7 +49,17 @@ export const WA_URLS = {
   ccfs: "https://ccfs.sos.wa.gov/",
   expressAnnualReport: "https://ccfs.sos.wa.gov/#/expressAnnualReportSearch/BusinessSearch",
   advancedSearch: "https://ccfs.sos.wa.gov/#/AdvancedSearch",
+  paperForm:
+    "https://www.sos.wa.gov/sites/default/files/2025-12/6.2025%20-%20Annual%20Report%20-%20Profit%20Entity%20Types%2023B%20M%26M%20%26%20Corp%20Sole%20%28Fillable%20Form%29.pdf",
+  rcw415: "https://app.leg.wa.gov/RCW/default.aspx?cite=23.95.415",
 } as const;
+
+/** The authorized person's certification in CCFS, verbatim (online filing instructions). */
+export const WA_CERTIFICATION_TEXT = "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.";
+
+/** Washington's Consent to Serve as Registered Agent, verbatim (Annual Report form, Revised 6.2025, page 2). */
+export const WA_RA_CONSENT_TEXT =
+  "I hereby consent to serve as Registered Agent in the State of Washington for the named business. I understand it will be my responsibility to accept service of process, notices, and demands on behalf of the business; to forward mail to the business; and to immediately notify the Office of the Secretary of State if I resign or change the Registered Office Address.";
 
 function src(factKey: string, url: string, title: string, quote: string, publisher = SOS): RuleSource {
   return { factKey, url, title, publisher, quote, lastVerifiedAt: VERIFIED };
@@ -102,6 +118,33 @@ const COMMON: RuleSource[] = [
     LEG,
   ),
   src("on_time", WA_URLS.processing, "Processing guidelines", "Electronically submitted before midnight on the due date"),
+  src("certification", WA_URLS.onlineInstructions, "Instructions to file an Annual Report online", WA_CERTIFICATION_TEXT),
+  src(
+    "ra_consent",
+    WA_URLS.onlineInstructions,
+    "Instructions to file an Annual Report online",
+    "The Consent of the Registered Agent is required if any changes other than contact info is made. By selecting one of the radio buttons under “Registered Agent Consent” the submitter is attesting to the statements listed.",
+  ),
+  src(
+    "ra_consent_rule",
+    WA_URLS.rcw415,
+    "RCW 23.95.415",
+    "A registered agent shall not be appointed without having given prior consent in a record to the appointment.",
+    LEG,
+  ),
+  src("ra_consent_text", WA_URLS.paperForm, "Annual Report form (Revised 6.2025), page 2", WA_RA_CONSENT_TEXT),
+  src(
+    "controlling_interest",
+    WA_URLS.paperForm,
+    "Annual Report form (Revised 6.2025), question 6",
+    "Does this entity own (hold title) real property in Washington, such as land or buildings, including leasehold improvements?",
+  ),
+  src(
+    "controlling_interest_defaults",
+    WA_URLS.onlineInstructions,
+    "Instructions to file an Annual Report online",
+    "All answers are initially defaulted to “No”. Review for accuracy and change the answers to “Yes” if applicable.",
+  ),
 ];
 
 interface WaProfile {
@@ -148,6 +191,11 @@ const PROFILES: WaProfile[] = [
   },
 ];
 
+const YES_NO = [
+  { value: "no", label: "No" },
+  { value: "yes", label: "Yes" },
+];
+
 function intakeFor(p: WaProfile): IntakeSchema {
   return {
     sections: [
@@ -161,10 +209,10 @@ function intakeFor(p: WaProfile): IntakeSchema {
             key: "entity_number",
             type: "text",
             label: "UBI number",
-            help: "The 9-digit Unified Business Identifier on your Washington records. Leave blank if you don't have it.",
-            required: false,
+            help: "The 9-digit Unified Business Identifier on your Washington records. Washington only accepts the report when the UBI and name match its record. You can look it up on the Secretary of State's business search.",
+            required: true,
             maxLength: 30,
-            pattern: "^[0-9-]{9,11}$",
+            pattern: "^[0-9]{3}[ -]?[0-9]{3}[ -]?[0-9]{3}$",
             patternMessage: "A UBI number has 9 digits.",
           },
           {
@@ -188,10 +236,53 @@ function intakeFor(p: WaProfile): IntakeSchema {
       {
         key: "registered_agent",
         title: "Registered agent",
-        description: "Washington's report confirms the registered agent. Changing the agent needs the new agent's consent.",
+        description:
+          "Washington's report confirms the registered agent. A new agent, or a new street address for the agent, needs the agent's own signed consent to serve.",
         fields: [
-          { key: "registered_agent_name", type: "text", label: "Registered agent name", required: true, maxLength: 200 },
-          { key: "registered_office", type: "address", label: "Registered agent street address in Washington", required: true, noPoBox: true, lockedRegion: "WA" },
+          {
+            key: "registered_agent_change",
+            type: "choice",
+            label: "Is your registered agent changing with this report?",
+            required: true,
+            options: [
+              { value: "no", label: "No: keep the registered agent on Washington's record" },
+              { value: "contact", label: "Same agent and street address; only the agent's email, phone or mailing address changes" },
+              { value: "new", label: "Yes: a new registered agent, or a new street address for the agent" },
+            ],
+          },
+          {
+            key: "registered_agent_type",
+            type: "choice",
+            label: "What kind of registered agent is it?",
+            help: "A commercial registered agent is a company registered with the Secretary of State to serve as agent for many businesses. Anyone else (you, an employee, a friend) is a noncommercial agent.",
+            required: true,
+            options: [
+              { value: "noncommercial", label: "Noncommercial (a person or business that isn't a registered commercial agent)" },
+              { value: "commercial", label: "Commercial registered agent" },
+            ],
+          },
+          { key: "registered_agent_name", type: "text", label: "Registered agent name", help: "Exactly as on the record, or the new agent's full name.", required: true, maxLength: 200 },
+          {
+            key: "registered_office",
+            type: "address",
+            label: "Registered agent street address in Washington",
+            help: "Only for a noncommercial agent. A commercial agent's address is already on file with the state.",
+            required: true,
+            requiredWhen: [{ key: "registered_agent_type", in: ["noncommercial"] }],
+            noPoBox: true,
+            lockedRegion: "WA",
+          },
+          {
+            key: "registered_agent_email",
+            type: "email",
+            label: "Registered agent email",
+            help: "Only for a noncommercial agent whose details change. Washington requires an email for the agent.",
+            required: true,
+            requiredWhen: [
+              { key: "registered_agent_type", in: ["noncommercial"] },
+              { key: "registered_agent_change", in: ["contact", "new"] },
+            ],
+          },
         ],
       },
       {
@@ -225,21 +316,54 @@ function intakeFor(p: WaProfile): IntakeSchema {
         ],
       },
       {
+        key: "controlling_interest",
+        title: "Department of Revenue questions",
+        description:
+          "Washington's report asks these real estate excise tax questions (RCW 82.45.220) exactly as worded here. We enter your answers as you give them.",
+        fields: [
+          {
+            key: "ci_owns_real_property",
+            type: "choice",
+            label: "1. Does this entity own (hold title) real property in Washington, such as land or buildings, including leasehold improvements?",
+            required: true,
+            options: YES_NO,
+          },
+          {
+            key: "ci_transfer_16",
+            type: "choice",
+            label: "2. In the past 12 months, has there been a transfer of at least 16 percent of the ownership, stock, or other financial interest in the entity?",
+            required: true,
+            options: YES_NO,
+          },
+          {
+            key: "ci_transfer_controlling",
+            type: "choice",
+            label:
+              "2a. If \"yes\", in the past 36 months, has there been a transfer of controlling interest (50 percent or greater) of the ownership, stock, or other financial interest in the entity?",
+            help: "Answer only if you answered Yes to question 2.",
+            required: true,
+            requiredWhen: [{ key: "ci_transfer_16", in: ["yes"] }],
+            options: YES_NO,
+          },
+          {
+            key: "ci_return_filed",
+            type: "choice",
+            label:
+              "3. If you answered \"yes\" to question 1 AND 2a, has the controlling interest transfer return been filed with Department of Revenue?",
+            help: "Answer only if you answered Yes to questions 1 and 2a.",
+            required: true,
+            requiredWhen: [
+              { key: "ci_owns_real_property", in: ["yes"] },
+              { key: "ci_transfer_controlling", in: ["yes"] },
+            ],
+            options: YES_NO,
+          },
+        ],
+      },
+      {
         key: "extras",
         title: "Anything else",
         fields: [
-          {
-            key: "controlling_interest",
-            type: "choice",
-            label: "Has a controlling interest (50% or more) in the business changed hands?",
-            help: "Washington's report includes Department of Revenue questions about controlling-interest transfers. We'll enter your answer exactly as the state form asks it.",
-            required: true,
-            options: [
-              { value: "no", label: "No" },
-              { value: "yes", label: "Yes" },
-              { value: "unsure", label: "Not sure" },
-            ],
-          },
           {
             key: "changes_since_last_report",
             type: "choice",
@@ -265,9 +389,11 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
-    version: 1,
+    // v1 (effective 2026-10-01) never took an order. v2 matches the current form and online
+    // instructions (UBI, controlling-interest questions, registered-agent consent).
+    version: 2,
     verificationStatus: "verified",
-    effectiveFrom: VERIFIED,
+    effectiveFrom: VERIFIED_V2,
     filingName: "Annual Report",
     dueRule: { kind: "anniversary_month_end" },
     firstDueRule: { kind: "year_after_formation" },
@@ -288,7 +414,8 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
       "Principal office street address and an email address",
       "Names of the governors",
       "A brief description of the nature of the business",
-      "Department of Revenue controlling-interest questions",
+      "Answers to the Department of Revenue controlling-interest questions",
+      "The new agent's signed consent, if the registered agent changes",
     ],
     intake: intakeFor(p),
     officialFilingUrl: WA_URLS.ccfs,
@@ -314,33 +441,67 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
       portalName: "Washington CCFS (Corporations and Charities Filing System)",
       portalUrl: WA_URLS.expressAnnualReport,
       access:
-        "Express Annual Report (for-profit entities with a previous annual report on record) appears to need no CCFS login; otherwise a free CCFS user account (accounts aren't tied to one business). The operator types their own name as the authorized person and must hold the customer's signed authorization. Complete the CCFS Cloudflare check by hand.",
+        "Express Annual Report (for-profit entities with a previous annual report on record) needs no CCFS login; otherwise a free CCFS user account (accounts aren't tied to one business). CCFS runs a Cloudflare check: complete it by hand, never automate it. The operator types their own name as the authorized person and may certify only the customer-authorized packet.",
       steps: [
-        "Open CCFS Express Annual Report and search the business by UBI number.",
-        "Check the status and expiration date shown. If the status is Delinquent, the state charges $25 more: confirm the order covers it before paying.",
-        "Choose Express Annual Report with changes if anything below differs from the record, otherwise without changes.",
-        "Enter or confirm each field from the table below. A new registered agent needs the agent's consent.",
-        "Answer the Department of Revenue controlling-interest questions as the customer answered.",
-        "Type your full name in the authorized person section, attest, and pay by card.",
-        "Save the submission confirmation and the filed document (Notices and Filed Documents, or the confirmation email).",
+        "Open the filing packet and confirm the customer authorization is current (no changes after signing) and any registered agent consent is on file.",
+        "Open CCFS Express Annual Report: \"with changes\" if the packet changes anything on the record, otherwise \"without changes\". Search by UBI number.",
+        "Check the status and expiration date CCFS shows. If the status is Delinquent the state adds $25: pay it only if the order collected it, otherwise contact the customer first.",
+        "Go through each CCFS section in order and make every value match the packet exactly. Controlling-interest answers default to \"No\" in CCFS: set each one to the customer's answer.",
+        "Registered Agent Consent: select a consent statement only if it is true and the consent is on file (customer is the agent and signed Washington's consent in Filewell, or a signed consent is uploaded). Otherwise stop.",
+        "Effective date: Date of Filing. Leave Return Address and Upload blank unless the packet says otherwise.",
+        "On the CCFS review screen, compare every value against the packet, then record the comparison checkpoint in Filewell.",
+        "Authorized Person: type your full name and tick the certification. Add to cart, check out and pay by card.",
+        "Save the submission confirmation and the filed document, then Mark submitted with the confirmation number and upload the document.",
       ],
       fieldMap: [
-        { portalField: "UBI number", answerKey: "entity_number" },
-        { portalField: "Business name", answerKey: "legal_name" },
-        { portalField: "Registered agent", answerKey: "registered_agent_name" },
-        { portalField: "Registered agent street address", answerKey: "registered_office" },
-        { portalField: "Principal office street address", answerKey: "principal_office" },
-        { portalField: "Email (principal office and agent)", answerKey: "state_notice_email" },
-        { portalField: "Governors", answerKey: "governors" },
-        { portalField: "Nature of business", answerKey: "nature_of_business" },
-        { portalField: "Controlling interest questions", answerKey: "controlling_interest" },
-        { portalField: "Authorized person", answerKey: null, note: "Your own name, filing as authorized agent under the customer's authorization" },
+        { section: "Business Information", portalField: "UBI number", answerKey: "entity_number" },
+        { section: "Business Information", portalField: "Business name", answerKey: "legal_name" },
+        { section: "Registered Agent", portalField: "Change to the registered agent", answerKey: "registered_agent_change" },
+        { section: "Registered Agent", portalField: "Agent type", answerKey: "registered_agent_type" },
+        { section: "Registered Agent", portalField: "Registered agent name", answerKey: "registered_agent_name" },
+        { section: "Registered Agent", portalField: "Registered agent street address (Washington)", answerKey: "registered_office" },
+        { section: "Registered Agent", portalField: "Registered agent email", answerKey: "registered_agent_email" },
+        {
+          section: "Registered Agent",
+          portalField: "Registered Agent Consent",
+          answerKey: null,
+          note: "Only if the agent changes: select the statement that matches the consent on file. Never select one without it.",
+        },
+        { section: "Principal Office", portalField: "Principal office street address", answerKey: "principal_office" },
+        { section: "Principal Office", portalField: "Email", answerKey: "state_notice_email" },
+        { section: "Governors", portalField: "Governors", answerKey: "governors" },
+        { section: "Nature of Business", portalField: "Nature of business (drop-down or \"other\")", answerKey: "nature_of_business" },
+        { section: "Effective Date", portalField: "Effective date", answerKey: null, note: "Date of Filing" },
+        { section: "Controlling Interest", portalField: "1. Owns real property in Washington", answerKey: "ci_owns_real_property" },
+        { section: "Controlling Interest", portalField: "2. Transfer of at least 16% in the past 12 months", answerKey: "ci_transfer_16" },
+        { section: "Controlling Interest", portalField: "2a. Controlling-interest transfer in the past 36 months", answerKey: "ci_transfer_controlling" },
+        { section: "Controlling Interest", portalField: "3. Controlling interest transfer return filed", answerKey: "ci_return_filed" },
+        { section: "Return Address for this Filing", portalField: "Return address", answerKey: null, note: "Leave blank" },
+        { section: "Upload additional documents", portalField: "Upload", answerKey: null, note: "Leave blank" },
+        {
+          section: "Authorized Person",
+          portalField: "Authorized person and certification",
+          answerKey: null,
+          note: "Your own name, as the customer's authorized filing agent. Certify only after the comparison checkpoint.",
+        },
       ],
       confirmationLabel: "CCFS submission / filing confirmation number",
       receipt: "The filed annual report or confirmation letter from CCFS (PDF).",
     },
+    stateAuthorization: {
+      certificationText: WA_CERTIFICATION_TEXT,
+      certificationSourceFactKey: "certification",
+      registeredAgentConsent: {
+        changeKey: "registered_agent_change",
+        consentRequiredWhen: ["new"],
+        agentNameKey: "registered_agent_name",
+        consentText: WA_RA_CONSENT_TEXT,
+        sourceFactKey: "ra_consent",
+      },
+      operatorCheckpoint: true,
+    },
     sources: COMMON,
-    lastVerifiedAt: VERIFIED,
+    lastVerifiedAt: VERIFIED_V2,
     verifiedBy: REVIEWER,
   };
 }

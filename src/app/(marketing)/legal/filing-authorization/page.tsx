@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { LegalPage } from "@/components/marketing/legal-page";
-import { AUTHORIZATION_TERMS_VERSION, authorizationText } from "@/lib/filings/customer";
+import { WA_CERTIFICATION_TEXT, WA_RA_CONSENT_TEXT } from "@/lib/compliance/states/washington";
+import { AUTHORIZATION_TERMS_VERSION, authorizationText, filingAgentName, STATE_AUTHORIZATION_REVISION } from "@/lib/filings/customer";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -23,6 +24,14 @@ export default function FilingAuthorizationPage() {
     stateName: "Pennsylvania",
     filingName: "Annual Report",
     brand: site.name,
+  });
+
+  const washington = authorizationText({
+    businessName: "[your business]",
+    stateName: "Washington",
+    filingName: "Annual Report",
+    brand: site.name,
+    state: { filingAgent: filingAgentName(site.name, site.legalEntity, site.legalEntityConfigured), certificationText: WA_CERTIFICATION_TEXT },
   });
 
   return (
@@ -49,6 +58,26 @@ export default function FilingAuthorizationPage() {
       <h3>Example</h3>
       <p>For a Pennsylvania annual report for a business named Example Bakery LLC, the text reads:</p>
       <blockquote className="mt-4 rounded-[var(--radius-control)] border border-border bg-surface-2/60 px-4 py-3 text-[15px] leading-7">{example}</blockquote>
+
+      <h2>Washington</h2>
+      <p>
+        Washington&apos;s online annual report is signed by an authorized person who certifies the information under penalty of law.
+        Before you sign, we show you every item we&apos;ll enter, in the order of the state&apos;s form, and you confirm each one. We
+        certify only what you confirmed; if anything changes, you sign again before we file. Version{" "}
+        <strong className="tnum">
+          {AUTHORIZATION_TERMS_VERSION}.{STATE_AUTHORIZATION_REVISION}
+        </strong>
+        :
+      </p>
+      <blockquote className="mt-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 text-[15px] leading-7 text-fg">{washington}</blockquote>
+      <p>
+        If you change your registered agent, Washington requires the new agent&apos;s own consent to serve. If you are the new agent,
+        you sign the state&apos;s consent statement when you authorize the filing:
+      </p>
+      <blockquote className="mt-4 rounded-[var(--radius-control)] border border-border bg-surface-2/60 px-4 py-3 text-[15px] leading-7">
+        {WA_RA_CONSENT_TEXT}
+      </blockquote>
+      <p>If someone else is the new agent, they sign it and you send it to us. We never give that consent for anyone and won&apos;t file without it.</p>
 
       <h2>What it means</h2>
       <ul>

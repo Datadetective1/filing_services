@@ -2,7 +2,7 @@ import "server-only";
 import { businessNow } from "@/lib/domain/clock";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { absoluteUrl } from "@/config/site";
+import { absoluteUrl, isProductionEnvironment } from "@/config/site";
 import { trackServer } from "@/lib/analytics/server";
 import { audit } from "@/lib/audit";
 import type { SessionUser } from "@/lib/auth/session";
@@ -31,6 +31,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash, userAgent } from "@/lib/security/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { buildFilingPacket, packetSha256, registeredAgentConsentRequired, type PacketRow, type RegisteredAgentConsent } from "./packet";
 import { getCurrentRuleVersion, listActivePricesAdmin } from "./rules-db";
 
 export class FilingError extends Error {
@@ -62,13 +63,49 @@ export function authorizationBusinessName(business: { legal_name?: unknown } | n
   return typeof business?.legal_name === "string" ? business.legal_name.trim() : "";
 }
 
-export function authorizationText(input: { businessName: string; stateName: string; filingName: string; brand: string }) {
+export interface StateAuthorizationTextInput {
+  /** Who files and certifies, e.g. "Amary Coulibaly, sole proprietor". */
+  filingAgent: string;
+  /** The state's own certification wording, verbatim. */
+  certificationText: string;
+}
+
+/** Suffix on terms_version when the state-specific paragraph is part of the signed text. */
+export const STATE_AUTHORIZATION_REVISION = "state1";
+
+export function authorizationText(input: {
+  businessName: string;
+  stateName: string;
+  filingName: string;
+  brand: string;
+  /** States that require the customer to confirm the full packet the agent will certify (Washington). */
+  state?: StateAuthorizationTextInput;
+}) {
+  const who = input.state && !input.state.filingAgent.startsWith(input.brand) ? `${input.state.filingAgent}, doing business as ${input.brand},` : input.state?.filingAgent ?? input.brand;
+  const statePart = input.state
+    ? `I have reviewed every item of the ${input.stateName} filing information shown above, in the order the state's form asks for it, and I confirm that each item is true, correct and complete. ` +
+      `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the state's certification: “${input.state.certificationText}” ` +
+      `If any of this information changes, I will review and sign again before it is filed. `
+    : "";
   return (
     `I confirm that I am authorized to act on behalf of ${input.businessName}. ` +
-    `I authorize ${input.brand} and its personnel to act as the business's authorized representative for the limited purpose of preparing, electronically signing and submitting the ${input.stateName} ${input.filingName} described above, using the information I provided, and to pay the state filing fee on the business's behalf from the amount I pay for this order. ` +
+    `I authorize ${who} and its personnel to act as the business's authorized representative for the limited purpose of preparing, electronically signing and submitting the ${input.stateName} ${input.filingName} described above, using the information I provided, and to pay the state filing fee on the business's behalf from the amount I pay for this order. ` +
+    statePart +
     `I attest that the information I provided is true, correct and complete to the best of my knowledge. I understand that ${input.brand} is a private filing service, is not a government agency, does not provide legal advice, and that I could instead file directly with the state. ` +
     `I agree to ${input.brand}'s Terms of Service and Refund Policy, last updated ${formatLongDate(LEGAL_LAST_UPDATED)}.`
   );
+}
+
+/** The state-specific signing requirements for a filing, from the rule registry (null for most states). */
+export function stateAuthorizationFor(stateCode: string, business: { entity_type?: unknown; is_foreign?: unknown }) {
+  const rule = findRule(stateCode, business.entity_type as EntityType, "annual_report", Boolean(business.is_foreign));
+  if (!rule?.stateAuthorization || !rule.operatorRunbook) return null;
+  return { rule, auth: rule.stateAuthorization, runbook: rule.operatorRunbook };
+}
+
+/** The filing agent named in a state-specific authorization: the configured legal operator. */
+export function filingAgentName(brand: string, legalEntity: string, configured: boolean): string {
+  return configured ? legalEntity : `${brand} (operator to be confirmed)`;
 }
 
 // ---------------------------------------------------------------------------
@@ -365,6 +402,7 @@ export async function saveIntakeSection(user: SessionUser, filingId: string, sec
   if (error) throw new FilingError(`Could not save: ${error.message}`);
   // Completeness is derived by the server, never accepted from the client (no column grant).
   await createAdminClient().from("filing_answers").update({ is_complete: all.ok }).eq("filing_id", filingId).eq("user_id", user.id);
+  await recordChangesAfterAuthorization(user, filingId, loaded.schema, answers);
   if (all.ok) {
     await trackServer("intake_completed", { userId: user.id, stateCode: loaded.filing.state_code, filingTypeCode: "annual_report", dedupeKey: `intake_completed:${filingId}` });
   }
@@ -393,10 +431,51 @@ export async function acceptPrefill(user: SessionUser, filingId: string) {
     .eq("user_id", user.id);
   if (error) throw new FilingError(`Could not save: ${error.message}`);
   await createAdminClient().from("filing_answers").update({ is_complete: all.ok }).eq("filing_id", filingId).eq("user_id", user.id);
+  await recordChangesAfterAuthorization(user, filingId, loaded.schema, answers);
   if (all.ok) {
     await trackServer("intake_completed", { userId: user.id, stateCode: loaded.filing.state_code, filingTypeCode: "annual_report", dedupeKey: `intake_completed:${filingId}` });
   }
   return { isComplete: all.ok, nextIncomplete: all.incompleteSections[0] ?? null };
+}
+
+/**
+ * Answer keys whose current value differs from what the customer signed. Pure: shared by
+ * the audit trail below and the operator screens.
+ */
+export function changedSinceSigned(schema: { sections: { fields: { key: string }[] }[] }, signed: IntakeAnswers, current: IntakeAnswers): string[] {
+  const keys = schema.sections.flatMap((s) => s.fields.map((f) => f.key));
+  return keys.filter((k) => !sameValue(signed[k], current[k]));
+}
+
+/**
+ * After a customer signs, every later edit is kept in the append-only audit log (which
+ * fields, what was signed, what it is now). The signed record itself never changes, and
+ * checkout and filing both refuse until the customer signs the new values.
+ */
+async function recordChangesAfterAuthorization(user: SessionUser, filingId: string, schema: Parameters<typeof validateAll>[0], answers: IntakeAnswers) {
+  const db = createAdminClient();
+  const { data: latest } = await db
+    .from("filing_authorizations")
+    .select("id, answers_snapshot")
+    .eq("filing_id", filingId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!latest) return;
+  const signed = (latest.answers_snapshot ?? {}) as IntakeAnswers;
+  const current = validateAll(schema, answers).values;
+  const changed = changedSinceSigned(schema, signed, current);
+  if (!changed.length) return;
+  await audit({
+    actorUserId: user.id,
+    actorType: "customer",
+    action: "filing.answers_changed_after_authorization",
+    entityType: "filing",
+    entityId: filingId,
+    filingId,
+    before: Object.fromEntries(changed.map((k) => [k, signed[k] ?? null])),
+    after: { ...Object.fromEntries(changed.map((k) => [k, current[k] ?? null])), authorization_id: latest.id },
+  });
 }
 
 /** Provenance rows for a customer's own filing (RLS-scoped read). */
@@ -437,7 +516,19 @@ async function confirmPrefill(user: SessionUser, stateCode: string, filingId: st
 export async function authorizeFiling(
   user: SessionUser,
   filingId: string,
-  input: { signerName: string; signerTitle: string; attest: boolean; authorize: boolean; brand: string },
+  input: {
+    signerName: string;
+    signerTitle: string;
+    attest: boolean;
+    authorize: boolean;
+    brand: string;
+    /** States with a state-specific authorization: the customer confirmed the full packet. */
+    certifyFacts?: boolean;
+    /** When the registered agent changes: how the new agent consents. */
+    agentConsent?: { mode: "signer_is_agent" | "agent_to_sign" | ""; consent: boolean };
+    /** Legal operator named as the filing agent (site.legalEntity) and whether it is configured. */
+    legalEntity?: { name: string; configured: boolean };
+  },
 ) {
   const loaded = await getCustomerFiling(filingId);
   if (!loaded || loaded.filing.user_id !== user.id) throw new FilingError("Filing not found", "not_found");
@@ -455,11 +546,42 @@ export async function authorizeFiling(
   const stateName = getJurisdiction(loaded.filing.state_code)?.name ?? loaded.filing.state_code;
   const snapshot = all.values;
   const sha = createHash("sha256").update(stableStringify(snapshot)).digest("hex");
+
+  // State-specific signing (Washington): the customer confirms the exact packet the filing
+  // agent will certify, and a registered-agent change carries the new agent's consent.
+  const stateAuth = stateAuthorizationFor(loaded.filing.state_code, loaded.business);
+  const agent = input.legalEntity ? filingAgentName(input.brand, input.legalEntity.name, input.legalEntity.configured) : input.brand;
+  let packet: PacketRow[] | null = null;
+  let agentConsent: RegisteredAgentConsent | null = null;
+  const signedAt = new Date().toISOString();
+  if (stateAuth) {
+    // The person who certifies must be named: production refuses until the legal operator is configured.
+    if (isProductionEnvironment() && !input.legalEntity?.configured) {
+      throw new FilingError("We can't accept this authorization yet. Nothing has been charged, and your details are saved.", "unavailable");
+    }
+    if (!input.certifyFacts) throw new FilingError("Confirm that you reviewed every item and that it is true and correct.", "invalid");
+    packet = buildFilingPacket(stateAuth.runbook, loaded.schema, snapshot);
+    if (registeredAgentConsentRequired(stateAuth.auth, snapshot)) {
+      const ra = stateAuth.auth.registeredAgentConsent!;
+      const agentName = String(snapshot[ra.agentNameKey] ?? "").trim();
+      const mode = input.agentConsent?.mode ?? "";
+      if (mode === "signer_is_agent") {
+        if (!input.agentConsent?.consent) throw new FilingError("Tick the consent to serve as registered agent, or choose that someone else is the agent.", "invalid");
+        agentConsent = { mode, agentName, signerName, signerTitle, consentText: ra.consentText, signedAt };
+      } else if (mode === "agent_to_sign") {
+        agentConsent = { mode, agentName };
+      } else {
+        throw new FilingError("Tell us how the new registered agent consents to serve.", "invalid");
+      }
+    }
+  }
+  const filingName = String((loaded.filing.rule_snapshot as Record<string, unknown>).filing_name ?? "Annual Report");
   const text = authorizationText({
     businessName: authorizationBusinessName(loaded.business, snapshot),
     stateName,
-    filingName: String((loaded.filing.rule_snapshot as Record<string, unknown>).filing_name ?? "Annual Report"),
+    filingName,
     brand: input.brand,
+    state: stateAuth ? { filingAgent: agent, certificationText: stateAuth.auth.certificationText } : undefined,
   });
 
   const db = createAdminClient();
@@ -472,10 +594,17 @@ export async function authorizeFiling(
       signer_title: signerTitle,
       attested_accurate: true,
       authorized_submission: true,
-      terms_version: AUTHORIZATION_TERMS_VERSION,
+      terms_version: stateAuth ? `${AUTHORIZATION_TERMS_VERSION}.${STATE_AUTHORIZATION_REVISION}` : AUTHORIZATION_TERMS_VERSION,
       authorization_text: text,
       answers_sha256: sha,
       answers_snapshot: snapshot,
+      rule_version_id: loaded.filing.rule_version_id ?? null,
+      packet_snapshot: packet,
+      packet_sha256: packet ? packetSha256(packet) : null,
+      facts_certified: stateAuth ? true : null,
+      certification_text: stateAuth?.auth.certificationText ?? null,
+      filing_agent_name: stateAuth ? agent : null,
+      registered_agent_consent: agentConsent,
       ip_hash: await clientIpHash(),
       user_agent: await userAgent(),
     })
@@ -494,7 +623,9 @@ export async function authorizeFiling(
     filingId,
     after: {
       answers_sha256: sha,
-      terms_version: AUTHORIZATION_TERMS_VERSION,
+      packet_sha256: packet ? packetSha256(packet) : null,
+      registered_agent_consent: agentConsent?.mode ?? null,
+      terms_version: stateAuth ? `${AUTHORIZATION_TERMS_VERSION}.${STATE_AUTHORIZATION_REVISION}` : AUTHORIZATION_TERMS_VERSION,
       // Terms of Service and Refund Policy version the customer agreed to (also named in the stored text).
       legal_documents_version: LEGAL_LAST_UPDATED,
       signer_title: signerTitle,

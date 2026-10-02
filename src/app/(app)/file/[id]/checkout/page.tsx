@@ -2,6 +2,7 @@ import { Flask, LockSimple } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
 import { findRule } from "@/lib/compliance/registry";
@@ -81,6 +82,17 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
   })();
 
   const receiptMeta = `${summary.stateName} ${summary.filingName} ${summary.periodYear}`;
+  // A new registered agent who isn't the signer must sign the state's consent before we file.
+  const { data: latestAuth } = await (await createClient())
+    .from("filing_authorizations")
+    .select("registered_agent_consent")
+    .eq("filing_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const pendingAgent = (latestAuth?.registered_agent_consent as { mode?: string; agentName?: string } | null)?.mode === "agent_to_sign"
+    ? ((latestAuth?.registered_agent_consent as { agentName?: string }).agentName ?? "your new registered agent")
+    : null;
 
   return (
     <Container className="max-w-5xl pt-8 sm:pt-10">
@@ -99,6 +111,13 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
           Check the total, then pay on our payment provider&apos;s secure checkout page.
         </p>
       </div>
+
+      {pendingAgent ? (
+        <Notice tone="info" role="status" title="We'll need the new agent's signed consent" className="mt-6">
+          Washington requires {pendingAgent} to consent to serve as registered agent. After you pay, ask them to sign the state&apos;s
+          Consent to Serve statement and send it to us. We won&apos;t file until we have it.
+        </Notice>
+      ) : null}
 
       {lastAttemptFailed || cancelled || deadlineTitle ? (
         <div className="mt-6 grid gap-3">

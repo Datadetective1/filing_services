@@ -8,7 +8,7 @@ export const DOCUMENT_BUCKET = "filing-documents";
 export const MAX_DOCUMENT_BYTES = 4 * 1024 * 1024;
 export const SIGNED_URL_TTL_SECONDS = 60;
 
-export type DocumentKind = "state_receipt" | "filed_report" | "acknowledgement" | "filing_packet" | "customer_upload" | "other";
+export type DocumentKind = "state_receipt" | "filed_report" | "acknowledgement" | "filing_packet" | "customer_upload" | "registered_agent_consent" | "other";
 
 /** Detect type from magic bytes — the client-supplied MIME type is not trusted. */
 export function sniffMime(bytes: Uint8Array): "application/pdf" | "image/png" | "image/jpeg" | null {

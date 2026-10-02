@@ -6,7 +6,9 @@ import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
 import { formatLongDate } from "@/lib/domain/dates";
 import { CUSTOMER_EDITABLE_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
-import { authorizationBusinessName, authorizationText } from "@/lib/filings/customer";
+import { authorizationBusinessName, authorizationText, filingAgentName, stateAuthorizationFor } from "@/lib/filings/customer";
+import { buildFilingPacket, registeredAgentConsentRequired } from "@/lib/filings/packet";
+import { FilingPacketView } from "@/components/intake/filing-packet-view";
 import { validateAll } from "@/lib/intake/validate";
 import { createClient } from "@/lib/supabase/server";
 import { FilingContext } from "@/components/funnel/filing-context";
@@ -56,12 +58,21 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
     new Set(sections.flatMap((s) => s.fields.flatMap((f) => (f.type === "people" ? f.titleSuggestions : [])))),
   );
   const defaults = await signerDefaults(id, user.id);
+  // State-specific signing (Washington): the full packet in the state's order, the agent's
+  // certification, and the new registered agent's consent when the agent changes.
+  const stateAuth = stateAuthorizationFor(summary.stateCode, loaded.business);
+  const filingAgent = filingAgentName(site.name, site.legalEntity, site.legalEntityConfigured);
+  const packet = stateAuth ? buildFilingPacket(stateAuth.runbook, loaded.schema, all.values) : null;
+  const sectionOf = new Map(sections.flatMap((s) => s.fields.map((f) => [f.key, s.key] as const)));
+  const consentNeeded = stateAuth ? registeredAgentConsentRequired(stateAuth.auth, all.values) : false;
+  const ra = stateAuth?.auth.registeredAgentConsent;
   // Signed text names the business exactly as the server will store it (a corrected legal name wins).
   const text = authorizationText({
     businessName: authorizationBusinessName(loaded.business, all.values),
     stateName: summary.stateName,
     filingName: summary.filingName,
     brand: site.name,
+    state: stateAuth ? { filingAgent, certificationText: stateAuth.auth.certificationText } : undefined,
   });
 
   return (
@@ -124,7 +135,22 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
             Due <span className="font-semibold text-fg">{formatLongDate(summary.dueDate)}</span>
           </p>
         </header>
-        <div className="divide-y divide-border">
+        {packet && all.ok ? (
+          <div className="grid gap-3 py-6 sm:py-7">
+            <p className="max-w-[62ch] text-[15px] leading-relaxed text-muted">
+              This is everything we&apos;ll enter on the {summary.agencyName}&apos;s online form, in the same order. Check each item: the
+              person who files will certify it to the state based on your confirmation.
+            </p>
+            <FilingPacketView
+              rows={packet}
+              editHref={(key) => {
+                const step = sectionOf.get(key);
+                return step ? `/file/${id}/details?step=${encodeURIComponent(step)}` : null;
+              }}
+            />
+          </div>
+        ) : null}
+        <div className={packet && all.ok ? "hidden" : "divide-y divide-border"}>
           {sections.map((section) => (
             <AnswerSummary
               key={section.key}
@@ -164,6 +190,10 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
               authorizationText={text}
               titleSuggestions={titleSuggestions}
               submitLabel={paid ? "Sign and resubmit" : "Sign and continue"}
+              certify={stateAuth ? { stateName: summary.stateName, filingAgent, certificationText: stateAuth.auth.certificationText } : undefined}
+              agentConsent={
+                consentNeeded && ra ? { agentName: String(all.values[ra.agentNameKey] ?? "the new agent"), consentText: ra.consentText } : undefined
+              }
             />
           </div>
         </section>
