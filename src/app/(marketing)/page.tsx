@@ -51,7 +51,8 @@ export default async function HomePage() {
   const pa = getJurisdiction("PA");
   const rule = findRule("PA", "llc");
   const paRules = rulesForState("PA");
-  const periodInfo = rule ? marketingPeriod(rule) : null;
+  const marketing = rule ? marketingPeriod(rule) : null;
+  const periodInfo = marketing?.period ? { period: marketing.period, missed: marketing.missed } : null;
   const quote = rule ? await publicQuote(rule) : null;
   const agency = pa ? agencyShortName(pa) : "Pennsylvania Department of State";
   const stateName = pa?.name ?? "Pennsylvania";

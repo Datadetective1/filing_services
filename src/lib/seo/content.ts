@@ -41,7 +41,9 @@ export function stateFeeSentence(rule: Pick<ComplianceRuleDef, "stateFeeCents" |
 
 /** "September 30" for fixed annual deadlines, else the generic due text. */
 export function dueDayText(rule: ComplianceRuleDef): string {
-  return rule.dueRule.kind === "fixed_annual" ? formatMonthDay(rule.dueRule.month, rule.dueRule.day) : dueRuleText(rule.dueRule);
+  if (rule.dueRule.kind === "fixed_annual") return formatMonthDay(rule.dueRule.month, rule.dueRule.day);
+  if (rule.dueRule.kind === "anniversary_month_end") return "the last day of the month it was formed (or registered, if formed elsewhere)";
+  return dueRuleText(rule.dueRule).replace(/^\w/, (c) => c.toLowerCase());
 }
 
 type PeopleField = Extract<IntakeField, { type: "people" }>;

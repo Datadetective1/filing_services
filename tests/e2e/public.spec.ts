@@ -73,6 +73,29 @@ test.describe("public pages", () => {
     });
   }
 
+  for (const [path, h1, agency] of [
+    ["/annual-report/washington", "Washington", "Washington Secretary of State"],
+    ["/annual-report/nevada", "Nevada", "Nevada"],
+    ["/annual-report/utah", "Utah", "Utah"],
+    ["/washington/annual-report-fee", "Washington annual report fee", "sos.wa.gov"],
+    ["/nevada/annual-list-fee", "Nevada annual list and business license fees", "leg.state.nv.us"],
+    ["/utah/annual-renewal-fee", "Utah annual renewal fee", "commerce.utah.gov"],
+  ] as const) {
+    test(`expansion state page: ${path}`, async ({ page }) => {
+      const res = await page.goto(path);
+      expect(res?.status()).toBe(200);
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(h1);
+      const main = page.locator("main");
+      await expect(page.getByText(DISCLAIMER).first()).toBeVisible();
+      await expect(main).toContainText(agency);
+      // Production doesn't sell filing in these states: never offered as if it did.
+      if (process.env.E2E_TARGET_IS_PRODUCTION === "true") await expect(main).not.toContainText("Have us file it");
+      await expect(main).not.toContainText("January 1");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(1);
+    });
+  }
+
   test("attribution: first touch kept, last touch follows the latest source", async ({ page, context }) => {
     await context.clearCookies({ name: "fw_attr" });
     await page.goto("/pricing?utm_source=e2e_check&utm_campaign=public_smoke");

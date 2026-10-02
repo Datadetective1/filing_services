@@ -56,7 +56,9 @@ test("Utah corporation: $18, late fee only if Utah's record shows Delinquent", a
   await expect(main).toContainText("Due December 31, 2026");
   await expect(main).toContainText("$18");
   await expect(main).toContainText("only if its own record shows the business as Delinquent");
-  await expect(main).not.toContainText(/\b(overdue|delinquent status confirmed|penalty applies)\b/i);
+  // Never a status claim about this business: the headline only says "may be due".
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("may be due");
+  await expect(page.getByRole("heading", { level: 1 })).not.toContainText(/overdue|delinquent|late/i);
 });
 
 test("Washington: reminder opt-in names the state and stores the state's consent text", async ({ browser }) => {
