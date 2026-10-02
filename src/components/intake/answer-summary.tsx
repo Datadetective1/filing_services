@@ -45,6 +45,7 @@ export function FieldValue({ field, value }: { field: IntakeField; value: unknow
             <li key={i}>
               {String(p.name ?? "")}
               {p.title ? <span className="text-muted">, {String(p.title)}</span> : null}
+              {p.address ? <span className="block text-sm text-muted">{String(p.address)}</span> : null}
             </li>
           ))}
         </ul>

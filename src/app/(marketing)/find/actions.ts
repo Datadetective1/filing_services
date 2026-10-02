@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { formationDateRequired } from "@/lib/compliance/state-meta";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import { isISODate, todayInTimeZone } from "@/lib/domain/dates";
 import { isEntityType } from "@/lib/domain/types";
@@ -53,6 +54,9 @@ export async function submitLookup(_prev: LookupFormState, formData: FormData): 
   if (!/^[A-Z]{2}$/.test(values.stateCode) || !jurisdiction) errors.stateCode = FRIENDLY.stateCode;
   if (!isEntityType(values.entityType)) errors.entityType = FRIENDLY.entityType;
 
+  if (!values.formationDate && jurisdiction && formationDateRequired(jurisdiction.code)) {
+    errors.formationDate = `${jurisdiction.name} sets the due date from the month the business formed or registered there. Enter that date.`;
+  }
   if (values.formationDate) {
     const today = todayInTimeZone(jurisdiction?.timezone ?? "America/New_York");
     if (!isISODate(values.formationDate) || values.formationDate < "1800-01-01") errors.formationDate = FRIENDLY.formationDate;

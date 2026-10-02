@@ -7,19 +7,23 @@ import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "@/components/ui/cn";
 import type { ReminderOptInState } from "@/app/(marketing)/find/reminder-actions";
-import { REMINDER_CONSENT_TEXT } from "@/lib/reminders/consent";
 
 /**
- * "Remind me about my Pennsylvania filing": free, no account, explicit unticked consent,
+ * "Remind me about my {stateName} filing": free, no account, explicit unticked consent,
  * double opt-in. The business comes from the visitor's own lookup on the server.
  */
 export function ReminderOptIn({
   action,
   businessName,
+  consentText,
+  stateName,
   className,
 }: {
   action: (state: ReminderOptInState, formData: FormData) => Promise<ReminderOptInState>;
   businessName: string;
+  /** The exact wording stored with the subscription (from reminderConsentText on the server). */
+  consentText: string;
+  stateName: string;
   className?: string;
 }) {
   const [state, formAction] = useActionState<ReminderOptInState, FormData>(action, undefined);
@@ -45,7 +49,7 @@ export function ReminderOptIn({
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-highlight-soft text-highlight-fg">
           <BellSimpleRinging size={20} weight="fill" aria-hidden />
         </span>
-        <p className="font-display text-lg font-semibold leading-tight text-fg">Remind me about my Pennsylvania filing</p>
+        <p className="font-display text-lg font-semibold leading-tight text-fg">Remind me about my {stateName} filing</p>
       </div>
       <p className="text-sm leading-6 text-muted">
         Free, no account, nothing to buy. We&apos;ll email you before {businessName}&apos;s next annual report due date.
@@ -78,7 +82,7 @@ export function ReminderOptIn({
       <div className="grid gap-1">
         <label className="flex items-start gap-3 text-sm leading-6 text-fg">
           <Checkbox name="consent" value="yes" aria-describedby={err?.fieldErrors?.consent ? "reminder-consent-error" : undefined} />
-          <span>{REMINDER_CONSENT_TEXT}</span>
+          <span>{consentText}</span>
         </label>
         <FieldError id="reminder-consent-error">{err?.fieldErrors?.consent}</FieldError>
       </div>

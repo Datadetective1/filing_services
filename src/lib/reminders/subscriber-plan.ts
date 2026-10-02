@@ -49,8 +49,16 @@ export function plannedSubscriberReminders(dueDate: ISODate, today: ISODate) {
 export interface SubscriberCopyVars {
   businessName: string;
   dueDate: ISODate;
+  /** Defaults keep the original Pennsylvania wording. */
+  stateName?: string;
+  filingName?: string;
+  agencyName?: string;
+  directFilingHost?: string;
   stateFeeCents: number;
   nonprofitFeeCents: number | null;
+  /** Itemized state fees (e.g. Nevada's list + license fees); omit for a single fee. */
+  feeComponents?: { label: string; cents: number }[];
+  /** Null when Filewell isn't selling this filing (nothing about our service is said). */
   serviceFeeCents: number | null;
 }
 
@@ -60,21 +68,35 @@ export interface SubscriberEmail {
   ctaLabel: string;
 }
 
+const d = (v: SubscriberCopyVars) => ({
+  state: v.stateName ?? "Pennsylvania",
+  filing: (v.filingName ?? "Annual Report").toLowerCase(),
+  agency: v.agencyName ?? "Pennsylvania Department of State",
+  host: v.directFilingHost ?? "file.dos.pa.gov",
+});
+
 function feeLine(v: SubscriberCopyVars): string {
-  const state = formatCents(v.stateFeeCents);
-  const nonprofit = v.nonprofitFeeCents === 0 ? " ($0.00 for not-for-profit associations)" : "";
-  const ours = v.serviceFeeCents !== null ? ` Or Filewell can prepare and file it for you: ${formatCents(v.serviceFeeCents)} service fee plus the ${state} state fee.` : "";
-  return `You can file it yourself at file.dos.pa.gov for the ${state} state fee${nonprofit}.${ours}`;
+  const { host } = d(v);
+  const multi = (v.feeComponents?.length ?? 0) > 1;
+  const total = multi ? v.feeComponents!.reduce((n, c) => n + c.cents, 0) : v.stateFeeCents;
+  const nonprofit = !multi && v.nonprofitFeeCents === 0 ? " ($0.00 for not-for-profit associations)" : "";
+  const gov = multi
+    ? `${formatCents(total)} in state fees (${v.feeComponents!.map((c) => `${formatCents(c.cents)} ${c.label}`).join(" + ")})`
+    : `${formatCents(total)} state fee${nonprofit}`;
+  const govShort = multi ? `${formatCents(total)} in state fees` : `${formatCents(total)} state fee`;
+  const ours = v.serviceFeeCents !== null ? ` Or Filewell can prepare and file it for you: ${formatCents(v.serviceFeeCents)} service fee plus the ${govShort}.` : "";
+  return `You can file it yourself at ${host} for the ${gov}.${ours}`;
 }
 
 export function confirmationEmail(v: SubscriberCopyVars): SubscriberEmail {
+  const { state, filing, agency } = d(v);
   return {
-    subject: `Confirm your Pennsylvania annual report reminders for ${v.businessName}`,
+    subject: `Confirm your ${state} ${filing} reminders for ${v.businessName}`,
     body: [
       `Someone (hopefully you) asked Filewell to send filing reminders for ${v.businessName}.`,
-      `Confirm below and we'll email you about 60, 30 and 7 days before its next Pennsylvania annual report due date (${formatLongDate(v.dueDate)}). That's all we'll send: no other marketing, and every reminder has a one-click unsubscribe.`,
+      `Confirm below and we'll email you about 60, 30 and 7 days before its next ${state} ${filing} due date (${formatLongDate(v.dueDate)}). That's all we'll send: no other marketing, and every reminder has a one-click unsubscribe.`,
       "If you didn't ask for this, ignore this email and you won't hear from us.",
-      "Filewell is a private filing service. It is not the Pennsylvania Department of State.",
+      `Filewell is a private filing service. It is not the ${agency}.`,
     ].join("\n\n"),
     ctaLabel: "Confirm reminders",
   };
@@ -82,13 +104,14 @@ export function confirmationEmail(v: SubscriberCopyVars): SubscriberEmail {
 
 export function reminderEmail(v: SubscriberCopyVars, offsetDays: number): SubscriberEmail {
   const days = -offsetDays;
+  const { state, filing, agency } = d(v);
   return {
-    subject: `${v.businessName}: Pennsylvania annual report may be due by ${formatLongDate(v.dueDate)}`,
+    subject: `${v.businessName}: ${state} ${filing} may be due by ${formatLongDate(v.dueDate)}`,
     body: [
-      `This is the reminder you asked for. ${v.businessName}'s Pennsylvania annual report may be due by ${formatLongDate(v.dueDate)}, about ${days} days from now.`,
+      `This is the reminder you asked for. ${v.businessName}'s ${state} ${filing} may be due by ${formatLongDate(v.dueDate)}, about ${days} days from now.`,
       "If it's already filed, you can ignore this email.",
       feeLine(v),
-      "Filewell is a private filing service. It is not the Pennsylvania Department of State and is not affiliated with any government agency.",
+      `Filewell is a private filing service. It is not the ${agency} and is not affiliated with any government agency.`,
     ].join("\n\n"),
     ctaLabel: "Check this business",
   };

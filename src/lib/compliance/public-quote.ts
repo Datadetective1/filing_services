@@ -2,7 +2,9 @@ import "server-only";
 import { isProductionEnvironment } from "@/config/site";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
-import { buildQuote, governmentFeeFor, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
+import { todayInTimeZone } from "@/lib/domain/dates";
+import { buildQuote, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
+import { evaluateFees, quoteGovernmentLines } from "./fees";
 import { listActivePrices } from "@/lib/filings/rules-db";
 
 /**
@@ -21,10 +23,19 @@ export async function publicQuote(rule: ComplianceRuleDef, opts: { isNonprofit?:
   // A provisional (unapproved) price may be previewed on staging, never advertised on
   // the production deployment (indexed or not).
   if (!price.approved && isProductionEnvironment()) return null;
+  // Base government fees only: late charges depend on a specific business's due date/status.
+  const j = getJurisdiction(rule.stateCode);
+  const gov = quoteGovernmentLines(
+    evaluateFees(
+      { ...rule, lateFees: [] },
+      { isNonprofit: Boolean(opts.isNonprofit), dueDate: null, filingDate: todayInTimeZone(j?.timezone ?? "America/New_York"), status: null },
+    ),
+  );
   return buildQuote({
-    stateName: getJurisdiction(rule.stateCode)?.name ?? rule.stateCode,
+    stateName: j?.name ?? rule.stateCode,
     filingName: rule.filingName,
-    governmentFeeCents: governmentFeeFor(rule, { isNonprofit: Boolean(opts.isNonprofit) }),
+    governmentFeeCents: gov.totalCents,
+    governmentLines: gov.lines,
     price,
   });
 }

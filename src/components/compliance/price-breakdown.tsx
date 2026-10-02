@@ -13,20 +13,35 @@ export function PriceBreakdown({
   className,
   totalLabel = "Total today",
 }: {
-  quote: Pick<Quote, "governmentFeeCents" | "serviceFeeCents" | "totalCents">;
+  quote: Pick<Quote, "governmentFeeCents" | "serviceFeeCents" | "totalCents"> & Partial<Pick<Quote, "lineItems">>;
   stateName: string;
   className?: string;
   totalLabel?: string;
 }) {
+  const govLines = (quote.lineItems ?? []).filter((l) => l.kind !== "service_fee");
   return (
     <dl className={cn("grid gap-3 text-[15px]", className)}>
-      <div className="flex items-baseline justify-between gap-4">
-        <dt className="text-fg">
-          Government filing fee
-          <span className="block text-[13px] text-muted">Paid to {stateName}, passed through at cost</span>
-        </dt>
-        <dd className="tnum font-semibold text-fg">{formatCents(quote.governmentFeeCents)}</dd>
-      </div>
+      {govLines.length > 1 ? (
+        govLines.map((l) => (
+          <div key={l.description} className="flex items-baseline justify-between gap-4">
+            <dt className="text-fg">
+              {l.description.replace(new RegExp(`^${stateName} `), "").replace(/, paid to the state$/, "")}
+              <span className="block text-[13px] text-muted">
+                {l.kind === "government_late_fee" ? `${stateName} late charge, passed through at cost` : `Paid to ${stateName}, passed through at cost`}
+              </span>
+            </dt>
+            <dd className="tnum font-semibold text-fg">{formatCents(l.amountCents)}</dd>
+          </div>
+        ))
+      ) : (
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-fg">
+            Government filing fee
+            <span className="block text-[13px] text-muted">Paid to {stateName}, passed through at cost</span>
+          </dt>
+          <dd className="tnum font-semibold text-fg">{formatCents(quote.governmentFeeCents)}</dd>
+        </div>
+      )}
       <div className="flex items-baseline justify-between gap-4">
         <dt className="text-fg">
           Our service fee

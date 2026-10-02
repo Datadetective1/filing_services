@@ -44,13 +44,16 @@ export function SiteFooter() {
             <Link className={linkClass} href="/pricing">Pricing</Link>
             <Link className={linkClass} href="/help">Help</Link>
           </nav>
-          <nav aria-label="Pennsylvania guides" className="grid content-start gap-3">
-            <p className="text-sm font-semibold text-fg">Pennsylvania guides</p>
+          <nav aria-label="State guides" className="grid content-start gap-3">
+            <p className="text-sm font-semibold text-fg">State guides</p>
             <Link className={linkClass} href="/pennsylvania/annual-report-deadline">Annual report deadline</Link>
             <Link className={linkClass} href="/pennsylvania/annual-report-fee">Annual report fee</Link>
             <Link className={linkClass} href="/pennsylvania/how-to-file-annual-report">How to file</Link>
             <Link className={linkClass} href="/pennsylvania/annual-report-after-deadline">Filing after the deadline</Link>
             <Link className={linkClass} href="/pennsylvania/business-search">Business search</Link>
+            <Link className={linkClass} href="/annual-report/washington">Washington annual report</Link>
+            <Link className={linkClass} href="/annual-report/nevada">Nevada annual list</Link>
+            <Link className={linkClass} href="/annual-report/utah">Utah annual renewal</Link>
           </nav>
           <nav aria-label="Legal" className="grid content-start gap-3">
             <p className="text-sm font-semibold text-fg">Legal</p>

@@ -2,7 +2,7 @@ export type PaymentMode = "sandbox" | "test" | "live";
 export type ProviderName = "stripe" | "sandbox";
 
 export interface CheckoutLineItem {
-  kind: "government_fee" | "service_fee";
+  kind: "government_fee" | "government_late_fee" | "service_fee";
   name: string;
   amountCents: number;
 }

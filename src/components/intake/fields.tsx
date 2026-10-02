@@ -351,9 +351,10 @@ interface PersonRow {
   id: number;
   name: string;
   title: string;
+  address: string;
 }
 
-/** Repeater of name + title rows. Field names: `<key>.<index>.name` / `.title`. */
+/** Repeater of name + title (+ address) rows. Field names: `<key>.<index>.name` / `.title` / `.address`. */
 export function PeopleField({ field, value, errors }: { field: FieldOf<"people">; value: unknown; errors: FieldErrorMap }) {
   const k = field.key;
   const id = fieldId(k);
@@ -363,10 +364,10 @@ export function PeopleField({ field, value, errors }: { field: FieldOf<"people">
   const [rows, setRows] = useState<PersonRow[]>(() => {
     const initial = (Array.isArray(value) ? value : []).map((p, i) => {
       const r = asRecord(p);
-      return { id: i, name: asString(r.name), title: asString(r.title) };
+      return { id: i, name: asString(r.name), title: asString(r.title), address: asString(r.address) };
     });
     while (initial.length < Math.max(minRows, field.required ? 1 : 0)) {
-      initial.push({ id: initial.length, name: "", title: "" });
+      initial.push({ id: initial.length, name: "", title: "", address: "" });
     }
     return initial;
   });
@@ -377,7 +378,7 @@ export function PeopleField({ field, value, errors }: { field: FieldOf<"people">
 
   function add() {
     const nextId = rows.reduce((m, r) => Math.max(m, r.id), -1) + 1;
-    setRows([...rows, { id: nextId, name: "", title: "" }]);
+    setRows([...rows, { id: nextId, name: "", title: "", address: "" }]);
     setFocusId(nextId);
   }
 
@@ -436,6 +437,24 @@ export function PeopleField({ field, value, errors }: { field: FieldOf<"people">
                   list={listId}
                   autoComplete="off"
                 />
+                {field.withAddress ? (
+                  <LabeledInput
+                    name={`${k}.${i}.address`}
+                    className="sm:col-span-2"
+                    label={
+                      <>
+                        {field.withAddress.label}
+                        <span className="sr-only">, person {i + 1}</span>
+                      </>
+                    }
+                    hint={i === 0 ? field.withAddress.help : undefined}
+                    value={row.address}
+                    error={errors[`${k}.${i}.address`]}
+                    required
+                    maxLength={300}
+                    autoComplete="off"
+                  />
+                ) : null}
                 {canRemove ? (
                   <Button
                     variant="ghost"

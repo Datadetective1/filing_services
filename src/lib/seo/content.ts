@@ -28,7 +28,9 @@ export function agencyShortName(j: JurisdictionDef): string {
  * the due date is shown alongside it, and a report can still be filed after it.
  */
 export function filingWindowText(rule: ComplianceRuleDef): string | null {
-  if (rule.dueRule.kind !== "fixed_annual") return null;
+  if (rule.dueRule.kind !== "fixed_annual") {
+    return rule.filingWindowDaysBefore ? `Opens ${rule.filingWindowDaysBefore} days before the due date` : null;
+  }
   return "Opens January 1 of the report year";
 }
 
@@ -188,9 +190,17 @@ export function stateFaq(rules: ComplianceRuleDef[], stateName: string, agency: 
   const dueSentences = [...byDue.entries()].map(
     ([day, group]) => `${capitalize(joinList(group.map((r) => ENTITY_COPY[r.entityType].plural)))}: by ${day}.`,
   );
+  const filingName = rules[0].filingName.toLowerCase();
+  const allFixed = rules.every((r) => r.dueRule.kind === "fixed_annual");
+  const windowDays = rules[0].filingWindowDaysBefore;
+  const windowSentence = allFixed
+    ? " The filing window opens January 1 of the report year."
+    : windowDays
+      ? ` It can be filed up to ${windowDays} days before the due date.`
+      : "";
   items.push({
-    q: `When is the ${stateName} annual report due?`,
-    a: `It depends on the entity type. Based on the ${agency}'s published requirements: ${dueSentences.join(" ")} The filing window opens January 1 of the report year.`,
+    q: `When is the ${stateName} ${filingName} due?`,
+    a: `${byDue.size > 1 ? "It depends on the entity type. " : ""}Based on the ${agency}'s published requirements: ${dueSentences.join(" ")}${windowSentence}`,
   });
 
   // State fees, grouped by amount.

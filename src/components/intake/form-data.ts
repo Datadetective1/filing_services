@@ -72,8 +72,12 @@ export function formDataToSectionAnswers(formData: FormData, section: IntakeSect
     answers[field.key] = Array.isArray(rows)
       ? rows
           .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r === "object" && !Array.isArray(r))
-          .map((r) => ({ name: typeof r.name === "string" ? r.name : "", title: typeof r.title === "string" ? r.title : "" }))
-          .filter((r) => r.name.trim() !== "" || r.title.trim() !== "")
+          .map((r) => ({
+            name: typeof r.name === "string" ? r.name : "",
+            title: typeof r.title === "string" ? r.title : "",
+            ...(field.withAddress ? { address: typeof r.address === "string" ? r.address : "" } : {}),
+          }))
+          .filter((r) => r.name.trim() !== "" || r.title.trim() !== "" || (r.address ?? "").trim() !== "")
       : [];
   }
   return answers;

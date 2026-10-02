@@ -9,6 +9,8 @@ import type { IntakeField, IntakeSchema, IntakeSection } from "@/lib/compliance/
 export interface Person {
   name: string;
   title: string;
+  /** Only for people fields with `withAddress`. */
+  address?: string;
 }
 
 export interface Address {
@@ -86,7 +88,8 @@ function fieldSchema(field: IntakeField): z.ZodType {
     }
     case "choice": {
       const values = field.options.map((o) => o.value);
-      const s = z.string().refine((v) => v === "" || values.includes(v), "Choose an option");
+      let s: z.ZodType<string> = z.string().refine((v) => v === "" || values.includes(v), "Choose an option");
+      for (const b of field.blocked ?? []) s = s.refine((v) => v !== b.value, b.message);
       return field.required ? s.refine((v) => v !== "", `${field.label} is required`) : s.optional().default("");
     }
     case "address":
@@ -116,7 +119,9 @@ function fieldSchema(field: IntakeField): z.ZodType {
         });
     }
     case "people": {
-      const person = z.object({ name: requiredText(200, "Name"), title: requiredText(100, "Title") });
+      const person = field.withAddress
+        ? z.object({ name: requiredText(200, "Name"), title: requiredText(100, "Title"), address: requiredText(300, "Address") })
+        : z.object({ name: requiredText(200, "Name"), title: requiredText(100, "Title") });
       return z
         .array(person)
         .max(field.max, `No more than ${field.max}`)
@@ -128,7 +133,9 @@ function fieldSchema(field: IntakeField): z.ZodType {
 /** Remove fully-empty people rows before validating (unused repeater rows). */
 function normalize(field: IntakeField, value: unknown): unknown {
   if (field.type === "people" && Array.isArray(value)) {
-    return value.filter((p) => p && typeof p === "object" && (String(p.name ?? "").trim() || String(p.title ?? "").trim()));
+    return value.filter(
+      (p) => p && typeof p === "object" && (String(p.name ?? "").trim() || String(p.title ?? "").trim() || String(p.address ?? "").trim()),
+    );
   }
   if (field.type === "people" && value === undefined) return [];
   return value;

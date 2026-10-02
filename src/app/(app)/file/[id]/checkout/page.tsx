@@ -11,7 +11,7 @@ import { hasVerifiedNoLateFee } from "@/lib/domain/deadline-copy";
 import { formatCents } from "@/lib/domain/money";
 import type { Quote } from "@/lib/domain/pricing";
 import type { EntityType } from "@/lib/domain/types";
-import { quoteForFiling } from "@/lib/filings/customer";
+import { governmentFeeDetails, quoteForFiling } from "@/lib/filings/customer";
 import { validateAll } from "@/lib/intake/validate";
 import { getPaymentReadiness, requiresApprovedPrice } from "@/lib/payments";
 import { TrackView } from "@/components/analytics/track-view";
@@ -51,6 +51,7 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
   } catch {
     quote = null;
   }
+  const fees = await governmentFeeDetails(loaded.filing, loaded.business).catch(() => null);
   const payments = getPaymentReadiness();
   const sandbox = payments.mode === "sandbox";
   // Only an approved service price is shown and charged on production or in live mode.
@@ -137,6 +138,14 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
             {quote ? (
               <>
                 {priceBlocked ? null : <PriceBreakdown quote={quote} stateName={summary.stateName} />}
+                {fees && fees.evaluation.possible.length > 0 ? (
+                  <p className="mt-3 text-sm leading-6 text-muted">
+                    {fees.evaluation.possible
+                      .map((l) => `${summary.stateName} adds a ${formatCents(l.cents)} ${l.label.toLowerCase()} only if its own record shows the business as ${(l.requiresStatus ?? ["late"]).join(" or ")}.`)
+                      .join(" ")}{" "}
+                    We check the state&apos;s record before filing and contact you before any extra state charge.
+                  </p>
+                ) : null}
                 {canPay ? (
                   <ActionForm
                     className="mt-6 grid gap-3"

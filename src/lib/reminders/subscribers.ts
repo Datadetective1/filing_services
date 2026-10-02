@@ -4,7 +4,8 @@ import { parseAttribution } from "@/lib/analytics/attribution";
 import { readAttribution } from "@/lib/analytics/attribution-server";
 import { trackServer } from "@/lib/analytics/server";
 import { publicQuote } from "@/lib/compliance/public-quote";
-import { findRule } from "@/lib/compliance/registry";
+import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
+import { reminderConsentText } from "./consent";
 import { addDays, compareISODate, todayInTimeZone } from "@/lib/domain/dates";
 import { getEmailProvider } from "@/lib/email/provider";
 import { isReservedTestAddress } from "@/lib/email/recipients";
@@ -16,7 +17,6 @@ import {
   confirmationEmail,
   nextReminderDueDate,
   plannedSubscriberReminders,
-  REMINDER_CONSENT_TEXT,
   reminderEmail,
   type SubscriberCopyVars,
 } from "./subscriber-plan";
@@ -85,12 +85,25 @@ async function recordEmail(subscriberId: string, kind: "confirmation" | "reminde
 async function copyVars(row: SubscriberRow, dueDate: string): Promise<SubscriberCopyVars | null> {
   const rule = findRule(row.state_code, row.entity_type as never, "annual_report", row.is_foreign);
   if (!rule) return null;
-  const quote = await publicQuote(rule, { isNonprofit: row.is_nonprofit }).catch(() => null);
+  // Our service is only mentioned where Filewell actually sells this filing.
+  const quote = isRuleSellable(rule) ? await publicQuote(rule, { isNonprofit: row.is_nonprofit }).catch(() => null) : null;
+  const j = getJurisdiction(row.state_code);
+  let host: string | undefined;
+  try {
+    host = new URL(rule.officialFilingUrl).host;
+  } catch {
+    host = undefined;
+  }
   return {
     businessName: row.legal_name,
     dueDate,
+    stateName: j?.name,
+    filingName: rule.filingName,
+    agencyName: j?.agency.name.split(" - ")[0],
+    directFilingHost: host,
     stateFeeCents: rule.stateFeeCents,
     nonprofitFeeCents: rule.nonprofitStateFeeCents ?? null,
+    feeComponents: rule.feeComponents?.map((c) => ({ label: c.label, cents: c.cents })),
     serviceFeeCents: quote?.serviceFeeCents ?? null,
   };
 }
@@ -140,7 +153,7 @@ export async function subscribeToReminders(rawEmail: string, lookup: PendingLook
     is_nonprofit: lookup.isNonprofit,
     formation_date: lookup.formationDate ?? null,
     status: "pending" as const,
-    consent_text: REMINDER_CONSENT_TEXT,
+    consent_text: reminderConsentText(getJurisdiction(lookup.stateCode)?.name ?? lookup.stateCode, rule.filingName),
     consent_at: new Date().toISOString(),
     attribution: attribution ?? row?.attribution ?? null,
   };

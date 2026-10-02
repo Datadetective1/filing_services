@@ -36,7 +36,17 @@ export default async function ProspectsPage(props: PageProps<"/admin/acquisition
         description={`About ${DAILY_LIST_SIZE} Pennsylvania businesses a day from the public register, starting with the entity types whose filing period is closest${
           next ? ` (next: ${ENTITY_TYPE_LABELS[next.type]} and similar, due ${formatLongDate(next.dueDate)})` : ""
         }. Research each by hand and log what happened.`}
-        actions={<ActionForm action={buildDailyListAction} submitLabel="Build today's list" variant="primary" pendingLabel="Choosing..." />}
+        actions={
+          <ActionForm action={buildDailyListAction} submitLabel="Build today's list" variant="primary" pendingLabel="Choosing...">
+            <label className="grid gap-1 text-xs text-muted">
+              State
+              <select name="state" defaultValue="PA" className="h-9 rounded-[var(--radius-control)] border border-border bg-surface px-2 text-sm text-fg">
+                <option value="PA">Pennsylvania (public register)</option>
+                <option value="WA">Washington (imported CCFS export)</option>
+              </select>
+            </label>
+          </ActionForm>
+        }
       />
 
       <Notice tone="info" title="Ground rules">

@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 import { site } from "@/config/site";
 import { getCurrentUser } from "@/lib/auth/session";
 import { publicQuote } from "@/lib/compliance/public-quote";
+import { evaluateFees } from "@/lib/compliance/fees";
+import { stateLookupEnabled } from "@/lib/compliance/launch";
 import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
@@ -29,8 +31,10 @@ import { Container, Facts } from "@/components/ui/surface";
 import { CountdownRing } from "@/components/visual/countdown-ring";
 import { Receipt } from "@/components/visual/receipt";
 import { ReminderOptIn } from "@/components/funnel/reminder-opt-in";
+import { GovernmentFeeList } from "@/components/compliance/government-fee-list";
 import { readLookupHomeJurisdiction } from "../lookup-extras";
 import { optInToReminders } from "../reminder-actions";
+import { reminderConsentText } from "@/lib/reminders/consent";
 
 export const metadata: Metadata = {
   title: "Your filing requirement",
@@ -167,7 +171,11 @@ export default async function FindResultPage() {
   const agencyName = jurisdiction?.agency.name.split(" - ")[0] ?? `${stateName} state agency`;
   const entityLabel = ENTITY_TYPE_LABELS[lookup.entityType];
   const rule = findRule(lookup.stateCode, lookup.entityType, "annual_report", lookup.isForeign);
-  const supported = Boolean(rule && rule.verificationStatus === "verified" && isRuleSellable(rule));
+  // Known: verified rules and the state's public lookup is switched on. Sellable: also open
+  // for "Have us file it" (Pennsylvania today). Known-but-not-sellable states get the
+  // deadline, itemized state fees, direct filing and free reminders, without checkout.
+  const supported = Boolean(rule && rule.verificationStatus === "verified" && stateLookupEnabled(lookup.stateCode));
+  const sellable = Boolean(supported && rule && isRuleSellable(rule));
 
   let signedIn = false;
   try {
@@ -293,6 +301,15 @@ export default async function FindResultPage() {
   const stateFeeCents = quote?.governmentFeeCents ?? (lookup.isNonprofit && rule.nonprofitStateFeeCents === 0 ? 0 : rule.stateFeeCents);
   const filingHost = new URL(rule.officialFilingUrl).host;
   const filingLabel = period ? `${period.periodYear} ${rule.filingName.toLowerCase()}` : rule.filingName;
+  const fees = evaluateFees(rule, {
+    isNonprofit: lookup.isNonprofit,
+    dueDate: period?.dueDate ?? null,
+    filingDate: today,
+    status: null,
+    filingThisPeriod: false,
+  });
+  const diyFeeCents = rule.feeComponents?.length ? fees.totalCents : stateFeeCents;
+  const consentText = reminderConsentText(stateName, rule.filingName);
 
   const signInLine = !signedIn ? (
     <p className="text-center text-sm text-muted">
@@ -306,7 +323,7 @@ export default async function FindResultPage() {
 
   const aside = reminderMode ? (
     <>
-      <ReminderOptIn action={optInToReminders} businessName={lookup.legalName} />
+      <ReminderOptIn action={optInToReminders} businessName={lookup.legalName} consentText={consentText} stateName={stateName} />
       <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
         <p className="text-[15px] leading-6 text-muted">
           Prefer an account? Add the business to a free {site.name} account and track it there. There&apos;s nothing to pay now.
@@ -331,39 +348,52 @@ export default async function FindResultPage() {
     </>
   ) : (
     <>
+      {sellable ? (
       <Receipt
-        title="If we file it for you"
-        meta={`${stateName} ${ENTITY_TYPE_LABELS[rule.entityType]} ${rule.filingName}`}
-        className="w-full"
-      >
-        {quote ? (
-          <PriceBreakdown quote={quote} stateName={stateName} totalLabel="Total if we file it" />
-        ) : (
-          <p className="text-[15px] text-muted">Our service fee is shown as its own line before you pay.</p>
-        )}
-        <div className="mt-5 grid gap-3">
-          <TrackedLink
-            href={signedIn ? startPath : signupHref}
-            event="filing_cta_clicked"
-            stateCode={lookup.stateCode}
-            entityType={lookup.entityType}
-            className={buttonClasses("primary", "lg", "w-full")}
-          >
-            Have us file it
-          </TrackedLink>
-          {signInLine}
+          title="If we file it for you"
+          meta={`${stateName} ${ENTITY_TYPE_LABELS[rule.entityType]} ${rule.filingName}`}
+          className="w-full"
+        >
+          {quote ? (
+            <PriceBreakdown quote={quote} stateName={stateName} totalLabel="Total if we file it" />
+          ) : (
+            <p className="text-[15px] text-muted">Our service fee is shown as its own line before you pay.</p>
+          )}
+          <div className="mt-5 grid gap-3">
+            <TrackedLink
+              href={signedIn ? startPath : signupHref}
+              event="filing_cta_clicked"
+              stateCode={lookup.stateCode}
+              entityType={lookup.entityType}
+              className={buttonClasses("primary", "lg", "w-full")}
+            >
+              Have us file it
+            </TrackedLink>
+            {signInLine}
+          </div>
+          {lookup.stateCode !== "PA" ? <GovernmentFeeList evaluation={fees} stateName={stateName} notesOnly className="mt-4" /> : null}
+        </Receipt>
+      ) : (
+        <div className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
+          <p className="font-display text-lg font-semibold text-fg">{stateName} state fees</p>
+          <GovernmentFeeList evaluation={fees} stateName={stateName} />
+          <p className="text-sm leading-6 text-muted">
+            {site.name} filing for {stateName} isn&apos;t open yet. You can file directly with the state today, or get a free
+            reminder before the next due date.
+          </p>
         </div>
-      </Receipt>
+      )}
 
       <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
         <div className="flex items-baseline justify-between gap-4">
-          <p className="font-display text-lg font-semibold text-fg">Or do it yourself</p>
+          <p className="font-display text-lg font-semibold text-fg">{sellable ? "Or do it yourself" : "File it yourself"}</p>
           <p className="tnum font-display text-2xl font-semibold text-fg">
-            {stateFeeCents === 0 ? "No fee" : formatCents(stateFeeCents, { trimZeros: true })}
+            {diyFeeCents === 0 ? "No fee" : formatCents(diyFeeCents, { trimZeros: true })}
           </p>
         </div>
         <p className="text-sm leading-6 text-muted">
-          File online at {filingHost} and pay only the state fee. Online filings there are approved automatically.
+          File online at {filingHost} and pay only the state {rule.feeComponents?.length ? "fees" : "fee"}.
+          {lookup.stateCode === "PA" ? " Online filings there are approved automatically." : ""}
         </p>
         <a href={rule.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "md", "mt-1 w-full")}>
           File it yourself
@@ -372,7 +402,7 @@ export default async function FindResultPage() {
         </a>
       </div>
 
-      <ReminderOptIn action={optInToReminders} businessName={lookup.legalName} />
+      <ReminderOptIn action={optInToReminders} businessName={lookup.legalName} consentText={consentText} stateName={stateName} />
     </>
   );
 

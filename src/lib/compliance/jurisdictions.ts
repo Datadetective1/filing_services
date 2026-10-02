@@ -464,7 +464,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Nevada",
     slug: "nevada",
     timezone: "America/Los_Angeles",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Nevada Secretary of State - Commercial Recordings Division",
@@ -720,7 +720,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Utah",
     slug: "utah",
     timezone: "America/Denver",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Utah Department of Commerce - Division of Corporations & Commercial Code",
@@ -768,7 +768,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Washington",
     slug: "washington",
     timezone: "America/Los_Angeles",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Washington Secretary of State - Corporations & Charities Division",

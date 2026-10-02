@@ -15,7 +15,8 @@ import { ProductPreview } from "@/components/marketing/product-preview";
 import { Section, SectionHeading } from "@/components/marketing/section";
 import { ButtonLink, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
-import { RegistrySearch } from "@/components/funnel/registry-search";
+import { HeroFinder } from "@/components/funnel/hero-finder";
+import { lookupStates } from "@/lib/compliance/launch";
 import { Receipt } from "@/components/visual/receipt";
 import { searchRegistry, selectRegistryEntity } from "./find/registry-actions";
 import { ReminderTimeline } from "@/components/visual/reminder-timeline";
@@ -109,11 +110,14 @@ export default async function HomePage() {
             </p>
             {/* The main acquisition path: search the register right here, no account needed. */}
             <div id="find" className="grid scroll-mt-24 gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5">
-              <p className="text-[15px] font-semibold text-fg">Find your Pennsylvania business</p>
-              <RegistrySearch search={searchRegistry} select={selectRegistryEntity} compact />
+              <HeroFinder
+                states={lookupStates().map((code) => ({ code, name: getJurisdiction(code)?.name ?? code }))}
+                search={searchRegistry}
+                select={selectRegistryEntity}
+              />
             </div>
             <p className="text-sm text-muted">
-              Not in Pennsylvania?{" "}
+              Another state?{" "}
               <Link href="/find" className={textLinkClasses}>
                 Enter your details
               </Link>{" "}
