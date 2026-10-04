@@ -328,3 +328,195 @@ test("Washington sandbox journey with changes: agent consent, edit after signing
     await ctx.close();
   }
 });
+
+async function fillPerson(page: Page, name: string, title: string, address: string) {
+  await page.getByRole("textbox", { name: /Full name.*person 1/ }).first().fill(name);
+  await page.getByRole("combobox", { name: /Title.*person 1/ }).first().fill(title);
+  await page.getByRole("textbox", { name: /Address.*person 1/ }).first().fill(address);
+}
+
+async function fillLockedAddress(page: Page, line1: string, city: string, zip: string) {
+  await tb(page, "Street address").fill(line1);
+  await tb(page, "City").fill(city);
+  await tb(page, "ZIP code").fill(zip);
+}
+
+async function startFiling(page: Page, customer: { email: string; password: string }, state: string, name: string) {
+  await manualLookup(page, state, name, /^LLC/, "2016-10-12");
+  await signIn(page, customer.email, customer.password, "/file/start");
+  await page.getByRole("button", { name: /continue/i }).click();
+  await page.waitForURL(/\/file\/[0-9a-f-]{36}\/details/);
+  return page.url().match(/\/file\/([0-9a-f-]{36})\//)![1];
+}
+
+async function signPacket(page: Page, stateName: string) {
+  await page.getByRole("textbox", { name: "Your full name" }).fill("Robin Hale");
+  await page.getByRole("combobox", { name: "Your title or role" }).fill("Manager");
+  await page.getByRole("checkbox", { name: new RegExp(`I reviewed every item of the ${stateName} filing information`) }).check();
+  await page.getByRole("checkbox", { name: /accurate and complete/i }).check();
+  await page.getByRole("checkbox", { name: /I authorize/i }).check();
+  await page.getByRole("button", { name: "Sign and continue" }).click();
+}
+
+async function payAndCheck(page: Page, texts: string[]) {
+  await page.waitForURL(/\/checkout/);
+  for (const t of texts) await expect(page.locator("main")).toContainText(t);
+  await page.getByRole("button", { name: /^pay \$/i }).click();
+  await page.waitForURL(/\/sandbox\/checkout\//);
+  await page.getByRole("button", { name: /pay \(test\)/i }).click();
+  await page.waitForURL(/\/confirmation/);
+}
+
+async function expectAuthorizationTiedToRule(filingId: string, firstSection: string) {
+  const { data: f } = await backend().from("filings").select("rule_version_id, order_id").eq("id", filingId).single();
+  const { data: auth } = await backend()
+    .from("filing_authorizations")
+    .select("rule_version_id, facts_certified, packet_snapshot")
+    .eq("filing_id", filingId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+  expect(auth!.rule_version_id).toBe(f!.rule_version_id);
+  expect(auth!.facts_certified).toBe(true);
+  expect((auth!.packet_snapshot as { section: string }[])[0].section).toBe(firstSection);
+  return f!.order_id as string;
+}
+
+/** Operator view: the filing is blocked (fail closed) by the state's open questions. */
+async function operatorSeesFailClosed(opPage: Page, filingId: string, keys: string[]) {
+  await opPage.goto(`/admin/filings/${filingId}`);
+  const main = opPage.locator("main");
+  await expect(main).toContainText("Don't file yet");
+  for (const k of keys) await expect(main).toContainText(`Unresolved state question (${k})`);
+  await expect(opPage.getByRole("button", { name: "Mark ready to file" })).toHaveCount(0);
+}
+
+test("Nevada sandbox journey: disclosure guard, statutory declaration, $399 checkout, fail-closed operator, refund", async ({ browser }) => {
+  test.setTimeout(540_000);
+  const customer = await createConfirmedUser("nv-customer");
+  const operator = await createConfirmedUser("nv-operator");
+  await grantStaff(operator.id, "admin");
+  const name = `Sierra Test ${uniqueSuffix()} LLC`;
+  const ctx = await browser.newContext({ storageState: STORAGE_STATE });
+  const page = await ctx.newPage();
+  try {
+    const filingId = await startFiling(page, customer, "NV", name);
+    await expect(tb(page, "Legal name")).toHaveValue(name);
+    await page.getByLabel("Nevada entity number").fill("E1234567");
+    await tb(page, "Jurisdiction of formation").fill("Nevada");
+    await radio(page, /exempt from the State Business License fee/i, /^No, it pays/).check();
+    await saveStep(page);
+    await page.waitForURL(/step=people/);
+    await fillPerson(page, "Robin Hale", "Manager", "1 Main St, Reno, NV 89501");
+    await radio(page, /manager-managed or member-managed/i, "Manager-managed").check();
+    await saveStep(page);
+    await page.waitForURL(/step=investigation_disclosure/);
+    await radio(page, /five or more investigations/i, "Yes").check();
+    await radio(page, /25 percent or more of the market share/i, "Yes").check();
+    await saveStep(page);
+    await expect(page.getByText(/\$100,000 fee/).first()).toBeVisible();
+    await radio(page, /25 percent or more of the market share/i, "No").check();
+    await saveStep(page);
+    await page.waitForURL(/step=principal_office/);
+    await fillLockedAddress(page, "1 Main St", "Reno", "89501");
+    await saveStep(page);
+    await page.waitForURL(/step=extras/);
+    await radio(page, /changed since your last annual list/i, /^No changes/).check();
+    await page.getByRole("button", { name: "Save and review" }).click();
+    await page.waitForURL(/\/review/);
+
+    const main = page.locator("main");
+    for (const t of ["Type of filing", "State Business License", "Investigation disclosure", "Entity management", "Declaration and signature"]) {
+      await expect(main).toContainText(t);
+    }
+    await expect(main).toContainText("category C felony");
+    await signPacket(page, "Nevada");
+    await payAndCheck(page, ["$150.00", "$200.00", "$399.00"]);
+    const orderId = await expectAuthorizationTiedToRule(filingId, "Type of filing");
+    const { data: items } = await backend().from("order_items").select("kind, amount_cents").eq("order_id", orderId);
+    expect(items!.map((i) => [i.kind, i.amount_cents]).sort()).toEqual([
+      ["government_fee", 15000],
+      ["government_fee", 20000],
+      ["service_fee", 4900],
+    ]);
+
+    const op = await browser.newContext({ storageState: STORAGE_STATE });
+    const opPage = await op.newPage();
+    try {
+      await signIn(opPage, operator.email, operator.password, `/admin/filings/${filingId}`);
+      await operatorSeesFailClosed(opPage, filingId, ["nv_signer_authority", "nv_orion_client_access"]);
+      await expect(opPage.locator("#runbook")).toContainText("Investigation disclosure");
+      await opPage.goto(`/admin/filings/${filingId}/packet`);
+      await expect(opPage.locator("main")).toContainText("declaration under penalty of perjury");
+
+      // Refund the sandbox payment in full (admin), the path used when Nevada can't be filed.
+      await opPage.goto(`/admin/filings/${filingId}`);
+      await opPage.getByText("Refund (admin)").click();
+      await opPage.locator("#ref-reason").fill("Nevada filing not yet available (E2E sandbox).");
+      await opPage.getByRole("checkbox", { name: "Refund these amounts to the customer's card." }).check();
+      await opPage.getByRole("button", { name: "Issue refund" }).click();
+      await expect.poll(async () => (await backend().from("orders").select("status").eq("id", orderId).single()).data?.status, { timeout: 30_000 }).toBe("refunded");
+      const { data: refunds } = await backend().from("refunds").select("government_fee_cents, service_fee_cents, status").eq("order_id", orderId);
+      expect(refunds!.map((r) => [r.government_fee_cents, r.service_fee_cents])).toEqual([[35000, 4900]]);
+    } finally {
+      await op.close();
+    }
+  } finally {
+    await backend().from("staff_members").update({ active: false }).eq("user_id", operator.id);
+    await ctx.close();
+  }
+});
+
+test("Utah sandbox journey: packet confirmation without invented wording, $67 checkout, fail-closed operator", async ({ browser }) => {
+  test.setTimeout(540_000);
+  const customer = await createConfirmedUser("ut-customer");
+  const operator = await createConfirmedUser("ut-operator");
+  await grantStaff(operator.id, "admin");
+  const name = `Wasatch Test ${uniqueSuffix()} LLC`;
+  const ctx = await browser.newContext({ storageState: STORAGE_STATE });
+  const page = await ctx.newPage();
+  try {
+    const filingId = await startFiling(page, customer, "UT", name);
+    await expect(tb(page, "Legal name")).toHaveValue(name);
+    await page.getByLabel("Utah entity number").fill("12345678-0160");
+    await tb(page, "Jurisdiction of formation").fill("Utah");
+    await saveStep(page);
+    await page.waitForURL(/step=registered_agent/);
+    await tb(page, "Registered agent name").fill("Jordan Agent");
+    await fillLockedAddress(page, "10 State St", "Salt Lake City", "84111");
+    await saveStep(page);
+    await page.waitForURL(/step=principal_office/);
+    await tb(page, "Street address").fill("10 State St");
+    await tb(page, "City").fill("Salt Lake City");
+    await page.getByRole("combobox", { name: "State" }).selectOption("UT");
+    await tb(page, "ZIP code").fill("84111");
+    await saveStep(page);
+    await page.waitForURL(/step=people/);
+    await fillPerson(page, "Robin Hale", "Manager", "10 State St, Salt Lake City, UT 84111");
+    await saveStep(page);
+    await page.waitForURL(/step=extras/);
+    await radio(page, /changed since your last renewal/i, /^No changes/).check();
+    await page.getByRole("button", { name: "Save and review" }).click();
+    await page.waitForURL(/\/review/);
+
+    const main = page.locator("main");
+    for (const t of ["Entity search", "Principal office", "Registered agent", "Principal information", "Signature"]) await expect(main).toContainText(t);
+    await expect(main).toContainText("will make the attestations the state's form requires");
+    await signPacket(page, "Utah");
+    await payAndCheck(page, ["$18.00", "$67.00"]);
+    await expectAuthorizationTiedToRule(filingId, "Entity search");
+
+    const op = await browser.newContext({ storageState: STORAGE_STATE });
+    const opPage = await op.newPage();
+    try {
+      await signIn(opPage, operator.email, operator.password, `/admin/filings/${filingId}`);
+      await operatorSeesFailClosed(opPage, filingId, ["ut_sb40_operations", "ut_third_party_filing"]);
+      await expect(opPage.locator("#runbook")).toContainText("Principal information");
+    } finally {
+      await op.close();
+    }
+  } finally {
+    await backend().from("staff_members").update({ active: false }).eq("user_id", operator.id);
+    await ctx.close();
+  }
+});

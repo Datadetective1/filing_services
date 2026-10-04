@@ -10,6 +10,7 @@ import { founderActivity } from "@/lib/acquisition/founder";
 import { listPartners } from "@/lib/acquisition/partners";
 import { requireStaff } from "@/lib/auth/session";
 import { stateLookupEnabled, stateSalesEnabled } from "@/lib/compliance/launch";
+import { openQuestionsFor } from "@/lib/compliance/open-questions";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import { getEmailReadiness } from "@/lib/email/provider";
 
@@ -281,7 +282,9 @@ export default async function AcquisitionPage(props: PageProps<"/admin/acquisiti
             { term: "Partner link format", value: "https://www.getfilewell.com/?ref=<code>" },
             ...["PA", "WA", "NV", "UT"].map((st) => ({
               term: `${getJurisdiction(st)?.name ?? st} switches`,
-              value: `Lookup ${stateLookupEnabled(st) ? "on" : "off"} · Live filing sales ${stateSalesEnabled(st) ? "ON" : "off"}`,
+              value: `Lookup ${stateLookupEnabled(st) ? "on" : "off"} · Live filing sales ${stateSalesEnabled(st) ? "ON" : "off"}${
+                openQuestionsFor(st).length ? ` · Blocked (fail closed) until answered: ${openQuestionsFor(st).map((q) => q.key).join(", ")}` : ""
+              }`,
             })),
           ]}
         />

@@ -20,6 +20,7 @@ import type { ComplianceRuleDef, IntakeSchema, LateFeeRule, RuleSource } from ".
  */
 
 const VERIFIED = "2026-10-01";
+const VERIFIED_V2 = "2026-10-04";
 const REVIEWER = "Official-source verification (Utah Code + Division fee schedule; automated research, quotes verbatim)";
 const DIV = "Utah Division of Corporations and Commercial Code";
 const LEG = "Utah Legislature (Utah Code)";
@@ -34,6 +35,7 @@ export const UT_URLS = {
   onlineInstructions: "https://commerce.utah.gov/corporations/online-registration-instructions/",
   mailerAdvisory: "https://commerce.utah.gov/2025/07/01/advisory-for-business-registrants-important-mail-alert-2/",
   info: "https://commerce.utah.gov/corporations/",
+  renewalGuide: "https://commerce.utah.gov/wp-content/uploads/2025/01/Renewal-WO-Changes.pdf",
 } as const;
 
 function src(factKey: string, url: string, title: string, quote: string, publisher = DIV): RuleSource {
@@ -248,9 +250,12 @@ function buildRule(p: UtProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
-    version: 1,
+    // v1 (2026-10-01) never took an order. v2 adds the customer's packet confirmation, the
+    // portal-order packet (Division user guides, 2025) and the operator checkpoint. S.B. 40
+    // operations stay open questions (compliance/open-questions): sales and filing fail closed.
+    version: 2,
     verificationStatus: "verified",
-    effectiveFrom: VERIFIED,
+    effectiveFrom: VERIFIED_V2,
     filingName: "Annual Report/Renewal",
     dueRule: { kind: "anniversary_month_end" },
     firstDueRule: { kind: "year_after_formation" },
@@ -296,28 +301,55 @@ function buildRule(p: UtProfile): ComplianceRuleDef {
       access:
         "A UtahID login (required for all users). Entities formed after September 16, 2024 have Filing Authority on: the entity's administrator must add Filewell's UtahID as a designated user before Filewell can renew. Older entities without an administrator can be renewed by any logged-in user.",
       steps: [
+        "Open the filing packet. Confirm there are no blockers (open state questions, re-signing, payment).",
         "Sign in with Filewell's UtahID at businessregistration.utah.gov.",
-        "Renewals > Annual Report/Renewal with changes (or without changes); search the entity by number.",
-        "If Filing Authority blocks you, ask the customer to add Filewell as a designated user, then retry.",
-        "Check the renewal status. If Utah shows a late renewal fee, confirm the order covers it before paying.",
-        "Enter or confirm the fields below; changes made during renewal are free.",
-        "Sign with a typed name and title and tick the attestations. If the title is Director, Partner or Trustee, every person with that title must sign, so sign as authorized agent instead.",
-        "Pay by card and save the acknowledgment.",
+        "Renewals > Annual Report/Renewal with changes (or without changes, if the packet changes nothing); search the entity by number.",
+        "If Filing Authority blocks you, stop and ask the customer to add Filewell as a designated user.",
+        "Check the renewal status. Pay a $10 late fee only if the order collected it; otherwise contact the customer first.",
+        "Go through the screens in the order below and make every value match the packet.",
+        "On the review screen, compare every value with the packet, then record the comparison checkpoint in Filewell.",
+        "Signature page: tick the attestation, authorization and acknowledgement boxes, type your name and select the title agreed for an authorized agent. Pay by card and save the acknowledgment.",
       ],
       fieldMap: [
-        { portalField: "Entity number", answerKey: "entity_number" },
-        { portalField: "Entity name", answerKey: "legal_name" },
-        { portalField: "Registered agent", answerKey: "registered_agent_name" },
-        { portalField: "Registered agent address", answerKey: "registered_office" },
-        { portalField: "Principal office", answerKey: "principal_office" },
-        { portalField: "Principals (name, title, address)", answerKey: "governors" },
-        { portalField: "Notice email", answerKey: "state_notice_email" },
+        { section: "Entity search", portalField: "Entity number", answerKey: "entity_number" },
+        { section: "Entity search", portalField: "Entity name", answerKey: "legal_name" },
+        { section: "Purpose statement", portalField: "Purpose (optional)", answerKey: null, note: "Leave as on record" },
+        { section: "Principal office", portalField: "Principal office street address", answerKey: "principal_office" },
+        { section: "Principal office", portalField: "Email (annual report notices)", answerKey: "state_notice_email" },
+        { section: "Registered agent", portalField: "Registered agent", answerKey: "registered_agent_name" },
+        { section: "Registered agent", portalField: "Registered agent Utah street address", answerKey: "registered_office" },
+        { section: "Principal information", portalField: "Principals (name, title, address)", answerKey: "governors" },
+        { section: "Supporting documentation", portalField: "Upload", answerKey: null, note: "Leave blank (uploads send the filing to manual review)" },
+        {
+          section: "Signature",
+          portalField: "Attestations, name and title",
+          answerKey: null,
+          note: "Your own name as the customer's authorized filing agent, only after the comparison checkpoint.",
+        },
       ],
       confirmationLabel: "Utah filing / order number",
       receipt: "The Division's acknowledgment of the filing (PDF or email).",
     },
-    sources: [src("state_fee", UT_URLS.feeSchedule, "Fee Schedule (FY2026)", p.feeQuote), ...COMMON],
-    lastVerifiedAt: VERIFIED,
+    // Utah's attestation wording appears only in screenshots of the Division's guides, so no
+    // text is quoted; the owner captures it during the portal walkthrough.
+    stateAuthorization: {
+      certificationText: null,
+      certificationSourceFactKey: "signature_page",
+      operatorCheckpoint: true,
+    },
+    sources: [
+      src("state_fee", UT_URLS.feeSchedule, "Fee Schedule (FY2026)", p.feeQuote),
+      ...COMMON,
+      {
+        factKey: "signature_page",
+        url: UT_URLS.renewalGuide,
+        title: "Annual Report/Renewal without Changes user guide (2025)",
+        publisher: DIV,
+        quote: "You will check the attestation, authorization and acknowledgement check boxes.",
+        lastVerifiedAt: VERIFIED_V2,
+      },
+    ],
+    lastVerifiedAt: VERIFIED_V2,
     verifiedBy: REVIEWER,
     notes:
       "S.B. 40 (effective 2026-10-01) moved the due date to the last day of the anniversary month; the Division may set a different period by rule. Re-check the Division's implementation and a FY2027 fee schedule before taking live orders.",

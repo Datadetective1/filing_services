@@ -17,6 +17,7 @@ import type { ComplianceRuleDef, IntakeSchema, LateFeeRule, RuleSource } from ".
  */
 
 const VERIFIED = "2026-10-01";
+const VERIFIED_V2 = "2026-10-04";
 const REVIEWER = "Statute verification against leg.state.nv.us (automated research, quotes verbatim)";
 const LEG = "Nevada Legislature (Nevada Revised Statutes)";
 
@@ -31,10 +32,20 @@ export const NV_URLS = {
   /** ORION business portal (replaced SilverFlume, September 2026). */
   portal: "https://orion.nv.gov/portal/public/",
   businessSearch: "https://www.nvsos.gov/businesses/business-entity-search",
+  /** Secretary of State forms, Revised 7/1/2026 (served from the SOS BizHub content host). */
+  formNonCorp: "https://content.bizhub.nv.gov/uploads/bizhub/Annual_List_and_State_Business_License_Non_Corps_Final_6904713d13.pdf",
+  formCorp: "https://content.bizhub.nv.gov/uploads/bizhub/Annual_List_and_State_Business_License_Corps_Final_2aebeed395.pdf",
 } as const;
 
-function src(factKey: string, url: string, title: string, quote: string, publisher = LEG): RuleSource {
-  return { factKey, url, title, publisher, quote, lastVerifiedAt: VERIFIED };
+const SOS = "Nevada Secretary of State";
+
+function src(factKey: string, url: string, title: string, quote: string, publisher = LEG, verified = VERIFIED): RuleSource {
+  return { factKey, url, title, publisher, quote, lastVerifiedAt: verified };
+}
+
+/** Sources added with rule v2 (checked 2026-10-04). */
+function src2(factKey: string, url: string, title: string, quote: string, publisher = LEG): RuleSource {
+  return src(factKey, url, title, quote, publisher, VERIFIED_V2);
 }
 
 const SBL_SOURCES: RuleSource[] = [
@@ -72,6 +83,20 @@ interface NvProfile {
   peopleHelp: string;
   peopleTitles: string[];
   corporation?: boolean;
+  /** The list's signature certification and declaration under penalty of perjury, verbatim from the statute. */
+  certification: string;
+  certificationSource: RuleSource;
+  /** Whether the 7/1/2026 form's investigation disclosure applies (LLCs, LPs/LLLPs, corporations). */
+  disclosure: boolean;
+}
+
+function declaration(entity: string, people: string, person: string, filedIn: "in" | "with"): string {
+  return (
+    `Certifying that the list is true, complete and accurate; and a declaration under penalty of perjury that: ` +
+    `(a) The ${entity} has complied with the provisions of chapter 76 of NRS; ` +
+    `(b) The ${entity} acknowledges that pursuant to NRS 239.330, it is a category C felony to knowingly offer any false or forged instrument for filing ${filedIn} the Office of the Secretary of State; and ` +
+    `(c) None of the ${people} identified in the list has been identified in the list with the fraudulent intent of concealing the identity of any person or persons exercising the power or authority of ${person} in furtherance of any unlawful conduct.`
+  );
 }
 
 const PROFILES: NvProfile[] = [
@@ -93,6 +118,9 @@ const PROFILES: NvProfile[] = [
     peopleLabel: "Managers or managing members",
     peopleHelp: "List every manager. If the LLC has no managers, list every managing member. Nevada asks for an address for each.",
     peopleTitles: ["Manager", "Managing Member"],
+    certification: declaration("limited-liability company", "managers or managing members", "a manager or managing member", "in"),
+    certificationSource: src2("certification", NV_URLS.nrs86, "NRS 86.263(1)(e) and (3)", "certifying that the list is true, complete and accurate"),
+    disclosure: true,
   },
   {
     entityType: "corporation",
@@ -118,6 +146,9 @@ const PROFILES: NvProfile[] = [
     peopleHelp: "List the president, secretary and treasurer (or equivalents) and every director, with a residence or business address for each. One person may hold several roles.",
     peopleTitles: ["President", "Secretary", "Treasurer", "Director"],
     corporation: true,
+    certification: declaration("corporation", "officers or directors", "an officer or director", "with"),
+    certificationSource: src2("certification", NV_URLS.nrs78, "NRS 78.150(1)(e) and (3)(a)", "certifying that the list is true, complete and accurate"),
+    disclosure: true,
   },
   {
     entityType: "lp",
@@ -137,6 +168,9 @@ const PROFILES: NvProfile[] = [
     peopleLabel: "General partners",
     peopleHelp: "List every general partner with a residence or business address.",
     peopleTitles: ["General Partner"],
+    certification: declaration("limited partnership", "general partners", "a general partner", "in"),
+    certificationSource: src2("certification", NV_URLS.nrs87a, "NRS 87A.290(1)(e) and (2)", "certifying that the list is true, complete and accurate"),
+    disclosure: true,
   },
   {
     entityType: "llp",
@@ -156,6 +190,9 @@ const PROFILES: NvProfile[] = [
     peopleLabel: "Managing partners",
     peopleHelp: "List every managing partner with a residence or business address.",
     peopleTitles: ["Managing Partner"],
+    certification: declaration("registered limited-liability partnership", "managing partners", "a managing partner", "in"),
+    certificationSource: src2("certification", NV_URLS.nrs87, "NRS 87.510(1)(e) and (2)", "certifying that the list is true, complete and accurate"),
+    disclosure: false,
   },
 ];
 
@@ -187,6 +224,44 @@ const COMMON: RuleSource[] = [
     "Any entity organized pursuant to this title ... whether or not the entity performs a service or engages in a business for profit",
   ),
   ...SBL_SOURCES,
+  src2(
+    "license_signer",
+    NV_URLS.nrs76,
+    "NRS 76.100(3)",
+    "The application must be signed pursuant to NRS 239.330 by: ... (c) A general partner of a limited partnership. (d) A managing partner of a limited-liability partnership. (e) A manager or managing member of a limited-liability company. (f) An officer of a corporation or some other person specifically authorized by the corporation to sign the application.",
+  ),
+  src2(
+    "license_location",
+    NV_URLS.nrs76,
+    "NRS 76.100(2)",
+    "If the applicant is an entity organized pursuant to this title and on file with the Secretary of State and the applicant has no location in this State of its place of business, the address of its registered agent shall be deemed to be the location in this State of its place of business.",
+  ),
+  src2(
+    "form_signer",
+    NV_URLS.formNonCorp,
+    "Annual or Amended List and State Business License - Non-Corporations (Revised 7/1/2026)",
+    "This form must be signed by a natural person serving as a member of management, or authorized to sign on behalf of an entity to sign.",
+    SOS,
+  ),
+  src2(
+    "investigation_disclosure",
+    NV_URLS.formNonCorp,
+    "Annual or Amended List and State Business License - Non-Corporations (Revised 7/1/2026)",
+    "If you chose \"yes\" to both questions, provide details for each investigation, including jurisdiction, summary, litigation documents, and outcome",
+    SOS,
+  ),
+  src2(
+    "license_exemption",
+    NV_URLS.formNonCorp,
+    "Annual or Amended List and State Business License - Non-Corporations (Revised 7/1/2026)",
+    "Your entity is only eligible for a fee exemption if it is a governmental entity, a certain type of insurance company or a tax-exempt limited-liability company pursuant to 26 U.S.C. 501(c).",
+    SOS,
+  ),
+];
+
+const YES_NO = [
+  { value: "no", label: "No" },
+  { value: "yes", label: "Yes" },
 ];
 
 function money(cents: number) {
@@ -219,6 +294,18 @@ function intakeFor(p: NvProfile): IntakeSchema {
             help: "Nevada, or the state or country where a foreign entity was formed.",
             required: true,
             maxLength: 100,
+          },
+          {
+            key: "sbl_exemption",
+            type: "choice",
+            label: "Is the entity exempt from the State Business License fee?",
+            help: "Only governmental entities, certain insurance companies (licensed by the Division of Insurance) and 501(c) tax-exempt LLCs qualify.",
+            required: true,
+            options: [
+              { value: "no", label: "No, it pays the business license fee" },
+              { value: "yes", label: "Yes, it is exempt" },
+            ],
+            blocked: [{ value: "yes", message: "We can't file for business-license-exempt entities yet. You can file directly with the Nevada Secretary of State." }],
           },
           ...(p.corporation
             ? [
@@ -270,14 +357,63 @@ function intakeFor(p: NvProfile): IntakeSchema {
             titleSuggestions: p.peopleTitles,
             withAddress: { label: "Address (residence or business)", help: "Street, city, state and ZIP." },
           },
+          ...(p.entityType === "llc"
+            ? [
+                {
+                  key: "llc_management",
+                  type: "choice" as const,
+                  label: "Is the LLC manager-managed or member-managed?",
+                  help: "Foreign LLCs indicate this on the list. It must match the articles of organization.",
+                  required: false,
+                  options: [
+                    { value: "manager", label: "Manager-managed" },
+                    { value: "member", label: "Member-managed" },
+                  ],
+                },
+              ]
+            : []),
         ],
       },
+      ...(p.disclosure
+        ? [
+            {
+              key: "investigation_disclosure",
+              title: "Investigation disclosure",
+              description: "Nevada's annual list (revised July 1, 2026) asks these two questions exactly as worded here.",
+              fields: [
+                {
+                  key: "nv_trade_investigations",
+                  type: "choice" as const,
+                  label:
+                    "In the past 5 years, has the company, its parent, or its subsidiaries faced five or more investigations in the United States, including state and federal investigations, that involve alleged contracts, combinations, or conspiracies to restrain trade, as described in NRS 598A.060 or similar laws in other jurisdictions; and resulted in fines, penalties, required divestitures, or restrictions on acquiring holdings as part of the settlement or resolution?",
+                  required: true,
+                  options: YES_NO,
+                },
+                {
+                  key: "nv_market_share",
+                  type: "choice" as const,
+                  label: "Additionally, does the company control 25 percent or more of the market share for any product sold or distributed within this State?",
+                  required: true,
+                  options: YES_NO,
+                  blocked: [
+                    {
+                      value: "yes",
+                      when: [{ key: "nv_trade_investigations", in: ["yes"] }],
+                      message:
+                        "When both answers are Yes, Nevada requires detailed investigation disclosures and a $100,000 fee. We can't file that online; you can file directly with the Nevada Secretary of State.",
+                    },
+                  ],
+                },
+              ],
+            },
+          ]
+        : []),
       {
         key: "principal_office",
-        title: "Place of business",
+        title: "Business location in Nevada",
         description:
-          "Nevada's state business license is issued for your place of business. If the business has no Nevada location, Nevada uses your registered agent's address.",
-        fields: [{ key: "principal_office", type: "address", label: "Business address", required: true, noPoBox: true }],
+          "Nevada's state business license lists your business location in Nevada. If the business has no Nevada location, enter your registered agent's Nevada address: Nevada treats it as your business location.",
+        fields: [{ key: "principal_office", type: "address", label: "Business location in Nevada", required: true, noPoBox: true, lockedRegion: "NV" }],
       },
       {
         key: "extras",
@@ -314,9 +450,12 @@ function buildRule(p: NvProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
-    version: 1,
+    // v1 (2026-10-01) never took an order. v2 follows the Secretary of State's annual list form
+    // (Revised 7/1/2026): exemption, investigation disclosure, Nevada business location, and the
+    // statutory certification/declaration the customer confirms before an agent signs.
+    version: 2,
     verificationStatus: "verified",
-    effectiveFrom: VERIFIED,
+    effectiveFrom: VERIFIED_V2,
     filingName: "Annual List and State Business License renewal",
     dueRule: { kind: "anniversary_month_end" },
     firstDueRule: { kind: "year_after_formation" },
@@ -372,33 +511,55 @@ function buildRule(p: NvProfile): ComplianceRuleDef {
       portalName: "Nevada ORION business portal (Secretary of State)",
       portalUrl: NV_URLS.portal,
       access:
-        "An ORION user account (existing SilverFlume credentials carry over); whether a guest can file without an account wasn't confirmed. The list is signed by an officer or 'some other person specifically authorized' and includes a declaration under penalty of perjury, so the operator signs only with the customer's explicit written authorization.",
+        "An ORION user account (existing SilverFlume credentials carry over). Whether a filing service's account can file for a client entity, and the LLC/LP/LLP business-license signer, are open questions: Filewell blocks filing until both are resolved. The operator signs only the customer-confirmed packet.",
       steps: [
+        "Open the filing packet. Confirm there are no blockers (open state questions, re-signing, payment).",
         "Sign in to ORION and find the entity by name or entity number.",
-        "Check the annual list due date and status. Filed after the due date, Nevada adds $75 (list) + $100 (business license): confirm the order covers it before paying.",
+        "Check the due date and status. Filed after the due date, Nevada adds $75 (list) + $100 (business license): pay them only if the order collected them, otherwise contact the customer first.",
         p.corporation ? "Confirm the authorized-stock tier: only $75,000 or less ($150 list fee) is sold online." : "Confirm the list fee shown is $150.",
-        "File the annual list with the people and addresses below, and renew the State Business License in the same filing.",
-        "Complete the NRS 76 compliance declaration as authorized by the customer, then pay both fees by card.",
-        "Save the filed list and the State Business License from the portal.",
+        "Go through the list in the order below and make every value match the packet. Leave the optional industry code and business identity questions as on record.",
+        "Compare the review screen with the packet, then record the comparison checkpoint in Filewell.",
+        "Sign the declaration as the customer's authorized filing agent, pay both fees by card, and save the filed list and the State Business License.",
       ],
       fieldMap: [
-        { portalField: "Entity number / NV Business ID", answerKey: "entity_number" },
-        { portalField: "Entity name", answerKey: "legal_name" },
-        { portalField: p.corporation ? "Officers and directors (name, title, address)" : `${p.peopleLabel} (name, title, address)`, answerKey: "governors" },
-        { portalField: "Business license: place of business", answerKey: "principal_office" },
-        ...(p.corporation
+        { section: "Type of filing", portalField: "Annual List or Amended List", answerKey: null, note: "Annual List (filed within 90 days before the due date)" },
+        { section: "State Business License", portalField: "Fee exemption", answerKey: "sbl_exemption" },
+        { section: "Name of entity", portalField: "Entity name", answerKey: "legal_name" },
+        { section: "Name of entity", portalField: "Entity number / NVID", answerKey: "entity_number" },
+        { section: "Optional business information", portalField: "Industry codes; how the business identifies", answerKey: null, note: "Leave as on record (optional)" },
+        { section: "Business location", portalField: "Business location in Nevada", answerKey: "principal_office" },
+        ...(p.disclosure
           ? [
-              { portalField: "Publicly traded?", answerKey: "publicly_traded" },
-              { portalField: "Authorized stock tier", answerKey: "authorized_stock_tier" },
+              { section: "Investigation disclosure", portalField: "Five or more trade-restraint investigations in 5 years", answerKey: "nv_trade_investigations" },
+              { section: "Investigation disclosure", portalField: "25% or more market share in Nevada", answerKey: "nv_market_share" },
             ]
           : []),
-        { portalField: "Notice email", answerKey: "state_notice_email" },
+        ...(p.corporation
+          ? [
+              { section: "Corporation", portalField: "Publicly traded?", answerKey: "publicly_traded" },
+              { section: "Corporation", portalField: "Authorized stock tier", answerKey: "authorized_stock_tier" },
+            ]
+          : []),
+        { section: "Entity management", portalField: p.corporation ? "Officers and directors (name, title, address)" : `${p.peopleLabel} (name, title, address)`, answerKey: "governors" },
+        ...(p.entityType === "llc" ? [{ section: "Entity management", portalField: "Manager- or member-managed (foreign LLCs)", answerKey: "llc_management" }] : []),
+        { section: "Contact", portalField: "Notice email", answerKey: "state_notice_email" },
+        {
+          section: "Declaration and signature",
+          portalField: "Declaration under penalty of perjury and signature",
+          answerKey: null,
+          note: "Your own name, as the customer's authorized filing agent, only after the comparison checkpoint.",
+        },
       ],
       confirmationLabel: "ORION filing / work order number",
       receipt: "The filed annual list and the State Business License (PDF).",
     },
-    sources: [p.dueQuote, p.listFeeQuote, p.listPenaltyQuote, p.contentsQuote, ...COMMON],
-    lastVerifiedAt: VERIFIED,
+    stateAuthorization: {
+      certificationText: p.certification,
+      certificationSourceFactKey: "certification",
+      operatorCheckpoint: true,
+    },
+    sources: [p.dueQuote, p.listFeeQuote, p.listPenaltyQuote, p.contentsQuote, p.certificationSource, ...COMMON],
+    lastVerifiedAt: VERIFIED_V2,
     verifiedBy: REVIEWER,
     notes: p.corporation
       ? "Annual list fee is tiered by authorized stock value (NRS 78.150(4)(b)); only the lowest tier ($150) is offered online. Publicly traded corporations are not offered."

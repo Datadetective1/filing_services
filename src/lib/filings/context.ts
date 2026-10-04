@@ -17,6 +17,8 @@ export interface FilingContext {
     dueDate: string;
     confirmationNumber: string | null;
     ruleSnapshot: Record<string, unknown>;
+    /** The business's entity type (decides which state questions apply). */
+    entityType: string | null;
   };
   businessName: string;
   stateName: string;
@@ -30,13 +32,13 @@ export async function loadFilingContext(filingId: string): Promise<FilingContext
   const { data } = await db
     .from("filings")
     .select(
-      "id, user_id, business_id, order_id, requirement_id, status, state_code, period_year, due_date, state_confirmation_number, rule_snapshot, businesses(legal_name), states(name), orders(total_cents)",
+      "id, user_id, business_id, order_id, requirement_id, status, state_code, period_year, due_date, state_confirmation_number, rule_snapshot, businesses(legal_name, entity_type), states(name), orders(total_cents)",
     )
     .eq("id", filingId)
     .maybeSingle();
   if (!data) return null;
 
-  const business = one(data.businesses) as { legal_name: string } | null;
+  const business = one(data.businesses) as { legal_name: string; entity_type: string | null } | null;
   const state = one(data.states) as { name: string } | null;
   const order = one(data.orders) as { total_cents: number } | null;
   const snapshot = (data.rule_snapshot ?? {}) as Record<string, unknown>;
@@ -56,6 +58,7 @@ export async function loadFilingContext(filingId: string): Promise<FilingContext
       dueDate: data.due_date,
       confirmationNumber: data.state_confirmation_number,
       ruleSnapshot: snapshot,
+      entityType: business?.entity_type ?? null,
     },
     businessName: business?.legal_name ?? "Your business",
     stateName: state?.name ?? data.state_code,

@@ -66,8 +66,8 @@ export function authorizationBusinessName(business: { legal_name?: unknown } | n
 export interface StateAuthorizationTextInput {
   /** Who files and certifies, e.g. "Amary Coulibaly, sole proprietor". */
   filingAgent: string;
-  /** The state's own certification wording, verbatim. */
-  certificationText: string;
+  /** The state's own certification wording, verbatim; null when the state publishes none in text. */
+  certificationText: string | null;
 }
 
 /** Suffix on terms_version when the state-specific paragraph is part of the signed text. */
@@ -84,7 +84,9 @@ export function authorizationText(input: {
   const who = input.state && !input.state.filingAgent.startsWith(input.brand) ? `${input.state.filingAgent}, doing business as ${input.brand},` : input.state?.filingAgent ?? input.brand;
   const statePart = input.state
     ? `I have reviewed every item of the ${input.stateName} filing information shown above, in the order the state's form asks for it, and I confirm that each item is true, correct and complete. ` +
-      `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the state's certification: “${input.state.certificationText}” ` +
+      (input.state.certificationText
+        ? `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the state's certification: “${input.state.certificationText}” `
+        : `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the attestations the state's form requires. `) +
       `If any of this information changes, I will review and sign again before it is filed. `
     : "";
   return (

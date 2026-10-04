@@ -1,3 +1,5 @@
+import { isProductionEnvironment } from "@/config/site";
+import { openQuestionsFor } from "./open-questions";
 import type { EntityType } from "@/lib/domain/types";
 import { JURISDICTIONS } from "./jurisdictions";
 import { stateSalesEnabled } from "./launch";
@@ -89,5 +91,7 @@ export function isStateVerified(stateCode: string): boolean {
  */
 export function isRuleSellable(rule: ComplianceRuleDef): boolean {
   const j = getJurisdiction(rule.stateCode);
-  return rule.verificationStatus === "verified" && !!j && j.supportLevel !== "unsupported" && stateSalesEnabled(rule.stateCode);
+  if (!(rule.verificationStatus === "verified" && !!j && j.supportLevel !== "unsupported" && stateSalesEnabled(rule.stateCode))) return false;
+  // Fail closed on production: an unresolved state question blocks sales even if the switch is on.
+  return !(isProductionEnvironment() && openQuestionsFor(rule.stateCode, rule.entityType).length > 0);
 }
