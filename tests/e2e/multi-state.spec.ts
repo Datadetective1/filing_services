@@ -224,7 +224,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     }
     await expect(main).toContainText("604 123 456");
     await expect(main).toContainText("Date of Filing");
-    await expect(main).toContainText("doing business as Filewell");
+    await expect(main).toContainText("will sign the Annual Report as the business's authorized person");
     await expect(main).toContainText("This document is hereby executed under penalty of law");
     await expect(page.getByText("Your new registered agent's consent")).toHaveCount(0);
     await page.screenshot({ path: "test-results/wa-review.png", fullPage: true });
