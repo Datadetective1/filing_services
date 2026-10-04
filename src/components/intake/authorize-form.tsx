@@ -42,7 +42,7 @@ export function AuthorizeForm({
   titleSuggestions: string[];
   submitLabel: string;
   /** State-specific: the customer confirms the full packet the filing agent will certify. */
-  certify?: { stateName: string; filingAgent: string; certificationText: string };
+  certify?: { stateName: string; filingAgent: string; certificationText: string | null };
   /** The registered agent changes: the new agent's own consent is required. */
   agentConsent?: { agentName: string; consentText: string };
 }) {
@@ -176,7 +176,13 @@ export function AuthorizeForm({
               />
               <span>
                 I reviewed every item of the {certify.stateName} filing information above and it is true and correct. I understand{" "}
-                {certify.filingAgent} will certify to the state, relying on my confirmation: &ldquo;{certify.certificationText}&rdquo;
+                {certify.certificationText ? (
+                  <>
+                    {certify.filingAgent} will certify to the state, relying on my confirmation: &ldquo;{certify.certificationText}&rdquo;
+                  </>
+                ) : (
+                  <>{certify.filingAgent} will sign the state&apos;s form and make its attestations, relying on my confirmation.</>
+                )}
               </span>
             </label>
             <FieldError id={`${fieldId("certifyFacts")}-error`}>{state.errors.certifyFacts}</FieldError>

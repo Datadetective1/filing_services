@@ -1,5 +1,7 @@
 # Nevada and Utah: what the owner must do before paid filing
 
+> Superseded for day-to-day use by [OWNER_CHECKS.md](OWNER_CHECKS.md) (call scripts and portal walkthroughs). Since 2026-10-04 the code fails closed on the open questions in `src/lib/compliance/open-questions.ts`.
+
 Checked 2026-10-01/02. Nothing was bought and no account was created. Lookup, guides, reminders and SEO stay live;
 paid filing stays OFF (`NV_LIVE_FILING_SALES` and `UT_LIVE_FILING_SALES` are not set on production, and the prices
 are unapproved).

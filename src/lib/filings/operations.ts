@@ -17,6 +17,7 @@ import { afterRefundSucceeded } from "@/lib/payments/process-event";
 import { sendNotification, type SendNotificationInput, type SendResult } from "@/lib/notifications/send";
 import { rollForwardRequirement } from "@/lib/reminders/engine";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { openQuestionBlockers } from "@/lib/compliance/open-questions";
 import { stateAuthorizationForState } from "@/lib/compliance/registry";
 import { loadFilingContext } from "./context";
 import { registeredAgentConsentRequired } from "./packet";
@@ -85,6 +86,8 @@ export interface ReadyToFileInput {
    * agent's consent on file: the customer signed it as the agent, or a signed consent is
    * uploaded. Filewell never supplies it.
    */
+  /** Unresolved state questions for this state/entity (see compliance/open-questions): each blocks filing. */
+  openQuestions?: string[];
   stateAuthorization?: {
     factsCertified: boolean;
     consentRequired: boolean;
@@ -118,6 +121,7 @@ export function readyToFileBlockers(input: ReadyToFileInput): string[] {
   if (input.ruleVerificationStatus !== "verified") {
     blockers.push("This filing's rule is not verified. Escalate before filing.");
   }
+  blockers.push(...(input.openQuestions ?? []));
   const sa = input.stateAuthorization;
   if (sa && input.authorizationSha256) {
     if (!sa.factsCertified) {
@@ -234,6 +238,7 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
   const auth = authRes.data as { facts_certified: boolean | null; registered_agent_consent: { mode?: string } | null } | null;
   const values = snapshot.intake_schema ? validateAll(snapshot.intake_schema, answers).values : answers;
   return readyToFileBlockers({
+    openQuestions: openQuestionBlockers(ctx.filing.stateCode, ctx.filing.entityType),
     stateAuthorization: stateAuth
       ? {
           factsCertified: Boolean(auth?.facts_certified),

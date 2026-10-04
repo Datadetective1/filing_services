@@ -89,7 +89,7 @@ function fieldSchema(field: IntakeField): z.ZodType {
     case "choice": {
       const values = field.options.map((o) => o.value);
       let s: z.ZodType<string> = z.string().refine((v) => v === "" || values.includes(v), "Choose an option");
-      for (const b of field.blocked ?? []) s = s.refine((v) => v !== b.value, b.message);
+      for (const b of field.blocked ?? []) if (!b.when?.length) s = s.refine((v) => v !== b.value, b.message);
       return field.required ? s.refine((v) => v !== "", `${field.label} is required`) : s.optional().default("");
     }
     case "address":
@@ -157,7 +157,12 @@ export function validateSection(section: IntakeSection, raw: IntakeAnswers): { o
       continue;
     }
     const parsed = fieldSchema(field).safeParse(normalize(field, raw[field.key]));
-    if (parsed.success) values[field.key] = parsed.data;
+    const conditionalBlock =
+      parsed.success && field.type === "choice"
+        ? (field.blocked ?? []).find((b) => b.when?.length && b.value === parsed.data && b.when.every((c) => c.in.includes(String(raw[c.key] ?? ""))))
+        : undefined;
+    if (conditionalBlock) errors[field.key] = conditionalBlock.message;
+    else if (parsed.success) values[field.key] = parsed.data;
     else {
       for (const issue of parsed.error.issues) {
         const path = [field.key, ...issue.path.map(String)].join(".");

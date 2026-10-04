@@ -26,6 +26,7 @@ import { requireStaff } from "@/lib/auth/session";
 import { daysBetween, describeDaysRemaining, formatLongDate } from "@/lib/domain/dates";
 import { canTransition, isFilingStatus, OPERATOR_NEXT_ACTION, type FilingStatus } from "@/lib/domain/filing-status";
 import { ENTITY_TYPE_LABELS, isEntityType } from "@/lib/domain/types";
+import { openQuestionBlockers } from "@/lib/compliance/open-questions";
 import { readyToFileBlockers } from "@/lib/filings/operations";
 import { formatAddress } from "@/lib/intake/validate";
 import { staffLabel, type ProfileEntry } from "../../_lib/data";
@@ -256,6 +257,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
           ruleVerificationStatus: d.snapshot.verification_status,
           production: isProductionEnvironment(),
           stateAuthorization: d.stateAuthorization,
+          openQuestions: openQuestionBlockers(filing.state_code, (d.business as { entity_type?: string } | null)?.entity_type),
         })
       : [];
   const blockerNotice = blockers.length ? (

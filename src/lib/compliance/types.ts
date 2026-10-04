@@ -74,8 +74,12 @@ export type IntakeField =
   | (BaseField & {
       type: "choice";
       options: { value: string; label: string }[];
-      /** Answers Filewell can't file online yet; choosing one shows this message and blocks the step. */
-      blocked?: { value: string; message: string }[];
+      /**
+       * Answers Filewell can't file online yet; choosing one shows this message and blocks the
+       * step. With `when`, the block applies only when those other answers also hold (e.g.
+       * Nevada's $100,000 disclosure fee applies only when both questions are "yes").
+       */
+      blocked?: { value: string; message: string; when?: { key: string; in: string[] }[] }[];
     });
 
 export interface IntakeSection {
@@ -151,8 +155,12 @@ export interface OperatorRunbook {
  * is shown so they know exactly what the agent will affirm.
  */
 export interface StateAuthorization {
-  /** The state's certification, verbatim, that the authorized person makes when filing. */
-  certificationText: string;
+  /**
+   * The state's certification, verbatim, that the authorized person makes when filing. null
+   * when the state's exact wording isn't published in text (Utah): the authorization then
+   * says the agent makes "the attestations the state's form requires", never invented text.
+   */
+  certificationText: string | null;
   certificationSourceFactKey: string;
   /**
    * When the answers change the registered agent (other than contact details), the new
