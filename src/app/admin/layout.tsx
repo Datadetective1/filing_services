@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             <Logo href="/admin" tone="inverse" />
             <span className="rounded-full bg-white/[0.08] px-2.5 py-1 text-xs font-semibold text-ink-muted lg:hidden">Ops · {staff.role}</span>
           </div>
-          <AdminNav />
+          <AdminNav isAdmin={staff.role === "admin"} />
           <div className="hidden items-center gap-3 border-t border-white/10 px-5 py-4 lg:flex">
             <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-ink-2 font-display text-sm font-semibold uppercase text-highlight">
               {who.slice(0, 1)}

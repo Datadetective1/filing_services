@@ -9,6 +9,7 @@ import {
   ClockCounterClockwise,
   CreditCard,
   EnvelopeSimple,
+  ListChecks,
   MegaphoneSimple,
   Plant,
   Scales,
@@ -24,6 +25,8 @@ interface NavItem {
   href: string;
   label: string;
   icon: Icon;
+  /** Shown only to admins (operators would get a 404). */
+  adminOnly?: boolean;
 }
 
 const GROUPS: { label: string; items: NavItem[] }[] = [
@@ -56,6 +59,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/admin/analytics", label: "Funnel", icon: ChartBar },
       { href: "/admin/rules", label: "State rules", icon: Scales },
       { href: "/admin/audit", label: "Audit log", icon: ClockCounterClockwise },
+      { href: "/admin/owner-checks", label: "Owner checks", icon: ListChecks, adminOnly: true },
     ],
   },
 ];
@@ -79,7 +83,7 @@ const linkBase =
  * page is marked with aria-current="page" (and "true" on the parent section of a
  * detail page, such as the queue while a filing is open).
  */
-export function AdminNav() {
+export function AdminNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname() ?? "";
   const section = sectionFor(pathname);
   const exact = pathname.replace(/\/+$/, "") || "/";
@@ -105,7 +109,7 @@ export function AdminNav() {
         <div key={group.label} className="flex gap-1 lg:grid lg:gap-0.5">
           <p className="hidden px-3 pb-1.5 text-xs font-semibold text-ink-muted lg:block">{group.label}</p>
           <ul className="flex gap-1 lg:grid lg:gap-0.5">
-            {group.items.map((item) => {
+            {group.items.filter((item) => isAdmin || !item.adminOnly).map((item) => {
               const active = section === item.href;
               const current = active ? (exact === item.href ? "page" : "true") : undefined;
               const ItemIcon = item.icon;
