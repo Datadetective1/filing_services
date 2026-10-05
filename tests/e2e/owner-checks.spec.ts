@@ -16,11 +16,12 @@ async function signIn(page: Page, email: string, password: string, next: string)
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
-test("owner checks is not public: not in the sitemap, disallowed in robots, sign-in required", async ({ page, request }) => {
-  const sitemap = await (await request.get("/sitemap.xml")).text();
+test("owner checks is not public: not in the sitemap, disallowed in robots, sign-in required", async ({ page }) => {
+  // Fetched through the page so preview deployments' access cookie applies.
+  const sitemap = await (await page.goto("/sitemap.xml"))!.text();
   expect(sitemap).not.toContain("owner-checks");
   expect(sitemap).not.toContain("/admin");
-  const robots = await (await request.get("/robots.txt")).text();
+  const robots = await (await page.goto("/robots.txt"))!.text();
   // Production disallows /admin; previews disallow everything.
   expect(robots).toMatch(/Disallow: \/(admin)?\s*$/m);
   await page.goto("/admin/owner-checks");
@@ -30,7 +31,7 @@ test("owner checks is not public: not in the sitemap, disallowed in robots, sign
 test.describe("staging only", () => {
   test.skip(productionTarget, "Creates users and staff: staging only.");
 
-  test("operators and customers get a 404; the admin sees, ticks and records, and it persists", async ({ browser }) => {
+  test("operators and customers get the not-found page; the admin sees, ticks and records, and it persists", async ({ browser }) => {
     test.setTimeout(240_000);
     const admin = await createConfirmedUser("owner-admin");
     const operator = await createConfirmedUser("owner-operator");
@@ -45,9 +46,11 @@ test.describe("staging only", () => {
         const p = await ctx.newPage();
         await signIn(p, who.email, who.password, "/admin/owner-checks");
         await p.waitForLoadState("networkidle");
-        const res = await p.goto("/admin/owner-checks");
-        expect(res?.status(), who.email).toBe(404);
+        await p.goto("/admin/owner-checks");
+        // Streamed pages render the not-found UI (the console's existence isn't revealed).
+        await expect(p.getByRole("heading", { name: "We couldn't find that page." })).toBeVisible();
         await expect(p.getByRole("heading", { name: "Owner checks" })).toHaveCount(0);
+        await expect(p.locator("body")).not.toContainText("(775) 684-5708");
         await ctx.close();
       }
 
@@ -68,7 +71,7 @@ test.describe("staging only", () => {
       const row1 = page.getByRole("checkbox", { name: /1\. Express Annual Report search/ });
       await row1.check();
       await expect(page.getByRole("status").filter({ hasText: "Saved" }).first()).toBeVisible();
-      const note = page.getByLabel("Exact wording of each radio button");
+      const note = page.getByRole("textbox", { name: "Exact wording of each radio button" });
       await note.fill("E2E: radio wording placeholder");
       await note.locator("xpath=ancestor::form").getByRole("button", { name: "Save" }).click();
       await expect.poll(async () => (await backend().from("owner_checks").select("note").eq("item_key", "wa.row4").maybeSingle()).data?.note).toBe(
@@ -77,12 +80,13 @@ test.describe("staging only", () => {
 
       await page.reload();
       await expect(page.getByRole("checkbox", { name: /1\. Express Annual Report search/ })).toBeChecked();
-      await expect(page.getByLabel("Exact wording of each radio button")).toHaveValue("E2E: radio wording placeholder");
+      await expect(page.getByRole("textbox", { name: "Exact wording of each radio button" })).toHaveValue("E2E: radio wording placeholder");
       const { data: audits } = await backend().from("audit_logs").select("entity_id").eq("action", "owner_check.saved").eq("actor_user_id", admin.id);
       expect(audits!.map((a) => a.entity_id).sort()).toEqual(["wa.row1", "wa.row4"]);
 
       await page.setViewportSize({ width: 375, height: 812 });
       await page.reload();
+      await expect(page.getByRole("heading", { name: "Owner checks", level: 1 })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({ path: "test-results/owner-checks-mobile.png", fullPage: true });
       await ctx.close();
