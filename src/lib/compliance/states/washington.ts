@@ -22,12 +22,15 @@ import type { ComplianceRuleDef, IntakeSchema, RuleSource } from "../types";
  * as the state asks them, registered-agent change/type with the new agent's consent, and the
  * state's authorized-person certification shown to the customer before they sign.
  *
+ * v3 (2026-10-23) quotes the authorized-person certification from the current form
+ * (Annual Report, Revised 6.2025, section 7) instead of the online instructions page.
+ *
  * Scope: domestic and foreign profit corporations, LLCs, LPs/LLLPs and LLPs.
  * Not yet: nonprofit corporations ($60/$20 + charitable rules), Title 24.06 entities.
  */
 
 const VERIFIED = "2026-10-01";
-const VERIFIED_V2 = "2026-10-02";
+const VERIFIED_V3 = "2026-10-23";
 const REVIEWER = "Official-source verification (sos.wa.gov, WAC, RCW; automated research, quotes verbatim)";
 const SOS = "Washington Secretary of State";
 const LEG = "Washington State Legislature";
@@ -54,8 +57,8 @@ export const WA_URLS = {
   rcw415: "https://app.leg.wa.gov/RCW/default.aspx?cite=23.95.415",
 } as const;
 
-/** The authorized person's certification in CCFS, verbatim (online filing instructions). */
-export const WA_CERTIFICATION_TEXT = "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.";
+/** The authorized person's certification, verbatim (Annual Report form, Revised 6.2025, section 7 "Authorized Person"). */
+export const WA_CERTIFICATION_TEXT = "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.";
 
 /** Washington's Consent to Serve as Registered Agent, verbatim (Annual Report form, Revised 6.2025, page 2). */
 export const WA_RA_CONSENT_TEXT =
@@ -118,7 +121,7 @@ const COMMON: RuleSource[] = [
     LEG,
   ),
   src("on_time", WA_URLS.processing, "Processing guidelines", "Electronically submitted before midnight on the due date"),
-  src("certification", WA_URLS.onlineInstructions, "Instructions to file an Annual Report online", WA_CERTIFICATION_TEXT),
+  { ...src("certification", WA_URLS.paperForm, "Annual Report form (Revised 6.2025), (7) Authorized Person", WA_CERTIFICATION_TEXT), lastVerifiedAt: VERIFIED_V3 },
   src(
     "ra_consent",
     WA_URLS.onlineInstructions,
@@ -133,6 +136,15 @@ const COMMON: RuleSource[] = [
     LEG,
   ),
   src("ra_consent_text", WA_URLS.paperForm, "Annual Report form (Revised 6.2025), page 2", WA_RA_CONSENT_TEXT),
+  {
+    ...src(
+      "ra_consent_signature",
+      WA_URLS.paperForm,
+      "Annual Report form (Revised 6.2025), page 2",
+      "Provide the name of the Commercial Registered Agent OR Non-Commercial Registered Agent. The appointed agent must sign the Consent to Serve statement below.",
+    ),
+    lastVerifiedAt: VERIFIED_V3,
+  },
   src(
     "controlling_interest",
     WA_URLS.paperForm,
@@ -390,10 +402,11 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
     // v1 (effective 2026-10-01) never took an order. v2 matches the current form and online
-    // instructions (UBI, controlling-interest questions, registered-agent consent).
-    version: 2,
+    // instructions (UBI, controlling-interest questions, registered-agent consent). v3 takes
+    // the authorized-person certification from the Revised 6.2025 form.
+    version: 3,
     verificationStatus: "verified",
-    effectiveFrom: VERIFIED_V2,
+    effectiveFrom: VERIFIED_V3,
     filingName: "Annual Report",
     dueRule: { kind: "anniversary_month_end" },
     firstDueRule: { kind: "year_after_formation" },
@@ -501,7 +514,7 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
       operatorCheckpoint: true,
     },
     sources: COMMON,
-    lastVerifiedAt: VERIFIED_V2,
+    lastVerifiedAt: VERIFIED_V3,
     verifiedBy: REVIEWER,
   };
 }

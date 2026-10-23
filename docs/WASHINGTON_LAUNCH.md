@@ -16,16 +16,17 @@ Sources (checked 2026-10-01/02):
 
 | Requirement | Official wording |
 |---|---|
-| Authorized person's certification (online) | "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct." |
+| Authorized person's certification (form, Revised 6.2025, section 7) | "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law." Rule v3 uses this wording; the online instructions page still quotes older wording ("This document is hereby executed under penalty of law ..."). |
 | Registered agent consent (online) | "The Consent of the Registered Agent is required if any changes other than contact info is made. By selecting one of the radio buttons under 'Registered Agent Consent' the submitter is attesting to the statements listed." |
 | Consent (statute) | "A registered agent shall not be appointed without having given prior consent in a record to the appointment." (RCW 23.95.415) |
 | Consent statement (form p.2) | "I hereby consent to serve as Registered Agent in the State of Washington for the named business. ..." Signed by the agent, any agent type. |
+| Who signs the consent (form p.2) | "The appointed agent must sign the Consent to Serve statement below." Filewell never signs or assumes it. |
 | Controlling interest (DOR) | Four questions (1, 2, 2a, 3). Online, every answer starts at "No". |
 | UBI + name | "The UBI Number and name of the business must match our records in order to be accepted." |
 
 ## Customer flow (built)
 
-1. **Intake (rule v2).** UBI is required (9 digits; spaces or hyphens allowed). The registered-agent section asks
+1. **Intake (rule v3; v2 had the same intake).** UBI is required (9 digits; spaces or hyphens allowed). The registered-agent section asks
    whether the agent changes (no / contact details only / new agent or new street address), the agent type
    (commercial / noncommercial), the name, the Washington street address (noncommercial only) and the agent email
    (noncommercial agents whose details change). Controlling interest asks the state's four questions word for word;

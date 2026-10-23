@@ -179,7 +179,7 @@ async function operatorToCheckpoint(browser: Browser, operator: { email: string;
     // The printable packet is the signed copy in CCFS order, with the certification.
     await opPage.goto(`/admin/filings/${filingId}/packet`);
     await expect(opPage.locator("main")).toContainText("customer-authorized, in CCFS order");
-    await expect(opPage.locator("main")).toContainText("This document is hereby executed under penalty of law");
+    await expect(opPage.locator("main")).toContainText("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
     await opPage.goto(`/admin/filings/${filingId}`);
 
     await opPage.getByRole("button", { name: "Mark ready to file" }).click();
@@ -225,7 +225,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     await expect(main).toContainText("604 123 456");
     await expect(main).toContainText("Date of Filing");
     await expect(main).toContainText("will sign the Annual Report as the business's authorized person");
-    await expect(main).toContainText("This document is hereby executed under penalty of law");
+    await expect(main).toContainText("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
     await expect(page.getByText("Your new registered agent's consent")).toHaveCount(0);
     await page.screenshot({ path: "test-results/wa-review.png", fullPage: true });
     await page.setViewportSize({ width: 375, height: 812 });
@@ -253,7 +253,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     expect(auth!.facts_certified).toBe(true);
     expect(auth!.packet_sha256).toMatch(/^[0-9a-f]{64}$/);
     expect((auth!.packet_snapshot as { section: string }[])[0].section).toBe("Business Information");
-    expect(auth!.certification_text).toContain("penalty of law");
+    expect(auth!.certification_text).toBe("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
     expect(auth!.registered_agent_consent).toBeNull();
     expect(auth!.terms_version).toMatch(/\.state1$/);
     const { data: f } = await backend().from("filings").select("order_id").eq("id", filingId).single();

@@ -24,7 +24,7 @@ const { evaluateFees } = await import("@/lib/compliance/fees");
 const { findRule, stateAuthorizationForState } = await import("@/lib/compliance/registry");
 const { WA_CERTIFICATION_TEXT, WA_RA_CONSENT_TEXT } = await import("@/lib/compliance/states/washington");
 const { authorizationText, changedSinceSigned } = await import("@/lib/filings/customer");
-const { comparisonCheckpointBlocker, readyToFileBlockers } = await import("@/lib/filings/operations");
+const { comparisonCheckpointBlocker, readyToFileBlockers, signedCurrentCertification } = await import("@/lib/filings/operations");
 const { buildFilingPacket, packetSections, packetSha256, registeredAgentConsentRequired } = await import("@/lib/filings/packet");
 const { validateAll } = await import("@/lib/intake/validate");
 const { knownStateStatus, MAX_STATUS_AGE_DAYS } = await import("@/lib/registry/state-status");
@@ -59,14 +59,19 @@ function answers(over: Record<string, unknown> = {}) {
   };
 }
 
-describe("Washington v2 intake follows the current form", () => {
-  it("is version 2 with the state's certification and consent text, verbatim and sourced", () => {
-    expect(rule.version).toBe(2);
+describe("Washington intake follows the current form (Revised 6.2025)", () => {
+  it("is version 3 with the form's certification and consent text, verbatim and sourced", () => {
+    expect(rule.version).toBe(3);
     expect(wa.auth.certificationText).toBe(WA_CERTIFICATION_TEXT);
-    expect(WA_CERTIFICATION_TEXT).toBe("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
+    expect(WA_CERTIFICATION_TEXT).toBe("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
+    expect(WA_CERTIFICATION_TEXT).not.toContain("hereby executed");
+    const cert = rule.sources.find((s) => s.factKey === "certification")!;
+    expect(cert.quote).toBe(WA_CERTIFICATION_TEXT);
+    expect(cert.title).toContain("Revised 6.2025");
     expect(wa.auth.registeredAgentConsent?.consentText).toBe(WA_RA_CONSENT_TEXT);
     const keys = rule.sources.map((s) => s.factKey);
-    for (const k of ["certification", "ra_consent", "ra_consent_rule", "ra_consent_text", "controlling_interest"]) expect(keys).toContain(k);
+    for (const k of ["certification", "ra_consent", "ra_consent_rule", "ra_consent_text", "ra_consent_signature", "controlling_interest"]) expect(keys).toContain(k);
+    expect(rule.sources.find((s) => s.factKey === "ra_consent_signature")!.quote).toContain("The appointed agent must sign the Consent to Serve statement");
     expect(rule.sources.find((s) => s.factKey === "ra_consent")!.quote).toContain("required if any changes other than contact info is made");
   });
 
@@ -188,6 +193,18 @@ describe("operator gates", () => {
     // With an authorization on record but no packet confirmation (older wording):
     const withAuth = readyToFileBlockers({ ...ready, stateAuthorization: { ...sa, factsCertified: false } });
     expect(withAuth.some((x) => x.includes("full filing packet"))).toBe(true);
+  });
+
+  it("a signature that quoted the old certification wording is not current: the customer signs again", () => {
+    expect(signedCurrentCertification(wa.auth, { facts_certified: true, certification_text: WA_CERTIFICATION_TEXT })).toBe(true);
+    expect(
+      signedCurrentCertification(wa.auth, {
+        facts_certified: true,
+        certification_text: "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.",
+      }),
+    ).toBe(false);
+    expect(signedCurrentCertification(wa.auth, { facts_certified: false, certification_text: WA_CERTIFICATION_TEXT })).toBe(false);
+    expect(signedCurrentCertification(wa.auth, null)).toBe(false);
   });
 
   it("a new registered agent blocks filing until the consent is on file; it is never assumed", () => {

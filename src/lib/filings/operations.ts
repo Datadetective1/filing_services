@@ -5,7 +5,7 @@ import { trackServer } from "@/lib/analytics/server";
 import { audit } from "@/lib/audit";
 import type { StaffUser } from "@/lib/auth/session";
 import { stableStringify } from "@/lib/compliance/hash";
-import type { IntakeSchema } from "@/lib/compliance/types";
+import type { IntakeSchema, StateAuthorization } from "@/lib/compliance/types";
 import { storeFilingDocument, type DocumentKind } from "@/lib/documents/storage";
 import { canTransition, type FilingStatus } from "@/lib/domain/filing-status";
 import { formatCents } from "@/lib/domain/money";
@@ -211,6 +211,17 @@ async function notify(
   });
 }
 
+/**
+ * The latest authorization confirmed the packet against the state's certification as it is
+ * worded now. A signature quoting older wording (e.g. before a form revision) must be redone.
+ */
+export function signedCurrentCertification(
+  auth: StateAuthorization,
+  signed: { facts_certified: boolean | null; certification_text: string | null } | null | undefined,
+): boolean {
+  return Boolean(signed?.facts_certified) && (signed?.certification_text ?? null) === auth.certificationText;
+}
+
 /** Load everything readyToFileBlockers needs, from the database (never from the form). */
 async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise<string[]> {
   const db = createAdminClient();
@@ -219,7 +230,7 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
     db.from("filing_answers").select("answers, is_complete").eq("filing_id", ctx.filing.id).maybeSingle(),
     db
       .from("filing_authorizations")
-      .select("answers_sha256, facts_certified, registered_agent_consent")
+      .select("answers_sha256, facts_certified, certification_text, registered_agent_consent")
       .eq("filing_id", ctx.filing.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -235,13 +246,17 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
   if (loadError) throw new OperationError(`Could not check the filing before filing: ${loadError.message}`);
   const snapshot = ctx.filing.ruleSnapshot as { intake_schema?: IntakeSchema; verification_status?: string };
   const answers = (answersRes.data?.answers ?? {}) as Record<string, unknown>;
-  const auth = authRes.data as { facts_certified: boolean | null; registered_agent_consent: { mode?: string } | null } | null;
+  const auth = authRes.data as {
+    facts_certified: boolean | null;
+    certification_text: string | null;
+    registered_agent_consent: { mode?: string } | null;
+  } | null;
   const values = snapshot.intake_schema ? validateAll(snapshot.intake_schema, answers).values : answers;
   return readyToFileBlockers({
     openQuestions: openQuestionBlockers(ctx.filing.stateCode, ctx.filing.entityType),
     stateAuthorization: stateAuth
       ? {
-          factsCertified: Boolean(auth?.facts_certified),
+          factsCertified: signedCurrentCertification(stateAuth.auth, auth),
           consentRequired: registeredAgentConsentRequired(stateAuth.auth, values),
           consentMode: auth?.registered_agent_consent?.mode ?? null,
           consentDocumentOnFile: (consentDocs.count ?? 0) > 0,

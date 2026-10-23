@@ -24,7 +24,7 @@ async function signWithPacket(userId: string, filingId: string, versionId: strin
        authorization_text, answers_sha256, answers_snapshot, rule_version_id, packet_snapshot, packet_sha256, facts_certified, certification_text,
        filing_agent_name, registered_agent_consent)
      values ($1, $2, 'Dana Rivers', 'Member', true, true, 'test.state1', 'text', $3, '{}'::jsonb, $4, $5::jsonb, $6, true,
-       'This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.',
+       'I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.',
        'Amary Coulibaly, sole proprietor', $7::jsonb) returning id`,
     [filingId, userId, "a".repeat(64), versionId, JSON.stringify(packet), "b".repeat(64), consent === null ? null : JSON.stringify(consent)],
   );

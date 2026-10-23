@@ -1,5 +1,5 @@
 import { stateAuthorizationForState } from "@/lib/compliance/registry";
-import { comparisonCheckpointBlocker } from "@/lib/filings/operations";
+import { comparisonCheckpointBlocker, signedCurrentCertification } from "@/lib/filings/operations";
 import { registeredAgentConsentRequired } from "@/lib/filings/packet";
 import "server-only";
 import { createHash } from "node:crypto";
@@ -332,7 +332,7 @@ export async function loadFilingDetail(id: string) {
   const consentDocumentOnFile = documents.some((doc) => doc.kind === "registered_agent_consent");
   const stateAuthorization = stateAuth
     ? {
-        factsCertified: Boolean(authorization?.facts_certified),
+        factsCertified: signedCurrentCertification(stateAuth.auth, authorization),
         consentRequired,
         consentMode: (authorization?.registered_agent_consent?.mode as string | undefined) ?? null,
         consentDocumentOnFile,
