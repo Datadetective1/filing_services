@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/components/ui/cn";
-import { isStateVerified, listJurisdictions } from "@/lib/compliance/registry";
+import { isStateVerified, listJurisdictions, stateSupportLabel } from "@/lib/compliance/registry";
 
 /**
  * Tile-grid map of the 50 states and DC (the familiar approximate geographic layout,
@@ -34,13 +34,13 @@ export function UsTileMap({
 }) {
   const tiles = listJurisdictions()
     .filter((j) => TILES[j.code])
-    .map((j) => ({ j, col: TILES[j.code][0], row: TILES[j.code][1], verified: isStateVerified(j.code) }))
+    .map((j) => ({ j, col: TILES[j.code][0], row: TILES[j.code][1], verified: isStateVerified(j.code), label: stateSupportLabel(j.code) }))
     .sort((a, b) => a.row - b.row || a.col - b.col);
 
   return (
     <ul aria-label={label} className={cn("grid grid-cols-11 gap-[3px] sm:gap-1.5 lg:gap-2", className)}>
-      {tiles.map(({ j, col, row, verified }) => {
-        const status = verified ? "filing supported" : "not yet verified";
+      {tiles.map(({ j, col, row, verified, label }) => {
+        const status = label.toLowerCase();
         return (
           <li key={j.code} style={{ gridColumn: col + 1, gridRow: row + 1 }} className="aspect-square min-w-0">
             <Link
@@ -75,7 +75,7 @@ export function UsTileMapLegend({ className }: { className?: string }) {
         <span aria-hidden className="relative size-4 rounded-[4px] bg-accent">
           <span className="absolute right-0.5 top-0.5 size-1 rounded-full bg-highlight" />
         </span>
-        <span className="font-semibold text-fg">Filing supported</span>
+        <span className="font-semibold text-fg">Verified requirements</span>
       </li>
       <li className="flex items-center gap-2">
         <span aria-hidden className="size-4 rounded-[4px] border border-border-strong bg-surface" />

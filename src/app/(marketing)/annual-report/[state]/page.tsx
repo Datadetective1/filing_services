@@ -190,13 +190,18 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
         data={graph(
           breadcrumbJsonLd(crumbs),
           faqJsonLd(faq),
-          serviceJsonLd({
-            name: `${j.name} ${first.filingName} filing service`,
-            description: `${site.name} prepares and submits the ${j.name} ${first.filingName} for businesses, using information the business provides and authorizes.`,
-            path,
-            stateName: j.name,
-            offers,
-          }),
+          // The filing service (and its price) is described only while we sell it in this state.
+          ...(sellable
+            ? [
+                serviceJsonLd({
+                  name: `${j.name} ${first.filingName} filing service`,
+                  description: `${site.name} prepares and submits the ${j.name} ${first.filingName} for businesses, using information the business provides and authorizes.`,
+                  path,
+                  stateName: j.name,
+                  offers,
+                }),
+              ]
+            : []),
         )}
       />
 
@@ -441,7 +446,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
               </div>
             </div>
             <Receipt
-              title="If we file it for you"
+              title={sellable ? "If we file it for you" : "What the state charges"}
               meta={exampleRule ? `Example: ${j.name} ${ENTITY_TYPE_LABELS[exampleRule.entityType]}` : `${j.name} annual report`}
               className="w-full md:rotate-[1.2deg]"
               footer={
@@ -452,11 +457,16 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 </span>
               }
             >
-              {exampleQuote && exampleRule ? (
+              {sellable && exampleQuote && exampleRule ? (
                 <PriceBreakdown quote={exampleQuote} stateName={j.name} totalLabel="Total if we file it" />
-              ) : (
+              ) : sellable ? (
                 <p className="text-sm leading-6 text-muted">
                   The state fee is {feeSummary(rules)}. Our service fee is shown as a separate line before you pay.
+                </p>
+              ) : (
+                <p className="text-sm leading-6 text-muted">
+                  The state fee is {feeSummary(rules)}, paid to the {agency}. We don&apos;t file in {j.name} yet; you can file directly
+                  with the state.
                 </p>
               )}
             </Receipt>

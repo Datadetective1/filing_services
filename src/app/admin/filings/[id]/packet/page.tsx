@@ -10,7 +10,7 @@ import { isTestPayment } from "@/components/admin/operator-guidance";
 import { PrintButton } from "@/components/admin/print-button";
 import { cn } from "@/components/ui/cn";
 import { site } from "@/config/site";
-import { getJurisdiction, stateAuthorizationForState } from "@/lib/compliance/registry";
+import { getJurisdiction, stateAuthorizationForEntity } from "@/lib/compliance/registry";
 import { FilingPacketView } from "@/components/intake/filing-packet-view";
 import { buildFilingPacket, type PacketRow } from "@/lib/filings/packet";
 import { PA_URLS } from "@/lib/compliance/states/pennsylvania";
@@ -63,8 +63,8 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
   const signerOperator = assigned ? staffLabel(assigned) : staff.displayName || staff.email;
   const days = daysBetween(today, filing.due_date);
   const testOrder = isTestPayment(order?.payment_mode);
-  // Washington: the packet is the customer-signed copy, in CCFS order.
-  const stateAuth = stateAuthorizationForState(filing.state_code);
+  // States with a runbook (WA, NV, UT): the packet is the customer-signed copy, in the portal's order.
+  const stateAuth = stateAuthorizationForEntity(filing.state_code, business?.entity_type, Boolean(business?.is_foreign));
   const signedPacket = Array.isArray(authorization?.packet_snapshot) ? (authorization.packet_snapshot as PacketRow[]) : null;
   const schema = (snapshot.intake_schema ?? { sections: [] }) as IntakeSchema;
   const statePacket = stateAuth ? (signedPacket ?? buildFilingPacket(stateAuth.runbook, schema, validateAll(schema, answers).values)) : null;
@@ -131,7 +131,11 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
         {statePacket ? (
           <PacketSection
             n={2}
-            title={signedPacket ? "Information to enter (customer-authorized, in CCFS order)" : "Information to enter (NOT yet authorized)"}
+            title={
+              signedPacket
+                ? `Information to enter (customer-authorized, in ${stateAuth?.runbook.portalName.split(" (")[0] ?? "the state portal's"} order)`
+                : "Information to enter (NOT yet authorized)"
+            }
             hint="Copy each value exactly as shown, section by section."
           >
             <FilingPacketView rows={statePacket} dense />

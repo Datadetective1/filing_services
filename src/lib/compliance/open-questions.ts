@@ -4,8 +4,9 @@ import type { EntityType } from "@/lib/domain/types";
  * Questions only the state (or the owner, inside the state's portal) can answer, whose
  * answers decide whether Filewell can lawfully and practically file for a customer.
  *
- * Fail closed: while a state/entity has an open question, production checkout refuses it
- * (even if <STATE>_LIVE_FILING_SALES is set) and no filing for it may be marked ready,
+ * Fail closed: while a state/entity has an open question, it is not sold wherever real money
+ * could be taken (production, or PAYMENTS_LIVE_ENABLED=true), even if <STATE>_LIVE_FILING_SALES
+ * is set; live checkout refuses it too; and no filing for it may be marked ready,
  * started or submitted anywhere. A question is closed by removing it here in a reviewed
  * change that records the answer (and, if needed, a new rule version).
  */

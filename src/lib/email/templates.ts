@@ -31,7 +31,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     subject: "Your {{state_name}} {{filing_title}} is due {{due_phrase}}",
     body:
       "{{company_name}}'s {{state_name}} {{filing_title}} is due {{due_phrase}}, on {{due_date}}.\n\n" +
-      "You can file it yourself on the state's website, or have {{brand}} prepare and submit it for you.",
+      "{{filing_options}}",
     ctaLabel: "Review your filing",
     description: "Deadline reminder before the due date (no order placed yet).",
   },

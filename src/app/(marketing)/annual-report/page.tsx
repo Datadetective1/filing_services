@@ -11,7 +11,7 @@ import { ButtonLink, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { CalendarDate } from "@/components/visual/calendar-date";
 import { UsTileMapLegend } from "@/components/visual/us-tile-map";
-import { isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
+import { isStateVerified, listJurisdictions, rulesForState, stateSupportLabel } from "@/lib/compliance/registry";
 import { stateFeeText } from "@/lib/compliance/view";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { dueDayText, dueGroups, sortByDue } from "@/lib/seo/content";
@@ -130,7 +130,7 @@ export default function AnnualReportHubPage() {
                   <div className="grid gap-4 px-5 pb-4 pt-5">
                     <div className="flex items-center justify-between gap-4">
                       <h3 className="text-xl font-semibold tracking-tight text-fg">{j.name}</h3>
-                      <Badge tone="success">Filing supported</Badge>
+                      <Badge tone="success">{stateSupportLabel(j.code)}</Badge>
                     </div>
                     <div aria-hidden className="flex gap-2">
                       {groups.map((g) => (
@@ -176,7 +176,8 @@ export default function AnnualReportHubPage() {
                 Annual reports by state
               </h2>
               <p className="text-[17px] leading-relaxed text-muted">
-                Supported means we have verified the state&apos;s requirements and can file for you. Not yet verified means we
+                Filing supported means we have verified the state&apos;s requirements and can file for you. Guide and free reminders
+                means we have verified them but don&apos;t file there yet. Not yet verified means we
                 haven&apos;t, so those pages show only the official agency link.
               </p>
             </div>

@@ -178,7 +178,7 @@ async function operatorToCheckpoint(browser: Browser, operator: { email: string;
 
     // The printable packet is the signed copy in CCFS order, with the certification.
     await opPage.goto(`/admin/filings/${filingId}/packet`);
-    await expect(opPage.locator("main")).toContainText("customer-authorized, in CCFS order");
+    await expect(opPage.locator("main")).toContainText("customer-authorized, in Washington CCFS order");
     await expect(opPage.locator("main")).toContainText("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
     await opPage.goto(`/admin/filings/${filingId}`);
 
@@ -325,6 +325,67 @@ test("Washington sandbox journey with changes: agent consent, edit after signing
     await operatorToCheckpoint(browser, operator, filingId, ["signed Washington's consent to serve", "Commercial plumbing"]);
   } finally {
     await backend().from("staff_members").update({ active: false }).eq("user_id", operator.id);
+    await ctx.close();
+  }
+});
+
+test("Washington delinquency fee: only on fresh evidence from Washington's own export, matched on the signed UBI", async ({ browser }) => {
+  test.setTimeout(300_000);
+  const customer = await createConfirmedUser("wa-delinq");
+  const name = `Cascade Late ${uniqueSuffix()} LLC`;
+  const ubiDigits = String(Math.floor(100_000_000 + Math.random() * 899_999_999));
+  const ubi = `${ubiDigits.slice(0, 3)} ${ubiDigits.slice(3, 6)} ${ubiDigits.slice(6)}`;
+  const ctx = await browser.newContext({ storageState: STORAGE_STATE });
+  const page = await ctx.newPage();
+  const record = (checkedAt: Date, source = "wa_ccfs_export") => ({
+    state_code: "WA",
+    entity_number: ubiDigits,
+    legal_name: name,
+    source,
+    retrieved_at: checkedAt.toISOString(),
+    status_raw: "Delinquent",
+    status_checked_at: checkedAt.toISOString(),
+  });
+  try {
+    await manualLookup(page, "WA", name, /^LLC/, "2016-10-12");
+    await signIn(page, customer.email, customer.password, "/file/start");
+    await page.getByRole("button", { name: /continue/i }).click();
+    await page.waitForURL(/\/file\/[0-9a-f-]{36}\/details/);
+    const filingId = page.url().match(/\/file\/([0-9a-f-]{36})\//)![1];
+    await waIntake(page, name, false, ubi);
+    await signReview(page);
+    await page.waitForURL(/\/checkout/);
+    const main = page.locator("main");
+
+    // No evidence: $70 + $49, the $25 only described as possible.
+    await expect(main).toContainText("$119.00");
+    await expect(main).toContainText("only if its own record shows the business as Delinquent");
+    // Stale evidence (30 days old) and another state's source are both ignored.
+    expect((await backend().from("state_entity_records").insert(record(new Date(Date.now() - 30 * 86_400_000)))).error).toBeNull();
+    expect((await backend().from("state_entity_records").insert(record(new Date(), "nv_official_export"))).error).toBeNull();
+    await page.reload();
+    await expect(main).toContainText("$119.00");
+    await expect(main).not.toContainText("$144.00");
+    // Fresh evidence from Washington's own export: the $25 is itemized and charged.
+    await backend().from("state_entity_records").update({ status_checked_at: new Date().toISOString() }).eq("state_code", "WA").eq("entity_number", ubiDigits).eq("source", "wa_ccfs_export");
+    await page.reload();
+    await expect(main).toContainText("$25.00");
+    await expect(main).toContainText("$144.00");
+    await page.getByRole("button", { name: /^pay \$/i }).click();
+    await page.waitForURL(/\/sandbox\/checkout\//);
+    await page.getByRole("button", { name: /pay \(test\)/i }).click();
+    await page.waitForURL(/\/confirmation/);
+    const { data: f } = await backend().from("filings").select("order_id").eq("id", filingId).single();
+    const { data: items } = await backend().from("order_items").select("kind, amount_cents").eq("order_id", f!.order_id);
+    expect(items!.map((i) => [i.kind, i.amount_cents]).sort()).toEqual([
+      ["government_fee", 7000],
+      ["government_late_fee", 2500],
+      ["service_fee", 4900],
+    ]);
+    const { data: order } = await backend().from("orders").select("government_fee_cents, service_fee_cents, total_cents").eq("id", f!.order_id).single();
+    expect(order).toEqual({ government_fee_cents: 9500, service_fee_cents: 4900, total_cents: 14400 });
+  } finally {
+    await backend().from("state_entity_records").delete().eq("entity_number", ubiDigits);
     await ctx.close();
   }
 });

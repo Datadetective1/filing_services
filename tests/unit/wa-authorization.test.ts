@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const gte = vi.fn();
 vi.mock("@/lib/supabase/admin", () => {
   const chain: Record<string, unknown> = {};
-  for (const m of ["from", "select", "eq", "in", "not", "order", "limit"]) chain[m] = () => chain;
+  for (const m of ["from", "select", "eq", "in", "not", "lte", "order", "limit"]) chain[m] = () => chain;
   chain.gte = (col: string, value: string) => {
     gte(col, value);
     return chain;

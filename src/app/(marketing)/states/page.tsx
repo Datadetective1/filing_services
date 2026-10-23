@@ -10,7 +10,7 @@ import { textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { CalendarDate } from "@/components/visual/calendar-date";
 import { UsTileMap, UsTileMapLegend } from "@/components/visual/us-tile-map";
-import { isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
+import { isStateVerified, listJurisdictions, rulesForState, stateSupportLabel } from "@/lib/compliance/registry";
 import { dueGroups, feeSummary } from "@/lib/seo/content";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -57,7 +57,7 @@ export default function StatesPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <p className="font-display text-xl font-semibold text-fg">{j.name}</p>
-                      <Badge tone="success">Filing supported</Badge>
+                      <Badge tone="success">{stateSupportLabel(j.code)}</Badge>
                     </div>
                     <div aria-hidden className="flex gap-1.5">
                       {groups.map((g) => (

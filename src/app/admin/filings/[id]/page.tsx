@@ -27,6 +27,7 @@ import { daysBetween, describeDaysRemaining, formatLongDate } from "@/lib/domain
 import { canTransition, isFilingStatus, OPERATOR_NEXT_ACTION, type FilingStatus } from "@/lib/domain/filing-status";
 import { ENTITY_TYPE_LABELS, isEntityType } from "@/lib/domain/types";
 import { openQuestionBlockers } from "@/lib/compliance/open-questions";
+import { stateAuthorizationForEntity } from "@/lib/compliance/registry";
 import { readyToFileBlockers } from "@/lib/filings/operations";
 import { formatAddress } from "@/lib/intake/validate";
 import { staffLabel, type ProfileEntry } from "../../_lib/data";
@@ -254,12 +255,18 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
           intakeComplete: d.answersComplete,
           authorizationSha256: d.authorization?.answers_sha256 ?? null,
           order: d.order,
+          governmentFeeRefundedCents: d.refundedGov,
           ruleVerificationStatus: d.snapshot.verification_status,
           production: isProductionEnvironment(),
           stateAuthorization: d.stateAuthorization,
           openQuestions: openQuestionBlockers(filing.state_code, (d.business as { entity_type?: string } | null)?.entity_type),
         })
       : [];
+  // What the customer must receive, from the state's runbook (Nevada: the list and the business license).
+  const stateRunbook = stateAuthorizationForEntity(filing.state_code, (d.business as { entity_type?: string } | null)?.entity_type)?.runbook;
+  const receiptToUpload = stateRunbook?.receipt
+    ? stateRunbook.receipt.replace(/\.$/, "").replace(/^The /, "the ")
+    : "the filed report and Acknowledgement Letter";
   const blockerNotice = blockers.length ? (
     <Notice tone="danger" role="alert" title="Don't file yet">
       <ul className="grid list-disc gap-1 pl-4">
@@ -359,7 +366,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
           <Notice tone="warning" className="mb-1">
             No customer-visible receipt yet.{" "}
             <a href="#documents" className="font-semibold underline underline-offset-4">
-              Upload the filed report and Acknowledgement Letter
+              Upload {receiptToUpload}
             </a>{" "}
             first. The customer gets the acceptance email once one is uploaded.
           </Notice>
@@ -384,7 +391,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
           <Notice tone="warning" className="mb-1">
             No customer-visible receipt yet.{" "}
             <a href="#documents" className="font-semibold underline underline-offset-4">
-              Upload the filed report and Acknowledgement Letter
+              Upload {receiptToUpload}
             </a>{" "}
             first.
           </Notice>
@@ -479,7 +486,12 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
   const idle = next === "No action";
   // A staff status change after the customer's message counts as handling it (history is newest first).
   const lastStaffChange = d.history.find((h) => h.actor_type === "staff")?.created_at ?? null;
-  const step = operatorNextStep({ status, orderStatus: d.order?.status, customerReplied: customerWroteLast(d.messages, lastStaffChange) });
+  const step = operatorNextStep({
+    status,
+    orderStatus: d.order?.status,
+    customerReplied: customerWroteLast(d.messages, lastStaffChange),
+    stateCode: filing.state_code,
+  });
 
   return (
     <>

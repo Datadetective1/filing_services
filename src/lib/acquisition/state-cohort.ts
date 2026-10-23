@@ -50,6 +50,8 @@ export const EXPORT_SOURCES: Record<string, { source: string; label: string; sea
 
 export interface ImportSummary {
   imported: number;
+  /** Rows not imported because the record on file is from a newer export. */
+  keptNewer: number;
   skipped: number;
   unsupportedType: number;
   columns: Record<string, string | null>;
@@ -78,12 +80,33 @@ export async function importStateExport(stateCode: string, csv: string, exported
     retrieved_at: exportedAt,
     raw: r.raw,
   }));
+  // Never let an older export replace newer evidence: a status is only as good as its date.
+  let keptNewer = 0;
+  let imported = 0;
   for (let i = 0; i < rows.length; i += 500) {
-    const { error } = await db().from("state_entity_records").upsert(rows.slice(i, i + 500), { onConflict: "state_code,entity_number,source" });
+    const batch = rows.slice(i, i + 500);
+    const { data: existing, error: readError } = await db()
+      .from("state_entity_records")
+      .select("entity_number, status_checked_at")
+      .eq("state_code", stateCode)
+      .eq("source", meta.source)
+      .in("entity_number", batch.map((r) => r.entity_number));
+    if (readError) throw new Error(readError.message);
+    const newer = new Set(
+      ((existing ?? []) as { entity_number: string; status_checked_at: string | null }[])
+        .filter((e) => e.status_checked_at && Date.parse(e.status_checked_at) > Date.parse(exportedAt))
+        .map((e) => e.entity_number),
+    );
+    const fresh = batch.filter((r) => !newer.has(r.entity_number));
+    keptNewer += batch.length - fresh.length;
+    if (!fresh.length) continue;
+    const { error } = await db().from("state_entity_records").upsert(fresh, { onConflict: "state_code,entity_number,source" });
     if (error) throw new Error(error.message);
+    imported += fresh.length;
   }
   return {
-    imported: rows.length,
+    imported,
+    keptNewer,
     skipped: parsed.skipped.length,
     unsupportedType: parsed.rows.filter((r) => !r.entityType).length,
     columns: parsed.columns,

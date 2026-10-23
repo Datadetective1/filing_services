@@ -9,7 +9,7 @@ import { Notice } from "@/components/ui/surface";
 import { findRule } from "@/lib/compliance/registry";
 import type { IntakeField, IntakeSchema } from "@/lib/compliance/types";
 import type { EntityType } from "@/lib/domain/types";
-import { governmentFeeDetails } from "@/lib/filings/customer";
+import { filingEntityNumber, governmentFeeDetails } from "@/lib/filings/customer";
 import { sameValue } from "@/lib/intake/prefill";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { FilingDetail } from "./load";
@@ -47,7 +47,7 @@ export async function RunbookPanel({ d }: { d: FilingDetail }) {
     d.order
       ? createAdminClient().from("order_items").select("kind, description, amount_cents").eq("order_id", d.order.id)
       : Promise.resolve({ data: [] as { kind: string; description: string; amount_cents: number }[] }),
-    governmentFeeDetails(d.filing, { is_nonprofit: Boolean(business?.is_nonprofit), state_entity_number: (business?.state_entity_number as string | null) ?? null }).catch(() => null),
+    governmentFeeDetails(d.filing, { is_nonprofit: Boolean(business?.is_nonprofit), state_entity_number: filingEntityNumber(business, answers) }).catch(() => null),
   ]);
   const changed = (prefill ?? []).filter((p) => !sameValue(p.original_value, answers[p.field_key as string]));
   // What the operator files is what the customer signed. Each row says where its value came from.

@@ -1,4 +1,5 @@
 import { isProductionSupabaseUrl, PRODUCTION_SUPABASE_REF, STAGING_SUPABASE_REF, supabaseRefOf } from "@/config/environments";
+import { RULES } from "@/lib/compliance/registry";
 import { resolveServicePrice, type ServicePrice } from "@/lib/domain/pricing";
 import type { EntityType } from "@/lib/domain/types";
 import type { NotifyOutcome } from "@/lib/filings/operations";
@@ -28,8 +29,8 @@ const WAITING_ON_CUSTOMER = "Waiting on the customer (no action unless they repl
 
 const STEP_BY_STATUS: Record<string, string> = {
   ready_for_review: "Review the details, then click Mark ready to file",
-  ready_to_file: "Click Start filing, then file on file.dos.pa.gov using the filing packet",
-  in_progress: "Finish filing on file.dos.pa.gov, enter the confirmation number, then click Mark submitted",
+  ready_to_file: "Click Start filing, then file on {portal} using the filing packet",
+  in_progress: "Finish filing on {portal}, enter the confirmation number, then click Mark submitted",
   submitted: "Upload the state's approved report or receipt, then click Mark accepted",
   accepted: "Upload the filed report or Acknowledgement Letter (visible to the customer). The filing completes when it is uploaded",
   rejected: "Read the rejection reason, then fix it and click Retry filing, or contact the customer",
@@ -46,10 +47,23 @@ export const MONEY_HELD_ORDER_STATUSES = ["paid", "partially_refunded"] as const
  * (order still "paid"). A partial refund is the normal end for a filing cancelled
  * after submission (the state keeps its fee), so it is not an open task.
  */
+/** The host of the portal where a state's filing is made (its runbook portal, else its filing URL). */
+export function statePortalHost(stateCode: string | null | undefined): string {
+  const rule = RULES.find((r) => r.stateCode === stateCode);
+  const url = rule?.operatorRunbook?.portalUrl ?? rule?.officialFilingUrl ?? null;
+  try {
+    return url ? new URL(url).host : "the state's portal";
+  } catch {
+    return "the state's portal";
+  }
+}
+
 export function operatorNextStep(input: {
   status: string;
   orderStatus: string | null | undefined;
   customerReplied?: boolean;
+  /** The filing's state, for the portal named in the step (Pennsylvania when omitted). */
+  stateCode?: string | null;
 }): NextStep | null {
   const { status, orderStatus } = input;
   if (status === "draft" || status === "completed" || status === "refunded") return null;
@@ -59,7 +73,7 @@ export function operatorNextStep(input: {
   if (status === "needs_information" || status === "needs_customer_action") {
     return { instruction: WAITING_ON_CUSTOMER, kind: "waiting", reason: "status" };
   }
-  const instruction = STEP_BY_STATUS[status];
+  const instruction = STEP_BY_STATUS[status]?.replace("{portal}", statePortalHost(input.stateCode ?? "PA"));
   return instruction ? { instruction, kind: "action", reason: "status" } : null;
 }
 
