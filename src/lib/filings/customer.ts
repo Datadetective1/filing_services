@@ -7,7 +7,8 @@ import { trackServer } from "@/lib/analytics/server";
 import { audit } from "@/lib/audit";
 import type { SessionUser } from "@/lib/auth/session";
 import { stableStringify } from "@/lib/compliance/hash";
-import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
+import { findRule, getJurisdiction, isSellableForBusiness } from "@/lib/compliance/registry";
+import { openQuestionsFor } from "@/lib/compliance/open-questions";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { todayInTimeZone } from "@/lib/domain/dates";
 import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen, type FilingPeriod } from "@/lib/domain/deadlines";
@@ -225,7 +226,7 @@ export async function startFiling(user: SessionUser, businessId: string): Promis
   if (!business) throw new FilingError("Business not found", "not_found");
 
   const rule = findRule(business.state_code, business.entity_type as EntityType, "annual_report", business.is_foreign);
-  if (!rule || !isRuleSellable(rule)) throw new FilingError("We can't file this yet.", "unavailable");
+  if (!rule || !isSellableForBusiness(rule, { isNonprofit: Boolean(business.is_nonprofit) })) throw new FilingError("We can't file this yet.", "unavailable");
   const current = await getCurrentRuleVersion(rule.ruleKey);
   if (!current) throw new FilingError("Filing rules are not available right now.", "unavailable");
 
@@ -691,6 +692,17 @@ function addressCols(a: Address) {
 // Pricing + checkout
 // ---------------------------------------------------------------------------
 
+/**
+ * The state entity number a filing is for: the number in the filing's own answers (what the
+ * customer confirms and the operator files), else the business record. Status evidence (e.g.
+ * Washington's delinquency) is matched on it; a manual lookup leaves the business row empty.
+ */
+export function filingEntityNumber(business: { state_entity_number?: unknown } | null | undefined, answers: IntakeAnswers | null | undefined): string | null {
+  const answered = typeof answers?.entity_number === "string" ? answers.entity_number.trim() : "";
+  if (answered) return answered;
+  return typeof business?.state_entity_number === "string" && business.state_entity_number.trim() ? business.state_entity_number.trim() : null;
+}
+
 /** The full government fee evaluation for a filing (due, possible and avoidable charges). */
 export async function governmentFeeDetails(
   filing: { state_code: string; rule_snapshot: unknown; due_date?: string | null },
@@ -763,12 +775,18 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
   }
 
   const sellRule = findRule(loaded.filing.state_code, loaded.business.entity_type as EntityType, "annual_report", Boolean(loaded.business.is_foreign));
-  if (!sellRule || !isRuleSellable(sellRule)) throw new FilingError("We can't file this right now.", "unavailable");
+  if (!sellRule || !isSellableForBusiness(sellRule, { isNonprofit: Boolean(loaded.business.is_nonprofit) })) {
+    throw new FilingError("We can't file this right now.", "unavailable");
+  }
 
-  const quote = await quoteForFiling(loaded.filing, loaded.business);
+  const quote = await quoteForFiling(loaded.filing, { ...loaded.business, state_entity_number: filingEntityNumber(loaded.business, loaded.answers) });
   if (!quote) throw new FilingError("Pricing isn't configured for this filing yet.", "unavailable");
 
   const provider = getPaymentProvider();
+  // Defense in depth: never take live money while a state question means it can't be filed.
+  if (provider.mode === "live" && openQuestionsFor(loaded.filing.state_code, loaded.business.entity_type as string).length > 0) {
+    throw new FilingError("We can't take payment for this filing yet. Nothing has been charged, and your details are saved.", "unavailable");
+  }
   if (requiresApprovedPrice(provider.mode) && !quote.servicePriceApproved) {
     throw new FilingError("Online payment isn't open yet for this filing. Nothing has been charged, and your details are saved.", "unavailable");
   }

@@ -12,7 +12,7 @@ import { hasVerifiedNoLateFee } from "@/lib/domain/deadline-copy";
 import { formatCents } from "@/lib/domain/money";
 import type { Quote } from "@/lib/domain/pricing";
 import type { EntityType } from "@/lib/domain/types";
-import { governmentFeeDetails, quoteForFiling } from "@/lib/filings/customer";
+import { filingEntityNumber, governmentFeeDetails, quoteForFiling } from "@/lib/filings/customer";
 import { validateAll } from "@/lib/intake/validate";
 import { getPaymentReadiness, requiresApprovedPrice } from "@/lib/payments";
 import { TrackView } from "@/components/analytics/track-view";
@@ -48,11 +48,11 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
   const summary = filingSummary(loaded);
   let quote: Quote | null = null;
   try {
-    quote = await quoteForFiling(loaded.filing, loaded.business);
+    quote = await quoteForFiling(loaded.filing, { ...loaded.business, state_entity_number: filingEntityNumber(loaded.business, loaded.answers) });
   } catch {
     quote = null;
   }
-  const fees = await governmentFeeDetails(loaded.filing, loaded.business).catch(() => null);
+  const fees = await governmentFeeDetails(loaded.filing, { ...loaded.business, state_entity_number: filingEntityNumber(loaded.business, loaded.answers) }).catch(() => null);
   const payments = getPaymentReadiness();
   const sandbox = payments.mode === "sandbox";
   // Only an approved service price is shown and charged on production or in live mode.

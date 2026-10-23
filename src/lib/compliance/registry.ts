@@ -2,7 +2,7 @@ import { isProductionEnvironment } from "@/config/site";
 import { openQuestionsFor } from "./open-questions";
 import type { EntityType } from "@/lib/domain/types";
 import { JURISDICTIONS } from "./jurisdictions";
-import { stateSalesEnabled } from "./launch";
+import { EXPANSION_STATES, stateSalesEnabled } from "./launch";
 import { NEVADA_RULES } from "./states/nevada";
 import { PENNSYLVANIA_RULES } from "./states/pennsylvania";
 import { UTAH_RULES } from "./states/utah";
@@ -81,8 +81,38 @@ export function stateAuthorizationForState(stateCode: string, filingTypeCode = "
   return rule ? { rule, auth: rule.stateAuthorization!, runbook: rule.operatorRunbook! } : null;
 }
 
+/**
+ * The customer-authorization requirements and portal runbook of this entity's own rule.
+ * Use this wherever the wording or the portal fields differ by entity type (Nevada's
+ * declaration and corporation-only questions); stateAuthorizationForState returns the
+ * state's first rule. Falls back to the state-level lookup when the entity is unknown.
+ */
+export function stateAuthorizationForEntity(stateCode: string, entityType: string | null | undefined, isForeign = false, filingTypeCode = "annual_report") {
+  const rule = entityType ? findRule(stateCode, entityType as EntityType, filingTypeCode, isForeign) : undefined;
+  if (rule?.stateAuthorization && rule.operatorRunbook) return { rule, auth: rule.stateAuthorization, runbook: rule.operatorRunbook };
+  return entityType && rule ? null : stateAuthorizationForState(stateCode, filingTypeCode);
+}
+
+/**
+ * Public label for a state: "Filing supported" only while Filewell can actually be paid to
+ * file there (verified rules and the state's sales switch on). A verified state with sales
+ * off gets the guide and free reminders, never a claim that we file.
+ */
+export function stateSupportLabel(stateCode: string): "Filing supported" | "Guide and free reminders" | "Not yet verified" {
+  if (!isStateVerified(stateCode)) return "Not yet verified";
+  return rulesForState(stateCode).some(isRuleSellable) ? "Filing supported" : "Guide and free reminders";
+}
+
 export function isStateVerified(stateCode: string): boolean {
   return RULES.some((r) => r.stateCode === stateCode && r.verificationStatus === "verified");
+}
+
+/**
+ * Whether real money could be taken here: the production deployment, or any deployment
+ * allowed to use live payment keys (PAYMENTS_LIVE_ENABLED=true, see lib/payments).
+ */
+function realPaymentsPossible(): boolean {
+  return isProductionEnvironment() || process.env.PAYMENTS_LIVE_ENABLED?.trim() === "true";
 }
 
 /**
@@ -92,6 +122,17 @@ export function isStateVerified(stateCode: string): boolean {
 export function isRuleSellable(rule: ComplianceRuleDef): boolean {
   const j = getJurisdiction(rule.stateCode);
   if (!(rule.verificationStatus === "verified" && !!j && j.supportLevel !== "unsupported" && stateSalesEnabled(rule.stateCode))) return false;
-  // Fail closed on production: an unresolved state question blocks sales even if the switch is on.
-  return !(isProductionEnvironment() && openQuestionsFor(rule.stateCode, rule.entityType).length > 0);
+  // Fail closed wherever real money could be taken: an unresolved state question blocks sales
+  // even if the switch is on. Only a sandbox/test deployment may run those journeys.
+  return !(realPaymentsPossible() && openQuestionsFor(rule.stateCode, rule.entityType).length > 0);
+}
+
+/**
+ * Sellable for this business. Washington, Nevada and Utah rules cover profit entities
+ * only (nonprofit corporations are out of scope in each state file), so a business marked
+ * not-for-profit is never sold there.
+ */
+export function isSellableForBusiness(rule: ComplianceRuleDef, business: { isNonprofit: boolean }): boolean {
+  if (business.isNonprofit && (EXPANSION_STATES as readonly string[]).includes(rule.stateCode)) return false;
+  return isRuleSellable(rule);
 }

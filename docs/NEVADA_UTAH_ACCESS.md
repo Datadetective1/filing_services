@@ -38,7 +38,8 @@ BizHub site, the portal's own login and checkout screens, and the NRS.
    bulk/API filings?
 3. **Signer capacity.**
    - For LLCs, NRS 76.100(3)(e) names only a manager or managing member to sign the business license.
-   - The annual list allows "some other person specifically authorized" (NRS 86.263(1)(e)).
+   - UNVERIFIED for LLCs: whether the annual list allows "some other person specifically authorized". The
+     only quoted source for that phrase is the corporation statute (NRS 78.150(1)(e)); see STATE_READINESS.md.
    - Will the SOS accept the combined filing signed by an authorized filing agent for an LLC? **Counsel should
      review this too.** It decides whether Filewell can sign Nevada LLC filings at all.
 4. Is the 2.5% card fee charged on annual lists, and is ACH available?
@@ -69,7 +70,8 @@ Do not buy the SOS data report (no cohort without it) unless you decide to separ
 - the current portal menu and screens, and any filing-agent authorization ("Filing Authority");
 - the FY2027 fees.
 
-Filewell already applies the $10 only when Utah's own dated record shows Delinquent, never from a date alone.
+Filewell never charges the $10 until the Division confirms how its record shows a late renewal (since 2026-10-23
+no Utah status is read as evidence). See [STATE_READINESS.md](STATE_READINESS.md).
 
 **Your steps:**
 1. Call the Division, (801) 530-4849. Ask about items 1–4 above, and how a filing service files for a client

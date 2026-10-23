@@ -1,5 +1,8 @@
 # State expansion: Washington, Nevada, Utah
 
+> **Status and blockers now live in [STATE_READINESS.md](STATE_READINESS.md)** (single source of truth).
+> This page keeps the original research tables; where they differ, STATE_READINESS.md wins.
+
 Prepared 2026-10-01, updated 2026-10-02. Washington's $49 fee is approved (sales still off; see
 [WASHINGTON_LAUNCH.md](WASHINGTON_LAUNCH.md)). Nevada and Utah owner steps are in
 [NEVADA_UTAH_ACCESS.md](NEVADA_UTAH_ACCESS.md).
@@ -19,9 +22,11 @@ URLs. Every value below comes from those sources.
 | `<STATE>_LOOKUP_ENABLED` | on unless `"false"` | off unless `"true"` |
 | `<STATE>_LIVE_FILING_SALES` | on unless `"false"` | off unless `"true"` (staging/preview only today) |
 
-To open a state for real orders, the owner must do two things:
-1. Approve that state's price in Admin, then Pricing.
-2. Set `<STATE>_LIVE_FILING_SALES=true` on production.
+To open a state for real orders, the owner must (see STATE_READINESS.md):
+1. Clear that state's blockers, including every open question in `src/lib/compliance/open-questions.ts`
+   (an open question blocks sales wherever real money could be taken, and blocks filing everywhere).
+2. Approve that state's price in Admin, then Pricing.
+3. Set `<STATE>_LIVE_FILING_SALES=true` on production.
 
 ## Washington
 
@@ -43,7 +48,7 @@ To open a state for real orders, the owner must do two things:
 | **Due date** | Last day of the anniversary month of formation (or qualification, if foreign). A list filed more than 90 days early counts as an amended list for the previous year. |
 | **Data source** | nvsos.gov and ORION (which replaced SilverFlume on 2026-09-14) sit behind Imperva/hCaptcha bot protection. There's no free export; a paid data report (reportedly $500/month) exists. **Not purchased.** |
 | **October 2026** | Not available without buying data. Customers can still look up their own business (manual entry). |
-| **Filing** | ORION account (SilverFlume credentials carry over). The list includes a declaration under penalty of perjury signed by an officer or "some other person specifically authorized". |
+| **Filing** | ORION account (SilverFlume credentials carry over). The list includes a declaration under penalty of perjury. VERIFIED for corporations only: signed by an officer or "some other person specifically authorized" (NRS 78.150(1)(e)). For LLC/LP/LLP the signer is an open state question (`nv_signer_authority`). |
 | **Not offered online** | Corporations above the $75,000 stock tier, publicly traded corporations, nonprofits (NRS 82), business trusts. |
 
 ## Utah
@@ -51,11 +56,11 @@ To open a state for real orders, the owner must do two things:
 | | |
 |---|---|
 | **Government fee** | $18: LLC, corporation, LP/LLLP, LLP, business trust (FY2026 fee schedule). |
-| **Late** | $10 late renewal fee for LLC, corporation, LP/LLLP, LLP. **None** for business trusts (renewal coupon). Filewell applies it only when Utah's record shows Delinquent: S.B. 40 changed the due date today and the Division hasn't published how its late date follows. |
+| **Late** | $10 late renewal fee for LLC, corporation, LP/LLLP, LLP. **None** for business trusts (renewal coupon). Filewell **never charges it** until the Division confirms how its record shows a late renewal (Utah statuses are not read as evidence; the sources print a per-renewal "Late Date", not a "Delinquent" status). |
 | **Due date** | From 2026-10-01 (Utah Code 16-1a-212, S.B. 40): last day of the anniversary month, deliverable up to 60 days before. The Division may set a different period by rule. |
 | **Data source** | The entity search sits behind a Cloudflare challenge; opendata.utah.gov is decommissioned; business lists are paid ($0.01/record). **Not purchased.** |
 | **October 2026** | Not available without buying data. |
-| **Filing** | UtahID login required. Entities formed after 2024-09-16 have Filing Authority, so the entity's administrator must add Filewell's UtahID as a designated user. |
+| **Filing** | UtahID login required. UNVERIFIED: that entities formed after 2024-09-16 have Filing Authority on (no source; the only source calls it "an optional security feature"). If on, the entity's administrator must add the filer's UtahID as a designated user. Open state question `ut_third_party_filing`. |
 
 ## Prefill: field classification
 
