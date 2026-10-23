@@ -97,7 +97,7 @@ export const OWNER_CHECKS: CheckState[] = [
           waRow(
             12,
             "Authorized Person",
-            "Name + certification checkbox. Filewell uses the Revised 6.2025 form's wording: \"I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.\" (The online instructions page still quotes older wording.)",
+            "Name + certification checkbox. Live CCFS (owner-verified 2026-10-23): \"This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.\" Filewell mirrors this. (The Revised 6.2025 paper form words it differently: \"I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.\")",
             "Authorized person and certification",
             "**Different certification wording** (copy it)",
             "Exact certification wording shown",
@@ -123,7 +123,7 @@ export const OWNER_CHECKS: CheckState[] = [
         ],
         body: [
           "**Required checkboxes (all three must be ticked; the customer also types their full name and title):**",
-          `1. \"I reviewed every item of the Washington filing information above and it is true and correct. I understand Amary Coulibaly, sole proprietor will certify to the state, relying on my confirmation: “I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.”\"
+          `1. \"I reviewed every item of the Washington filing information above and it is true and correct. I understand Amary Coulibaly, sole proprietor will certify to the state, relying on my confirmation: “This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.”\"
 2. \"I confirm the information above is accurate and complete.\"
 3. \"I authorize Filewell to act for the business as described in the authorization above, and I agree to the Terms of Service and Refund Policy.\"`,
           "**Registered-agent consent.** This only applies when the customer says the agent changes (a new agent, or a new street address). Changes to contact details alone need no consent. The customer must choose one of two options:",

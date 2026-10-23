@@ -22,7 +22,7 @@ vi.mock("server-only", () => ({}));
 
 const { evaluateFees } = await import("@/lib/compliance/fees");
 const { certificationTextFor, findRule, stateAuthorizationForState } = await import("@/lib/compliance/registry");
-const { WA_CERTIFICATION_TEXT, WA_RA_CONSENT_TEXT } = await import("@/lib/compliance/states/washington");
+const { WA_CERTIFICATION_TEXT, WA_PAPER_FORM_CERTIFICATION_TEXT, WA_RA_CONSENT_TEXT } = await import("@/lib/compliance/states/washington");
 const { authorizationText, changedSinceSigned } = await import("@/lib/filings/customer");
 const { comparisonCheckpointBlocker, readyToFileBlockers } = await import("@/lib/filings/operations");
 const { buildFilingPacket, packetSections, packetSha256, registeredAgentConsentRequired, signedCurrentCertification } = await import("@/lib/filings/packet");
@@ -59,15 +59,21 @@ function answers(over: Record<string, unknown> = {}) {
   };
 }
 
-describe("Washington intake follows the current form (Revised 6.2025)", () => {
-  it("is version 3 with the form's certification and consent text, verbatim and sourced", () => {
-    expect(rule.version).toBe(3);
+describe("Washington intake follows the current form; the certification mirrors live CCFS", () => {
+  it("is version 4 with the live CCFS certification and the form's consent text, verbatim and sourced", () => {
+    expect(rule.version).toBe(4);
     expect(wa.auth.certificationText).toBe(WA_CERTIFICATION_TEXT);
-    expect(WA_CERTIFICATION_TEXT).toBe("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
-    expect(WA_CERTIFICATION_TEXT).not.toContain("hereby executed");
+    expect(WA_CERTIFICATION_TEXT).toBe("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
     const cert = rule.sources.find((s) => s.factKey === "certification")!;
     expect(cert.quote).toBe(WA_CERTIFICATION_TEXT);
-    expect(cert.title).toContain("Revised 6.2025");
+    expect(cert.title).toContain("Live CCFS");
+    expect(cert.url).toContain("ccfs.sos.wa.gov");
+    // The paper form's different wording is documented as a discrepancy, never used as the certification.
+    const paper = rule.sources.find((s) => s.factKey === "certification_paper_form")!;
+    expect(paper.quote).toBe(WA_PAPER_FORM_CERTIFICATION_TEXT);
+    expect(paper.quote).not.toBe(WA_CERTIFICATION_TEXT);
+    expect(paper.title).toContain("differs from live CCFS");
+    expect(wa.auth.certificationText).not.toBe(WA_PAPER_FORM_CERTIFICATION_TEXT);
     expect(wa.auth.registeredAgentConsent?.consentText).toBe(WA_RA_CONSENT_TEXT);
     const keys = rule.sources.map((s) => s.factKey);
     for (const k of ["certification", "ra_consent", "ra_consent_rule", "ra_consent_text", "ra_consent_signature", "controlling_interest"]) expect(keys).toContain(k);
@@ -195,14 +201,14 @@ describe("operator gates", () => {
     expect(withAuth.some((x) => x.includes("full filing packet"))).toBe(true);
   });
 
-  it("a signature that quoted the old certification wording is not current: the customer signs again", () => {
+  it("a signature that quoted wording other than the operative rule's (e.g. the paper form's) is not current: the customer signs again", () => {
     const current = certificationTextFor("WA", "llc");
     expect(current).toBe(WA_CERTIFICATION_TEXT);
     expect(signedCurrentCertification(current, { facts_certified: true, certification_text: WA_CERTIFICATION_TEXT })).toBe(true);
     expect(
       signedCurrentCertification(current, {
         facts_certified: true,
-        certification_text: "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.",
+        certification_text: WA_PAPER_FORM_CERTIFICATION_TEXT,
       }),
     ).toBe(false);
     expect(signedCurrentCertification(current, { facts_certified: false, certification_text: WA_CERTIFICATION_TEXT })).toBe(false);

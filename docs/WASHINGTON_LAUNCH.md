@@ -16,7 +16,8 @@ Sources (checked 2026-10-01/02):
 
 | Requirement | Official wording |
 |---|---|
-| Authorized person's certification (form, Revised 6.2025, section 7) | "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law." Rule v3 uses this wording; the online instructions page still quotes older wording ("This document is hereby executed under penalty of law ..."). |
+| Authorized person's certification (live CCFS, owner-verified 2026-10-23) | "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct." Rule v4 mirrors this; the online instructions page matches it. |
+| Certification on the paper form (Revised 6.2025, section 7) | "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law." **Differs from live CCFS.** Not used by Filewell (we file online); kept as a documented discrepancy. |
 | Registered agent consent (online) | "The Consent of the Registered Agent is required if any changes other than contact info is made. By selecting one of the radio buttons under 'Registered Agent Consent' the submitter is attesting to the statements listed." |
 | Consent (statute) | "A registered agent shall not be appointed without having given prior consent in a record to the appointment." (RCW 23.95.415) |
 | Consent statement (form p.2) | "I hereby consent to serve as Registered Agent in the State of Washington for the named business. ..." Signed by the agent, any agent type. |
@@ -26,7 +27,7 @@ Sources (checked 2026-10-01/02):
 
 ## Customer flow (built)
 
-1. **Intake (rule v3; v2 had the same intake).** UBI is required (9 digits; spaces or hyphens allowed). The registered-agent section asks
+1. **Intake (rule v4; v2 had the same intake).** UBI is required (9 digits; spaces or hyphens allowed). The registered-agent section asks
    whether the agent changes (no / contact details only / new agent or new street address), the agent type
    (commercial / noncommercial), the name, the Washington street address (noncommercial only) and the agent email
    (noncommercial agents whose details change). Controlling interest asks the state's four questions word for word;

@@ -22,15 +22,18 @@ import type { ComplianceRuleDef, IntakeSchema, RuleSource } from "../types";
  * as the state asks them, registered-agent change/type with the new agent's consent, and the
  * state's authorized-person certification shown to the customer before they sign.
  *
- * v3 (2026-10-23) quotes the authorized-person certification from the current form
- * (Annual Report, Revised 6.2025, section 7) instead of the online instructions page.
+ * v3 (2026-10-23, never published) quoted the Revised 6.2025 paper form's certification.
+ * v4 (2026-10-23) uses the certification the live CCFS portal shows (owner-verified in CCFS
+ * Express Annual Report With Changes on 2026-10-23), because that is what Filewell's operator
+ * actually certifies. The paper form words it differently; both are recorded as sources and
+ * the discrepancy is documented, not reconciled (docs/STATE_READINESS.md).
  *
  * Scope: domestic and foreign profit corporations, LLCs, LPs/LLLPs and LLPs.
  * Not yet: nonprofit corporations ($60/$20 + charitable rules), Title 24.06 entities.
  */
 
 const VERIFIED = "2026-10-01";
-const VERIFIED_V3 = "2026-10-23";
+const VERIFIED_V4 = "2026-10-23";
 const REVIEWER = "Official-source verification (sos.wa.gov, WAC, RCW; automated research, quotes verbatim)";
 const SOS = "Washington Secretary of State";
 const LEG = "Washington State Legislature";
@@ -57,8 +60,19 @@ export const WA_URLS = {
   rcw415: "https://app.leg.wa.gov/RCW/default.aspx?cite=23.95.415",
 } as const;
 
-/** The authorized person's certification, verbatim (Annual Report form, Revised 6.2025, section 7 "Authorized Person"). */
-export const WA_CERTIFICATION_TEXT = "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.";
+/**
+ * The authorized person's certification Filewell's operator makes, verbatim as the live CCFS
+ * portal shows it (Express Annual Report With Changes, Authorized Person; owner-verified
+ * 2026-10-23; also the wording of the online filing instructions). This is the operative text
+ * the customer confirms before signing.
+ */
+export const WA_CERTIFICATION_TEXT = "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.";
+
+/**
+ * The paper form's different wording (Annual Report, Revised 6.2025, section 7). Recorded only to
+ * document the discrepancy: Filewell files online and never shows this as its certification.
+ */
+export const WA_PAPER_FORM_CERTIFICATION_TEXT = "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.";
 
 /** Washington's Consent to Serve as Registered Agent, verbatim (Annual Report form, Revised 6.2025, page 2). */
 export const WA_RA_CONSENT_TEXT =
@@ -121,7 +135,20 @@ const COMMON: RuleSource[] = [
     LEG,
   ),
   src("on_time", WA_URLS.processing, "Processing guidelines", "Electronically submitted before midnight on the due date"),
-  { ...src("certification", WA_URLS.paperForm, "Annual Report form (Revised 6.2025), (7) Authorized Person", WA_CERTIFICATION_TEXT), lastVerifiedAt: VERIFIED_V3 },
+  {
+    ...src("certification", WA_URLS.expressAnnualReport, "Live CCFS Express Annual Report With Changes, Authorized Person (owner-verified in the portal)", WA_CERTIFICATION_TEXT),
+    lastVerifiedAt: VERIFIED_V4,
+  },
+  src("certification_instructions", WA_URLS.onlineInstructions, "Instructions to file an Annual Report online", WA_CERTIFICATION_TEXT),
+  {
+    ...src(
+      "certification_paper_form",
+      WA_URLS.paperForm,
+      "Annual Report form (Revised 6.2025), (7) Authorized Person: paper wording, differs from live CCFS",
+      WA_PAPER_FORM_CERTIFICATION_TEXT,
+    ),
+    lastVerifiedAt: VERIFIED_V4,
+  },
   src(
     "ra_consent",
     WA_URLS.onlineInstructions,
@@ -143,7 +170,7 @@ const COMMON: RuleSource[] = [
       "Annual Report form (Revised 6.2025), page 2",
       "Provide the name of the Commercial Registered Agent OR Non-Commercial Registered Agent. The appointed agent must sign the Consent to Serve statement below.",
     ),
-    lastVerifiedAt: VERIFIED_V3,
+    lastVerifiedAt: VERIFIED_V4,
   },
   src(
     "controlling_interest",
@@ -402,11 +429,11 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
     // v1 (effective 2026-10-01) never took an order. v2 matches the current form and online
-    // instructions (UBI, controlling-interest questions, registered-agent consent). v3 takes
-    // the authorized-person certification from the Revised 6.2025 form.
-    version: 3,
+    // instructions (UBI, controlling-interest questions, registered-agent consent). v3 (never
+    // published) took the paper form's certification; v4 uses the live CCFS certification.
+    version: 4,
     verificationStatus: "verified",
-    effectiveFrom: VERIFIED_V3,
+    effectiveFrom: VERIFIED_V4,
     filingName: "Annual Report",
     dueRule: { kind: "anniversary_month_end" },
     firstDueRule: { kind: "year_after_formation" },
@@ -514,8 +541,8 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
       operatorCheckpoint: true,
     },
     sources: COMMON,
-    lastVerifiedAt: VERIFIED_V3,
-    verifiedBy: REVIEWER,
+    lastVerifiedAt: VERIFIED_V4,
+    verifiedBy: `${REVIEWER}; certification checked by the owner in live CCFS 2026-10-23`,
   };
 }
 

@@ -179,7 +179,7 @@ async function operatorToCheckpoint(browser: Browser, operator: { email: string;
     // The printable packet is the signed copy in CCFS order, with the certification.
     await opPage.goto(`/admin/filings/${filingId}/packet`);
     await expect(opPage.locator("main")).toContainText("customer-authorized, in Washington CCFS order");
-    await expect(opPage.locator("main")).toContainText("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
+    await expect(opPage.locator("main")).toContainText("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
     await opPage.goto(`/admin/filings/${filingId}`);
 
     await opPage.getByRole("button", { name: "Mark ready to file" }).click();
@@ -225,7 +225,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     await expect(main).toContainText("604 123 456");
     await expect(main).toContainText("Date of Filing");
     await expect(main).toContainText("will sign the Annual Report as the business's authorized person");
-    await expect(main).toContainText("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
+    await expect(main).toContainText("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
     await expect(page.getByText("Your new registered agent's consent")).toHaveCount(0);
     await page.screenshot({ path: "test-results/wa-review.png", fullPage: true });
     await page.setViewportSize({ width: 375, height: 812 });
@@ -253,7 +253,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     expect(auth!.facts_certified).toBe(true);
     expect(auth!.packet_sha256).toMatch(/^[0-9a-f]{64}$/);
     expect((auth!.packet_snapshot as { section: string }[])[0].section).toBe("Business Information");
-    expect(auth!.certification_text).toBe("I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.");
+    expect(auth!.certification_text).toBe("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
     expect(auth!.registered_agent_consent).toBeNull();
     expect(auth!.terms_version).toMatch(/\.state1$/);
     const { data: f } = await backend().from("filings").select("order_id").eq("id", filingId).single();
@@ -390,8 +390,9 @@ test("Washington delinquency fee: only on fresh evidence from Washington's own e
   }
 });
 
-const WA_OLD_CERTIFICATION = "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.";
-const WA_CERTIFICATION = "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.";
+/** The live CCFS certification Filewell mirrors (rule v4), and the paper form's different wording. */
+const WA_CERTIFICATION = "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.";
+const WA_OLD_CERTIFICATION = "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.";
 
 /** Sign with "someone else is the agent": Filewell never consents for the agent. */
 async function signReviewAgentToSign(page: Page) {
@@ -422,14 +423,14 @@ test("Washington readiness: old-wording signature re-signed, agent-signed consen
     const filingId = page.url().match(/\/file\/([0-9a-f-]{36})\//)![1];
     await waIntake(page, name, true, ubi);
 
-    // The customer sees the current Revised 6.2025 certification before signing.
+    // The customer sees the live CCFS certification (not the paper form's wording) before signing.
     await expect(page.locator("main")).toContainText(WA_CERTIFICATION);
     await expect(page.locator("main")).not.toContainText(WA_OLD_CERTIFICATION);
     await signReviewAgentToSign(page);
     await page.waitForURL(/\/checkout/);
     await expect(page.locator("main")).toContainText("We'll need the new agent's signed consent");
 
-    // A signature that quoted the old wording (e.g. signed before the form revision) is not current:
+    // A signature that quoted other wording (here the paper form's, as rule v3 briefly did) is not current:
     // checkout sends the customer back to Review to sign again.
     const { data: latest } = await backend().from("filing_authorizations").select("*").eq("filing_id", filingId).order("created_at", { ascending: false }).limit(1).single();
     const { id: _id, created_at: _c, ...copy } = latest as Record<string, unknown>;

@@ -32,15 +32,15 @@ questions in a reviewed change that records the answers (new rule version if any
 
 | | |
 |---|---|
-| Rule | `WA:annual_report:*` **v3** (2026-10-23). v3 changes only the authorized-person certification (v2 quoted the online instructions' older wording). Re-run the seed after deploy to publish v3. |
+| Rule | `WA:annual_report:*` **v4** (2026-10-23). v4 cites the live CCFS certification (same wording as v2) and records the paper-form discrepancy; v3 (paper-form wording) was never published. Re-run the seed after deploy to publish v4. |
 | Government fee | VERIFIED $70 (WAC 434-112-085(7)(p)); no online processing fee (075(1)(a)). |
 | Delinquency fee | VERIFIED $25 "If the business entity's status is listed as Delinquent". DECISION: charged only from a Washington CCFS export record for the entity number being filed, dated within 14 days and never future-dated; otherwise shown as possible, not charged. |
 | Due date | VERIFIED last day of the formation/registration month (WAC 434-112-060(1)); up to 180 days early. |
-| Certification | VERIFIED (Annual Report form, Revised 6.2025, §7): "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law." Shown to the customer before signing and stored with the signature. A signature quoting older wording is re-signed before checkout and blocks filing. |
+| Certification | VERIFIED in live CCFS (Express Annual Report With Changes, Authorized Person; owner-checked 2026-10-23): "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct." This is the operative wording: shown to the customer before signing and stored with the signature. A signature quoting any other wording is re-signed before checkout and blocks filing. |
+| Certification discrepancy | VERIFIED: the Revised 6.2025 paper form (§7) reads "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law." It differs from live CCFS. Filewell mirrors CCFS and does not claim the two match. |
 | Registered agent consent | VERIFIED: required for a new agent (form p.2, RCW 23.95.415); "The appointed agent must sign the Consent to Serve statement". DECISION: two paths only: the signer is the agent and ticks Washington's statement, or the agent's own signed consent is uploaded (only an upload made after the latest signature counts). Filewell never consents for the agent. |
 | Filing authority | VERIFIED RCW 23.95.240(2): an agent executing a filing affirms it is authorized. COUNSEL Q: does the click-through authorization cover the operator making the §7 certification? |
 | Portal | CCFS Express Annual Report; Cloudflare check done by hand. |
-| BLOCKER | PORTAL CHECK: the CCFS checkbox wording. The online instructions page still quotes the old wording ("This document is hereby executed under penalty of law ..."); v3 uses the form's. PR #20 stays unmerged until the walkthrough settles which text CCFS shows. |
 | BLOCKER | PORTAL CHECK: the exact Registered Agent Consent radio wording, and whether a contact-details-only agent change asks for consent (online instructions: not required; paper form: page 2 "REQUIRED FOR ALL TYPES"). |
 | BLOCKER | COUNSEL Q above. |
 
@@ -72,7 +72,7 @@ questions in a reviewed change that records the answers (new rule version if any
 
 ## Contradictions found (not resolved here)
 
-1. **WA certification**: online instructions (old wording) vs Revised 6.2025 form (new wording). Resolved only by the CCFS walkthrough.
+1. **WA certification**: live CCFS and the online instructions use one wording; the Revised 6.2025 paper form uses another. Filewell mirrors live CCFS (owner-verified 2026-10-23). Not reconciled: the form still differs.
 2. **WA agent consent for contact-only changes**: online instructions vs paper form p.2.
 3. **NV signer authority for LLC/LP/LLP**: `open-questions.ts` and NEVADA_UTAH_ACCESS.md say the annual list "allows an authorized person" for these types, but the only quoted source for that phrase is the corporation statute (NRS 78.150(1)(e)). STATE_EXPANSION.md applied the corporation signer rule to every type.
 4. **NV $100,000 disclosure fee and LLP exclusion**: no `RuleSource` for either.
@@ -91,10 +91,8 @@ questions in a reviewed change that records the answers (new rule version if any
 
 ### Washington: CCFS walkthrough (Express Annual Report, "with changes"; stop before Add to Cart)
 
-1. **Certification text** at the Authorized Person checkbox. Copy it exactly.
-   - If it reads "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law." → PR #20 is right.
-   - If it still reads "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct." → tell me; PR #20 must change before merge.
-2. **Registered Agent Consent**: copy the exact wording of each radio button.
+1. ~~Certification text~~ Done 2026-10-23: live CCFS shows the online-instructions wording (rule v4).
+2. **Registered Agent Consent**: copy the exact wording of each radio button. CCFS shows the consent choices only once the agent is changed (edit or replace); the 2026-10-23 walkthrough left the agent unchanged, so this is still open. Until then Filewell's consent stays fail-closed (signer is the agent and ticks the form's statement, or the agent's own signed consent is uploaded).
 3. **Contact-only agent change**: edit only the agent's email or phone (same agent, same street address). Does CCFS ask for consent? Yes / No.
 4. **Screen order**: any section missing, added, or in a different order from: Business Information → Registered Agent → Principal Office → Governors → Nature of Business → Effective Date → Controlling Interest → Return Address → Upload → Authorized Person → Review.
 
