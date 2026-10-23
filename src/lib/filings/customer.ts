@@ -692,6 +692,17 @@ function addressCols(a: Address) {
 // Pricing + checkout
 // ---------------------------------------------------------------------------
 
+/**
+ * The state entity number a filing is for: the number in the filing's own answers (what the
+ * customer confirms and the operator files), else the business record. Status evidence (e.g.
+ * Washington's delinquency) is matched on it; a manual lookup leaves the business row empty.
+ */
+export function filingEntityNumber(business: { state_entity_number?: unknown } | null | undefined, answers: IntakeAnswers | null | undefined): string | null {
+  const answered = typeof answers?.entity_number === "string" ? answers.entity_number.trim() : "";
+  if (answered) return answered;
+  return typeof business?.state_entity_number === "string" && business.state_entity_number.trim() ? business.state_entity_number.trim() : null;
+}
+
 /** The full government fee evaluation for a filing (due, possible and avoidable charges). */
 export async function governmentFeeDetails(
   filing: { state_code: string; rule_snapshot: unknown; due_date?: string | null },
@@ -768,7 +779,7 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
     throw new FilingError("We can't file this right now.", "unavailable");
   }
 
-  const quote = await quoteForFiling(loaded.filing, loaded.business);
+  const quote = await quoteForFiling(loaded.filing, { ...loaded.business, state_entity_number: filingEntityNumber(loaded.business, loaded.answers) });
   if (!quote) throw new FilingError("Pricing isn't configured for this filing yet.", "unavailable");
 
   const provider = getPaymentProvider();

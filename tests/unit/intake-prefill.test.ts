@@ -86,6 +86,33 @@ describe("buildPrefill", () => {
     expect(provenance.find((p) => p.field_key === "governors")!.retrieved_at).toBe("2025-06-01T00:00:00.000Z");
   });
 
+  it("carries stable signed answers (agent, nature of business, management) but never per-period questions", () => {
+    const previous = {
+      at: "2025-10-20T00:00:00.000Z",
+      answers: {
+        registered_agent_type: "noncommercial",
+        registered_agent_name: "Jane Agent",
+        registered_agent_email: "jane@example.com",
+        nature_of_business: "Residential plumbing",
+        llc_management: "manager",
+        registered_agent_change: "new",
+        ci_owns_real_property: "yes",
+        ci_transfer_16: "yes",
+        nv_trade_investigations: "yes",
+        sbl_exemption: "no",
+        authorized_stock_tier: "over_75000",
+      },
+    };
+    const { answers, provenance } = buildPrefill(input({ registry: null, previous }));
+    for (const k of ["registered_agent_type", "registered_agent_name", "registered_agent_email", "nature_of_business", "llc_management"]) {
+      expect(answers[k], k).toBe(previous.answers[k as keyof typeof previous.answers]);
+      expect(provenance.find((p) => p.field_key === k)?.source, k).toBe("previous_filing");
+    }
+    for (const k of ["registered_agent_change", "ci_owns_real_property", "ci_transfer_16", "nv_trade_investigations", "sbl_exemption", "authorized_stock_tier"]) {
+      expect(answers[k], k).toBeUndefined();
+    }
+  });
+
   it("works without a register record (manual lookup): nothing is attributed to the state", () => {
     const { answers, provenance } = buildPrefill(input({ registry: null }));
     expect(answers).toEqual({ legal_name: "Daff Trucking LLC", entity_number: "0007380992", jurisdiction_of_formation: "Pennsylvania" });

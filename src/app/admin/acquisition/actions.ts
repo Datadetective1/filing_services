@@ -153,7 +153,7 @@ export async function importStateExportAction(_prev: ActionState, formData: Form
     await audit({ actorUserId: admin.id, actorType: "staff", action: "acquisition.state_export_imported", entityType: "state_entity_record", entityId: null, after: { state, ...r } });
     revalidatePath("/admin/acquisition/october");
     if (!r.imported) return fail(`Nothing imported. ${r.firstSkips.map((s) => `Line ${s.line}: ${s.reason}`).join("; ")}`);
-    return ok(`Imported ${r.imported} ${state} records${r.skipped ? `, skipped ${r.skipped}` : ""}${r.unsupportedType ? ` (${r.unsupportedType} with a type Filewell doesn't cover yet)` : ""}.`, [
+    return ok(`Imported ${r.imported} ${state} records${r.skipped ? `, skipped ${r.skipped}` : ""}${r.keptNewer ? `, kept ${r.keptNewer} newer records already on file` : ""}${r.unsupportedType ? ` (${r.unsupportedType} with a type Filewell doesn't cover yet)` : ""}.`, [
       { label: "Columns used", value: Object.entries(r.columns).map(([k, v]) => `${k}: ${v ?? "not found"}`).join(" · ") },
     ]);
   } catch (e) {

@@ -216,6 +216,16 @@ async function notify(
   });
 }
 
+/**
+ * A registered agent's signed consent counts only if uploaded at or after the latest customer
+ * signature: an earlier upload belongs to an earlier agent change and can't cover this one.
+ */
+export function consentUploadedSince(docs: { created_at: string }[], signedAt: string | null): boolean {
+  if (!signedAt) return false;
+  const since = Date.parse(signedAt);
+  return docs.some((d) => Date.parse(d.created_at) >= since);
+}
+
 /** Load everything readyToFileBlockers needs, from the database (never from the form). */
 async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise<string[]> {
   const db = createAdminClient();
@@ -227,7 +237,7 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
       : Promise.resolve({ data: [], error: null }),
     db
       .from("filing_authorizations")
-      .select("answers_sha256, facts_certified, registered_agent_consent")
+      .select("answers_sha256, facts_certified, registered_agent_consent, created_at")
       .eq("filing_id", ctx.filing.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -236,8 +246,8 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
       ? db.from("orders").select("status, payment_mode").eq("id", ctx.filing.orderId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     stateAuth
-      ? db.from("filing_documents").select("id", { count: "exact", head: true }).eq("filing_id", ctx.filing.id).eq("kind", "registered_agent_consent")
-      : Promise.resolve({ count: 0, error: null }),
+      ? db.from("filing_documents").select("created_at").eq("filing_id", ctx.filing.id).eq("kind", "registered_agent_consent")
+      : Promise.resolve({ data: [] as { created_at: string }[], error: null }),
   ]);
   const loadError = answersRes.error ?? refundsRes.error ?? authRes.error ?? orderRes.error ?? consentDocs.error;
   if (loadError) throw new OperationError(`Could not check the filing before filing: ${loadError.message}`);
@@ -252,7 +262,7 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
           factsCertified: Boolean(auth?.facts_certified),
           consentRequired: registeredAgentConsentRequired(stateAuth.auth, values),
           consentMode: auth?.registered_agent_consent?.mode ?? null,
-          consentDocumentOnFile: (consentDocs.count ?? 0) > 0,
+          consentDocumentOnFile: consentUploadedSince((consentDocs.data ?? []) as { created_at: string }[], (authRes.data?.created_at as string | undefined) ?? null),
         }
       : null,
     schema: snapshot.intake_schema,

@@ -1,5 +1,5 @@
 import type { IntakeField, IntakeSchema } from "@/lib/compliance/types";
-import { formatAddress, formatRegisteredOffice, type Address, type Person, type RegisteredOffice } from "@/lib/intake/validate";
+import { conditionMet, formatAddress, formatRegisteredOffice, type Address, type Person, type RegisteredOffice } from "@/lib/intake/validate";
 
 /**
  * Renders a filing's answers using the intake schema frozen in its rule snapshot,
@@ -59,6 +59,8 @@ export function IntakeAnswersView({ schema, answers }: { schema: IntakeSchema | 
             {section.fields.map((field) => {
               const value = answers[field.key];
               const missing = value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
+              // A conditional question that doesn't apply to these answers is not missing (e.g. a commercial agent's address).
+              const requiredNow = Boolean(field.required) && conditionMet(field, answers);
               return (
                 <div
                   key={field.key}
@@ -67,11 +69,12 @@ export function IntakeAnswersView({ schema, answers }: { schema: IntakeSchema | 
                   <dt className="text-muted">
                     {field.label}
                     {field.required ? null : <span className="text-subtle"> (optional)</span>}
+                    {field.required && !requiredNow ? <span className="text-subtle"> (doesn&apos;t apply)</span> : null}
                   </dt>
-                  <dd className={missing && field.required ? "font-semibold text-danger" : "min-w-0 break-words text-fg"}>
+                  <dd className={missing && requiredNow ? "font-semibold text-danger" : "min-w-0 break-words text-fg"}>
                     {field.type === "people" && Array.isArray(value) ? (
                       <PeopleList people={value as Person[]} />
-                    ) : missing && field.required ? (
+                    ) : missing && requiredNow ? (
                       "Missing"
                     ) : (
                       answerText(field, value)

@@ -178,7 +178,7 @@ async function operatorToCheckpoint(browser: Browser, operator: { email: string;
 
     // The printable packet is the signed copy in CCFS order, with the certification.
     await opPage.goto(`/admin/filings/${filingId}/packet`);
-    await expect(opPage.locator("main")).toContainText("customer-authorized, in CCFS order");
+    await expect(opPage.locator("main")).toContainText("customer-authorized, in Washington CCFS order");
     await expect(opPage.locator("main")).toContainText("This document is hereby executed under penalty of law");
     await opPage.goto(`/admin/filings/${filingId}`);
 

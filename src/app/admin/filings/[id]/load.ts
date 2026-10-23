@@ -1,5 +1,5 @@
 import { stateAuthorizationForEntity } from "@/lib/compliance/registry";
-import { comparisonCheckpointBlocker } from "@/lib/filings/operations";
+import { comparisonCheckpointBlocker, consentUploadedSince } from "@/lib/filings/operations";
 import { registeredAgentConsentRequired } from "@/lib/filings/packet";
 import "server-only";
 import { createHash } from "node:crypto";
@@ -329,7 +329,10 @@ export async function loadFilingDetail(id: string) {
   const stateAuth = stateAuthorizationForEntity(filing.state_code, business?.entity_type, Boolean(business?.is_foreign));
   const currentValues = snapshot.intake_schema ? validateAll(snapshot.intake_schema, answers).values : answers;
   const consentRequired = stateAuth ? registeredAgentConsentRequired(stateAuth.auth, currentValues) : false;
-  const consentDocumentOnFile = documents.some((doc) => doc.kind === "registered_agent_consent");
+  const consentDocumentOnFile = consentUploadedSince(
+    documents.filter((doc) => doc.kind === "registered_agent_consent"),
+    authorization?.created_at ?? null,
+  );
   const stateAuthorization = stateAuth
     ? {
         factsCertified: Boolean(authorization?.facts_certified),

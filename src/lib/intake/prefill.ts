@@ -41,7 +41,25 @@ export interface PrefillInputs {
   now: string;
 }
 
-const CARRY_FORWARD = ["registered_office", "principal_office", "governors", "principal_officers", "jurisdiction_of_formation", "state_notice_email"] as const;
+/**
+ * Answers carried from the last signed filing (tagged previous_filing; the customer confirms
+ * them at review). Questions that must be answered fresh each period are never carried: a
+ * registered-agent change, Washington's controlling-interest answers, Nevada's disclosure,
+ * exemption and stock-tier answers.
+ */
+const CARRY_FORWARD = [
+  "registered_office",
+  "principal_office",
+  "governors",
+  "principal_officers",
+  "jurisdiction_of_formation",
+  "state_notice_email",
+  "registered_agent_type",
+  "registered_agent_name",
+  "registered_agent_email",
+  "nature_of_business",
+  "llc_management",
+] as const;
 
 function present(v: unknown): boolean {
   if (v === null || v === undefined) return false;

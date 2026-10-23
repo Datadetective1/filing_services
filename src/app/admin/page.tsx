@@ -61,6 +61,7 @@ interface PaidOrder {
 
 interface PaidFiling {
   id: string;
+  state_code: string;
   due_date: string;
   status: string;
   businesses: { legal_name: string } | { legal_name: string }[] | null;
@@ -137,7 +138,7 @@ export default async function TodayPage() {
       // Every paid filing that may need the operator: active work, plus cancelled orders still holding money.
       db
         .from("filings")
-        .select("id, due_date, status, businesses(legal_name), orders!inner(status, payment_mode)", { count: "exact" })
+        .select("id, state_code, due_date, status, businesses(legal_name), orders!inner(status, payment_mode)", { count: "exact" })
         .in("status", [...ACTIVE_OPERATIONS_STATUSES, "cancelled"])
         .in("orders.status", [...MONEY_HELD_ORDER_STATUSES])
         .order("due_date", { ascending: true })
@@ -192,7 +193,7 @@ export default async function TodayPage() {
   for (const f of paid) {
     const order = one(f.orders);
     const customerReplied = customerWroteLast(messagesByFiling.get(f.id) ?? [], lastStaffChange.get(f.id) ?? null);
-    const step = operatorNextStep({ status: f.status, orderStatus: order?.status, customerReplied });
+    const step = operatorNextStep({ status: f.status, orderStatus: order?.status, customerReplied, stateCode: f.state_code });
     if (step) nextSteps.push({ filing: f, order, step });
   }
   const needsYouCount = nextSteps.filter((r) => r.step.kind === "action").length;
