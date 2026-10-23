@@ -32,7 +32,7 @@ questions in a reviewed change that records the answers (new rule version if any
 
 | | |
 |---|---|
-| Rule | `WA:annual_report:*` **v3** (2026-10-23, PR #20, unmerged until the CCFS walkthrough). v3 changes only the authorized-person certification; production still runs v2. |
+| Rule | `WA:annual_report:*` **v3** (2026-10-23). v3 changes only the authorized-person certification (v2 quoted the online instructions' older wording). Re-run the seed after deploy to publish v3. |
 | Government fee | VERIFIED $70 (WAC 434-112-085(7)(p)); no online processing fee (075(1)(a)). |
 | Delinquency fee | VERIFIED $25 "If the business entity's status is listed as Delinquent". DECISION: charged only from a Washington CCFS export record for the entity number being filed, dated within 14 days and never future-dated; otherwise shown as possible, not charged. |
 | Due date | VERIFIED last day of the formation/registration month (WAC 434-112-060(1)); up to 180 days early. |
