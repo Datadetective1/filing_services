@@ -170,13 +170,18 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
         data={graph(
           breadcrumbJsonLd(crumbs),
           faqJsonLd(rule.faq),
-          serviceJsonLd({
-            name: `${j.name} ${copy.title} ${rule.filingName} filing service`,
-            description: `${site.name} prepares and submits the ${j.name} ${rule.filingName} for ${copy.plural}, using information the business provides and authorizes.`,
-            path,
-            stateName: j.name,
-            offers: quote ? [{ name: `${j.name} ${copy.title} ${rule.filingName} filing`, path, quote }] : [],
-          }),
+          // The filing service (and its price) is described only while we sell it in this state.
+          ...(sellable
+            ? [
+                serviceJsonLd({
+                  name: `${j.name} ${copy.title} ${rule.filingName} filing service`,
+                  description: `${site.name} prepares and submits the ${j.name} ${rule.filingName} for ${copy.plural}, using information the business provides and authorizes.`,
+                  path,
+                  stateName: j.name,
+                  offers: quote ? [{ name: `${j.name} ${copy.title} ${rule.filingName} filing`, path, quote }] : [],
+                }),
+              ]
+            : []),
         )}
       />
 
@@ -201,7 +206,7 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
             <RequirementCard
               rule={rule}
               period={period}
-              quote={quote}
+              quote={sellable ? quote : null}
               headingAs="h2"
               actions={
                 <FilingCtaLink href={findHref} stateCode={j.code} entityType={rule.entityType}>

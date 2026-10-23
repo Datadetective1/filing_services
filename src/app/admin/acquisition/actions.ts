@@ -8,6 +8,8 @@ import { PARTNER_KINDS, PARTNER_STATUSES, savePartner } from "@/lib/acquisition/
 import { EXPORT_SOURCES, importStateExport } from "@/lib/acquisition/state-cohort";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth/session";
+import { getJurisdiction } from "@/lib/compliance/registry";
+import { todayInTimeZone } from "@/lib/domain/dates";
 import { actionError, fail, ok, parseForm } from "../_lib/action-helpers";
 
 /**
@@ -142,6 +144,9 @@ export async function importStateExportAction(_prev: ActionState, formData: Form
   if (file.size > 4 * 1024 * 1024) return fail("Files must be 4 MB or smaller. Narrow the search (for example one business type at a time).");
   const exportedOn = String(formData.get("exportedOn") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(exportedOn)) return fail("Enter the date you downloaded the export.");
+  // The export date becomes the status timestamp: a future date would keep a status "fresh" too long.
+  const stateToday = todayInTimeZone(getJurisdiction(state)?.timezone ?? "America/New_York");
+  if (Number.isNaN(Date.parse(`${exportedOn}T00:00:00Z`)) || exportedOn > stateToday) return fail("The export date can't be later than today.");
   try {
     const text = await file.text();
     const r = await importStateExport(state, text, `${exportedOn}T12:00:00Z`);

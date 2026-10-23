@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
-import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
+import { findRule, getJurisdiction, isSellableForBusiness } from "@/lib/compliance/registry";
 import { formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
 import { deadlineLabel } from "@/lib/domain/deadline-copy";
 import type { FilingPeriod } from "@/lib/domain/deadlines";
@@ -39,7 +39,7 @@ export default async function FileStartPage({ searchParams }: PageProps<"/file/s
   const stateName = jurisdiction?.name ?? lookup.stateCode;
   const agencyName = jurisdiction?.agency.name.split(" - ")[0] ?? `${stateName} state agency`;
   const rule = findRule(lookup.stateCode, lookup.entityType, "annual_report", lookup.isForeign);
-  const supported = Boolean(rule && rule.verificationStatus === "verified" && isRuleSellable(rule));
+  const supported = Boolean(rule && rule.verificationStatus === "verified" && isSellableForBusiness(rule, { isNonprofit: lookup.isNonprofit }));
 
   let period: FilingPeriod | null = null;
   if (rule) {

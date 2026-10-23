@@ -1,5 +1,6 @@
 import "server-only";
-import { getJurisdiction, RULES } from "@/lib/compliance/registry";
+import { site } from "@/config/site";
+import { getJurisdiction, isRuleSellable, RULES } from "@/lib/compliance/registry";
 import { addDays, daysBetween, todayInTimeZone } from "@/lib/domain/dates";
 import { nextFilingPeriod } from "@/lib/domain/deadlines";
 import type { FilingStatus } from "@/lib/domain/filing-status";
@@ -255,6 +256,7 @@ async function dispatchOne(
       filing_title: rule?.filingName ?? "Annual Report",
       due_date: formatLongDate(rem.due_date),
       due_phrase: dueDatePhrase(daysBetween(today, rem.due_date)),
+      filing_options: filingOptionsSentence(rule ? isRuleSellable(rule) : false),
     },
     ctaPath: filing ? `/dashboard/filings/${filing.id}` : `/dashboard/businesses/${rem.business_id}`,
     businessId: rem.business_id,
@@ -272,4 +274,11 @@ async function dispatchOne(
     })
     .eq("id", rem.id);
   return status === "sent" ? "sent" : status === "skipped" ? "skipped" : "failed";
+}
+
+/** Offer our filing service in a reminder only where we sell it (the state's sales switch is on). */
+export function filingOptionsSentence(sellable: boolean, brand = site.name): string {
+  return sellable
+    ? `You can file it yourself on the state's website, or have ${brand} prepare and submit it for you.`
+    : "You can file it yourself on the state's website.";
 }

@@ -254,6 +254,7 @@ function ActionsPanel({ d, isAdmin, today }: { d: FilingDetail; isAdmin: boolean
           intakeComplete: d.answersComplete,
           authorizationSha256: d.authorization?.answers_sha256 ?? null,
           order: d.order,
+          governmentFeeRefundedCents: d.refundedGov,
           ruleVerificationStatus: d.snapshot.verification_status,
           production: isProductionEnvironment(),
           stateAuthorization: d.stateAuthorization,

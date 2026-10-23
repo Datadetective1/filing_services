@@ -18,7 +18,7 @@ import { sendNotification, type SendNotificationInput, type SendResult } from "@
 import { rollForwardRequirement } from "@/lib/reminders/engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { openQuestionBlockers } from "@/lib/compliance/open-questions";
-import { stateAuthorizationForState } from "@/lib/compliance/registry";
+import { stateAuthorizationForEntity, stateAuthorizationForState } from "@/lib/compliance/registry";
 import { loadFilingContext } from "./context";
 import { registeredAgentConsentRequired } from "./packet";
 
@@ -77,6 +77,8 @@ export interface ReadyToFileInput {
   /** answers_sha256 of the latest authorization, or null when none is recorded. */
   authorizationSha256: string | null;
   order: { status: string; payment_mode: string | null } | null;
+  /** Government fee refunded or being refunded on this order (pending and succeeded refunds). */
+  governmentFeeRefundedCents?: number;
   ruleVerificationStatus: string | null | undefined;
   /** True on the production deployment, where only live payments may be filed. */
   production: boolean;
@@ -117,6 +119,9 @@ export function readyToFileBlockers(input: ReadyToFileInput): string[] {
     blockers.push("The order is not paid. Do not file.");
   } else if (input.production && input.order.payment_mode !== "live") {
     blockers.push("This order was paid in test mode. No money was collected. Do not file it with the state.");
+  }
+  if ((input.governmentFeeRefundedCents ?? 0) > 0) {
+    blockers.push("Some or all of the state fee was refunded to the customer. Do not file unless the customer pays it again.");
   }
   if (input.ruleVerificationStatus !== "verified") {
     blockers.push("This filing's rule is not verified. Escalate before filing.");
@@ -214,9 +219,12 @@ async function notify(
 /** Load everything readyToFileBlockers needs, from the database (never from the form). */
 async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise<string[]> {
   const db = createAdminClient();
-  const stateAuth = stateAuthorizationForState(ctx.filing.stateCode);
-  const [answersRes, authRes, orderRes, consentDocs] = await Promise.all([
+  const stateAuth = stateAuthorizationForEntity(ctx.filing.stateCode, ctx.filing.entityType);
+  const [answersRes, refundsRes, authRes, orderRes, consentDocs] = await Promise.all([
     db.from("filing_answers").select("answers, is_complete").eq("filing_id", ctx.filing.id).maybeSingle(),
+    ctx.filing.orderId
+      ? db.from("refunds").select("government_fee_cents").eq("order_id", ctx.filing.orderId).neq("status", "failed")
+      : Promise.resolve({ data: [], error: null }),
     db
       .from("filing_authorizations")
       .select("answers_sha256, facts_certified, registered_agent_consent")
@@ -231,7 +239,7 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
       ? db.from("filing_documents").select("id", { count: "exact", head: true }).eq("filing_id", ctx.filing.id).eq("kind", "registered_agent_consent")
       : Promise.resolve({ count: 0, error: null }),
   ]);
-  const loadError = answersRes.error ?? authRes.error ?? orderRes.error ?? consentDocs.error;
+  const loadError = answersRes.error ?? refundsRes.error ?? authRes.error ?? orderRes.error ?? consentDocs.error;
   if (loadError) throw new OperationError(`Could not check the filing before filing: ${loadError.message}`);
   const snapshot = ctx.filing.ruleSnapshot as { intake_schema?: IntakeSchema; verification_status?: string };
   const answers = (answersRes.data?.answers ?? {}) as Record<string, unknown>;
@@ -252,6 +260,7 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
     intakeComplete: Boolean(answersRes.data?.is_complete),
     authorizationSha256: (authRes.data?.answers_sha256 as string | undefined) ?? null,
     order: (orderRes.data as { status: string; payment_mode: string | null } | null) ?? null,
+    governmentFeeRefundedCents: ((refundsRes.data ?? []) as { government_fee_cents: number }[]).reduce((s, r) => s + r.government_fee_cents, 0),
     ruleVerificationStatus: snapshot.verification_status,
     production: isProductionEnvironment(),
   });

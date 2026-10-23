@@ -10,6 +10,8 @@ export interface DirectoryItem {
   name: string;
   slug: string;
   verified: boolean;
+  /** Public status wording (see stateSupportLabel). */
+  label: string;
 }
 
 /**
@@ -87,7 +89,7 @@ export function StateDirectory({
                 </span>
                 <span className="min-w-0 flex-1 text-[15px] font-medium text-fg">{s.name}</span>
                 <span className={cn("shrink-0 text-[12px]", s.verified ? "font-semibold text-accent-soft-fg" : "text-subtle")}>
-                  {s.verified ? "Filing supported" : "Not yet verified"}
+                  {s.label}
                 </span>
                 <ArrowRight
                   size={14}

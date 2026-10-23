@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { evaluateFees } from "@/lib/compliance/fees";
 import { stateLookupEnabled } from "@/lib/compliance/launch";
-import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
+import { findRule, getJurisdiction, isSellableForBusiness } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { dueRuleText } from "@/lib/compliance/view";
@@ -175,7 +175,7 @@ export default async function FindResultPage() {
   // for "Have us file it" (Pennsylvania today). Known-but-not-sellable states get the
   // deadline, itemized state fees, direct filing and free reminders, without checkout.
   const supported = Boolean(rule && rule.verificationStatus === "verified" && stateLookupEnabled(lookup.stateCode));
-  const sellable = Boolean(supported && rule && isRuleSellable(rule));
+  const sellable = Boolean(supported && rule && isSellableForBusiness(rule, { isNonprofit: lookup.isNonprofit }));
 
   let signedIn = false;
   try {

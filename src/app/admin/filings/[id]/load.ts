@@ -1,4 +1,4 @@
-import { stateAuthorizationForState } from "@/lib/compliance/registry";
+import { stateAuthorizationForEntity } from "@/lib/compliance/registry";
 import { comparisonCheckpointBlocker } from "@/lib/filings/operations";
 import { registeredAgentConsentRequired } from "@/lib/filings/packet";
 import "server-only";
@@ -326,7 +326,7 @@ export async function loadFilingDetail(id: string) {
 
   // State-specific authorization (Washington): packet confirmation, registered-agent consent
   // and the operator's comparison checkpoint. Same inputs the server checks before filing.
-  const stateAuth = stateAuthorizationForState(filing.state_code);
+  const stateAuth = stateAuthorizationForEntity(filing.state_code, business?.entity_type, Boolean(business?.is_foreign));
   const currentValues = snapshot.intake_schema ? validateAll(snapshot.intake_schema, answers).values : answers;
   const consentRequired = stateAuth ? registeredAgentConsentRequired(stateAuth.auth, currentValues) : false;
   const consentDocumentOnFile = documents.some((doc) => doc.kind === "registered_agent_consent");
