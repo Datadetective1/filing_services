@@ -31,7 +31,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash, userAgent } from "@/lib/security/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { buildFilingPacket, packetSha256, registeredAgentConsentRequired, type PacketRow, type RegisteredAgentConsent } from "./packet";
+import { buildFilingPacket, packetSha256, registeredAgentConsentRequired, signedCurrentCertification, type PacketRow, type RegisteredAgentConsent } from "./packet";
 import { getCurrentRuleVersion, listActivePricesAdmin } from "./rules-db";
 
 export class FilingError extends Error {
@@ -751,12 +751,18 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
   const db = createAdminClient();
   const { data: latestAuth } = await db
     .from("filing_authorizations")
-    .select("answers_sha256")
+    .select("answers_sha256, facts_certified, certification_text")
     .eq("filing_id", filingId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (!latestAuth) throw new FilingError("Review and authorize the filing before checkout.", "invalid");
+  // States with their own certification (Washington, Nevada): the signature must quote the
+  // wording as it stands now, so an older signature is re-signed before any payment.
+  const checkoutStateAuth = stateAuthorizationFor(loaded.filing.state_code, loaded.business);
+  if (checkoutStateAuth && !signedCurrentCertification(checkoutStateAuth.auth.certificationText, latestAuth)) {
+    throw new FilingError("The state's wording you confirm has been updated. Review and sign again before checkout.", "invalid");
+  }
   const currentSha = createHash("sha256").update(stableStringify(validateAll(loaded.schema, loaded.answers).values)).digest("hex");
   if (currentSha !== latestAuth.answers_sha256) {
     throw new FilingError("Your details changed after you signed. Review and sign again.", "invalid");

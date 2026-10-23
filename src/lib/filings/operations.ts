@@ -5,7 +5,7 @@ import { trackServer } from "@/lib/analytics/server";
 import { audit } from "@/lib/audit";
 import type { StaffUser } from "@/lib/auth/session";
 import { stableStringify } from "@/lib/compliance/hash";
-import type { IntakeSchema, StateAuthorization } from "@/lib/compliance/types";
+import type { IntakeSchema } from "@/lib/compliance/types";
 import { storeFilingDocument, type DocumentKind } from "@/lib/documents/storage";
 import { canTransition, type FilingStatus } from "@/lib/domain/filing-status";
 import { formatCents } from "@/lib/domain/money";
@@ -18,9 +18,9 @@ import { sendNotification, type SendNotificationInput, type SendResult } from "@
 import { rollForwardRequirement } from "@/lib/reminders/engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { openQuestionBlockers } from "@/lib/compliance/open-questions";
-import { stateAuthorizationForState } from "@/lib/compliance/registry";
+import { certificationTextFor, stateAuthorizationForState } from "@/lib/compliance/registry";
 import { loadFilingContext } from "./context";
-import { registeredAgentConsentRequired } from "./packet";
+import { registeredAgentConsentRequired, signedCurrentCertification } from "./packet";
 
 /**
  * Operator actions. Every function takes an already-authorized StaffUser (the
@@ -211,17 +211,6 @@ async function notify(
   });
 }
 
-/**
- * The latest authorization confirmed the packet against the state's certification as it is
- * worded now. A signature quoting older wording (e.g. before a form revision) must be redone.
- */
-export function signedCurrentCertification(
-  auth: StateAuthorization,
-  signed: { facts_certified: boolean | null; certification_text: string | null } | null | undefined,
-): boolean {
-  return Boolean(signed?.facts_certified) && (signed?.certification_text ?? null) === auth.certificationText;
-}
-
 /** Load everything readyToFileBlockers needs, from the database (never from the form). */
 async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise<string[]> {
   const db = createAdminClient();
@@ -256,7 +245,7 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
     openQuestions: openQuestionBlockers(ctx.filing.stateCode, ctx.filing.entityType),
     stateAuthorization: stateAuth
       ? {
-          factsCertified: signedCurrentCertification(stateAuth.auth, auth),
+          factsCertified: signedCurrentCertification(certificationTextFor(ctx.filing.stateCode, ctx.filing.entityType), auth),
           consentRequired: registeredAgentConsentRequired(stateAuth.auth, values),
           consentMode: auth?.registered_agent_consent?.mode ?? null,
           consentDocumentOnFile: (consentDocs.count ?? 0) > 0,
