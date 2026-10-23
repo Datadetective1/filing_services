@@ -179,7 +179,7 @@ async function operatorToCheckpoint(browser: Browser, operator: { email: string;
     // The printable packet is the signed copy in CCFS order, with the certification.
     await opPage.goto(`/admin/filings/${filingId}/packet`);
     await expect(opPage.locator("main")).toContainText("customer-authorized, in Washington CCFS order");
-    await expect(opPage.locator("main")).toContainText("This document is hereby executed under penalty of law");
+    await expect(opPage.locator("main")).toContainText("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
     await opPage.goto(`/admin/filings/${filingId}`);
 
     await opPage.getByRole("button", { name: "Mark ready to file" }).click();
@@ -225,7 +225,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     await expect(main).toContainText("604 123 456");
     await expect(main).toContainText("Date of Filing");
     await expect(main).toContainText("will sign the Annual Report as the business's authorized person");
-    await expect(main).toContainText("This document is hereby executed under penalty of law");
+    await expect(main).toContainText("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
     await expect(page.getByText("Your new registered agent's consent")).toHaveCount(0);
     await page.screenshot({ path: "test-results/wa-review.png", fullPage: true });
     await page.setViewportSize({ width: 375, height: 812 });
@@ -253,7 +253,7 @@ test("Washington sandbox journey without changes: full packet, certification, ch
     expect(auth!.facts_certified).toBe(true);
     expect(auth!.packet_sha256).toMatch(/^[0-9a-f]{64}$/);
     expect((auth!.packet_snapshot as { section: string }[])[0].section).toBe("Business Information");
-    expect(auth!.certification_text).toContain("penalty of law");
+    expect(auth!.certification_text).toBe("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
     expect(auth!.registered_agent_consent).toBeNull();
     expect(auth!.terms_version).toMatch(/\.state1$/);
     const { data: f } = await backend().from("filings").select("order_id").eq("id", filingId).single();
@@ -386,6 +386,108 @@ test("Washington delinquency fee: only on fresh evidence from Washington's own e
     expect(order).toEqual({ government_fee_cents: 9500, service_fee_cents: 4900, total_cents: 14400 });
   } finally {
     await backend().from("state_entity_records").delete().eq("entity_number", ubiDigits);
+    await ctx.close();
+  }
+});
+
+/** The live CCFS certification Filewell mirrors (rule v4), and the paper form's different wording. */
+const WA_CERTIFICATION = "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.";
+const WA_OLD_CERTIFICATION = "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.";
+
+/** Sign with "someone else is the agent": Filewell never consents for the agent. */
+async function signReviewAgentToSign(page: Page) {
+  await page.getByRole("textbox", { name: "Your full name" }).fill("Dana Whitfield");
+  await page.getByRole("combobox", { name: "Your title or role" }).fill("Governor");
+  await page.getByRole("radio", { name: /Someone else is the agent/ }).check();
+  await page.getByRole("checkbox", { name: /I reviewed every item of the Washington filing information/ }).check();
+  await page.getByRole("checkbox", { name: /accurate and complete/i }).check();
+  await page.getByRole("checkbox", { name: /I authorize/i }).check();
+  await page.getByRole("button", { name: /^Sign and (continue|resubmit)$/ }).click();
+}
+
+test("Washington readiness: old-wording signature re-signed, agent-signed consent upload, checkpoint", async ({ browser }) => {
+  test.setTimeout(540_000);
+  const customer = await createConfirmedUser("wa-ready");
+  const operator = await createConfirmedUser("wa-ready-op");
+  await grantStaff(operator.id, "admin");
+  const name = `Cascade Ready ${uniqueSuffix()} LLC`;
+  const ubiDigits = String(Math.floor(100_000_000 + Math.random() * 899_999_999));
+  const ubi = `${ubiDigits.slice(0, 3)} ${ubiDigits.slice(3, 6)} ${ubiDigits.slice(6)}`;
+  const ctx = await browser.newContext({ storageState: STORAGE_STATE });
+  const page = await ctx.newPage();
+  try {
+    await manualLookup(page, "WA", name, /^LLC/, "2016-10-12");
+    await signIn(page, customer.email, customer.password, "/file/start");
+    await page.getByRole("button", { name: /continue/i }).click();
+    await page.waitForURL(/\/file\/[0-9a-f-]{36}\/details/);
+    const filingId = page.url().match(/\/file\/([0-9a-f-]{36})\//)![1];
+    await waIntake(page, name, true, ubi);
+
+    // The customer sees the live CCFS certification (not the paper form's wording) before signing.
+    await expect(page.locator("main")).toContainText(WA_CERTIFICATION);
+    await expect(page.locator("main")).not.toContainText(WA_OLD_CERTIFICATION);
+    await signReviewAgentToSign(page);
+    await page.waitForURL(/\/checkout/);
+    await expect(page.locator("main")).toContainText("We'll need the new agent's signed consent");
+
+    // A signature that quoted other wording (here the paper form's, as rule v3 briefly did) is not current:
+    // checkout sends the customer back to Review to sign again.
+    const { data: latest } = await backend().from("filing_authorizations").select("*").eq("filing_id", filingId).order("created_at", { ascending: false }).limit(1).single();
+    const { id: _id, created_at: _c, ...copy } = latest as Record<string, unknown>;
+    void _id;
+    void _c;
+    const { error: insErr } = await backend().from("filing_authorizations").insert({ ...copy, certification_text: WA_OLD_CERTIFICATION });
+    expect(insErr).toBeNull();
+    await page.goto(`/file/${filingId}/checkout`);
+    await page.waitForURL(/\/review\?reworded=1/);
+    await expect(page.locator("main")).toContainText("The state's wording was updated after you signed");
+    await signReviewAgentToSign(page);
+    await page.waitForURL(/\/checkout/);
+    const { data: auths } = await backend().from("filing_authorizations").select("certification_text, rule_version_id, registered_agent_consent").eq("filing_id", filingId).order("created_at", { ascending: true });
+    expect(auths).toHaveLength(3);
+    expect(auths![2].certification_text).toBe(WA_CERTIFICATION);
+    expect((auths![2].registered_agent_consent as { mode: string }).mode).toBe("agent_to_sign");
+    expect(JSON.stringify(auths![2].registered_agent_consent)).not.toContain("consentText");
+    const { data: f } = await backend().from("filings").select("rule_version_id").eq("id", filingId).single();
+    expect(auths![2].rule_version_id).toBe(f!.rule_version_id);
+
+    await page.getByRole("button", { name: /^pay \$/i }).click();
+    await page.waitForURL(/\/sandbox\/checkout\//);
+    await page.getByRole("button", { name: /pay \(test\)/i }).click();
+    await page.waitForURL(/\/confirmation/);
+    const { data: fo } = await backend().from("filings").select("order_id").eq("id", filingId).single();
+    const { data: items } = await backend().from("order_items").select("kind, amount_cents").eq("order_id", fo!.order_id);
+    expect(items!.map((i) => [i.kind, i.amount_cents]).sort()).toEqual([
+      ["government_fee", 7000],
+      ["service_fee", 4900],
+    ]);
+
+    // Operator: filing is blocked until the agent's own signed consent is uploaded.
+    const op = await browser.newContext({ storageState: STORAGE_STATE });
+    const opPage = await op.newPage();
+    try {
+      await signIn(opPage, operator.email, operator.password, `/admin/filings/${filingId}`);
+      const main = opPage.locator("main");
+      await expect(main).toContainText("signed consent isn't on file");
+      await expect(opPage.getByRole("button", { name: "Mark ready to file" })).toHaveCount(0);
+      await opPage.getByLabel("File", { exact: true }).setInputFiles({ name: "agent-consent.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n") });
+      await opPage.getByLabel("Document type").selectOption("registered_agent_consent");
+      await opPage.getByRole("button", { name: "Upload" }).click();
+      await expect(main).not.toContainText("signed consent isn't on file");
+      await opPage.getByRole("button", { name: "Mark ready to file" }).click();
+      await opPage.getByRole("button", { name: "Start filing" }).click();
+      await expect(opPage.getByText("Checkpoint first")).toBeVisible();
+      await expect(opPage.getByRole("button", { name: "Mark submitted" })).toHaveCount(0);
+      await opPage.getByRole("checkbox", { name: "I have compared the state filing against the customer-authorized filing packet." }).check();
+      await opPage.getByRole("button", { name: "Record checkpoint" }).click();
+      await expect(opPage.getByRole("button", { name: "Mark submitted" })).toBeVisible();
+      await opPage.goto(`/admin/filings/${filingId}/packet`);
+      await expect(opPage.locator("main")).toContainText(WA_CERTIFICATION);
+    } finally {
+      await op.close();
+    }
+  } finally {
+    await backend().from("staff_members").update({ active: false }).eq("user_id", operator.id);
     await ctx.close();
   }
 });

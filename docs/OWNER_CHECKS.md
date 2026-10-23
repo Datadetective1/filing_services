@@ -25,7 +25,7 @@ down the table. Tick ✓ if it matches, or write what CCFS shows. **Stop before 
 | 9 | Controlling Interest | 4 questions (1, 2, 2a, 3), all default **No** | 1, 2, 2a, 3 | Different questions, wording or defaults | |
 | 10 | Return Address for this Filing | Optional | Leave blank | Required | |
 | 11 | Upload additional documents | Optional | Leave blank | Required | |
-| 12 | Authorized Person | Name + checkbox: "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct." | Authorized person and certification | **Different certification wording** (copy it) | |
+| 12 | Authorized Person | Name + certification checkbox. Live CCFS (owner-verified 2026-10-23): "This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct." Filewell mirrors this. (The Revised 6.2025 paper form words it differently: "I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.") | Authorized person and certification | **Different certification wording** (copy it) | |
 | 13 | Review → Add to Cart | Review page lists all of the above | (comparison checkpoint) | Review omits a section | **STOP here** |
 | 14 | Fee | $70 (+$25 only if Delinquent) | Government fee | Any other fee shown | |
 

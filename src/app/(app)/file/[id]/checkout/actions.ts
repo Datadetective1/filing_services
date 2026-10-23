@@ -23,8 +23,8 @@ export async function payAction(filingId: string, _prev: ActionMessageState, _fo
     (await rateLimit(`checkout:filing:${filingId}`, 6, 600, { failClosed: true }));
   if (!allowed) return { error: "Too many checkout attempts. Wait a few minutes and try again." };
 
-  const auth = await authorizationStatus(filingId, loaded.schema, loaded.answers);
-  if (auth !== "current") redirect(`/file/${filingId}/review${auth === "stale" ? "?changed=1" : ""}`);
+  const auth = await authorizationStatus(filingId, loaded.schema, loaded.answers, { stateCode: String(loaded.filing.state_code), business: loaded.business });
+  if (auth !== "current") redirect(`/file/${filingId}/review${auth === "stale" ? "?changed=1" : auth === "reworded" ? "?reworded=1" : ""}`);
 
   let url: string;
   try {

@@ -21,11 +21,11 @@ vi.mock("@/lib/supabase/admin", () => {
 vi.mock("server-only", () => ({}));
 
 const { evaluateFees } = await import("@/lib/compliance/fees");
-const { findRule, stateAuthorizationForState } = await import("@/lib/compliance/registry");
-const { WA_CERTIFICATION_TEXT, WA_RA_CONSENT_TEXT } = await import("@/lib/compliance/states/washington");
+const { certificationTextFor, findRule, stateAuthorizationForState } = await import("@/lib/compliance/registry");
+const { WA_CERTIFICATION_TEXT, WA_PAPER_FORM_CERTIFICATION_TEXT, WA_RA_CONSENT_TEXT } = await import("@/lib/compliance/states/washington");
 const { authorizationText, changedSinceSigned } = await import("@/lib/filings/customer");
 const { comparisonCheckpointBlocker, readyToFileBlockers } = await import("@/lib/filings/operations");
-const { buildFilingPacket, packetSections, packetSha256, registeredAgentConsentRequired } = await import("@/lib/filings/packet");
+const { buildFilingPacket, packetSections, packetSha256, registeredAgentConsentRequired, signedCurrentCertification } = await import("@/lib/filings/packet");
 const { validateAll } = await import("@/lib/intake/validate");
 const { knownStateStatus, MAX_STATUS_AGE_DAYS } = await import("@/lib/registry/state-status");
 
@@ -59,14 +59,25 @@ function answers(over: Record<string, unknown> = {}) {
   };
 }
 
-describe("Washington v2 intake follows the current form", () => {
-  it("is version 2 with the state's certification and consent text, verbatim and sourced", () => {
-    expect(rule.version).toBe(2);
+describe("Washington intake follows the current form; the certification mirrors live CCFS", () => {
+  it("is version 4 with the live CCFS certification and the form's consent text, verbatim and sourced", () => {
+    expect(rule.version).toBe(4);
     expect(wa.auth.certificationText).toBe(WA_CERTIFICATION_TEXT);
     expect(WA_CERTIFICATION_TEXT).toBe("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
+    const cert = rule.sources.find((s) => s.factKey === "certification")!;
+    expect(cert.quote).toBe(WA_CERTIFICATION_TEXT);
+    expect(cert.title).toContain("Live CCFS");
+    expect(cert.url).toContain("ccfs.sos.wa.gov");
+    // The paper form's different wording is documented as a discrepancy, never used as the certification.
+    const paper = rule.sources.find((s) => s.factKey === "certification_paper_form")!;
+    expect(paper.quote).toBe(WA_PAPER_FORM_CERTIFICATION_TEXT);
+    expect(paper.quote).not.toBe(WA_CERTIFICATION_TEXT);
+    expect(paper.title).toContain("differs from live CCFS");
+    expect(wa.auth.certificationText).not.toBe(WA_PAPER_FORM_CERTIFICATION_TEXT);
     expect(wa.auth.registeredAgentConsent?.consentText).toBe(WA_RA_CONSENT_TEXT);
     const keys = rule.sources.map((s) => s.factKey);
-    for (const k of ["certification", "ra_consent", "ra_consent_rule", "ra_consent_text", "controlling_interest"]) expect(keys).toContain(k);
+    for (const k of ["certification", "ra_consent", "ra_consent_rule", "ra_consent_text", "ra_consent_signature", "controlling_interest"]) expect(keys).toContain(k);
+    expect(rule.sources.find((s) => s.factKey === "ra_consent_signature")!.quote).toContain("The appointed agent must sign the Consent to Serve statement");
     expect(rule.sources.find((s) => s.factKey === "ra_consent")!.quote).toContain("required if any changes other than contact info is made");
   });
 
@@ -188,6 +199,40 @@ describe("operator gates", () => {
     // With an authorization on record but no packet confirmation (older wording):
     const withAuth = readyToFileBlockers({ ...ready, stateAuthorization: { ...sa, factsCertified: false } });
     expect(withAuth.some((x) => x.includes("full filing packet"))).toBe(true);
+  });
+
+  it("a signature that quoted wording other than the operative rule's (e.g. the paper form's) is not current: the customer signs again", () => {
+    const current = certificationTextFor("WA", "llc");
+    expect(current).toBe(WA_CERTIFICATION_TEXT);
+    expect(signedCurrentCertification(current, { facts_certified: true, certification_text: WA_CERTIFICATION_TEXT })).toBe(true);
+    expect(
+      signedCurrentCertification(current, {
+        facts_certified: true,
+        certification_text: WA_PAPER_FORM_CERTIFICATION_TEXT,
+      }),
+    ).toBe(false);
+    expect(signedCurrentCertification(current, { facts_certified: false, certification_text: WA_CERTIFICATION_TEXT })).toBe(false);
+    expect(signedCurrentCertification(current, null)).toBe(false);
+    // No rule to compare against (unknown entity type): never current.
+    expect(certificationTextFor("WA", null)).toBeUndefined();
+    expect(signedCurrentCertification(undefined, { facts_certified: true, certification_text: WA_CERTIFICATION_TEXT })).toBe(false);
+  });
+
+  it("compares against the entity's own wording: Nevada words its declaration per entity type", () => {
+    for (const entity of ["llc", "corporation", "lp", "llp"] as const) {
+      const own = findRule("NV", entity)!.stateAuthorization!.certificationText;
+      expect(certificationTextFor("NV", entity)).toBe(own);
+      expect(signedCurrentCertification(certificationTextFor("NV", entity), { facts_certified: true, certification_text: own })).toBe(true);
+    }
+    const llc = certificationTextFor("NV", "llc");
+    const corp = certificationTextFor("NV", "corporation");
+    expect(llc).not.toBe(corp);
+    expect(signedCurrentCertification(corp, { facts_certified: true, certification_text: llc ?? null })).toBe(false);
+    // Utah publishes no certification text: a packet confirmation with none stored is current.
+    expect(certificationTextFor("UT", "llc")).toBeNull();
+    expect(signedCurrentCertification(certificationTextFor("UT", "llc"), { facts_certified: true, certification_text: null })).toBe(true);
+    // Pennsylvania has no state-specific authorization.
+    expect(certificationTextFor("PA", "llc")).toBeUndefined();
   });
 
   it("a new registered agent blocks filing until the consent is on file; it is never assumed", () => {

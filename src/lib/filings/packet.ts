@@ -82,6 +82,19 @@ export function registeredAgentConsentRequired(auth: StateAuthorization | undefi
   return ra.consentRequiredWhen.includes(String(answers[ra.changeKey] ?? ""));
 }
 
+/**
+ * The latest authorization confirmed the packet against the state's certification as it is
+ * worded now for this entity (see certificationTextFor). A signature quoting older wording
+ * (e.g. before a form revision), or with no current rule to compare against, must be redone.
+ */
+export function signedCurrentCertification(
+  currentText: string | null | undefined,
+  signed: { facts_certified: boolean | null; certification_text: string | null } | null | undefined,
+): boolean {
+  if (currentText === undefined) return false;
+  return Boolean(signed?.facts_certified) && (signed?.certification_text ?? null) === currentText;
+}
+
 /** How the new registered agent's consent was given. Stored on the authorization. */
 export type RegisteredAgentConsent =
   | {

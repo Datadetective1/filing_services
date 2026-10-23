@@ -97,7 +97,7 @@ export const OWNER_CHECKS: CheckState[] = [
           waRow(
             12,
             "Authorized Person",
-            "Name + checkbox: \"This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.\"",
+            "Name + certification checkbox. Live CCFS (owner-verified 2026-10-23): \"This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.\" Filewell mirrors this. (The Revised 6.2025 paper form words it differently: \"I hereby certify, under penalty of law, that the above information is accurate and complies with the filing requirements of state law.\")",
             "Authorized person and certification",
             "**Different certification wording** (copy it)",
             "Exact certification wording shown",

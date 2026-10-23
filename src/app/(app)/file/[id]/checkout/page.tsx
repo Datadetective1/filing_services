@@ -42,8 +42,8 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
   if (loaded.filing.status !== "draft") redirect(`/dashboard/filings/${id}`);
   if (!validateAll(loaded.schema, loaded.answers).ok) redirect(`/file/${id}/review`);
 
-  const auth = await authorizationStatus(id, loaded.schema, loaded.answers);
-  if (auth !== "current") redirect(`/file/${id}/review${auth === "stale" ? "?changed=1" : ""}`);
+  const auth = await authorizationStatus(id, loaded.schema, loaded.answers, { stateCode: String(loaded.filing.state_code), business: loaded.business });
+  if (auth !== "current") redirect(`/file/${id}/review${auth === "stale" ? "?changed=1" : auth === "reworded" ? "?reworded=1" : ""}`);
 
   const summary = filingSummary(loaded);
   let quote: Quote | null = null;

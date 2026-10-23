@@ -1,6 +1,6 @@
-import { stateAuthorizationForEntity } from "@/lib/compliance/registry";
+import { certificationTextFor, stateAuthorizationForEntity } from "@/lib/compliance/registry";
 import { comparisonCheckpointBlocker, consentUploadedSince } from "@/lib/filings/operations";
-import { registeredAgentConsentRequired } from "@/lib/filings/packet";
+import { registeredAgentConsentRequired, signedCurrentCertification } from "@/lib/filings/packet";
 import "server-only";
 import { createHash } from "node:crypto";
 import { isUuid } from "@/components/admin/format";
@@ -335,7 +335,7 @@ export async function loadFilingDetail(id: string) {
   );
   const stateAuthorization = stateAuth
     ? {
-        factsCertified: Boolean(authorization?.facts_certified),
+        factsCertified: signedCurrentCertification(certificationTextFor(filing.state_code, business?.entity_type), authorization),
         consentRequired,
         consentMode: (authorization?.registered_agent_consent?.mode as string | undefined) ?? null,
         consentDocumentOnFile,

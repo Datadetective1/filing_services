@@ -98,6 +98,12 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
         </Notice>
       ) : null}
 
+      {sp.reworded === "1" ? (
+        <Notice tone="info" role="status" title="The state's wording was updated after you signed" className="mt-6">
+          Please review the statement below and sign again before paying.
+        </Notice>
+      ) : null}
+
       {!all.ok ? (
         <Notice tone="warning" role="alert" title="A few details are missing" className="mt-6">
           <p>Finish these sections before you sign:</p>

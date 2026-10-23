@@ -5,7 +5,8 @@ import { stableStringify } from "@/lib/compliance/hash";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import type { IntakeSchema } from "@/lib/compliance/types";
 import { daysBetween, todayInTimeZone } from "@/lib/domain/dates";
-import { getCustomerFiling } from "@/lib/filings/customer";
+import { getCustomerFiling, stateAuthorizationFor } from "@/lib/filings/customer";
+import { signedCurrentCertification } from "@/lib/filings/packet";
 import { type IntakeAnswers, validateAll } from "@/lib/intake/validate";
 import { createClient } from "@/lib/supabase/server";
 import { FILING_ID_RE } from "./errors";
@@ -44,17 +45,25 @@ export function filingSummary(loaded: LoadedFiling) {
   };
 }
 
-export type AuthorizationStatus = "missing" | "stale" | "current";
+/** "reworded": the answers still match, but the signature quoted state wording that has since changed. */
+export type AuthorizationStatus = "missing" | "stale" | "reworded" | "current";
 
 /**
  * Whether the latest authorization covers the answers as they are now. If the
- * customer edited anything after signing, they must review and sign again.
+ * customer edited anything after signing, they must review and sign again. In states
+ * with their own certification (Washington, Nevada), the signature must also quote
+ * that wording as it stands now for this business's entity type.
  */
-export async function authorizationStatus(filingId: string, schema: IntakeSchema, answers: IntakeAnswers): Promise<AuthorizationStatus> {
+export async function authorizationStatus(
+  filingId: string,
+  schema: IntakeSchema,
+  answers: IntakeAnswers,
+  filing?: { stateCode: string; business: { entity_type?: unknown; is_foreign?: unknown } | null },
+): Promise<AuthorizationStatus> {
   const db = await createClient();
   const { data } = await db
     .from("filing_authorizations")
-    .select("answers_sha256, created_at")
+    .select("answers_sha256, facts_certified, certification_text, created_at")
     .eq("filing_id", filingId)
     .order("created_at", { ascending: false })
     .limit(1);
@@ -63,5 +72,8 @@ export async function authorizationStatus(filingId: string, schema: IntakeSchema
   const all = validateAll(schema, answers);
   if (!all.ok) return "stale";
   const sha = createHash("sha256").update(stableStringify(all.values)).digest("hex");
-  return sha === latest.answers_sha256 ? "current" : "stale";
+  if (sha !== latest.answers_sha256) return "stale";
+  const stateAuth = filing?.business ? stateAuthorizationFor(filing.stateCode, filing.business) : null;
+  if (stateAuth && !signedCurrentCertification(stateAuth.auth.certificationText, latest)) return "reworded";
+  return "current";
 }

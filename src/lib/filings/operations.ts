@@ -18,9 +18,9 @@ import { sendNotification, type SendNotificationInput, type SendResult } from "@
 import { rollForwardRequirement } from "@/lib/reminders/engine";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { openQuestionBlockers } from "@/lib/compliance/open-questions";
-import { stateAuthorizationForEntity, stateAuthorizationForState } from "@/lib/compliance/registry";
+import { certificationTextFor, stateAuthorizationForEntity, stateAuthorizationForState } from "@/lib/compliance/registry";
 import { loadFilingContext } from "./context";
-import { registeredAgentConsentRequired } from "./packet";
+import { registeredAgentConsentRequired, signedCurrentCertification } from "./packet";
 
 /**
  * Operator actions. Every function takes an already-authorized StaffUser (the
@@ -237,7 +237,7 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
       : Promise.resolve({ data: [], error: null }),
     db
       .from("filing_authorizations")
-      .select("answers_sha256, facts_certified, registered_agent_consent, created_at")
+      .select("answers_sha256, facts_certified, certification_text, registered_agent_consent, created_at")
       .eq("filing_id", ctx.filing.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -253,13 +253,17 @@ async function blockersFor(ctx: Awaited<ReturnType<typeof ctxOrThrow>>): Promise
   if (loadError) throw new OperationError(`Could not check the filing before filing: ${loadError.message}`);
   const snapshot = ctx.filing.ruleSnapshot as { intake_schema?: IntakeSchema; verification_status?: string };
   const answers = (answersRes.data?.answers ?? {}) as Record<string, unknown>;
-  const auth = authRes.data as { facts_certified: boolean | null; registered_agent_consent: { mode?: string } | null } | null;
+  const auth = authRes.data as {
+    facts_certified: boolean | null;
+    certification_text: string | null;
+    registered_agent_consent: { mode?: string } | null;
+  } | null;
   const values = snapshot.intake_schema ? validateAll(snapshot.intake_schema, answers).values : answers;
   return readyToFileBlockers({
     openQuestions: openQuestionBlockers(ctx.filing.stateCode, ctx.filing.entityType),
     stateAuthorization: stateAuth
       ? {
-          factsCertified: Boolean(auth?.facts_certified),
+          factsCertified: signedCurrentCertification(certificationTextFor(ctx.filing.stateCode, ctx.filing.entityType), auth),
           consentRequired: registeredAgentConsentRequired(stateAuth.auth, values),
           consentMode: auth?.registered_agent_consent?.mode ?? null,
           consentDocumentOnFile: consentUploadedSince((consentDocs.data ?? []) as { created_at: string }[], (authRes.data?.created_at as string | undefined) ?? null),

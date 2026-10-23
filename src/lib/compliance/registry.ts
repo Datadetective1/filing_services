@@ -103,6 +103,17 @@ export function stateSupportLabel(stateCode: string): "Filing supported" | "Guid
   return rulesForState(stateCode).some(isRuleSellable) ? "Filing supported" : "Guide and free reminders";
 }
 
+/**
+ * The state's certification wording for this entity's annual-report rule, verbatim; null when
+ * the state publishes none in text, undefined when no such rule exists. Per entity: Nevada
+ * words its declaration differently for each entity type.
+ */
+export function certificationTextFor(stateCode: string, entityType: string | null | undefined, filingTypeCode = "annual_report"): string | null | undefined {
+  if (!entityType) return undefined;
+  const auth = findRule(stateCode, entityType as EntityType, filingTypeCode)?.stateAuthorization;
+  return auth ? auth.certificationText : undefined;
+}
+
 export function isStateVerified(stateCode: string): boolean {
   return RULES.some((r) => r.stateCode === stateCode && r.verificationStatus === "verified");
 }

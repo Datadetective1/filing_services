@@ -62,7 +62,7 @@ test.describe("staging only", () => {
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
       for (const name of ["Washington", "Nevada", "Utah"]) await expect(page.getByRole("heading", { name, level: 2 })).toBeVisible();
       await expect(page.getByText("Checks done").first()).toBeVisible();
-      await expect(page.locator("main")).toContainText("This document is hereby executed under penalty of law");
+      await expect(page.locator("main")).toContainText("This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.");
       await expect(page.locator("main")).toContainText("(775) 684-5708");
       await expect(page.locator("main")).toContainText("(801) 530-4849");
       await expect(page.getByRole("link", { name: "Owner checks" })).toBeVisible();
