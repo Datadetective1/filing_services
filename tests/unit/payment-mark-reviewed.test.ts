@@ -176,6 +176,7 @@ describe("markPaymentReviewedAction", () => {
         action: "payment.review_cleared",
         entity_type: "payment",
         entity_id: PAYMENT_ID,
+        filing_id: "filing-1",
         before: { requires_review: true, review_reason: REASON },
         after: { requires_review: false, review_reason: REASON },
         metadata: { note: valid.note, order_id: "order-1" },
