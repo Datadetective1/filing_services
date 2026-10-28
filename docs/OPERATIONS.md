@@ -77,7 +77,9 @@ This is how one operator fulfils Pennsylvania annual report orders today.
   The reason says why it was flagged:
   - `duplicate payment for an order that was already paid - refund it`: a second checkout
     succeeded for an order that was already paid. In Stripe, find both charges for the
-    order and refund the duplicate (see Duplicate payment above).
+    order and refund the duplicate (see Duplicate payment above) in the Stripe dashboard.
+    Do not use the filing's **Refund (admin)** for it: that refunds the order's first
+    captured payment, which is the one to keep.
   - `amount mismatch: event ... order ...`: Stripe reported a different amount or currency
     than the order total, so the order was not marked paid. Compare the charge in Stripe
     with the order total on the filing and ask the owner what to do; do not edit the order.
@@ -88,7 +90,9 @@ This is how one operator fulfils Pennsylvania annual report orders today.
   When nothing more needs doing, an admin uses **Mark reviewed** on the payment with a
   short note of what was checked. Only the review flag changes (the reason stays visible),
   an audit row records the note, and the daily email stops. Operators can see the flag
-  but cannot clear it. Mark reviewed never moves money; do any refund first.
+  but cannot clear it. Mark reviewed never moves money; do any refund first. A refund made
+  in the Stripe dashboard comes back as `refund issued outside the app` and flags the
+  payment again, so mark it reviewed once that refund shows as succeeded.
 - **Webhook errors:** `/admin/payments` lists events that failed processing; the processor
   retries automatically, and processing is idempotent.
 
