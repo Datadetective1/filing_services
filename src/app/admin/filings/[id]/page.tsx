@@ -31,6 +31,7 @@ import { stateAuthorizationForEntity } from "@/lib/compliance/registry";
 import { readyToFileBlockers } from "@/lib/filings/operations";
 import { formatAddress } from "@/lib/intake/validate";
 import { staffLabel, type ProfileEntry } from "../../_lib/data";
+import { MarkReviewedForm } from "../../payments/mark-reviewed-form";
 import {
   addNoteAction,
   assignAction,
@@ -152,7 +153,7 @@ export default async function FilingDetailPage(props: PageProps<"/admin/filings/
             <IntakeAnswersView schema={snapshot.intake_schema} answers={d.answers} />
           </Panel>
           <AuthorizationPanel d={d} />
-          <PaymentPanel d={d} />
+          <PaymentPanel d={d} isAdmin={staff.role === "admin"} />
           <RulePanel d={d} />
           <DocumentsPanel d={d} />
           <MessagesPanel d={d} />
@@ -702,7 +703,7 @@ function AuthorizationPanel({ d }: { d: FilingDetail }) {
 // Payment
 // ---------------------------------------------------------------------------
 
-function PaymentPanel({ d }: { d: FilingDetail }) {
+function PaymentPanel({ d, isAdmin }: { d: FilingDetail; isAdmin: boolean }) {
   const { order } = d;
   return (
     <Panel id="payment" title="Payment and refunds">
@@ -755,6 +756,17 @@ function PaymentPanel({ d }: { d: FilingDetail }) {
                 .filter((p) => p.requires_review)
                 .map((p) => p.review_reason || "Flagged by the payment processor.")
                 .join(" ")}
+              {isAdmin ? (
+                d.payments
+                  .filter((p) => p.requires_review)
+                  .map((p) => (
+                    <div key={p.id} className="mt-2">
+                      <MarkReviewedForm paymentId={p.id} />
+                    </div>
+                  ))
+              ) : (
+                <span className="mt-1 block">An admin clears this after checking the payment in Stripe.</span>
+              )}
             </Notice>
           ) : null}
           <div className="grid gap-2">

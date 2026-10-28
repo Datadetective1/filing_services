@@ -10,6 +10,7 @@ import { requireStaff } from "@/lib/auth/session";
 import { paymentsNeedingReview } from "@/lib/payments/review";
 import { createClient } from "@/lib/supabase/server";
 import { filingIdsByOrder, one, profilesByIds, type ProfileEntry } from "../_lib/data";
+import { MarkReviewedForm } from "./mark-reviewed-form";
 
 export const metadata: Metadata = { title: "Payments" };
 
@@ -56,7 +57,8 @@ interface EventRow {
 }
 
 export default async function PaymentsPage() {
-  await requireStaff();
+  const staff = await requireStaff();
+  const isAdmin = staff.role === "admin";
   const db = await createClient();
   const thirtyDaysAgo = isoDaysAgo(30);
   const cols = "id, order_id, user_id, provider, mode, status, amount_cents, amount_refunded_cents, failure_reason, requires_review, review_reason, created_at, updated_at";
@@ -117,8 +119,14 @@ export default async function PaymentsPage() {
         ]}
       />
 
-      <Panel id="review" title="Payments requiring review" description="Amount or currency mismatches and other anomalies flagged while processing." bodyClassName="p-0">
-        <PaymentsTable rows={review} links={filingLinks} customers={customers} empty="No payments need review." showReason />
+      <Panel id="review" title="Payments requiring review" description={
+          isAdmin
+            ? "Amount or currency mismatches and other anomalies flagged while processing. After checking one in Stripe, mark it reviewed to clear it."
+            : "Amount or currency mismatches and other anomalies flagged while processing. An admin clears each one after checking it."
+        }
+        bodyClassName="p-0"
+      >
+        <PaymentsTable rows={review} links={filingLinks} customers={customers} empty="No payments need review." showReason canMarkReviewed={isAdmin} />
       </Panel>
 
       <Panel id="failed" title="Failed payments, last 30 days" bodyClassName="p-0">
@@ -243,12 +251,15 @@ function PaymentsTable({
   customers,
   empty,
   showReason = false,
+  canMarkReviewed = false,
 }: {
   rows: PaymentRow[];
   links: Map<string, { filingId: string; businessName: string | null }>;
   customers: Map<string, ProfileEntry>;
   empty: string;
   showReason?: boolean;
+  /** Admins only: a Mark reviewed control on each flagged row. */
+  canMarkReviewed?: boolean;
 }) {
   if (!rows.length) {
     return (
@@ -270,6 +281,7 @@ function PaymentsTable({
             <TH className="text-right">Amount</TH>
             <TH className="text-right">Refunded</TH>
             {showReason ? <TH>Reason</TH> : null}
+            {canMarkReviewed ? <TH>Review</TH> : null}
           </tr>
         </THead>
         <tbody>
@@ -293,6 +305,7 @@ function PaymentsTable({
               <TD className="tnum text-right">{money(p.amount_cents)}</TD>
               <TD className="tnum text-right">{money(p.amount_refunded_cents)}</TD>
               {showReason ? <TD className="max-w-72 text-muted">{p.review_reason ?? p.failure_reason ?? ""}</TD> : null}
+              {canMarkReviewed ? <TD valign="top">{p.requires_review ? <MarkReviewedForm paymentId={p.id} /> : null}</TD> : null}
             </TR>
           ))}
         </tbody>

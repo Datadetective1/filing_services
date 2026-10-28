@@ -72,6 +72,23 @@ This is how one operator fulfils Pennsylvania annual report orders today.
   authorization, payment, refund, notification, message and audit rows are never deleted
   (the privacy policy keeps them for the retention period). Reply with what was done.
 - **Duplicate payment** (flagged in `/admin/payments`): refund the duplicate payment.
+- **Payment flagged for review** (`/admin/payments` > Payments requiring review, the red
+  notice on the filing's Payment section, and a daily staff email until it is cleared).
+  The reason says why it was flagged:
+  - `duplicate payment for an order that was already paid - refund it`: a second checkout
+    succeeded for an order that was already paid. In Stripe, find both charges for the
+    order and refund the duplicate (see Duplicate payment above).
+  - `amount mismatch: event ... order ...`: Stripe reported a different amount or currency
+    than the order total, so the order was not marked paid. Compare the charge in Stripe
+    with the order total on the filing and ask the owner what to do; do not edit the order.
+  - `refund issued outside the app, reconcile it`: someone refunded in the Stripe
+    dashboard. Confirm the refund in Stripe and make sure the filing was cancelled or the
+    customer knows; the app does not create a refund row for it.
+
+  When nothing more needs doing, an admin uses **Mark reviewed** on the payment with a
+  short note of what was checked. Only the review flag changes (the reason stays visible),
+  an audit row records the note, and the daily email stops. Operators can see the flag
+  but cannot clear it. Mark reviewed never moves money; do any refund first.
 - **Webhook errors:** `/admin/payments` lists events that failed processing; the processor
   retries automatically, and processing is idempotent.
 

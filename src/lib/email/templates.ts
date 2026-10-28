@@ -186,7 +186,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     body:
       "A payment of {{amount}} for {{company_name}} is flagged for review: {{review_reason}}.\n\n" +
       "Payment mode: {{payment_mode}}\n\n" +
-      "Check it in the admin console (Payments, Needs review) before filing or refunding. You get one of these emails for each flagged payment once a day while it stays flagged.",
+      "Check it in the admin console (Payments, Needs review) before filing or refunding. You get one of these emails for each flagged payment once a day until an admin marks it reviewed.",
     ctaLabel: "Open payment",
     description: "Staff alert: a payment flagged for review (daily, one per flagged payment).",
   },
