@@ -52,6 +52,10 @@ export async function markPaymentReviewedAction(_prev: ActionState, formData: Fo
   const payment = before as ReviewRow;
   if (!payment.requires_review) return ok("Already reviewed. Nothing changed.");
 
+  // The filing the order belongs to, so the clear also shows in that filing's audit log.
+  const { data: filing } = await db.from("filings").select("id").eq("order_id", payment.order_id).maybeSingle();
+  const filingId = (filing as { id: string } | null)?.id ?? null;
+
   try {
     await audit({
       actorUserId: admin.id,
@@ -59,6 +63,7 @@ export async function markPaymentReviewedAction(_prev: ActionState, formData: Fo
       action: "payment.review_cleared",
       entityType: "payment",
       entityId: payment.id,
+      filingId,
       before: { requires_review: true, review_reason: payment.review_reason },
       after: { requires_review: false, review_reason: payment.review_reason },
       metadata: { note: parsed.data.note, order_id: payment.order_id },
@@ -80,9 +85,8 @@ export async function markPaymentReviewedAction(_prev: ActionState, formData: Fo
   }
   if (!after) return ok("Already reviewed. Nothing changed.");
 
-  const { data: filing } = await db.from("filings").select("id").eq("order_id", payment.order_id).maybeSingle();
   revalidatePath("/admin/payments");
   revalidatePath("/admin");
-  if (filing) revalidatePath(`/admin/filings/${(filing as { id: string }).id}`);
+  if (filingId) revalidatePath(`/admin/filings/${filingId}`);
   return ok("Marked reviewed. The payment no longer shows as needing review, and the daily alert stops.");
 }
