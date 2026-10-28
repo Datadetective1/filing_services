@@ -72,6 +72,23 @@ This is how one operator fulfils Pennsylvania annual report orders today.
   authorization, payment, refund, notification, message and audit rows are never deleted
   (the privacy policy keeps them for the retention period). Reply with what was done.
 - **Duplicate payment** (flagged in `/admin/payments`): refund the duplicate payment.
+- **Payment flagged for review** (`/admin/payments` > Payments requiring review, the red
+  notice on the filing's Payment section, and a daily staff email until it is cleared).
+  The reason says why it was flagged:
+  - `duplicate payment for an order that was already paid - refund it`: a second checkout
+    succeeded for an order that was already paid. In Stripe, find both charges for the
+    order and refund the duplicate (see Duplicate payment above).
+  - `amount mismatch: event ... order ...`: Stripe reported a different amount or currency
+    than the order total, so the order was not marked paid. Compare the charge in Stripe
+    with the order total on the filing and ask the owner what to do; do not edit the order.
+  - `refund issued outside the app, reconcile it`: someone refunded in the Stripe
+    dashboard. Confirm the refund in Stripe and make sure the filing was cancelled or the
+    customer knows; the app does not create a refund row for it.
+
+  When nothing more needs doing, an admin uses **Mark reviewed** on the payment with a
+  short note of what was checked. Only the review flag changes (the reason stays visible),
+  an audit row records the note, and the daily email stops. Operators can see the flag
+  but cannot clear it. Mark reviewed never moves money; do any refund first.
 - **Webhook errors:** `/admin/payments` lists events that failed processing; the processor
   retries automatically, and processing is idempotent.
 
@@ -268,13 +285,19 @@ password set); email rate limit 30/hour. Optional: the branded template bodies b
 
 ## Stripe production setup
 
-State on 2026-09-30 (live account `acct_1ULCTn0kBic3wOhx`, individual / sole proprietor):
+_Updated Oct 28, 2026 from FIRST_CUSTOMER_READINESS.md and an owner read of Stripe on Oct 28, 2026. Re-check the Stripe dashboard before relying on it._
+
+State on 2026-09-30, re-checked that evening (live account `acct_1ULCTn0kBic3wOhx`,
+individual / sole proprietor). Live payments are on in Production since 2026-09-30. The
+only live charge so far is the owner's $56.00 controlled test (2026-09-30, charge
+`ch_3ULYbb0kBic3wOhx1lb3Maqf`), refunded 2026-10-01; no customer checkout since.
 
 1. Account: charges and payouts enabled, details submitted, MCC 7399, website
-   `https://www.getfilewell.com`, statement descriptor `FILEWELL`. **Past due:** a bank
-   account (`external_account`) and an identity-verification challenge; the public
-   support email is empty. The owner resolves these in the Dashboard (Settings → Business
-   → Public details; Balances → Payout account; the verification banner).
+   `https://www.getfilewell.com`, statement descriptor `FILEWELL`. The items once listed
+   here as past due (a bank account, an identity-verification challenge, an empty public
+   support email) were cleared by 2026-09-30: no requirements currently due, past due or
+   pending, no disabled reason, bank account on file, public support email
+   support@getfilewell.com (FIRST_CUSTOMER_READINESS.md, section 3).
 2. Payment methods: enforced in code (`CHECKOUT_PAYMENT_METHOD_TYPES` in
    `src/lib/payments/stripe.ts`): cards (incl. Apple Pay / Google Pay) and Link only. Other
    methods active on the account (ACH, Klarna, Afterpay, Cash App...) never appear.
@@ -287,12 +310,11 @@ State on 2026-09-30 (live account `acct_1ULCTn0kBic3wOhx`, individual / sole pro
    shown in the Dashboard (Developers → Webhooks → the endpoint → Signing secret → Reveal)
    and goes into `STRIPE_WEBHOOK_SECRET` on Production.
 4. Vercel (done): `PAYMENTS_PROVIDER` is `stripe` on Production and `sandbox` on
-   Preview/Development; `PAYMENTS_LIVE_ENABLED` has a Production-only variable (`false`).
-   Still needed on Production (owner, Sensitive): `STRIPE_SECRET_KEY` (`sk_live_...` from
-   Developers → API keys; never the Stripe CLI's key) and `STRIPE_WEBHOOK_SECRET`.
+   Preview/Development; `STRIPE_SECRET_KEY` (`sk_live_...` from Developers → API keys; never
+   the Stripe CLI's key) and `STRIPE_WEBHOOK_SECRET` are set on Production (Sensitive), and
+   the Production-only `PAYMENTS_LIVE_ENABLED` is `true` since 2026-09-30.
 5. Check: `/admin` → System status → **Stripe account** and **Stripe webhook** (a read-only
-   live check that works while checkout is still off). Payments reads "Off" with the note
-   "Live Stripe key present but PAYMENTS_LIVE_ENABLED is not 'true'" until the switch.
+   live check). On Production, Payments reads **Live: real charges**.
 6. Stripe CLI (engineer): always `--project-name=filewell --live`, never the default
    profile. It is for inspection and configuration only; the app never uses its key.
 7. Sales tax on the service fee: not collected (Stripe Tax off); get a determination.

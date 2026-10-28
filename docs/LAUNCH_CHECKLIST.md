@@ -21,8 +21,11 @@ DNS, production database and the live site; details in
 - Email: `EMAIL_PROVIDER=resend` on Production; Cloudflare Email Routing MX present; DKIM
   and Resend SPF present; **duplicate DMARC** and a root SPF without Cloudflare's include
   remain (owner).
-- Payments: `PAYMENTS_PROVIDER=sandbox`, `PAYMENTS_LIVE_ENABLED=false`; production refuses
-  the sandbox, so checkout is closed. Indexing off.
+- Payments: _Updated Oct 28, 2026 from FIRST_CUSTOMER_READINESS.md and an owner read of
+  Stripe on Oct 28, 2026. Re-check the Stripe dashboard before relying on it._ Live payments
+  on Production since 2026-09-30 (`PAYMENTS_PROVIDER=stripe`, `PAYMENTS_LIVE_ENABLED=true` on
+  Production only; Preview and Development stay on the sandbox); card and Link only.
+  Indexing off.
 
 ## 1. Infrastructure and data
 
@@ -53,15 +56,17 @@ DNS, production database and the live site; details in
 
 ## 3. Payments and price
 
+_Updated Oct 28, 2026 from FIRST_CUSTOMER_READINESS.md and an owner read of Stripe on Oct 28, 2026. Re-check the Stripe dashboard before relying on it._
+
 | Status | Item | Ids |
 | --- | --- | --- |
-| PASS | No real charge is possible today; state fee and service fee are separate lines; no PA late fee is claimed | g4-5-pay-price-01, g4-5-pay-price-09, g4-5-pay-price-11 |
-| PASS | Production refuses the sandbox and Stripe test keys; until Stripe is live, production checkout says payments are unavailable | g1-integrity-04, g4-5-pay-price-02, g6-legal-27 |
-| BLOCKED | Stripe live account `acct_1ULCTn0kBic3wOhx`: charges + payouts enabled, descriptor FILEWELL, MCC 7399, card + Link only (enforced in code). **Past due:** bank account and identity-verification challenge; public support email empty | g4-5-pay-price-16, g2-brand-23, critic-07 |
+| PASS | Live charges on Production since 2026-09-30. The only one so far is the owner's $56.00 controlled test (2026-09-30), refunded 2026-10-01; no customer checkout since. State fee and service fee are separate lines; no PA late fee is claimed | g4-5-pay-price-01, g4-5-pay-price-09, g4-5-pay-price-11 |
+| PASS | Production refuses the sandbox and Stripe test keys; with `PAYMENTS_LIVE_ENABLED=false` (the rollback switch) production checkout says payments are unavailable | g1-integrity-04, g4-5-pay-price-02, g6-legal-27 |
+| PASS | Stripe live account `acct_1ULCTn0kBic3wOhx`: charges + payouts enabled, descriptor FILEWELL, MCC 7399, card + Link only (enforced in code). The items once listed here as past due (bank account, identity-verification challenge, empty public support email) were cleared by 2026-09-30: no requirements currently due, past due or pending, no disabled reason, bank account on file, public support email support@getfilewell.com (FIRST_CUSTOMER_READINESS.md, section 3) | g4-5-pay-price-16, g2-brand-23, critic-07 |
 | PASS | Checkout verified without money moving: a live session with the production parameters ($49 + $7 = $56, card + Link, www URLs) was accepted by Stripe and expired unpaid; sandbox journey (pay, duplicate/forged webhooks, file, refund paths) 21/21 E2E on staging (2026-09-30) | g1-integrity-19 |
 | BLOCKED | Sales-tax determination for the service fee | g4-5-pay-price-16 |
 | PASS | PA service fee $49.00 approved (owner's written approval, recorded with an audit row 2026-09-30) | g4-5-pay-price-08, g1-integrity-05 |
-| BLOCKED | Live webhook endpoint created (`we_1ULElQ0kBic3wOhxnXQTsnHJ`, 6 events, API 2026-08-26.dahlia); `PAYMENTS_PROVIDER=stripe` and `PAYMENTS_LIVE_ENABLED=false` on Production only. Owner adds `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` (Production, Sensitive), then flips `PAYMENTS_LIVE_ENABLED` after the controlled test | g1-integrity-19 |
+| PASS | Live webhook endpoint (`we_1ULElQ0kBic3wOhxnXQTsnHJ`, 6 events, API 2026-08-26.dahlia); `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` on Production (live key valid: the controlled live payment and its webhook succeeded, processed once); `PAYMENTS_PROVIDER=stripe` and `PAYMENTS_LIVE_ENABLED=true` on Production only since 2026-09-30 | g1-integrity-19 |
 | PASS | `ALLOW_TEST_PAYMENTS_IN_PRODUCTION`, `ALLOW_SANDBOX_IN_PRODUCTION` (older name, no longer honored since `06d7581`) and `ALLOW_REAL_PAYMENTS_IN_TESTS` are set on no Vercel target (env names checked 2026-09-29, values not read). Keep it that way | g1-integrity-04 |
 
 ## 4. Legal

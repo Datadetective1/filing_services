@@ -180,6 +180,17 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     description: "Staff alert: a customer posted a message on a filing (at most one alert per filing per hour).",
   },
   {
+    key: "staff_payment_review",
+    category: "transactional",
+    subject: "Payment needs review: {{company_name}}",
+    body:
+      "A payment of {{amount}} for {{company_name}} is flagged for review: {{review_reason}}.\n\n" +
+      "Payment mode: {{payment_mode}}\n\n" +
+      "Check it in the admin console (Payments, Needs review) before filing or refunding. You get one of these emails for each flagged payment once a day until an admin marks it reviewed.",
+    ctaLabel: "Open payment",
+    description: "Staff alert: a payment flagged for review (daily, one per flagged payment).",
+  },
+  {
     key: "staff_email_test",
     category: "transactional",
     subject: "Filewell production email test",

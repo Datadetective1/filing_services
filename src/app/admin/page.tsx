@@ -31,15 +31,18 @@ import {
 } from "@/components/admin/operator-guidance";
 import { CRITICAL_DAYS, DEADLINE_SENSITIVE_STATUSES, SOON_DAYS } from "@/components/admin/urgency";
 import { cn } from "@/components/ui/cn";
-import { isIndexable } from "@/config/site";
+import { isIndexable, site } from "@/config/site";
+import { sellReadinessRows, sellableStates, type SellReadinessRow } from "@/lib/admin/sell-readiness";
 import { requireStaff } from "@/lib/auth/session";
-import { isRuleSellable, rulesForState } from "@/lib/compliance/registry";
+import { isRuleSellable, listJurisdictions, RULES, rulesForState } from "@/lib/compliance/registry";
 import { addDays, daysBetween, describeDaysRemaining, formatLongDate } from "@/lib/domain/dates";
 import { ACTIVE_OPERATIONS_STATUSES, isFilingStatus } from "@/lib/domain/filing-status";
 import type { ServicePrice } from "@/lib/domain/pricing";
 import { getEmailReadiness } from "@/lib/email/provider";
-import { getPaymentReadiness } from "@/lib/payments";
+import { configuredPaymentProvider, getPaymentReadiness } from "@/lib/payments";
+import { paymentsNeedingReview } from "@/lib/payments/review";
 import { checkStripe, STRIPE_API_VERSION, STRIPE_WEBHOOK_URL, type StripeHealth } from "@/lib/payments/stripe-health";
+import { LEGAL_LAST_UPDATED } from "@/lib/seo/legal";
 import { checkSupabaseKeys } from "@/lib/supabase/health";
 import { createClient } from "@/lib/supabase/server";
 import { filingIdsByOrder, one } from "./_lib/data";
@@ -95,7 +98,7 @@ interface EventError {
 }
 
 export default async function TodayPage() {
-  await requireStaff();
+  const staff = await requireStaff();
   const db = await createClient();
   const today = opsToday();
   const startOfToday = opsDayStartIso(0);
@@ -123,7 +126,7 @@ export default async function TodayPage() {
         .lte("due_date", criticalDate)
         .order("due_date", { ascending: true })
         .limit(25),
-      db.from("payments").select("id, order_id, mode, amount_cents, review_reason, updated_at", { count: "exact" }).eq("requires_review", true).order("updated_at", { ascending: false }).limit(25),
+      paymentsNeedingReview<ReviewPayment>(db, "id, order_id, mode, amount_cents, review_reason, updated_at", { limit: 25, count: "exact" }),
       db
         .from("payment_events")
         .select("id, provider, event_type, processing_error, received_at", { count: "exact" })
@@ -204,23 +207,37 @@ export default async function TodayPage() {
   const email = getEmailReadiness();
   const database = supabaseEnvironment(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const [keys, stripeHealth] = await Promise.all([checkSupabaseKeys(), checkStripe()]);
+  const servicePrices = ((activePrices.data ?? []) as Record<string, unknown>[]).map(
+    (p): ServicePrice => ({
+      id: String(p.id),
+      filingTypeCode: String(p.filing_type_code),
+      stateCode: (p.state_code as string | null) ?? null,
+      entityType: (p.entity_type as string | null) ?? null,
+      serviceFeeCents: Number(p.service_fee_cents),
+      approved: Boolean(p.approved),
+      active: Boolean(p.active),
+    }),
+  );
   const paPrices = servicePriceApproval(
-    ((activePrices.data ?? []) as Record<string, unknown>[]).map(
-      (p): ServicePrice => ({
-        id: String(p.id),
-        filingTypeCode: String(p.filing_type_code),
-        stateCode: (p.state_code as string | null) ?? null,
-        entityType: (p.entity_type as string | null) ?? null,
-        serviceFeeCents: Number(p.service_fee_cents),
-        approved: Boolean(p.approved),
-        active: Boolean(p.active),
-      }),
-    ),
+    servicePrices,
     "PA",
     rulesForState("PA")
       .filter(isRuleSellable)
       .map((r) => r.entityType),
   );
+
+  // Admin only: every gate to sell on this deployment. Read only; names and public values, never secrets.
+  const sellRows: SellReadinessRow[] | null =
+    staff.role === "admin"
+      ? sellReadinessRows({
+          payments: { mode: payments.mode, provider: configuredPaymentProvider(), reason: payments.reason },
+          sellableStates: sellableStates(listJurisdictions(), RULES, isRuleSellable),
+          prices: servicePrices,
+          site,
+          legalLastUpdated: LEGAL_LAST_UPDATED,
+          indexable: isIndexable(),
+        })
+      : null;
 
   const critical = (criticalFilings.data ?? []) as CriticalFiling[];
   const review = (reviewPayments.data ?? []) as ReviewPayment[];
@@ -580,6 +597,29 @@ export default async function TodayPage() {
                 { term: "Search indexing", value: <StatusValue good={isIndexable()} text={isIndexable() ? "On" : "Off"} /> },
               ]}
             />
+            {sellRows ? (
+              <section aria-labelledby="sell-ready-title" className="border-t border-border/70 px-5 py-4">
+                <h3 id="sell-ready-title" className="text-[15px] font-semibold leading-snug text-fg">
+                  Ready to sell
+                </h3>
+                <p className="mb-3 text-sm text-muted">Admin only. Every gate to selling on this deployment. Read only.</p>
+                <KeyValues
+                  stacked
+                  items={sellRows.map((r) => ({
+                    term: r.term,
+                    value:
+                      r.tone === "info" ? (
+                        <span className="grid gap-0.5">
+                          <span className="font-medium">{r.text}</span>
+                          {r.note ? <span className="text-xs text-muted">{r.note}</span> : null}
+                        </span>
+                      ) : (
+                        <StatusValue good={r.tone === "ready"} text={r.text} note={r.note} />
+                      ),
+                  }))}
+                />
+              </section>
+            ) : null}
           </section>
         </div>
       </div>
