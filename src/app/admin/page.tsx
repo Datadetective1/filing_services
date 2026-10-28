@@ -40,6 +40,7 @@ import { ACTIVE_OPERATIONS_STATUSES, isFilingStatus } from "@/lib/domain/filing-
 import type { ServicePrice } from "@/lib/domain/pricing";
 import { getEmailReadiness } from "@/lib/email/provider";
 import { configuredPaymentProvider, getPaymentReadiness } from "@/lib/payments";
+import { paymentsNeedingReview } from "@/lib/payments/review";
 import { checkStripe, STRIPE_API_VERSION, STRIPE_WEBHOOK_URL, type StripeHealth } from "@/lib/payments/stripe-health";
 import { LEGAL_LAST_UPDATED } from "@/lib/seo/legal";
 import { checkSupabaseKeys } from "@/lib/supabase/health";
@@ -125,7 +126,7 @@ export default async function TodayPage() {
         .lte("due_date", criticalDate)
         .order("due_date", { ascending: true })
         .limit(25),
-      db.from("payments").select("id, order_id, mode, amount_cents, review_reason, updated_at", { count: "exact" }).eq("requires_review", true).order("updated_at", { ascending: false }).limit(25),
+      paymentsNeedingReview<ReviewPayment>(db, "id, order_id, mode, amount_cents, review_reason, updated_at", { limit: 25, count: "exact" }),
       db
         .from("payment_events")
         .select("id, provider, event_type, processing_error, received_at", { count: "exact" })

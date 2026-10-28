@@ -7,6 +7,7 @@ import { Table, TD, TH, THead, TR } from "@/components/admin/table";
 import { isTestPayment } from "@/components/admin/operator-guidance";
 import { PaymentStatusBadge } from "@/components/ui/badge";
 import { requireStaff } from "@/lib/auth/session";
+import { paymentsNeedingReview } from "@/lib/payments/review";
 import { createClient } from "@/lib/supabase/server";
 import { filingIdsByOrder, one, profilesByIds, type ProfileEntry } from "../_lib/data";
 
@@ -61,7 +62,7 @@ export default async function PaymentsPage() {
   const cols = "id, order_id, user_id, provider, mode, status, amount_cents, amount_refunded_cents, failure_reason, requires_review, review_reason, created_at, updated_at";
 
   const [reviewRes, failedRes, recentRes, refundsRes, eventsRes, redeliveredRes, errorCountRes] = await Promise.all([
-    db.from("payments").select(cols).eq("requires_review", true).order("updated_at", { ascending: false }).limit(100),
+    paymentsNeedingReview<PaymentRow>(db, cols, { limit: 100 }),
     db.from("payments").select(cols).eq("status", "failed").gte("updated_at", thirtyDaysAgo).order("updated_at", { ascending: false }).limit(100),
     db.from("payments").select(cols).order("created_at", { ascending: false }).limit(50),
     db.from("refunds").select("id, order_id, user_id, amount_cents, government_fee_cents, service_fee_cents, reason, status, created_at, orders(payment_mode)").order("created_at", { ascending: false }).limit(50),

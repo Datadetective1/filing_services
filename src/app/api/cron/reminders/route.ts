@@ -1,12 +1,16 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
+import { alertStaffOfPaymentsNeedingReview } from "@/lib/payments/review-alerts";
 import { runReminderCycle } from "@/lib/reminders/engine";
 import { runSubscriberReminderCycle } from "@/lib/reminders/subscribers";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-/** Daily reminder cycle. Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. */
+/**
+ * Daily reminder cycle, then one staff email per payment flagged for review (at most once a
+ * day each). Vercel Cron sends `Authorization: Bearer $CRON_SECRET`.
+ */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const header = request.headers.get("authorization") ?? "";
@@ -17,5 +21,7 @@ export async function GET(request: NextRequest) {
   const summary = await runReminderCycle();
   // Voluntary (non-customer) subscribers; a failure here never affects customer reminders.
   const subscribers = await runSubscriberReminderCycle().catch(() => null);
-  return NextResponse.json({ ok: true, summary, subscribers });
+  // Staff alerts for stuck payments; never throws, and never affects the reminders above.
+  const paymentReview = await alertStaffOfPaymentsNeedingReview();
+  return NextResponse.json({ ok: true, summary, subscribers, paymentReview });
 }
