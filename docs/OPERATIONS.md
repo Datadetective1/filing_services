@@ -268,13 +268,19 @@ password set); email rate limit 30/hour. Optional: the branded template bodies b
 
 ## Stripe production setup
 
-State on 2026-09-30 (live account `acct_1ULCTn0kBic3wOhx`, individual / sole proprietor):
+_Updated Oct 28, 2026 from FIRST_CUSTOMER_READINESS.md and an owner read of Stripe on Oct 28, 2026. Re-check the Stripe dashboard before relying on it._
+
+State on 2026-09-30, re-checked that evening (live account `acct_1ULCTn0kBic3wOhx`,
+individual / sole proprietor). Live payments are on in Production since 2026-09-30. The
+only live charge so far is the owner's $56.00 controlled test (2026-09-30, charge
+`ch_3ULYbb0kBic3wOhx1lb3Maqf`), refunded 2026-10-01; no customer checkout since.
 
 1. Account: charges and payouts enabled, details submitted, MCC 7399, website
-   `https://www.getfilewell.com`, statement descriptor `FILEWELL`. **Past due:** a bank
-   account (`external_account`) and an identity-verification challenge; the public
-   support email is empty. The owner resolves these in the Dashboard (Settings → Business
-   → Public details; Balances → Payout account; the verification banner).
+   `https://www.getfilewell.com`, statement descriptor `FILEWELL`. The items once listed
+   here as past due (a bank account, an identity-verification challenge, an empty public
+   support email) were cleared by 2026-09-30: no requirements currently due, past due or
+   pending, no disabled reason, bank account on file, public support email
+   support@getfilewell.com (FIRST_CUSTOMER_READINESS.md, section 3).
 2. Payment methods: enforced in code (`CHECKOUT_PAYMENT_METHOD_TYPES` in
    `src/lib/payments/stripe.ts`): cards (incl. Apple Pay / Google Pay) and Link only. Other
    methods active on the account (ACH, Klarna, Afterpay, Cash App...) never appear.
@@ -287,12 +293,11 @@ State on 2026-09-30 (live account `acct_1ULCTn0kBic3wOhx`, individual / sole pro
    shown in the Dashboard (Developers → Webhooks → the endpoint → Signing secret → Reveal)
    and goes into `STRIPE_WEBHOOK_SECRET` on Production.
 4. Vercel (done): `PAYMENTS_PROVIDER` is `stripe` on Production and `sandbox` on
-   Preview/Development; `PAYMENTS_LIVE_ENABLED` has a Production-only variable (`false`).
-   Still needed on Production (owner, Sensitive): `STRIPE_SECRET_KEY` (`sk_live_...` from
-   Developers → API keys; never the Stripe CLI's key) and `STRIPE_WEBHOOK_SECRET`.
+   Preview/Development; `STRIPE_SECRET_KEY` (`sk_live_...` from Developers → API keys; never
+   the Stripe CLI's key) and `STRIPE_WEBHOOK_SECRET` are set on Production (Sensitive), and
+   the Production-only `PAYMENTS_LIVE_ENABLED` is `true` since 2026-09-30.
 5. Check: `/admin` → System status → **Stripe account** and **Stripe webhook** (a read-only
-   live check that works while checkout is still off). Payments reads "Off" with the note
-   "Live Stripe key present but PAYMENTS_LIVE_ENABLED is not 'true'" until the switch.
+   live check). On Production, Payments reads **Live: real charges**.
 6. Stripe CLI (engineer): always `--project-name=filewell --live`, never the default
    profile. It is for inspection and configuration only; the app never uses its key.
 7. Sales tax on the service fee: not collected (Stripe Tax off); get a determination.
