@@ -73,6 +73,15 @@ export function getPaymentReadiness(): PaymentReadiness {
   }
 }
 
+/** The configured provider name (PAYMENTS_PROVIDER), for the staff status panel; null when the environment is invalid. */
+export function configuredPaymentProvider(): "stripe" | "sandbox" | null {
+  try {
+    return env().PAYMENTS_PROVIDER;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Whether only an approved service price may be charged: in live mode, and on the
  * production deployment whatever the mode. Staging may preview a provisional price.

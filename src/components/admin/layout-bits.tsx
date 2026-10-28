@@ -174,14 +174,17 @@ export function Panel({
   );
 }
 
-/** Compact term / value rows with hairline dividers. */
-export function KeyValues({ items, className }: { items: { term: ReactNode; value: ReactNode }[]; className?: string }) {
+/** Compact term / value rows with hairline dividers. `stacked` keeps the term above its value at every width (narrow columns). */
+export function KeyValues({ items, className, stacked = false }: { items: { term: ReactNode; value: ReactNode }[]; className?: string; stacked?: boolean }) {
   return (
     <dl className={cn("grid text-sm", className)}>
       {items.map((item, i) => (
         <div
           key={i}
-          className="grid gap-0.5 border-t border-border/60 py-2.5 first:border-t-0 first:pt-0 last:pb-0 sm:grid-cols-[minmax(8rem,12rem)_minmax(0,1fr)] sm:gap-4"
+          className={cn(
+            "grid gap-0.5 border-t border-border/60 py-2.5 first:border-t-0 first:pt-0 last:pb-0",
+            !stacked && "sm:grid-cols-[minmax(8rem,12rem)_minmax(0,1fr)] sm:gap-4",
+          )}
         >
           <dt className="text-muted">{item.term}</dt>
           <dd className="min-w-0 break-words text-fg">{item.value}</dd>
