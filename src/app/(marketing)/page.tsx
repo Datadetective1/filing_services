@@ -30,6 +30,8 @@ import { formatCents } from "@/lib/domain/money";
 import { DEFAULT_REMINDER_OFFSETS, planReminders } from "@/lib/domain/reminders";
 import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { agencyShortName, dueGroups } from "@/lib/seo/content";
+import { ENTITY_COPY } from "@/lib/seo/entities";
+import { heroRule } from "@/lib/seo/hero-rule";
 import { graph, organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { marketingPeriod } from "@/lib/seo/period";
@@ -49,15 +51,18 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 export default async function HomePage() {
   const pa = getJurisdiction("PA");
-  const rule = findRule("PA", "llc");
   const paRules = rulesForState("PA");
+  const today = todayInTimeZone(pa?.timezone ?? "America/New_York");
+  // The Pennsylvania deadline that comes next (December 31: limited partnerships and the
+  // other filing entities; June 30: corporations; September 30: LLCs).
+  const rule = heroRule(paRules, today)?.rule ?? findRule("PA", "llc");
+  const entityCopy = rule ? ENTITY_COPY[rule.entityType] : ENTITY_COPY.llc;
   const marketing = rule ? marketingPeriod(rule) : null;
   const periodInfo = marketing?.period ? { period: marketing.period, missed: marketing.missed } : null;
   const quote = rule ? await publicQuote(rule) : null;
   const agency = pa ? agencyShortName(pa) : "Pennsylvania Department of State";
   const stateName = pa?.name ?? "Pennsylvania";
   const groups = dueGroups(paRules);
-  const today = todayInTimeZone(pa?.timezone ?? "America/New_York");
   const reminderFor = (dueDate: string) =>
     planReminders(dueDate, DEFAULT_REMINDER_OFFSETS, today).find((r) => r.status === "scheduled")?.scheduledFor ?? null;
   // After the deadline the preview shows the missed report, which can still be filed.
@@ -160,8 +165,8 @@ export default async function HomePage() {
         {periodInfo?.missed && rule ? (
           <Container className="-mt-8 pb-10 lg:-mt-14">
             <p className="max-w-[70ch] text-[13px] leading-5 text-subtle">
-              The {formatLongDate(periodInfo.missed.dueDate)} deadline for {stateName} LLC annual reports has passed. If
-              your LLC hasn&apos;t filed its {periodInfo.missed.periodYear} report yet, it can still be filed.{" "}
+              The {formatLongDate(periodInfo.missed.dueDate)} deadline for {stateName} {entityCopy.singular} annual reports has passed. If
+              your {entityCopy.singular} hasn&apos;t filed its {periodInfo.missed.periodYear} report yet, it can still be filed.{" "}
               {rule.lateFeeSummary}
             </p>
           </Container>
@@ -346,7 +351,7 @@ export default async function HomePage() {
 
           <Receipt
             title="If we file it for you"
-            meta={`${stateName} LLC annual report`}
+            meta={`${stateName} ${entityCopy.singular} annual report`}
             className="mx-auto w-full max-w-md lg:rotate-[1.2deg]"
             footer={
               rule ? (
@@ -366,7 +371,7 @@ export default async function HomePage() {
             )}
             {rule ? (
               <div className="mt-5">
-                <FilingCtaLink href="/find?state=PA&entity=llc" stateCode="PA" entityType="llc" className="w-full">
+                <FilingCtaLink href={`/find?state=PA&entity=${rule.entityType}`} stateCode="PA" entityType={rule.entityType} className="w-full">
                   Have us file it
                 </FilingCtaLink>
               </div>
