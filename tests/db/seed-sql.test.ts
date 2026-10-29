@@ -47,7 +47,7 @@ describe("seed-sql", () => {
       expect(row.current).toBe(true);
     }
     const prices = await db.query<{ state_code: string; approved: boolean; service_fee_cents: number }>(
-      "select state_code, approved, service_fee_cents from public.service_prices where state_code in ('WA','NV','UT') and active order by state_code",
+      "select state_code, approved, service_fee_cents from public.service_prices where state_code in ('WA','NV','UT') and active and price_variant = 'standard' order by state_code",
     );
     expect(prices.rows).toEqual([
       { state_code: "NV", approved: false, service_fee_cents: 4900 },

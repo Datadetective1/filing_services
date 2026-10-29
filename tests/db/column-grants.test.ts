@@ -66,7 +66,7 @@ describe("service_prices column grants", () => {
   it("staff still read every price with its internal columns (the /admin/pricing query)", async () => {
     const res = await asUser(db, staff, (tx) =>
       tx.query<{ active: boolean; notes: string | null; approved_by: string | null; updated_by: string | null }>(
-        `select ${ADMIN_PRICE_COLUMNS} from public.service_prices where state_code = 'PA' order by active desc`,
+        `select ${ADMIN_PRICE_COLUMNS} from public.service_prices where state_code = 'PA' and price_variant = 'standard' order by active desc`,
       ),
     );
     expect(res.rows).toHaveLength(2);

@@ -2,6 +2,7 @@ import { DEFAULT_TEMPLATES } from "@/lib/email/templates";
 import { DEFAULT_REMINDER_OFFSETS } from "@/lib/domain/reminders";
 import { addDays } from "@/lib/domain/dates";
 import { stableStringify } from "./hash-core";
+import { ANNUAL_REPORT_PROPOSED_FEE_CENTS, ANNUAL_REPORT_PROPOSED_VARIANT, STANDARD_PRICE_VARIANT } from "@/lib/services/catalog";
 import { FILING_TYPES, RULES } from "./registry";
 import { JURISDICTIONS } from "./jurisdictions";
 import type { ComplianceRuleDef } from "./types";
@@ -117,6 +118,10 @@ export function contentHashOf(rule: ComplianceRuleDef, hash: (s: string) => stri
 export const PROVISIONAL_SERVICE_FEE_CENTS = 4900;
 
 export function defaultPriceRows() {
+  return [...annualReportPriceRows(), ...businessServicePriceRows()];
+}
+
+function annualReportPriceRows() {
   return ["PA", "WA", "NV", "UT", "FL", "CO", "SD", "MT", "MI"].map((state) => ({
     filing_type_code: "annual_report",
     state_code: state,
@@ -124,11 +129,50 @@ export function defaultPriceRows() {
     service_fee_cents: PROVISIONAL_SERVICE_FEE_CENTS,
     approved: false,
     active: true,
+    price_variant: STANDARD_PRICE_VARIANT,
     notes:
       state === "PA"
         ? "Provisional placeholder: owner must set and approve the service fee before live payments."
         : "Proposed $49 service fee for staging and calculations. Not approved: live checkout refuses it until the owner approves this state's total.",
   }));
+}
+
+/**
+ * Business services at the founder's proposed launch prices (Oct 29, 2026), all unapproved,
+ * plus the proposed $79 annual report as a separate price variant that checkout uses only
+ * when ANNUAL_REPORT_PRICE_VARIANT names it. Production keeps charging the standard variant.
+ */
+function businessServicePriceRows() {
+  const row = (filingTypeCode: string, cents: number, notes: string, state: string | null = null, variant = STANDARD_PRICE_VARIANT) => ({
+    filing_type_code: filingTypeCode,
+    state_code: state,
+    entity_type: null,
+    service_fee_cents: cents,
+    approved: false,
+    active: true,
+    price_variant: variant,
+    notes,
+  });
+  return [
+    row("registered_agent", 11900, "Proposed launch price: $119 per entity, per state, per year. Same price at renewal. Not approved."),
+    row("ra_annual_report_bundle", 16900, "Proposed launch price: $169 per year plus the annual report's state fee (charged at filing). Not approved."),
+    row("formation", 9900, "Proposed launch price: $99 plus the state formation fee. Registered agent is a separate add-on. Not approved."),
+    row(
+      "change_registered_agent",
+      0,
+      "Launch promotion: customer pays only the state fee; Filewell absorbs the provider's $25 charge. Raise this to end the promotion. Not approved.",
+    ),
+    row("additional_mail", 1500, "Pass-through of the provider's $15 per extra regular mail item, subject to the final agreement. Not approved."),
+    ...["PA", "FL", "CO", "SD", "MT", "MI"].map((state) =>
+      row(
+        "annual_report",
+        ANNUAL_REPORT_PROPOSED_FEE_CENTS,
+        "Proposed $79 annual report price for new customers. Charged only where ANNUAL_REPORT_PRICE_VARIANT=proposed_79 and only after approval. Existing orders keep their price.",
+        state,
+        ANNUAL_REPORT_PROPOSED_VARIANT,
+      ),
+    ),
+  ];
 }
 
 export function reminderScheduleRows() {

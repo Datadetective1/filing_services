@@ -14,6 +14,8 @@ export interface ServicePrice {
   serviceFeeCents: number;
   approved: boolean;
   active: boolean;
+  /** Price variant ("standard" unless a proposed price is being tested). Missing = standard. */
+  variant?: string;
 }
 
 export interface QuoteLineItem {
@@ -32,14 +34,30 @@ export interface Quote {
   servicePriceApproved: boolean;
 }
 
-/** Most specific active price wins: state+entity > state > entity > global. */
+/**
+ * Most specific active price wins: state+entity > state > entity > global. Only the
+ * requested variant is considered ("standard" by default), so a proposed price row never
+ * reaches a checkout that didn't ask for it. A requested variant with no matching row falls
+ * back to the standard price.
+ */
 export function resolveServicePrice(
   prices: ServicePrice[],
-  scope: { filingTypeCode: string; stateCode: string; entityType: EntityType },
+  scope: { filingTypeCode: string; stateCode: string | null; entityType: EntityType | null; variant?: string },
+): ServicePrice | null {
+  const wanted = scope.variant ?? "standard";
+  const found = pick(prices, scope, wanted);
+  return found ?? (wanted === "standard" ? null : pick(prices, scope, "standard"));
+}
+
+function pick(
+  prices: ServicePrice[],
+  scope: { filingTypeCode: string; stateCode: string | null; entityType: EntityType | null },
+  variant: string,
 ): ServicePrice | null {
   const candidates = prices.filter(
     (p) =>
       p.active &&
+      (p.variant ?? "standard") === variant &&
       p.filingTypeCode === scope.filingTypeCode &&
       (p.stateCode === null || p.stateCode === scope.stateCode) &&
       (p.entityType === null || p.entityType === scope.entityType),

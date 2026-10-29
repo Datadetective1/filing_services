@@ -47,6 +47,7 @@ function mapPrice(row: Record<string, unknown>): ServicePrice {
     serviceFeeCents: Number(row.service_fee_cents),
     approved: Boolean(row.approved),
     active: Boolean(row.active),
+    variant: typeof row.price_variant === "string" ? row.price_variant : "standard",
   };
 }
 
@@ -54,7 +55,7 @@ function mapPrice(row: Record<string, unknown>): ServicePrice {
  * The only service_prices columns the anon role may read (column grants in
  * supabase/migrations/20260929000007_column_grants.sql). `select("*")` as anon is refused.
  */
-const PUBLIC_PRICE_COLUMNS = "id, filing_type_code, state_code, entity_type, service_fee_cents, approved, active";
+const PUBLIC_PRICE_COLUMNS = "id, filing_type_code, state_code, entity_type, service_fee_cents, approved, active, price_variant";
 
 /** Active service prices (public read). Returns [] if the database is unreachable. */
 export const listActivePrices = cache(async (): Promise<ServicePrice[]> => {

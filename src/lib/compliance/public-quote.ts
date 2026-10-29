@@ -6,6 +6,7 @@ import { todayInTimeZone } from "@/lib/domain/dates";
 import { buildQuote, resolveServicePrice, type Quote } from "@/lib/domain/pricing";
 import { evaluateFees, quoteGovernmentLines } from "./fees";
 import { listActivePrices } from "@/lib/filings/rules-db";
+import { annualReportPriceVariant } from "@/lib/services/annual-report-pricing";
 
 /**
  * Public price quote for a rule, for marketing pages and the lookup result. Returns
@@ -18,6 +19,7 @@ export async function publicQuote(rule: ComplianceRuleDef, opts: { isNonprofit?:
     filingTypeCode: rule.filingTypeCode,
     stateCode: rule.stateCode,
     entityType: rule.entityType,
+    variant: annualReportPriceVariant(),
   });
   if (!price) return null;
   // A provisional (unapproved) price may be previewed on staging, never advertised on

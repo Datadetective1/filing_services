@@ -3,6 +3,7 @@
  * pure builders as scripts/seed.ts (identical content hashes). For applying through a
  * reviewed SQL console where the service key isn't available locally:
  *   npx tsx scripts/seed-sql.mts WA NV UT > seed.sql
+ *   npx tsx scripts/seed-sql.mts SERVICES > services.sql   (nationwide business-service prices)
  * Existing (rule, version) rows are left untouched.
  */
 import { createHash } from "node:crypto";
@@ -49,10 +50,15 @@ update public.compliance_rules c set current_version_id = v.id from v where c.id
 from public.compliance_rules c
 where c.id = sv.rule_id and c.rule_key = ${lit(rule.ruleKey)} and sv.version < ${rule.version} and sv.publication_status = 'published';`);
 }
-for (const p of defaultPriceRows().filter((p) => states.includes(p.state_code))) {
-  out.push(`insert into public.service_prices (filing_type_code, state_code, entity_type, service_fee_cents, approved, active, notes)
-select ${lit(p.filing_type_code)}, ${lit(p.state_code)}, null, ${p.service_fee_cents}, false, true, ${lit(p.notes)}
-where not exists (select 1 from public.service_prices where filing_type_code = ${lit(p.filing_type_code)} and state_code = ${lit(p.state_code)} and entity_type is null and active);`);
+// Prices for the named states; "SERVICES" also adds the nationwide business-service prices
+// (state_code null). Each price variant is its own row. Existing prices are never changed.
+const wantsServices = states.includes("SERVICES");
+for (const p of defaultPriceRows().filter((p) => (p.state_code ? states.includes(p.state_code) : wantsServices))) {
+  const stateSql = p.state_code ? lit(p.state_code) : "null";
+  const stateMatch = p.state_code ? `state_code = ${lit(p.state_code)}` : "state_code is null";
+  out.push(`insert into public.service_prices (filing_type_code, state_code, entity_type, service_fee_cents, approved, active, price_variant, notes)
+select ${lit(p.filing_type_code)}, ${stateSql}, null, ${p.service_fee_cents}, false, true, ${lit(p.price_variant)}, ${lit(p.notes)}
+where not exists (select 1 from public.service_prices where filing_type_code = ${lit(p.filing_type_code)} and ${stateMatch} and entity_type is null and price_variant = ${lit(p.price_variant)} and active);`);
 }
 out.push("commit;");
 console.log(out.join("\n"));
