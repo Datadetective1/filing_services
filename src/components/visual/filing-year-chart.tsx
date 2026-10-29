@@ -26,13 +26,18 @@ export interface YearChartRow {
   label: string;
   month: number;
   day: number;
+  /** When the window opens; January 1 when left out. */
+  opensMonth?: number;
+  opensDay?: number;
 }
+
+const opensOf = (r: YearChartRow) => ({ month: r.opensMonth ?? 1, day: r.opensDay ?? 1 });
 
 const ROW = "grid grid-cols-[minmax(0,1fr)] sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center sm:gap-4";
 
 /**
- * The filing year as one track per due date: each bar runs from January 1, when the
- * window opens, to the due date, with today marked. It pictures the list printed
+ * The filing year as one track per due date: each bar runs from the day the window opens
+ * (January 1 unless the state says otherwise) to the due date, with today marked. It pictures the list printed
  * next to it, so it is described once through its accessible label.
  */
 export function FilingYearChart({
@@ -49,8 +54,13 @@ export function FilingYearChart({
   const todayAt = yearFraction(m, d, y);
   const todayLeft = `${todayAt * 100}%`;
   const todayLabelLeft = `${Math.min(94, Math.max(6, todayAt * 100))}%`;
-  const label = `Filing windows open January 1. ${rows
-    .map((r) => `${r.label}: due ${MONTH_NAMES[r.month - 1]} ${r.day}`)
+  const opensKeys = new Set(rows.map((r) => `${opensOf(r).month}-${opensOf(r).day}`));
+  const shared = opensKeys.size === 1 && rows.length > 0 ? opensOf(rows[0]) : null;
+  const label = `${shared ? `Filing windows open ${MONTH_NAMES[shared.month - 1]} ${shared.day}. ` : ""}${rows
+    .map((r) => {
+      const opens = shared ? "" : `opens ${MONTH_NAMES[opensOf(r).month - 1]} ${opensOf(r).day}, `;
+      return `${r.label}: ${opens}due ${MONTH_NAMES[r.month - 1]} ${r.day}`;
+    })
     .join(". ")}.`;
 
   return (
@@ -62,7 +72,9 @@ export function FilingYearChart({
       <div aria-hidden>
         {/* Month scale */}
         <div className={cn(ROW, "pb-2")}>
-          <span className="hidden text-[12px] font-semibold text-subtle sm:block">Window opens Jan 1</span>
+          <span className="hidden text-[12px] font-semibold text-subtle sm:block">
+            {shared ? `Window opens ${MONTH_NAMES[shared.month - 1].slice(0, 3)} ${shared.day}` : null}
+          </span>
           <div className="grid grid-cols-12 text-center text-[11px] font-semibold uppercase tracking-wide text-subtle">
             {MONTH_INITIALS.map((mi, i) => (
               <span key={i} className={i + 1 === m ? "text-fg" : undefined}>
@@ -73,6 +85,7 @@ export function FilingYearChart({
         </div>
 
         {rows.map((row) => {
+          const start = yearFraction(opensOf(row).month, opensOf(row).day, y);
           const end = yearFraction(row.month, row.day, y);
           const passed = todayAt > end;
           return (
@@ -86,10 +99,10 @@ export function FilingYearChart({
                 </span>
                 <span
                   className={cn(
-                    "absolute inset-y-2.5 left-0 rounded-full",
+                    "absolute inset-y-2.5 rounded-full",
                     passed ? "bg-surface-3" : "bg-accent-soft ring-1 ring-inset ring-accent/25",
                   )}
-                  style={{ width: `${end * 100}%` }}
+                  style={{ left: `${start * 100}%`, width: `${(end - start) * 100}%` }}
                 />
                 <span className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-highlight-strong/70" style={{ left: todayLeft }} />
                 <span

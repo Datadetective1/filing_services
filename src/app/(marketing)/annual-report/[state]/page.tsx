@@ -50,6 +50,7 @@ import {
   groupSources,
   latestVerified,
   stateFaq,
+  stateWindowSentence,
 } from "@/lib/seo/content";
 import { ENTITY_COPY, joinList } from "@/lib/seo/entities";
 import { breadcrumbJsonLd, faqJsonLd, graph, serviceJsonLd } from "@/lib/seo/json-ld";
@@ -141,7 +142,13 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
   const sellable = rules.some((r) => isRuleSellable(r));
   const today = todayInTimeZone(j.timezone);
   const chartRows = groups.every((g) => g.month && g.dayOfMonth)
-    ? groups.map((g) => ({ label: g.who, month: g.month as number, day: g.dayOfMonth as number }))
+    ? groups.map((g) => ({
+        label: g.who,
+        month: g.month as number,
+        day: g.dayOfMonth as number,
+        opensMonth: g.opensMonth ?? 1,
+        opensDay: g.opensDay ?? 1,
+      }))
     : null;
 
   const crumbs = [
@@ -259,11 +266,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 Based on the {agency}&apos;s published requirements, most domestic and foreign entities registered in {j.name}{" "}
                 must file {rules[0].filingName === "Annual Report" ? "an annual report" : `the ${rules[0].filingName}`} every year:{" "}
                 {dueSummary(rules)}. The state fee is {feeText}, and {lateSentence}.{" "}
-                {rules.every((r) => r.dueRule.kind === "fixed_annual")
-                  ? "The filing window opens January 1 of the report year."
-                  : rules[0].filingWindowDaysBefore
-                    ? `It can be filed up to ${rules[0].filingWindowDaysBefore} days before the due date.`
-                    : null}
+                {stateWindowSentence(rules)}
               </p>
             }
           >

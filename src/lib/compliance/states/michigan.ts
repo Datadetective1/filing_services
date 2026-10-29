@@ -143,14 +143,12 @@ function buildRule(): ComplianceRuleDef {
     verificationStatus: "verified",
     effectiveFrom: VERIFIED,
     filingName: "Annual Report",
-    dueRule: { kind: "fixed_annual", month: 5, day: 15 },
+    dueRule: { kind: "fixed_annual", month: 5, day: 15, opens: { month: 1, day: 15 } },
     firstDueRule: { kind: "year_after_formation" },
     stateFeeCents: 2500,
     nonprofitStateFeeCents: null,
     lateFeeCents: 5000,
     lateFees,
-    // Online filing begins January 15.
-    filingWindowDaysBefore: 120,
     lateFeeSummary: "Michigan adds $10 for each month or part of a month a corporation's report is late, up to $50.",
     consequenceSummary:
       "A late report adds $10 for each month or part of a month, up to $50, and the corporation falls out of good standing until it files.",
@@ -218,7 +216,7 @@ function buildRule(): ComplianceRuleDef {
     lastVerifiedAt: VERIFIED,
     verifiedBy: REVIEWER,
     notes:
-      "Not verified: the report's contents, who may sign, the two-year automatic dissolution, and that a corporation formed January 1 to May 15 skips that year (all from statute pages behind a CAPTCHA, not cited). Filewell's window opens January 1 for fixed-date rules; LARA opens online filing January 15.",
+      "Not verified: the report's contents, who may sign, the two-year automatic dissolution, and that a corporation formed January 1 to May 15 skips that year (all from statute pages behind a CAPTCHA, not cited). Filing opens January 15, when LARA says online filing begins; whether anything can be filed earlier is not verified.",
   };
 }
 

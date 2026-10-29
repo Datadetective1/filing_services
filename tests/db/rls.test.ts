@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { RULES } from "@/lib/compliance/registry";
+import { defaultPriceRows } from "@/lib/compliance/seed-data";
 import type { Transaction } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -251,7 +252,7 @@ describe("tenant isolation: reads", () => {
       await asAnon(db, (tx) => count(tx, "select 1 from public.state_rule_versions where publication_status = 'published'")),
     ).toBe(RULES.length);
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.state_rule_sources"))).toBeGreaterThan(8);
-    expect(await asAnon(db, (tx) => count(tx, "select 1 from public.service_prices where active"))).toBe(4);
+    expect(await asAnon(db, (tx) => count(tx, "select 1 from public.service_prices where active"))).toBe(defaultPriceRows().length);
   });
 
   it("anon cannot read draft rule versions, their sources, or inactive prices; staff can", async () => {

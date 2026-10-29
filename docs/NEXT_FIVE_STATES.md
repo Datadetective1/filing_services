@@ -58,8 +58,9 @@ Counsel must confirm this is enough before `fl_signer_permission` is closed.
 - Montana: the declaration wording; who may sign a corporation's report; the on-time fee
   after the waiver ends.
 - Michigan: report contents, signer, automatic dissolution and the first-year exemption.
-  These come from statute pages that showed a CAPTCHA, so they are not cited. LARA opens
-  online filing January 15; Filewell's fixed-date window opens January 1.
+  These come from statute pages that showed a CAPTCHA, so they are not cited. Filewell opens
+  Michigan reports on January 15, when LARA says online filing begins; whether anything can
+  be filed earlier is not verified.
 
 ## Human actions before any live order
 
