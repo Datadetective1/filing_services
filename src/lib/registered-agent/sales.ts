@@ -46,6 +46,11 @@ export function businessServicesPagesEnabled(): boolean {
   return !isProductionEnvironment() || flag("BUSINESS_SERVICES_PAGES") === "true";
 }
 
+/** Search engines may index the business-services pages only once they are launched on production. */
+export function businessServicesIndexable(): boolean {
+  return isProductionEnvironment() && flag("BUSINESS_SERVICES_PAGES") === "true";
+}
+
 /**
  * Everything standing between this jurisdiction and real-money registered agent sales, in
  * plain words. Empty means only the switch and an approved price remain.
