@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { PageIntro, Prose, Section } from "@/components/marketing/section";
-import { textLinkClasses } from "@/components/ui/button";
+import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Notice } from "@/components/ui/surface";
 import { formatCents } from "@/lib/domain/money";
-import { businessServicesIndexable, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { RA_JURISDICTIONS } from "@/lib/registered-agent/jurisdictions";
+import { businessServicesIndexable, businessServicesPagesEnabled, formationSaleCheck } from "@/lib/registered-agent/sales";
 import { publicServicePrices } from "@/lib/services/public-prices";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -31,17 +32,29 @@ const CRUMBS = [
 export default async function BusinessFormationPage() {
   if (!businessServicesPagesEnabled()) notFound();
   const prices = await publicServicePrices();
+  const open = RA_JURISDICTIONS.filter((j) => formationSaleCheck(j.code, "llc").ok || formationSaleCheck(j.code, "corporation").ok);
   return (
     <>
       <JsonLd data={graph(breadcrumbJsonLd(CRUMBS))} />
-      <PageIntro breadcrumbs={<Breadcrumbs items={CRUMBS} />} title="Starting a business" lede={<p>Formation with Filewell isn&apos;t open yet. Here is how it will work and what it will cost.</p>} />
+      <PageIntro breadcrumbs={<Breadcrumbs items={CRUMBS} />} title="Starting a business" lede={<p>We file your LLC or corporation with the state for one service fee plus the state&apos;s own fee, each on its own line.</p>} />
       <Section>
         <div className="grid gap-8">
-          <Notice tone="info" title="Not open yet">
-            <p>
-              We only take formation orders in a state once we&apos;ve checked its filing fee on the state&apos;s own site. We haven&apos;t opened any state yet. Nothing on this page is an offer to file today.
-            </p>
-          </Notice>
+          {open.length === 0 ? (
+            <Notice tone="info" title="Not open yet">
+              <p>
+                We only take formation orders in a state once we&apos;ve checked its filing fee on the state&apos;s own site. We haven&apos;t opened any state yet. Nothing on this page is an offer to file today.
+              </p>
+            </Notice>
+          ) : (
+            <div className="grid gap-3">
+              <p className="text-[15px] text-muted">
+                Open in {open.length === 1 ? open[0].name : `${open.length} states`}. Pick yours and see the full price, state fee included, before you pay.
+              </p>
+              <Link href="/dashboard/services/formation" prefetch={false} className={buttonClasses("primary", "md", "w-fit")}>
+                Start your business
+              </Link>
+            </div>
+          )}
           <Prose>
             <h2>What it will cost</h2>
             <ul>

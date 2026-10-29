@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { requireUser } from "@/lib/auth/session";
 import { formatCents } from "@/lib/domain/money";
+import { getRaJurisdiction } from "@/lib/registered-agent/jurisdictions";
 import { bundleSaleCheck, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { isOrderableService, loadOrderPrefill, previewServiceOrder, ServiceOrderError, type OrderableService } from "@/lib/services/orders";
 import { backLinkClass } from "@/components/dashboard/section";
@@ -124,6 +125,7 @@ export default async function NewServicePage(props: PageProps<"/dashboard/servic
               renewalLabel={quote.renewal ? formatCents(quote.renewal.amountCents) : null}
               renewalTerms={quote.disclosures}
               prefill={prefill}
+              askOwners={getRaJurisdiction(business.state_code)?.extraIntake.beneficialOwners ?? false}
             />
           </Card>
         )}
@@ -131,9 +133,14 @@ export default async function NewServicePage(props: PageProps<"/dashboard/servic
         {preview.situation === "switching" ? (
           <p className="text-sm text-muted">
             Not formed yet?{" "}
-            <Link href="/business-formation" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
-              See business formation
+            <Link href="/dashboard/services/new-business" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
+              Get an agent for a new business
+            </Link>{" "}
+            or{" "}
+            <Link href="/dashboard/services/formation" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
+              let us form it
             </Link>
+            .
           </p>
         ) : null}
       </div>

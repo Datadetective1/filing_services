@@ -78,12 +78,16 @@ export default async function RegisteredAgentPage() {
               <Card className="grid gap-2 p-5">
                 <h3 className="text-lg font-semibold text-fg">I&apos;m starting a business</h3>
                 <p className="text-[15px] text-muted">
-                  You name your registered agent when you form the business. Business formation with Filewell isn&apos;t open yet.{" "}
+                  You name your registered agent when you form the business, so there&apos;s nothing to switch. Forming it yourself? We give you our agent&apos;s
+                  details for your filing. Or{" "}
                   <Link href="/business-formation" className={textLinkClasses}>
-                    Read how it will work
+                    let us form it
                   </Link>
                   .
                 </p>
+                <Link href="/dashboard/services/new-business" prefetch={false} className={buttonClasses("secondary", "md", "mt-2 w-fit")}>
+                  Get an agent for a new business
+                </Link>
               </Card>
             </div>
           </div>

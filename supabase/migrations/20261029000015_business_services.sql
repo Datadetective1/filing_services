@@ -44,6 +44,12 @@ alter table public.businesses
   add column if not exists lifecycle text not null default 'existing'
     check (lifecycle in ('existing', 'forming'));
 
+-- Puerto Rico, so a Puerto Rico business can have registered agent service or be formed.
+-- Filewell files no annual reports there: unsupported, filing disabled, no rules.
+insert into public.states (code, name, slug, timezone, support_level, filing_enabled)
+values ('PR', 'Puerto Rico', 'puerto-rico', 'America/Puerto_Rico', 'unsupported', false)
+on conflict (code) do nothing;
+
 alter table public.orders
   add column if not exists order_type text not null default 'annual_report'
     check (order_type in ('annual_report', 'business_services', 'subscription_renewal'));
@@ -67,8 +73,7 @@ create table public.ra_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id),
   business_id uuid not null references public.businesses (id),
-  -- Two-letter code from src/lib/registered-agent/jurisdictions.ts (includes Puerto Rico,
-  -- which is not in public.states because Filewell files no annual reports there).
+  -- Two-letter code from src/lib/registered-agent/jurisdictions.ts (Puerto Rico included).
   state_code text not null check (state_code ~ '^[A-Z]{2}$'),
   plan text not null check (plan in ('registered_agent', 'ra_annual_report_bundle')),
   origin text not null check (origin in ('switching', 'new_entity', 'formation_add_on')),
@@ -129,8 +134,7 @@ create table public.provider_orders (
   order_id uuid not null references public.orders (id),
   ra_subscription_id uuid references public.ra_subscriptions (id),
   kind text not null check (kind in ('registered_agent', 'change_of_agent', 'formation')),
-  -- Two-letter code from src/lib/registered-agent/jurisdictions.ts (includes Puerto Rico,
-  -- which is not in public.states because Filewell files no annual reports there).
+  -- Two-letter code from src/lib/registered-agent/jurisdictions.ts (Puerto Rico included).
   state_code text not null check (state_code ~ '^[A-Z]{2}$'),
   provider text not null default 'registered_agents_inc' check (provider in ('registered_agents_inc', 'other_provider')),
   fulfillment_method text not null default 'registered_agents_inc'

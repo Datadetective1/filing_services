@@ -46,3 +46,34 @@ export async function addBusinessForService(user: SessionUser, input: AddBusines
   });
   return String(data.id);
 }
+
+/**
+ * A business the customer is forming themselves (elsewhere), so it can name us as its agent
+ * in its formation filing. Saved as "forming": no annual report tracking until it exists.
+ */
+export async function addFormingBusiness(user: SessionUser, input: { legalName: string; stateCode: string; entityType: "llc" | "corporation" }): Promise<string> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("businesses")
+    .insert({
+      owner_user_id: user.id,
+      legal_name: input.legalName,
+      state_code: input.stateCode,
+      entity_type: input.entityType,
+      lifecycle: "forming",
+      standing: "unknown",
+      standing_source: "none",
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`Could not save the business: ${error?.message ?? "unknown"}`);
+  await audit({
+    actorUserId: user.id,
+    actorType: "customer",
+    action: "business.created",
+    entityType: "business",
+    entityId: String(data.id),
+    after: { state_code: input.stateCode, entity_type: input.entityType, lifecycle: "forming", source: "registered_agent_order" },
+  });
+  return String(data.id);
+}

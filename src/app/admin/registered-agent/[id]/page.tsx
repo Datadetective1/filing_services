@@ -145,6 +145,7 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
                   contactPhone: sub.contact_phone,
                   contactAddress: sub.contact_address,
                   currentAgentName: o.details?.current_agent_name ? String(o.details.current_agent_name) : null,
+                  details: (o.details ?? {}) as Record<string, unknown>,
                 });
                 return (
                   <div className="mb-5 grid gap-2 rounded-[var(--radius-control)] border border-border bg-bg p-4">

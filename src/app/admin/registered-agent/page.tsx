@@ -8,8 +8,8 @@ import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
 import { realPaymentsPossible } from "@/lib/compliance/registry";
 import { escalationLevel, SERVICE_DOCUMENT_KIND_LABELS, type ServiceDocumentKind } from "@/lib/registered-agent/documents";
-import { changeOfAgentFeeCents, RA_JURISDICTIONS } from "@/lib/registered-agent/jurisdictions";
-import { BUNDLE_STATES, providerAgreementSigned, raLiveBlockers, raSwitchOn } from "@/lib/registered-agent/sales";
+import { changeOfAgentFeeCents, formationFeeCents, RA_JURISDICTIONS, raFactsComplete } from "@/lib/registered-agent/jurisdictions";
+import { BUNDLE_STATES, providerAgreementSigned, raSwitchOn } from "@/lib/registered-agent/sales";
 import {
   nextOperatorAction,
   PROVIDER_ORDER_STATUS_LABELS,
@@ -101,7 +101,10 @@ export default async function RegisteredAgentQueuePage() {
                 {(orders ?? []).map((o) => (
                   <TR key={o.id}>
                     <TD>
-                      <Link className={tableLink} href={`/admin/registered-agent/${o.ra_subscription_id}`}>
+                      <Link
+                        className={tableLink}
+                        href={o.ra_subscription_id ? `/admin/registered-agent/${o.ra_subscription_id}` : `/admin/registered-agent/formation/${o.id}`}
+                      >
                         {one(o.businesses)?.legal_name ?? shortId(o.id)}
                       </Link>
                     </TD>
@@ -223,7 +226,7 @@ export default async function RegisteredAgentQueuePage() {
 
       <Panel
         title="Launch readiness by jurisdiction"
-        description="Registered agent sales open only where the switch is on and, for real money, every blocker is cleared and the price is approved. LLC, switching from another agent."
+        description="Facts are verified on each state's own site (sources in src/lib/registered-agent/jurisdiction-facts.ts). Ready means only the nationwide gates remain: the signed agreement, one provider test order, the switch and an approved price."
         bodyClassName="p-0"
       >
         <TableScroll variant="inset" className="rounded-none border-0">
@@ -232,25 +235,31 @@ export default async function RegisteredAgentQueuePage() {
               <tr>
                 <TH>Jurisdiction</TH>
                 <TH>Switch</TH>
-                <TH>Change fee (LLC)</TH>
-                <TH>Bundle</TH>
-                <TH>Blockers</TH>
+                <TH>Change fee (LLC / corp.)</TH>
+                <TH>Formation fee (LLC / corp.)</TH>
+                <TH>New business</TH>
+                <TH>Facts</TH>
+                <TH>What is missing</TH>
               </tr>
             </THead>
             <tbody>
               {RA_JURISDICTIONS.map((j) => {
-                const fee = changeOfAgentFeeCents(j.code, "llc");
-                const blockers = raLiveBlockers(j.code, "llc", "switching");
+                const feeText = (llc: number | null, corp: number | null) => `${llc === null ? "?" : money(llc)} / ${corp === null ? "?" : money(corp)}`;
+                const complete = raFactsComplete(j);
                 return (
                   <TR key={j.code}>
                     <TD className="whitespace-nowrap">
-                      {j.name} ({j.code})
+                      {j.name} ({j.code}){(BUNDLE_STATES as readonly string[]).includes(j.code) ? " · bundle" : ""}
                     </TD>
                     <TD>{raSwitchOn(j.code) ? <Badge tone="success">On</Badge> : <Badge>Off</Badge>}</TD>
-                    <TD>{fee === null ? <span className="text-muted">Not verified</span> : money(fee)}</TD>
-                    <TD>{(BUNDLE_STATES as readonly string[]).includes(j.code) ? "Yes" : ""}</TD>
+                    <TD className="whitespace-nowrap">{feeText(changeOfAgentFeeCents(j.code, "llc"), changeOfAgentFeeCents(j.code, "corporation"))}</TD>
+                    <TD className="whitespace-nowrap">{feeText(formationFeeCents(j.code, "llc"), formationFeeCents(j.code, "corporation"))}</TD>
+                    <TD>{j.appointmentProcess ? "Verified" : <span className="text-muted">Not verified</span>}</TD>
+                    <TD>{complete ? <Badge tone="success">Verified, ready</Badge> : <Badge tone="warning">Not verified</Badge>}</TD>
                     <TD valign="top" className="max-w-xl text-muted">
-                      {blockers.length === 0 ? "None" : blockers.join(" ")}
+                      {j.knownBlockers.length === 0 && j.providerCoverage !== "not_confirmed"
+                        ? "Nothing in this jurisdiction"
+                        : [...(j.providerCoverage === "not_confirmed" ? ["Provider coverage not confirmed."] : []), ...j.knownBlockers].join(" ")}
                     </TD>
                   </TR>
                 );

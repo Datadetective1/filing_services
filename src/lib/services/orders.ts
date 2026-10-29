@@ -21,8 +21,7 @@ import { bundleQuote, QuoteError, registeredAgentQuote, type PriceInput, type Se
 
 /**
  * Business services orders: registered agent service and the registered agent + annual
- * report bundle. (Formation has its quote and sales switch but no checkout until a state's
- * formation fee is verified: see docs/REGISTERED_AGENT.md.)
+ * report bundle. (Formation has its own checkout in ./formation.ts.)
  *
  * The flow mirrors the annual report checkout: server-side quote, sales checks that fail
  * closed, an order with separate service and government lines, a hosted checkout and an
@@ -186,6 +185,8 @@ export interface ServiceCheckoutInput {
   contactName: string;
   contactPhone: string;
   contactAddress: string;
+  /** Owners' names and home addresses, where the jurisdiction's provider needs them (Wyoming). */
+  beneficialOwners: string | null;
   acceptedTerms: boolean;
 }
 
@@ -207,6 +208,8 @@ export function validateServiceCheckoutInput(raw: Record<string, unknown>): { ok
   if (/\bP\.?\s*O\.?\s*Box\b/i.test(contactAddress)) return { ok: false, error: "Enter a street address, not a PO box." };
   const currentAgentName = s("currentAgentName");
   if (currentAgentName.length > 200) return { ok: false, error: "Shorten your current agent's name." };
+  const beneficialOwners = s("beneficialOwners");
+  if (beneficialOwners.length > 2000) return { ok: false, error: "Shorten the owners list." };
   if (raw.acceptedTerms !== "on" && raw.acceptedTerms !== true) return { ok: false, error: "Please confirm the yearly renewal to continue." };
   return {
     ok: true,
@@ -217,6 +220,7 @@ export function validateServiceCheckoutInput(raw: Record<string, unknown>): { ok
       contactName,
       contactPhone,
       contactAddress,
+      beneficialOwners: beneficialOwners.length >= 2 ? beneficialOwners : null,
       acceptedTerms: true,
     },
   };
@@ -275,7 +279,7 @@ async function settleEarlierOrders(businessId: string, stateCode: string): Promi
   return { paidSubscriptionId: null };
 }
 
-async function applyVerified(
+export async function applyVerified(
   payment: { id: string; order_id: string },
   amountCents: number | null,
   currency: string | null,
@@ -303,6 +307,9 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
   const preview = await previewServiceOrder(u, input);
   if (!preview.sale.ok || !preview.quote) throw new ServiceOrderError(preview.sale.reason ?? "This service isn't available yet.", "unavailable");
   const { business, quote } = preview;
+  if (getRaJurisdiction(business.state_code)?.extraIntake.beneficialOwners && !input.beneficialOwners) {
+    throw new ServiceOrderError("Enter the name and home address of each owner.", "invalid");
+  }
 
   const provider = getPaymentProvider();
   if (requiresApprovedPrice(provider.mode) && !quote.pricesApproved) {
@@ -376,7 +383,12 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
       kind: "registered_agent",
       state_code: business.state_code,
       wholesale_cost_cents: WHOLESALE.registeredAgentPerYear,
-      details: { situation: preview.situation, entity_type: business.entity_type, legal_name: business.legal_name },
+      details: {
+        situation: preview.situation,
+        entity_type: business.entity_type,
+        legal_name: business.legal_name,
+        ...(input.beneficialOwners ? { beneficial_owners: input.beneficialOwners } : {}),
+      },
     },
   ];
   if (preview.situation === "switching") {
@@ -498,7 +510,9 @@ export async function loadOrderPrefill(userId: string, businessId: string): Prom
   const [{ data: profile }, { data: lastSub }, { data: addresses }] = await Promise.all([
     db.from("profiles").select("full_name, phone").eq("id", userId).maybeSingle(),
     db.from("ra_subscriptions").select("contact_name, contact_phone, contact_address").eq("user_id", userId).not("contact_name", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    db.from("business_addresses").select("kind, line1, line2, city, region, postal_code, crop_name").eq("business_id", businessId),
+    businessId
+      ? db.from("business_addresses").select("kind, line1, line2, city, region, postal_code, crop_name").eq("business_id", businessId)
+      : Promise.resolve({ data: [] as { kind: string; line1: string | null; line2: string | null; city: string | null; region: string | null; postal_code: string | null; crop_name: string | null }[] }),
   ]);
   const byKind = (k: string) => (addresses ?? []).find((a) => a.kind === k);
   const office = byKind("principal_office") ?? byKind("mailing");

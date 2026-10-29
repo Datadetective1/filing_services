@@ -54,6 +54,17 @@ async function subscriptionNames(subId: string) {
   };
 }
 
+async function formationNames(businessId: string, stateCode: string) {
+  const { data: business } = await createAdminClient().from("businesses").select("legal_name").eq("id", businessId).maybeSingle();
+  return {
+    vars: {
+      company_name: (business?.legal_name as string | undefined) ?? "your business",
+      state_name: getRaJurisdiction(stateCode)?.name ?? stateCode,
+      service_name: "formation",
+    },
+  };
+}
+
 export interface TransitionInput {
   providerOrderId: string;
   to: ProviderOrderStatus;
@@ -116,10 +127,21 @@ export async function transitionProviderOrder(staff: StaffUser, input: Transitio
     }
   }
 
-  if (!po.ra_subscription_id) return;
-  const named = await subscriptionNames(po.ra_subscription_id);
+  // An approved formation makes the business an existing one, dated as the state approved it.
+  if (po.kind === "formation" && input.to === "completed") {
+    const { error: bizError } = await db
+      .from("businesses")
+      .update({ lifecycle: "existing", formation_date: evidence.confirmedOn })
+      .eq("id", po.business_id)
+      .eq("lifecycle", "forming");
+    if (bizError) throw new OperationError(bizError.message);
+  }
+
+  const { data: orderRow } = await db.from("provider_orders").select("order_id").eq("id", po.id).maybeSingle();
+  const named = po.ra_subscription_id ? await subscriptionNames(po.ra_subscription_id) : await formationNames(po.business_id, po.state_code);
   if (!named) return;
-  const ctaPath = `/dashboard/services/${po.ra_subscription_id}`;
+  // Formation without registered agent service has no service page: its order page instead.
+  const ctaPath = po.ra_subscription_id ? `/dashboard/services/${po.ra_subscription_id}` : `/dashboard/services/formation/${orderRow?.order_id ?? ""}`;
 
   if (po.kind === "registered_agent") {
     const serviceStatus =

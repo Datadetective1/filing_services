@@ -11,7 +11,7 @@ vi.mock("server-only", () => ({}));
 const sales = await import("@/lib/registered-agent/sales");
 const status = await import("@/lib/registered-agent/status");
 const docs = await import("@/lib/registered-agent/documents");
-const { RA_JURISDICTIONS, changeOfAgentFeeCents, formationFeeCents, getRaJurisdiction, raJurisdictionsWithPublicFacts } = await import(
+const { RA_JURISDICTIONS, changeOfAgentFeeCents, formationFeeCents, getRaJurisdiction, raFactsComplete, raJurisdictionsWithPublicFacts } = await import(
   "@/lib/registered-agent/jurisdictions"
 );
 const { ManualFulfillmentRequired, ManualRegisteredAgentsIncProvider, providerEntrySheet } = await import("@/lib/registered-agent/manual-provider");
@@ -24,36 +24,106 @@ describe("coverage", () => {
     expect(RA_JURISDICTIONS).toHaveLength(52);
     expect(new Set(RA_JURISDICTIONS.map((j) => j.code)).size).toBe(52);
     expect(getRaJurisdiction("dc")?.code).toBe("DC");
-    expect(getRaJurisdiction("PR")?.knownBlockers.join(" ")).toMatch(/not been researched/);
   });
 
-  it("holds only verified change fees and no formation fees", () => {
+  it("every fact carries an official source, a quote and the date checked", () => {
+    for (const j of RA_JURISDICTIONS) {
+      const sources = [
+        ...(j.changeOfAgent?.sources ?? []),
+        ...j.appointmentSources,
+        ...(j.formation?.sources ?? []),
+        ...(j.providerSource ? [j.providerSource] : []),
+      ];
+      for (const s of sources) {
+        expect(s.url).toMatch(/^https?:\/\//);
+        expect(s.quote.length).toBeGreaterThan(0);
+        expect(s.checkedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      }
+      if (j.changeOfAgent)
+        expect(j.changeOfAgent.sources.length).toBeGreaterThan(0);
+      if (j.formation) expect(j.formation.sources.length).toBeGreaterThan(0);
+      expect(j.fulfillmentReady).toBe(false);
+      expect(j.providerCoverage).not.toBe("confirmed_by_provider");
+    }
+  });
+
+  it("holds the verified fees from each state's own site", () => {
     expect(changeOfAgentFeeCents("TX", "llc")).toBe(1500);
     expect(changeOfAgentFeeCents("CO", "llc")).toBe(1000);
     expect(changeOfAgentFeeCents("MT", "llc")).toBe(0);
-    expect(changeOfAgentFeeCents("FL", "corporation")).toBeNull();
-    expect(changeOfAgentFeeCents("OH", "llc")).toBeNull();
+    expect(changeOfAgentFeeCents("FL", "corporation")).toBe(3500);
+    expect(formationFeeCents("TX", "llc")).toBe(30000);
+    expect(formationFeeCents("FL", "corporation")).toBe(7000);
+  });
+
+  it("never quotes a formation fee that depends on shares, publication or extra filings", () => {
+    for (const [code, type] of [
+      ["DE", "corporation"],
+      ["NY", "llc"],
+      ["NV", "llc"],
+      ["MA", "corporation"],
+    ] as const) {
+      expect(formationFeeCents(code, type)).toBeNull();
+      expect(getRaJurisdiction(code)!.unverified.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("the provider lists every jurisdiction on its own site", () => {
     for (const j of RA_JURISDICTIONS) {
-      expect(formationFeeCents(j.code, "llc")).toBeNull();
-      expect(j.fulfillmentReady).toBe(false);
-      expect(j.providerCoverage).not.toBe("confirmed_by_provider");
-      for (const s of j.changeOfAgent?.sources ?? []) {
-        expect(s.url).toMatch(/^https:\/\//);
-        expect(s.checkedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(j.providerSource?.url).toMatch(
+        /^https:\/\/(www\.)?registeredagentsinc\.com\//,
+      );
+      expect(j.providerCoverage).toBe("listed_on_provider_site");
+    }
+  });
+
+  it("Pennsylvania is open to the provider as a listed Commercial Registered Office Provider", () => {
+    const pa = getRaJurisdiction("PA")!;
+    expect(pa.researchNotes.join(" ")).toMatch(/Registered Agents Inc/);
+    expect(raFactsComplete(pa)).toBe(true);
+  });
+
+  it("marks a jurisdiction verified only when every fact a sale needs is verified", () => {
+    expect(raFactsComplete(getRaJurisdiction("TX")!)).toBe(true);
+    for (const j of RA_JURISDICTIONS) {
+      if (!raFactsComplete(j))
+        expect(j.knownBlockers.length).toBeGreaterThan(0);
+      else {
+        expect(j.changeOfAgent?.governmentFeeCents.llc).toBeTypeOf("number");
+        expect(j.changeOfAgent?.governmentFeeCents.corporation).toBeTypeOf(
+          "number",
+        );
+        expect(j.appointmentProcess).toBeTruthy();
       }
     }
   });
 
-  it("publishes pages only where there are verified facts, and never for Pennsylvania", () => {
-    expect(raJurisdictionsWithPublicFacts().map((j) => j.code).sort()).toEqual(["CO", "FL", "MI", "MT", "SD", "TX"]);
+  it("publishes pages only where there are verified facts", () => {
+    const codes = raJurisdictionsWithPublicFacts().map((j) => j.code);
+    expect(codes).toContain("TX");
+    expect(codes).toContain("PA");
+    for (const c of codes)
+      expect(changeOfAgentFeeCents(c, "llc")).not.toBeNull();
+  });
+
+  it("asks for owner details where the provider needs them", () => {
+    expect(getRaJurisdiction("WY")!.extraIntake.beneficialOwners).toBe(true);
+    expect(getRaJurisdiction("TX")!.extraIntake.beneficialOwners).toBe(false);
   });
 });
 
 describe("sales fail closed", () => {
   it("nothing is sold without its switch", () => {
-    for (const j of RA_JURISDICTIONS) expect(sales.raSaleCheck(j.code, "llc", "switching").ok).toBe(false);
+    for (const j of RA_JURISDICTIONS)
+      expect(sales.raSaleCheck(j.code, "llc", "switching").ok).toBe(false);
     expect(sales.formationSaleCheck("TX", "llc").ok).toBe(false);
-    expect(sales.bundleSaleCheck("CO", { entityType: "llc", isForeign: false, isNonprofit: false }, "switching").ok).toBe(false);
+    expect(
+      sales.bundleSaleCheck(
+        "CO",
+        { entityType: "llc", isForeign: false, isNonprofit: false },
+        "switching",
+      ).ok,
+    ).toBe(false);
   });
 
   it("outside real money, the switch and a verified fee are enough to test the journey", () => {
@@ -61,8 +131,23 @@ describe("sales fail closed", () => {
     vi.stubEnv("PAYMENTS_LIVE_ENABLED", "false");
     expect(sales.raSaleCheck("TX", "llc", "switching").ok).toBe(true);
     // A government fee is never guessed, even in a sandbox.
-    vi.stubEnv("RA_SALES_OH", "true");
-    expect(sales.raSaleCheck("OH", "llc", "switching").ok).toBe(false);
+    const gap = RA_JURISDICTIONS.find(
+      (j) => changeOfAgentFeeCents(j.code, "llc") === null,
+    );
+    if (gap) {
+      vi.stubEnv(`RA_SALES_${gap.code}`, "true");
+      expect(sales.raSaleCheck(gap.code, "llc", "switching").ok).toBe(false);
+    }
+  });
+
+  it("one switch opens every verified jurisdiction and none with a missing fee", () => {
+    vi.stubEnv("RA_SALES_ALL", "true");
+    vi.stubEnv("PAYMENTS_LIVE_ENABLED", "false");
+    for (const j of RA_JURISDICTIONS) {
+      expect(sales.raSaleCheck(j.code, "llc", "switching").ok).toBe(
+        changeOfAgentFeeCents(j.code, "llc") !== null,
+      );
+    }
   });
 
   it("where real money could be taken, every blocker must be cleared", () => {
@@ -71,13 +156,39 @@ describe("sales fail closed", () => {
     expect(sales.raSaleCheck("TX", "llc", "switching").ok).toBe(false);
     vi.stubEnv("RA_PROVIDER_AGREEMENT_SIGNED", "true");
     expect(sales.raSaleCheck("TX", "llc", "switching").ok).toBe(false);
-    const blockers = sales.raLiveBlockers("TX", "llc", "switching");
-    expect(blockers.join(" ")).toMatch(/coverage not confirmed/);
-    expect(blockers.join(" ")).toMatch(/test order/);
-    expect(blockers.join(" ")).not.toMatch(/Agreement not signed/);
+    expect(sales.raLiveBlockers("TX", "llc", "switching").join(" ")).toMatch(
+      /test order/,
+    );
+    // One end-to-end provider test covers every jurisdiction: the workflow is the same everywhere.
+    vi.stubEnv("RA_FULFILLMENT_TESTED", "true");
+    expect(sales.raLiveBlockers("TX", "llc", "switching")).toEqual([]);
+    expect(sales.raLiveBlockers("TX", "corporation", "new_entity")).toEqual([]);
+    expect(sales.raSaleCheck("TX", "llc", "switching").ok).toBe(true);
+    for (const j of RA_JURISDICTIONS) {
+      if (!raFactsComplete(j))
+        expect(
+          sales.raLiveBlockers(j.code, "llc", "switching").length +
+            sales.raLiveBlockers(j.code, "corporation", "new_entity").length +
+            sales.raLiveBlockers(j.code, "corporation", "switching").length,
+        ).toBeGreaterThan(0);
+    }
   });
 
-  it("only exactly \"true\" opens a switch", () => {
+  it("formation opens only where the state's fee is verified and nothing else is owed", () => {
+    vi.stubEnv("FORMATION_SALES_ALL", "true");
+    vi.stubEnv("PAYMENTS_LIVE_ENABLED", "false");
+    expect(sales.formationSaleCheck("TX", "llc").ok).toBe(true);
+    expect(sales.formationSaleCheck("NY", "llc").ok).toBe(false);
+    expect(sales.formationSaleCheck("TX", "lp").ok).toBe(false);
+    vi.stubEnv("PAYMENTS_LIVE_ENABLED", "true");
+    expect(sales.formationSaleCheck("TX", "llc").ok).toBe(false);
+    vi.stubEnv("RA_PROVIDER_AGREEMENT_SIGNED", "true");
+    vi.stubEnv("RA_FULFILLMENT_TESTED", "true");
+    expect(sales.formationLiveBlockers("TX", "llc")).toEqual([]);
+    expect(sales.formationSaleCheck("TX", "llc").ok).toBe(true);
+  });
+
+  it('only exactly "true" opens a switch', () => {
     vi.stubEnv("RA_SALES_TX", "TRUE");
     expect(sales.raSwitchOn("TX")).toBe(false);
     vi.stubEnv("RA_SALES_TX", "1");
@@ -87,8 +198,21 @@ describe("sales fail closed", () => {
   it("offers the bundle only in the six annual report states", () => {
     vi.stubEnv("RA_BUNDLE_SALES", "true");
     vi.stubEnv("RA_SALES_TX", "true");
-    expect([...sales.BUNDLE_STATES].sort()).toEqual(["CO", "FL", "MI", "MT", "PA", "SD"]);
-    expect(sales.bundleSaleCheck("TX", { entityType: "llc", isForeign: false, isNonprofit: false }, "switching").reason).toMatch(/don't file annual reports/);
+    expect([...sales.BUNDLE_STATES].sort()).toEqual([
+      "CO",
+      "FL",
+      "MI",
+      "MT",
+      "PA",
+      "SD",
+    ]);
+    expect(
+      sales.bundleSaleCheck(
+        "TX",
+        { entityType: "llc", isForeign: false, isNonprofit: false },
+        "switching",
+      ).reason,
+    ).toMatch(/don't file annual reports/);
   });
 
   it("keeps pages out of search until launched on production", () => {

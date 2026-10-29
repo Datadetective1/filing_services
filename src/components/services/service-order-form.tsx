@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import type { ActionMessageState } from "@/components/funnel/types";
-import { Checkbox, Field, Input } from "@/components/ui/field";
+import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
 
@@ -21,6 +21,7 @@ export function ServiceOrderForm({
   renewalLabel,
   renewalTerms,
   prefill,
+  askOwners = false,
 }: {
   action: (state: ActionMessageState, formData: FormData) => Promise<ActionMessageState>;
   businessId: string;
@@ -30,6 +31,8 @@ export function ServiceOrderForm({
   renewalLabel: string | null;
   renewalTerms: string[];
   prefill: { contactName: string; contactPhone: string; contactAddress: string; currentAgentName: string };
+  /** The jurisdiction's provider needs the owners' names and home addresses (Wyoming). */
+  askOwners?: boolean;
 }) {
   const [state, formAction] = useActionState(action, {});
   return (
@@ -47,6 +50,15 @@ export function ServiceOrderForm({
         <Field label="Street address" htmlFor="contactAddress" hint="Not a PO box. Never published.">
           <Input id="contactAddress" name="contactAddress" required maxLength={500} autoComplete="street-address" defaultValue={prefill.contactAddress} />
         </Field>
+        {askOwners ? (
+          <Field
+            label="Owners"
+            htmlFor="beneficialOwners"
+            hint="Full name and home address for each owner, one per line. Wyoming requires your agent to keep this. Never published."
+          >
+            <Textarea id="beneficialOwners" name="beneficialOwners" required maxLength={2000} rows={3} />
+          </Field>
+        ) : null}
         {situation === "switching" ? (
           <Field label="Current registered agent (optional)" htmlFor="currentAgentName" hint="Skip it if you're not sure. We check the state record.">
             <Input id="currentAgentName" name="currentAgentName" maxLength={200} autoComplete="off" defaultValue={prefill.currentAgentName} />

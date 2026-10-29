@@ -1,16 +1,22 @@
 import { isProductionEnvironment } from "@/config/site";
 import { findRule, isSellableForBusiness, realPaymentsPossible } from "@/lib/compliance/registry";
 import type { EntityType } from "@/lib/domain/types";
-import { changeOfAgentFeeCents, formationFeeCents, getRaJurisdiction } from "./jurisdictions";
+import { changeOfAgentFeeCents, formationFeeCents, getRaJurisdiction, stateSpecificBlockers } from "./jurisdictions";
 
 /**
  * Sales switches for business services. Every one fails closed.
  *
  *   RA_PROVIDER_AGREEMENT_SIGNED=true   the wholesale Service Agreement is signed (owner sets it)
+ *   RA_FULFILLMENT_TESTED=true          one end-to-end test order with the provider succeeded
  *   RA_SALES_<CODE>=true                registered agent checkout open in that jurisdiction
+ *   RA_SALES_ALL=true                   open it in every jurisdiction whose facts are verified
  *   RA_BUNDLE_SALES=true                the registered agent + annual report bundle may be sold
  *   FORMATION_SALES_<CODE>=true         formation checkout open in that jurisdiction
+ *   FORMATION_SALES_ALL=true            open formation in every state whose fee is verified
  *   BUSINESS_SERVICES_PAGES=true        public registered agent / formation pages on production
+ *
+ * The "ALL" switches never open a jurisdiction with a missing fact: every check below still
+ * runs per jurisdiction, entity type and path.
  *
  * A switch alone never opens real-money sales: where real money could be taken (production
  * or live keys) every jurisdiction blocker must also be cleared, and checkout separately
@@ -38,7 +44,20 @@ export function providerAgreementSigned(): boolean {
 }
 
 export function raSwitchOn(code: string): boolean {
-  return flag(`RA_SALES_${code.toUpperCase()}`) === "true";
+  return flag("RA_SALES_ALL") === "true" || flag(`RA_SALES_${code.toUpperCase()}`) === "true";
+}
+
+export function formationSwitchOn(code: string): boolean {
+  return flag("FORMATION_SALES_ALL") === "true" || flag(`FORMATION_SALES_${code.toUpperCase()}`) === "true";
+}
+
+/**
+ * The provider workflow is the same in every jurisdiction (only the facts differ), so one
+ * successful end-to-end test order proves it everywhere. A jurisdiction can still be marked
+ * ready on its own.
+ */
+export function fulfillmentTested(j: { fulfillmentReady: boolean }): boolean {
+  return j.fulfillmentReady || flag("RA_FULFILLMENT_TESTED") === "true";
 }
 
 /** Public business-services pages: always on outside production, on production only by switch. */
@@ -60,12 +79,26 @@ export function raLiveBlockers(code: string, entityType: EntityType, situation: 
   if (!j) return ["Unknown jurisdiction."];
   const out: string[] = [];
   if (!providerAgreementSigned()) out.push("Wholesale Service Agreement not signed.");
-  if (j.providerCoverage !== "confirmed_by_provider") out.push("Provider coverage not confirmed in writing for this jurisdiction.");
-  if (!j.fulfillmentReady) out.push("No operator test order completed for this jurisdiction.");
+  if (j.providerCoverage === "not_confirmed") out.push("The provider's coverage of this jurisdiction is not confirmed.");
+  if (!fulfillmentTested(j)) out.push("No end-to-end test order with the provider yet.");
   if (!RA_ENTITY_TYPES.includes(entityType)) out.push("This entity type is not supported.");
   if (situation === "switching" && changeOfAgentFeeCents(code, entityType) === null) out.push("Change of agent fee not verified for this entity type.");
   if (situation === "new_entity" && !j.appointmentProcess) out.push("How a new entity names the agent here is not verified.");
-  for (const b of j.knownBlockers) if (!out.includes(b) && !b.startsWith("Wholesale Service Agreement") && !b.startsWith("No operator test order")) out.push(b);
+  for (const b of stateSpecificBlockers(j)) if (!out.includes(b)) out.push(b);
+  return out;
+}
+
+/** Everything standing between this state and real-money formation sales. Empty means only the switch and an approved price remain. */
+export function formationLiveBlockers(code: string, entityType: EntityType): string[] {
+  const j = getRaJurisdiction(code);
+  if (!j) return ["Unknown jurisdiction."];
+  const out: string[] = [];
+  if (!providerAgreementSigned()) out.push("Wholesale Service Agreement not signed.");
+  if (j.providerCoverage === "not_confirmed") out.push("The provider's coverage of this jurisdiction is not confirmed.");
+  if (!fulfillmentTested(j)) out.push("No end-to-end test order with the provider yet.");
+  if (!RA_ENTITY_TYPES.includes(entityType)) out.push("This entity type is not supported.");
+  if (formationFeeCents(code, entityType) === null) out.push("Formation fee not verified for this entity type.");
+  for (const b of [...stateSpecificBlockers(j), ...j.formationBlockers]) if (!out.includes(b)) out.push(b);
   return out;
 }
 
@@ -108,13 +141,14 @@ export function bundleSaleCheck(
   return { ok: true, reason: null };
 }
 
-/** Formation: needs a verified state fee, the switch and, for real money, the provider agreement. */
+/** Formation: needs a verified state fee, the switch and, for real money, every formation blocker cleared. */
 export function formationSaleCheck(code: string, entityType: EntityType): SaleCheck {
   const j = getRaJurisdiction(code);
   if (!j) return { ok: false, reason: "We don't offer formation there." };
-  if (flag(`FORMATION_SALES_${j.code}`) !== "true") return { ok: false, reason: `Business formation isn't open in ${j.name} yet.` };
+  if (!formationSwitchOn(j.code)) return { ok: false, reason: `Business formation isn't open in ${j.name} yet.` };
+  if (!RA_ENTITY_TYPES.includes(entityType)) return { ok: false, reason: "We can only form LLCs and corporations." };
   if (formationFeeCents(j.code, entityType) === null) return { ok: false, reason: `We haven't confirmed ${j.name}'s formation fee yet.` };
-  if (realPaymentsPossible() && (!providerAgreementSigned() || !j.fulfillmentReady)) {
+  if (realPaymentsPossible() && formationLiveBlockers(j.code, entityType).length > 0) {
     return { ok: false, reason: `Business formation isn't open in ${j.name} yet.` };
   }
   return { ok: true, reason: null };

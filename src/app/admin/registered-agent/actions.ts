@@ -37,7 +37,8 @@ export async function transitionAction(_prev: ActionState, formData: FormData): 
   const staff = await requireStaff();
   const parsed = parseForm(
     z.object({
-      subscriptionId: id,
+      // Absent for a formation order with no registered agent service.
+      subscriptionId: id.optional(),
       providerOrderId: id,
       expectedFrom: status,
       to: status,
@@ -73,7 +74,7 @@ export async function transitionAction(_prev: ActionState, formData: FormData): 
   } catch (e) {
     return actionError(e);
   }
-  return done(d.subscriptionId, "Saved.");
+  return done(d.subscriptionId ?? `formation/${d.providerOrderId}`, "Saved.");
 }
 
 export async function uploadDocumentAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

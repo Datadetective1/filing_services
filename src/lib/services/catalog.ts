@@ -128,7 +128,7 @@ export const SERVICES: Record<ServiceCode, ServiceDef> = {
     wholesaleCents: WHOLESALE.formation,
     governmentFee: "pass_through",
     launchStatus: "built_not_launched",
-    note: "Registered agent service is a separate, optional add-on. No jurisdiction's formation fee is verified yet, so formation is not sellable anywhere.",
+    note: "Registered agent service is a separate, optional add-on. Sold only where the state's formation fee is verified and nothing else is owed at formation.",
   },
   change_registered_agent: {
     code: "change_registered_agent",

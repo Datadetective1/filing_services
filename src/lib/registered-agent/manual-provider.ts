@@ -53,7 +53,11 @@ export function providerEntrySheet(input: {
   contactPhone: string | null;
   contactAddress: string | null;
   currentAgentName: string | null;
+  /** What the customer gave for this order beyond the contact (formation details, owners). */
+  details?: Record<string, unknown>;
 }): ProviderEntrySheet {
+  const d = input.details ?? {};
+  const text = (k: string) => (typeof d[k] === "string" ? (d[k] as string) : "");
   const rows = [
     { label: "Business legal name", value: input.legalName },
     { label: "Jurisdiction", value: input.stateName },
@@ -65,8 +69,18 @@ export function providerEntrySheet(input: {
     ...(input.kind === "change_of_agent"
       ? [{ label: "Current registered agent", value: input.currentAgentName ?? "Not given: read it from the state record" }]
       : []),
+    ...(input.kind === "formation"
+      ? [
+          { label: "Principal address", value: text("principal_address") },
+          { label: input.entityTypeLabel === "LLC" ? "Members" : "Directors", value: text("owners") },
+          ...(text("management") ? [{ label: "Management", value: text("management") === "manager" ? "Manager-managed" : "Member-managed" }] : []),
+          { label: "Registered agent", value: text("registered_agent") },
+        ]
+      : []),
+    ...(text("beneficial_owners") ? [{ label: "Beneficial owners", value: text("beneficial_owners") }] : []),
   ];
   const required = ["Business legal name", "Jurisdiction", "Communications contact", "Contact phone", "Contact physical address"];
+  if (input.kind === "formation") required.push("Principal address", input.entityTypeLabel === "LLC" ? "Members" : "Directors");
   // The current agent is on the state record, so the customer isn't asked for it.
   if (input.kind === "change_of_agent") required.push("State entity number");
   const missing = rows.filter((r) => required.includes(r.label) && !r.value.trim()).map((r) => r.label);
