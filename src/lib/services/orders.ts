@@ -430,7 +430,7 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
     customerEmail: u.email,
     description: `${SERVICES[input.service].name} for ${business.legal_name} in ${preview.stateName}`,
     successUrl: absoluteUrl(`/dashboard/services/${sub.id}`),
-    cancelUrl: absoluteUrl(`/services/registered-agent/order?business=${business.id}&cancelled=1`),
+    cancelUrl: absoluteUrl(`/dashboard/services/new?business=${business.id}&cancelled=1`),
     idempotencyKey: `service-checkout:${payment.id}`,
   });
   await db.from("payments").update({ provider_session_id: session.sessionId }).eq("id", payment.id);
