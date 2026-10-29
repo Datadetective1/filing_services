@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { evaluateFees } from "@/lib/compliance/fees";
-import { openQuestionsFor } from "@/lib/compliance/open-questions";
+import { openQuestionBlockers, openQuestionsFor, salesBlockingQuestionsFor } from "@/lib/compliance/open-questions";
 import { findRule, isRuleSellable, RULES } from "@/lib/compliance/registry";
 import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen } from "@/lib/domain/deadlines";
 import { filingWindowText, stateFaq, stateWindowSentence } from "@/lib/seo/content";
@@ -80,13 +80,27 @@ describe("Michigan corporation annual report", () => {
   });
 });
 
-describe("new states stay closed for sale", () => {
-  it("each has an open question and isn't sellable even with its switch on in production", () => {
+describe("new states take orders but don't file until their question is answered", () => {
+  const NEW = ["FL", "CO", "SD", "MT", "MI"];
+
+  it("with the switch off in production, none is sellable", () => {
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
-    for (const st of ["FL", "CO", "SD", "MT", "MI"]) {
+    for (const r of RULES.filter((x) => NEW.includes(x.stateCode))) expect(isRuleSellable(r), r.ruleKey).toBe(false);
+  });
+
+  it("with the switch on in production, each is sellable, and its open question still blocks filing", () => {
+    vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
+    for (const st of NEW) {
       vi.stubEnv(`${st}_LIVE_FILING_SALES`, "true");
       expect(openQuestionsFor(st).length, st).toBeGreaterThan(0);
+      expect(salesBlockingQuestionsFor(st), st).toEqual([]);
+      expect(openQuestionBlockers(st).length, st).toBeGreaterThan(0);
     }
-    for (const r of RULES.filter((x) => ["FL", "CO", "SD", "MT", "MI"].includes(x.stateCode))) expect(isRuleSellable(r), r.ruleKey).toBe(false);
+    for (const r of RULES.filter((x) => NEW.includes(x.stateCode))) expect(isRuleSellable(r), r.ruleKey).toBe(true);
+  });
+
+  it("Nevada and Utah questions still keep checkout closed", () => {
+    expect(salesBlockingQuestionsFor("NV").length).toBeGreaterThan(0);
+    expect(salesBlockingQuestionsFor("UT").length).toBeGreaterThan(0);
   });
 });

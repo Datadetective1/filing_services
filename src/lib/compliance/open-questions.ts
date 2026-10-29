@@ -4,11 +4,13 @@ import type { EntityType } from "@/lib/domain/types";
  * Questions only the state (or the owner, inside the state's portal) can answer, whose
  * answers decide whether Filewell can lawfully and practically file for a customer.
  *
- * Fail closed: while a state/entity has an open question, it is not sold wherever real money
+ * Fail closed: while a state/entity has an open question, no filing for it may be marked
+ * ready, started or submitted anywhere. By default it is also not sold wherever real money
  * could be taken (production, or PAYMENTS_LIVE_ENABLED=true), even if <STATE>_LIVE_FILING_SALES
- * is set; live checkout refuses it too; and no filing for it may be marked ready,
- * started or submitted anywhere. A question is closed by removing it here in a reviewed
- * change that records the answer (and, if needed, a new rule version).
+ * is set, and live checkout refuses it too. A question marked `blocksSales: false` is one the
+ * owner chose to take orders around: checkout opens, filing stays blocked, and an order that
+ * can't be filed is refunded. A question is closed by removing it here in a reviewed change
+ * that records the answer (and, if needed, a new rule version).
  */
 export interface OpenQuestion {
   key: string;
@@ -19,7 +21,12 @@ export interface OpenQuestion {
   summary: string;
   /** Who answers it. */
   answeredBy: string;
+  /** False when the owner chose to take orders before it's answered. Filing stays blocked either way. Default true. */
+  blocksSales?: boolean;
 }
+
+/** Owner decision (Amary, 2026-10-29): take $49 orders in FL, CO, SD, MT and MI now; file each only once its question is answered, else refund. */
+const ORDERS_OPEN_FILING_BLOCKED = { blocksSales: false } as const;
 
 export const OPEN_QUESTIONS: OpenQuestion[] = [
   {
@@ -53,6 +60,7 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
   },
   {
     key: "fl_signer_permission",
+    ...ORDERS_OPEN_FILING_BLOCKED,
     stateCode: "FL",
     summary:
       "Florida's report must be signed by one of the business's principals typing their name, and Sunbiz warns that typing someone's name without their permission is forgery. Filewell's design has the principal sign Filewell's authorization and give explicit permission for Filewell's operator to type their name and title on that one report. Until counsel confirms this permission is enough under s.15.16 F.S. and Sunbiz's instructions, Filewell does not sell or file Florida reports.",
@@ -60,6 +68,7 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
   },
   {
     key: "co_delivery_affirmation",
+    ...ORDERS_OPEN_FILING_BLOCKED,
     stateCode: "CO",
     summary:
       "Colorado's Periodic Report names the individual causing it to be delivered for filing, and that individual is responsible for complying with the applicable statutes. Until counsel confirms what that delivery affirms under C.R.S. 7-90-301 and that Filewell's operator may cause delivery as the customer's authorized filing agent, Filewell does not sell or file Colorado reports.",
@@ -67,6 +76,7 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
   },
   {
     key: "sd_2027_filing_date",
+    ...ORDERS_OPEN_FILING_BLOCKED,
     stateCode: "SD",
     summary:
       "From January 1, 2027, SDCL 59-11-25 lets a business file in its anniversary month or by January 31, and choose on its formation document or a change-of-filing-date form. How the Secretary records each business's choice, how existing businesses are assigned a date, and how early a report can be filed are not confirmed. Filewell blocks businesses on the January 31 date and does not sell or file South Dakota reports until this is answered.",
@@ -74,6 +84,7 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
   },
   {
     key: "mt_signer_declarations",
+    ...ORDERS_OPEN_FILING_BLOCKED,
     stateCode: "MT",
     summary:
       "Montana's online report has declaration boxes whose wording isn't published in text, and the corporation statute doesn't say who may sign. Until the owner captures the declarations in the portal and counsel confirms Filewell's operator may sign them as the customer's authorized agent, Filewell does not sell or file Montana reports.",
@@ -81,6 +92,7 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
   },
   {
     key: "mi_milogin_access",
+    ...ORDERS_OPEN_FILING_BLOCKED,
     stateCode: "MI",
     summary:
       "MiBusiness Registry requires a MiLogin for Business account that requests access to the corporation by answering two questions. Whether a filing service may request access to a client's corporation, what the questions ask, and who may sign the report are not confirmed. Filewell does not sell or file Michigan reports until they are.",
@@ -92,6 +104,11 @@ export function openQuestionsFor(stateCode: string, entityType?: string | null):
   return OPEN_QUESTIONS.filter(
     (q) => q.stateCode === stateCode.toUpperCase() && (!q.entityTypes || !entityType || q.entityTypes.includes(entityType as EntityType)),
   );
+}
+
+/** Open questions that also keep checkout closed (every question unless marked `blocksSales: false`). */
+export function salesBlockingQuestionsFor(stateCode: string, entityType?: string | null): OpenQuestion[] {
+  return openQuestionsFor(stateCode, entityType).filter((q) => q.blocksSales !== false);
 }
 
 /** Operator-facing blocker lines for a filing (empty when nothing is open). */

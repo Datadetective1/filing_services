@@ -42,7 +42,7 @@ describe("open state questions block sales wherever real money could be taken", 
 
   it("checkout itself also refuses live payment while an open question applies (defense in depth)", () => {
     const src = readFileSync("src/lib/filings/customer.ts", "utf8");
-    expect(src).toMatch(/provider\.mode === "live" && openQuestionsFor\(loaded\.filing\.state_code/);
+    expect(src).toMatch(/provider\.mode === "live" && salesBlockingQuestionsFor\(loaded\.filing\.state_code/);
   });
 });
 
