@@ -77,7 +77,7 @@ describe("accuracy of customer templates", () => {
 });
 
 describe("staff templates", () => {
-  it("staff_new_paid_order shows both fees, the total and the payment mode", () => {
+  it("staff_new_paid_order shows the filing ID, both fees, the total and the payment mode", () => {
     const t = getDefaultTemplate("staff_new_paid_order")!;
     expect(t.category).toBe("transactional");
     const r = renderTemplate("staff_new_paid_order", {
@@ -86,9 +86,10 @@ describe("staff templates", () => {
       service_fee: "$49.00",
       amount: "$56.00",
       payment_mode: "live",
+      filing_id: "cbe14de5",
     });
     expect(r.subject).toBe("New paid order: Acme LLC (Pennsylvania Annual Report)");
-    expect(r.text).toContain("Government filing fee: $7.00\nService fee: $49.00\nTotal paid: $56.00\nPayment mode: live");
+    expect(r.text).toContain("Filing ID: cbe14de5\nGovernment filing fee: $7.00\nService fee: $49.00\nTotal paid: $56.00\nPayment mode: live");
     expect(r.text).toContain("Open filing: https://www.getfilewell.com/r/x");
   });
 

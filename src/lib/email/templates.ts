@@ -161,6 +161,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     subject: "New paid order: {{company_name}} ({{state_name}} {{filing_title}})",
     body:
       "A new order was paid for {{company_name}}'s {{state_name}} {{filing_title}}, due {{due_date}}.\n\n" +
+      "Filing ID: {{filing_id}}\n" +
       "Government filing fee: {{government_fee}}\n" +
       "Service fee: {{service_fee}}\n" +
       "Total paid: {{amount}}\n" +
