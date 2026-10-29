@@ -2,7 +2,13 @@ import type { EntityType, ISODate, SupportLevel, VerificationStatus } from "@/li
 
 export type DueRule =
   /** Same calendar date every year (e.g. Pennsylvania LLCs: September 30). */
-  | { kind: "fixed_annual"; month: number; day: number }
+  | {
+      kind: "fixed_annual";
+      month: number;
+      day: number;
+      /** When filing opens each report year, if the state says it isn't January 1 (Michigan: January 15). */
+      opens?: { month: number; day: number };
+    }
   /**
    * Last day of the formation anniversary month, every `intervalYears` years. With
    * `monthsAfter`, the last day of the month that many months later (Colorado: the report is

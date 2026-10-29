@@ -8,7 +8,7 @@ import { audit } from "@/lib/audit";
 import type { SessionUser } from "@/lib/auth/session";
 import { stableStringify } from "@/lib/compliance/hash";
 import { findRule, getJurisdiction, isSellableForBusiness } from "@/lib/compliance/registry";
-import { openQuestionsFor } from "@/lib/compliance/open-questions";
+import { salesBlockingQuestionsFor } from "@/lib/compliance/open-questions";
 import type { ComplianceRuleDef, StateAuthorization } from "@/lib/compliance/types";
 import { todayInTimeZone } from "@/lib/domain/dates";
 import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen, type FilingPeriod } from "@/lib/domain/deadlines";
@@ -816,8 +816,9 @@ export async function startCheckout(user: SessionUser, filingId: string): Promis
   if (!quote) throw new FilingError("Pricing isn't configured for this filing yet.", "unavailable");
 
   const provider = getPaymentProvider();
-  // Defense in depth: never take live money while a state question means it can't be filed.
-  if (provider.mode === "live" && openQuestionsFor(loaded.filing.state_code, loaded.business.entity_type as string).length > 0) {
+  // Defense in depth: never take live money while a state question means it can't be filed,
+  // unless the owner chose to take orders around that question (filing stays blocked).
+  if (provider.mode === "live" && salesBlockingQuestionsFor(loaded.filing.state_code, loaded.business.entity_type as string).length > 0) {
     throw new FilingError("We can't take payment for this filing yet. Nothing has been charged, and your details are saved.", "unavailable");
   }
   if (requiresApprovedPrice(provider.mode) && !quote.servicePriceApproved) {

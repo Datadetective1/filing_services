@@ -1,6 +1,7 @@
 import type { ComplianceRuleDef, FaqItem, IntakeField, JurisdictionDef, RuleSource } from "@/lib/compliance/types";
 import { dueRuleText, stateFeeText } from "@/lib/compliance/view";
 import { formatMonthDay } from "@/lib/domain/dates";
+import { fixedWindowOpens } from "@/lib/domain/deadlines";
 import { formatCents } from "@/lib/domain/money";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
 import { ENTITY_COPY, joinList } from "./entities";
@@ -31,7 +32,26 @@ export function filingWindowText(rule: ComplianceRuleDef): string | null {
   if (rule.dueRule.kind !== "fixed_annual") {
     return rule.filingWindowDaysBefore ? `Opens ${rule.filingWindowDaysBefore} days before the due date` : null;
   }
-  return "Opens January 1 of the report year";
+  const opens = fixedWindowOpens(rule.dueRule);
+  return `Opens ${formatMonthDay(opens.month, opens.day)} of the report year`;
+}
+
+/**
+ * One sentence on when a state's reports can be filed, for the state page and its FAQ:
+ * the shared opening day for fixed dates ("The filing window opens January 15 of the
+ * report year."), else the verified window in days. Null when neither applies.
+ */
+export function stateWindowSentence(rules: ComplianceRuleDef[]): string | null {
+  if (!rules.length) return null;
+  const fixed = rules.flatMap((r) => (r.dueRule.kind === "fixed_annual" ? [r.dueRule] : []));
+  if (fixed.length === rules.length) {
+    const days = new Set(fixed.map((d) => `${fixedWindowOpens(d).month}-${fixedWindowOpens(d).day}`));
+    if (days.size !== 1) return null;
+    const opens = fixedWindowOpens(fixed[0]);
+    return `The filing window opens ${formatMonthDay(opens.month, opens.day)} of the report year.`;
+  }
+  const windowDays = rules[0].filingWindowDaysBefore;
+  return windowDays ? `It can be filed up to ${windowDays} days before the due date.` : null;
 }
 
 /** Meta-description sentence for the state fee: "State fee: $7." or, when there is none, "No state filing fee." */
@@ -196,13 +216,8 @@ export function stateFaq(rules: ComplianceRuleDef[], stateName: string, agency: 
     ([day, group]) => `${capitalize(joinList(group.map((r) => ENTITY_COPY[r.entityType].plural)))}: by ${day}.`,
   );
   const filingName = rules[0].filingName.toLowerCase();
-  const allFixed = rules.every((r) => r.dueRule.kind === "fixed_annual");
-  const windowDays = rules[0].filingWindowDaysBefore;
-  const windowSentence = allFixed
-    ? " The filing window opens January 1 of the report year."
-    : windowDays
-      ? ` It can be filed up to ${windowDays} days before the due date.`
-      : "";
+  const window = stateWindowSentence(rules);
+  const windowSentence = window ? ` ${window}` : "";
   items.push({
     q: `When is the ${stateName} ${filingName} due?`,
     a: `${byDue.size > 1 ? "It depends on the entity type. " : ""}Based on the ${agency}'s published requirements: ${dueSentences.join(" ")}${windowSentence}`,
@@ -272,6 +287,9 @@ export interface DueGroup {
   day: string;
   month: number | null;
   dayOfMonth: number | null;
+  /** When the fixed-date window opens (January 1 unless the state says otherwise). */
+  opensMonth: number | null;
+  opensDay: number | null;
   /** "LLCs", "Business corporations and nonprofit corporations", "Other filing entities" */
   who: string;
   rules: ComplianceRuleDef[];
@@ -295,6 +313,8 @@ export function dueGroups(rules: ComplianceRuleDef[]): DueGroup[] {
       day,
       month: first.kind === "fixed_annual" ? first.month : null,
       dayOfMonth: first.kind === "fixed_annual" ? first.day : null,
+      opensMonth: first.kind === "fixed_annual" ? fixedWindowOpens(first).month : null,
+      opensDay: first.kind === "fixed_annual" ? fixedWindowOpens(first).day : null,
       who,
       rules: group,
     };

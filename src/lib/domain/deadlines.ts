@@ -122,10 +122,18 @@ export function nextFilingPeriod(rule: DeadlineRule, periodYear: number, formati
 }
 
 /**
- * Whether a report can be filed yet. Fixed-date annual reports open January 1 of the
- * report year (Pennsylvania: "The filing window is based on the entity type:
- * corporations Jan. 1 – June 30 ..."). Anniversary-based rules use the state's verified
- * window (filingWindowDaysBefore: WA 180, NV 90, UT 60), else 90 days.
+ * The month and day a fixed-date annual report opens each report year: January 1
+ * (Pennsylvania: "The filing window is based on the entity type: corporations Jan. 1 –
+ * June 30 ...") unless the rule names another day (Michigan: "Online filing begins January 15").
+ */
+export function fixedWindowOpens(dueRule: Extract<DueRule, { kind: "fixed_annual" }>): { month: number; day: number } {
+  return dueRule.opens ?? { month: 1, day: 1 };
+}
+
+/**
+ * Whether a report can be filed yet. Fixed-date annual reports open on fixedWindowOpens in
+ * the report year. Anniversary-based rules use the state's verified window
+ * (filingWindowDaysBefore: WA 180, NV 90, UT 60), else 90 days.
  */
 export function isFilingWindowOpen(
   rule: Pick<DeadlineRule, "dueRule"> & { filingWindowDaysBefore?: number },
@@ -133,7 +141,10 @@ export function isFilingWindowOpen(
   dueDate: ISODate,
   today: ISODate,
 ): boolean {
-  if (rule.dueRule.kind === "fixed_annual") return parseISODate(today).year >= periodYear;
+  if (rule.dueRule.kind === "fixed_annual") {
+    const opens = fixedWindowOpens(rule.dueRule);
+    return today >= toISODate(periodYear, opens.month, opens.day);
+  }
   return daysBetween(today, dueDate) <= (rule.filingWindowDaysBefore ?? 90);
 }
 
@@ -143,6 +154,9 @@ export function filingWindowOpensOn(
   periodYear: number,
   dueDate: ISODate,
 ): ISODate {
-  if (rule.dueRule.kind === "fixed_annual") return toISODate(periodYear, 1, 1);
+  if (rule.dueRule.kind === "fixed_annual") {
+    const opens = fixedWindowOpens(rule.dueRule);
+    return toISODate(periodYear, opens.month, opens.day);
+  }
   return addDays(dueDate, -(rule.filingWindowDaysBefore ?? 90));
 }

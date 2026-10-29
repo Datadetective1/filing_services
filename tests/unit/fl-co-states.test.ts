@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { evaluateFees } from "@/lib/compliance/fees";
-import { openQuestionsFor } from "@/lib/compliance/open-questions";
+import { openQuestionBlockers, openQuestionsFor } from "@/lib/compliance/open-questions";
 import { findRule, isRuleSellable, RULES } from "@/lib/compliance/registry";
 import { formationDateRequired } from "@/lib/compliance/state-meta";
 import { FL_FELONY_WARNING, FL_FORGERY_WARNING } from "@/lib/compliance/states/florida";
@@ -54,11 +54,12 @@ describe("Florida annual report", () => {
     for (const w of ps.warnings) expect(llc.sources.find((s) => s.factKey === w.sourceFactKey)?.quote).toBe(w.text);
   });
 
-  it("stays closed for sale until counsel answers the signer question", () => {
+  it("takes orders with its switch on, but no report is filed until counsel answers the signer question", () => {
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
     vi.stubEnv("FL_LIVE_FILING_SALES", "true");
     expect(openQuestionsFor("FL", "llc").map((q) => q.key)).toEqual(["fl_signer_permission"]);
-    for (const r of RULES.filter((x) => x.stateCode === "FL")) expect(isRuleSellable(r), r.ruleKey).toBe(false);
+    for (const r of RULES.filter((x) => x.stateCode === "FL")) expect(isRuleSellable(r), r.ruleKey).toBe(true);
+    expect(openQuestionBlockers("FL", "llc").join(" ")).toMatch(/fl_signer_permission.*Do not file/);
   });
 });
 
@@ -127,10 +128,11 @@ describe("Colorado Periodic Report", () => {
     expect(isFilingWindowOpen(llc, 2026, "2027-03-31", "2026-10-31")).toBe(false);
   });
 
-  it("stays closed for sale until counsel answers the delivery question", () => {
+  it("takes orders with its switch on, but no report is filed until counsel answers the delivery question", () => {
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
     vi.stubEnv("CO_LIVE_FILING_SALES", "true");
     expect(openQuestionsFor("CO", "llc").map((q) => q.key)).toEqual(["co_delivery_affirmation"]);
-    for (const r of RULES.filter((x) => x.stateCode === "CO")) expect(isRuleSellable(r), r.ruleKey).toBe(false);
+    for (const r of RULES.filter((x) => x.stateCode === "CO")) expect(isRuleSellable(r), r.ruleKey).toBe(true);
+    expect(openQuestionBlockers("CO", "llc").join(" ")).toMatch(/co_delivery_affirmation.*Do not file/);
   });
 });

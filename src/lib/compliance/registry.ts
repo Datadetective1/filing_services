@@ -1,5 +1,5 @@
 import { isProductionEnvironment } from "@/config/site";
-import { openQuestionsFor } from "./open-questions";
+import { salesBlockingQuestionsFor } from "./open-questions";
 import type { EntityType } from "@/lib/domain/types";
 import { JURISDICTIONS } from "./jurisdictions";
 import { EXPANSION_STATES, stateSalesEnabled } from "./launch";
@@ -149,8 +149,9 @@ export function isRuleSellable(rule: ComplianceRuleDef): boolean {
   const j = getJurisdiction(rule.stateCode);
   if (!(rule.verificationStatus === "verified" && !!j && j.supportLevel !== "unsupported" && stateSalesEnabled(rule.stateCode))) return false;
   // Fail closed wherever real money could be taken: an unresolved state question blocks sales
-  // even if the switch is on. Only a sandbox/test deployment may run those journeys.
-  return !(realPaymentsPossible() && openQuestionsFor(rule.stateCode, rule.entityType).length > 0);
+  // even if the switch is on, unless the owner chose to take orders around it (filing stays
+  // blocked). Only a sandbox/test deployment may run the other journeys.
+  return !(realPaymentsPossible() && salesBlockingQuestionsFor(rule.stateCode, rule.entityType).length > 0);
 }
 
 /**

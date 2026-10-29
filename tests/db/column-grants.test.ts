@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { RULES } from "@/lib/compliance/registry";
+import { defaultPriceRows } from "@/lib/compliance/seed-data";
 import { asAnon, asUser, count, createTestDb, createUser, type Db, expectDenied, makeStaff } from "./harness";
 
 /**
@@ -37,7 +38,7 @@ describe("service_prices column grants", () => {
     const res = await asAnon(db, (tx) =>
       tx.query<{ service_fee_cents: number; active: boolean }>(`select ${PUBLIC_PRICE_COLUMNS} from public.service_prices where active = true`),
     );
-    expect(res.rows).toHaveLength(4);
+    expect(res.rows).toHaveLength(defaultPriceRows().length);
     expect(res.rows[0].active).toBe(true);
     expect(res.rows[0].service_fee_cents).toBeGreaterThanOrEqual(0);
     // Inactive prices stay hidden from anon.
@@ -72,7 +73,9 @@ describe("service_prices column grants", () => {
     expect(res.rows[0]).toMatchObject({ active: true, notes: "internal: margin check", approved_by: staff, updated_by: staff });
     expect(res.rows[1]).toMatchObject({ active: false, notes: "old draft" });
     // The /admin dashboard query (active prices, public columns).
-    expect(await asUser(db, staff, (tx) => count(tx, `select ${PUBLIC_PRICE_COLUMNS} from public.service_prices where active`))).toBe(4);
+    expect(await asUser(db, staff, (tx) => count(tx, `select ${PUBLIC_PRICE_COLUMNS} from public.service_prices where active`))).toBe(
+      defaultPriceRows().length,
+    );
   });
 });
 

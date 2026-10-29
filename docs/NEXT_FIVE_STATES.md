@@ -4,8 +4,12 @@ Checked 2026-10-29. All five were picked because they charge a real late fee and
 Washington, Nevada and Utah, mostly need no client PIN or state login to file. Every rule
 cites official pages with verbatim quotes (see `src/lib/compliance/states/`).
 
-None of them is for sale. Each has an open question in `open-questions.ts`, so checkout and
-filing fail closed even if `<STATE>_LIVE_FILING_SALES=true`. Seeded prices are unapproved.
+Orders open (owner decision, 2026-10-29): $49 service fee plus the state fee, once
+`<STATE>_LOOKUP_ENABLED` and `<STATE>_LIVE_FILING_SALES` are `true` and the price is approved.
+Each state's open question in `open-questions.ts` is marked `blocksSales: false`: checkout
+works, but no report can be marked ready or filed until the question is answered and removed.
+An order that can't be filed is refunded. Colorado and South Dakota are due on anniversary
+dates, so an order there may be close to its deadline.
 
 Their public information pages (`/annual-report/<state>/<entity>`, `/states/<state>`) and
 sitemap entries appear once this is deployed, the same way Nevada and Utah's do. State
@@ -58,13 +62,14 @@ Counsel must confirm this is enough before `fl_signer_permission` is closed.
 - Montana: the declaration wording; who may sign a corporation's report; the on-time fee
   after the waiver ends.
 - Michigan: report contents, signer, automatic dissolution and the first-year exemption.
-  These come from statute pages that showed a CAPTCHA, so they are not cited. LARA opens
-  online filing January 15; Filewell's fixed-date window opens January 1.
+  These come from statute pages that showed a CAPTCHA, so they are not cited. Filewell opens
+  Michigan reports on January 15, when LARA says online filing begins; whether anything can
+  be filed earlier is not verified.
 
-## Human actions before any live order
+## Human actions before each state's first filing
 
 1. Counsel: Florida principal permission, Colorado delivery affirmation, Montana declarations.
 2. Owner, in each portal (stop before paying): capture Montana's declaration text, check
    Colorado's Secure Business Filing flow, ask Michigan LARA about filing-service access,
    ask South Dakota how the 2027 filing date is recorded.
-3. Owner: approve a price per state in `/admin/pricing`.
+3. Close each open question in code once answered, so its filings can be marked ready.
