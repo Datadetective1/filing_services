@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { ActionMessageState } from "@/components/funnel/types";
 import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
@@ -185,6 +186,13 @@ export function FormationOrderForm({
           ) : null}
         </div>
       ) : null}
+      <p className="text-[13px] leading-5 text-muted">
+        By paying, you agree to the{" "}
+        <Link href="/legal/business-services" target="_blank" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
+          business services terms
+        </Link>
+        . The state decides whether and when to approve your filing, and our liability is limited to the service fees you paid.
+      </p>
       {state.error ? (
         <Notice tone="danger" role="alert" title="We couldn't continue">
           <p>{state.error}</p>

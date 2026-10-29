@@ -50,19 +50,24 @@ Nationwide, once:
    `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated` and
    `customer.subscription.deleted`. The admin status panel checks this.
 5. `BUSINESS_SERVICES_PAGES=true` (public pages and the dashboard entry points on production).
-6. The legal drafts in `docs/legal-drafts/` are reviewed by a professional and published.
+6. `NEXT_PUBLIC_LEGAL_ENTITY` names a company (Harborlune LLC once formed). Customers never
+   contract with a person; a personal name such as a sole proprietor blocks every sale.
+7. A Filewell alerts mailbox (for example `alerts@getfilewell.com`, a free Zoho alias) is added
+   as a second notification email on the provider's master account, then
+   `RA_ALERTS_MAILBOX=<that address>`. The provider only emails the master account, never the
+   customer, so Filewell must receive every alert itself.
 
 Per jurisdiction (already done where the coverage table says "Verified, ready"):
 
-7. The provider lists the jurisdiction (its own state page, recorded with a quote).
-8. For switching: the state's change-of-agent fee is verified for that entity type. For a new
+8. The provider lists the jurisdiction (its own state page, recorded with a quote).
+9. For switching: the state's change-of-agent fee is verified for that entity type. For a new
    business: how the business names its agent at formation is verified. For formation: the
    formation fee is verified and nothing else is owed at formation (see Coverage).
-9. The switch is on: `RA_SALES_ALL=true` (or `RA_SALES_<CODE>=true` for one jurisdiction),
+10. The switch is on: `RA_SALES_ALL=true` (or `RA_SALES_<CODE>=true` for one jurisdiction),
    and `FORMATION_SALES_ALL=true` (or `FORMATION_SALES_<CODE>=true`) for formation.
 
 The `ALL` switches never open a jurisdiction with a missing fact: every check still runs per
-jurisdiction, entity type and path. After gates 1 to 6, opening every verified jurisdiction is
+jurisdiction, entity type and path. After gates 1 to 7, opening every verified jurisdiction is
 one step.
 
 Outside production (sandbox or Stripe test mode), only the switch and a verified fee are
@@ -80,8 +85,52 @@ needed, so the whole journey can be tested end to end without real money.
 | `FORMATION_SALES_ALL` | Opens formation in every state with a verified fee |
 | `FORMATION_SALES_<CODE>` | Opens formation in one state |
 | `BUSINESS_SERVICES_PAGES` | Shows public pages on production and lets search engines index them |
+| `RA_ALERTS_MAILBOX` | Filewell's alerts mailbox registered on the provider account (an address, not "true") |
 | `ANNUAL_REPORT_PRICE_VARIANT` | `standard` (default) or `proposed_79` |
 | `CHANGE_OF_AGENT_ABSORBED_CENTS` | Absorbed change cost for economics (default 2500) |
+
+## Customer terms
+
+Customers agree to `/legal/business-services` at checkout (the registered agent consent box,
+and "By paying, you agree" on formation). The owner chose to publish these terms as written,
+without attorney review for now, so they carry no draft banner. They never promise more than
+the provider promises Filewell:
+
+- No delivery time. Documents "usually" reach the customer within one business day after
+  they reach us; weekends and US federal holidays are not handled. The provider only commits
+  to uploading documents "as they are received and processed".
+- Notices go to the email and phone on the account and count as delivered once posted and
+  sent. Keeping contact details current is the customer's job.
+- Liability capped at the service fees paid for the affected service in the prior 12 months
+  (the provider's cap is a year of fees), with no indirect damages, default judgments,
+  penalties or loss of good standing.
+- The customer indemnifies Filewell for claims arising from their business, inaccurate
+  information, use of the agent's address or a breach.
+- Not a law firm, not a government agency.
+- The contracting party is the company in `NEXT_PUBLIC_LEGAL_ENTITY`, never a person.
+- Every cancellation with the provider is reviewed by staff, and only an admin can record one:
+  under the provider's Exhibit A any cancellation on the account is the account owner's
+  personal authorization.
+
+If the provider agreement changes, update the terms page and its date in the same change.
+
+### Revisit with a lawyer after first revenue
+
+The owner decided to get legal review once revenue starts. Bring these questions:
+
+1. Whether the liability cap, damages exclusion and indemnity are enforceable as written in the
+   states customers come from, and whether a governing law and venue clause should be added
+   (`NEXT_PUBLIC_GOVERNING_LAW`).
+2. Automatic renewal laws (for example California and New York): disclosure, consent,
+   reminder wording and online cancellation.
+3. How Registered Agents Inc. being the agent of record must be disclosed.
+4. Exhibit A of the provider agreement binds the account owner personally; whether Harborlune
+   LLC can take that place.
+5. Whether advance notice before a provider resignation can be promised to customers.
+6. Sharing client contact details with the provider for collection under Exhibit A.
+7. Unauthorized practice of law limits for formation and change filings in each state.
+8. Sales tax on registered agent and formation services.
+9. Retention periods for received documents and for data after service ends.
 
 ## Coverage (52 jurisdictions)
 

@@ -1,10 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import type { ActionMessageState } from "@/components/funnel/types";
 import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
+
+/** The terms that matter most, kept in view next to the consent. */
+const SERVICE_TERMS_SUMMARY =
+  "We send notices to the email and phone on your account, usually within one business day of receiving a document, never guaranteed. Our liability is limited to the service fees you paid in the 12 months before a claim.";
 
 /**
  * Registered agent order details. Only what the provider can ask for at short notice (a real
@@ -68,8 +73,12 @@ export function ServiceOrderForm({
       <label className="flex items-start gap-3 text-[15px] text-fg">
         <Checkbox name="acceptedTerms" required />
         <span>
-          {renewalLabel ? `Renews every year at ${renewalLabel} until I turn off renewal.` : "I agree to the terms of this order."}{" "}
-          <span className="text-muted">You can turn it off any time from your dashboard.</span>
+          {renewalLabel ? `Renews every year at ${renewalLabel} until I turn off renewal.` : null} I agree to the{" "}
+          <Link href="/legal/business-services" target="_blank" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
+            business services terms
+          </Link>
+          .{" "}
+          <span className="text-muted">You can turn off renewal any time from your dashboard.</span>
         </span>
       </label>
       {/* Kept in view next to the consent, as auto-renewal rules expect. */}
@@ -77,6 +86,7 @@ export function ServiceOrderForm({
         {renewalTerms.map((t) => (
           <p key={t}>{t}</p>
         ))}
+        <p>{SERVICE_TERMS_SUMMARY}</p>
       </div>
       {state.error ? (
         <Notice tone="danger" role="alert" title="We couldn't continue">

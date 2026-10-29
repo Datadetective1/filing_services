@@ -209,8 +209,13 @@ export async function recordProviderRenewalDate(staff: StaffUser, subId: string,
   await audit({ actorUserId: staff.id, actorType: "staff", action: "ra_subscription.provider_renewal_date", entityType: "ra_subscription", entityId: subId, after: { provider_renewal_date: date } });
 }
 
-/** An operator cancelled this entity in the provider's dashboard (unpaid or ended customer). */
+/**
+ * An admin cancelled this entity in the provider's dashboard (unpaid or ended customer). Any
+ * cancellation on the provider account counts as the account owner's own authorization under
+ * the provider agreement, so only an admin may record one, never an operator alone.
+ */
 export async function recordProviderCancelled(staff: StaffUser, subId: string, note: string): Promise<void> {
+  if (staff.role !== "admin") throw new OperationError("Only an admin can approve a cancellation with the provider.");
   if (note.trim().length < 3) throw new OperationError("Note what you did (for example the date and the dashboard confirmation).");
   const db = createAdminClient();
   const { data: sub } = await db.from("ra_subscriptions").select("billing_status").eq("id", subId).maybeSingle();

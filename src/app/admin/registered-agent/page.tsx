@@ -9,7 +9,7 @@ import { requireStaff } from "@/lib/auth/session";
 import { realPaymentsPossible } from "@/lib/compliance/registry";
 import { escalationLevel, SERVICE_DOCUMENT_KIND_LABELS, type ServiceDocumentKind } from "@/lib/registered-agent/documents";
 import { changeOfAgentFeeCents, formationFeeCents, RA_JURISDICTIONS, raFactsComplete } from "@/lib/registered-agent/jurisdictions";
-import { BUNDLE_STATES, providerAgreementSigned, raSwitchOn } from "@/lib/registered-agent/sales";
+import { BUNDLE_STATES, nationwideBlockers, raSwitchOn } from "@/lib/registered-agent/sales";
 import {
   nextOperatorAction,
   PROVIDER_ORDER_STATUS_LABELS,
@@ -62,7 +62,7 @@ export default async function RegisteredAgentQueuePage() {
       .in("billing_status", ["past_due", "unpaid", "canceled"]),
   ]);
   const now = new Date().toISOString();
-  const agreement = providerAgreementSigned();
+  const nationwide = nationwideBlockers();
 
   return (
     <div className="grid gap-6">
@@ -71,12 +71,15 @@ export default async function RegisteredAgentQueuePage() {
         description="Provider orders to work, documents to deliver and billing to review. Payment never activates service: record the provider's confirmation (or the state record) first."
       />
 
-      {!agreement ? (
+      {nationwide.length > 0 ? (
         <Notice tone="warning" title="Not launched">
-          <p>
-            The wholesale Service Agreement is not marked signed (RA_PROVIDER_AGREEMENT_SIGNED). {realPaymentsPossible() ? "No real-money registered agent sale can open here." : "This environment can run test orders only."}{" "}
-            The Stripe webhook must also send {SUBSCRIPTION_STRIPE_EVENTS.join(", ")} before any sale.
-          </p>
+          <p>{realPaymentsPossible() ? "No real-money business services sale can open here until these are done:" : "This environment can run test orders only. Before real money:"}</p>
+          <ul className="mt-2 list-disc pl-5">
+            {nationwide.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+          <p className="mt-2">The Stripe webhook must also send {SUBSCRIPTION_STRIPE_EVENTS.join(", ")} before any sale.</p>
         </Notice>
       ) : null}
 

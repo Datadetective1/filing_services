@@ -37,7 +37,7 @@ const STEPS = [
   { title: "Order", body: "Tell us about your business and who we should contact. You see every charge, including any state fee, before you pay." },
   { title: "We set it up", body: `We place your order with ${PROVIDER_LEGAL_NAME} and, if you're switching, file the change with your state.` },
   { title: "We confirm it", body: "Your service becomes active once the appointment is confirmed (and the state's record shows the change). We email you when it does." },
-  { title: "We forward what arrives", body: "Legal documents and government notices go to your dashboard, and we email you. For legal documents we also try to call." },
+  { title: "We forward what arrives", body: "Legal documents and government notices go to your dashboard and we email you, usually within one business day. We may also call about a legal document." },
 ];
 
 export default async function RegisteredAgentPage() {

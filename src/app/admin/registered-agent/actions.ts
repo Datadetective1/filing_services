@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionState } from "@/components/admin/action-state";
 import { UUID_RE } from "@/components/admin/format";
-import { requireStaff } from "@/lib/auth/session";
+import { requireAdmin, requireStaff } from "@/lib/auth/session";
 import {
   isServiceDocumentKind,
   notifyCustomerOfDocument,
@@ -166,7 +166,8 @@ export async function providerRenewalDateAction(_prev: ActionState, formData: Fo
 }
 
 export async function providerCancelledAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const staff = await requireStaff();
+  // Provider cancellations bind the account owner personally: admins only.
+  const staff = await requireAdmin();
   const parsed = parseForm(z.object({ subscriptionId: id, note: z.string().trim().min(3, "Note what you did.").max(500) }), formData);
   if (!parsed.ok) return fail(parsed.error);
   try {

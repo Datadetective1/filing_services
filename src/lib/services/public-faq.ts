@@ -17,7 +17,7 @@ export const REGISTERED_AGENT_FAQ: FaqItem[] = [
   },
   {
     q: "How will I know when something arrives?",
-    a: "We add it to your dashboard and email you. For lawsuits and other legal documents we also try to reach you by phone. We don't promise a delivery time: please keep your email and phone number up to date.",
+    a: "We add it to your dashboard and email you, usually within one business day after it reaches us. That isn't a guarantee, and documents that arrive on a weekend or holiday are handled the next business day. We may also call about a legal document. Please keep your email and phone number up to date: we send notices to the details on your account.",
   },
   {
     q: "Is regular mail included?",
@@ -41,7 +41,7 @@ export const REGISTERED_AGENT_FAQ: FaqItem[] = [
   },
   {
     q: "Can I be my own registered agent?",
-    a: "Usually, yes, if you have a physical address in the state and are there during business hours. Many owners use a service for privacy and so they never miss a legal document.",
+    a: "Usually, yes, if you have a physical address in the state and are there during business hours. Many owners use a service for privacy, and so legal documents go to an address that is staffed every business day.",
   },
   {
     q: "Is this legal advice?",

@@ -113,6 +113,18 @@ describe("coverage", () => {
 });
 
 describe("sales fail closed", () => {
+  it("never contracts with a person: the legal entity must be a company", () => {
+    vi.stubEnv("NEXT_PUBLIC_LEGAL_ENTITY", "");
+    expect(sales.contractingCompanyConfigured()).toBe(false);
+    vi.stubEnv("NEXT_PUBLIC_LEGAL_ENTITY", "Amary Coulibaly, sole proprietor");
+    expect(sales.contractingCompanyConfigured()).toBe(false);
+    expect(sales.nationwideBlockers().join(" ")).toMatch(/contracting company/);
+    for (const name of ["Harborlune LLC", "Harborlune, L.L.C.", "Filewell Inc.", "Example Corporation"]) {
+      vi.stubEnv("NEXT_PUBLIC_LEGAL_ENTITY", name);
+      expect(sales.contractingCompanyConfigured()).toBe(true);
+    }
+  });
+
   it("nothing is sold without its switch", () => {
     for (const j of RA_JURISDICTIONS)
       expect(sales.raSaleCheck(j.code, "llc", "switching").ok).toBe(false);
@@ -161,6 +173,11 @@ describe("sales fail closed", () => {
     );
     // One end-to-end provider test covers every jurisdiction: the workflow is the same everywhere.
     vi.stubEnv("RA_FULFILLMENT_TESTED", "true");
+    // Still closed: no company to contract with and no alerts mailbox.
+    expect(sales.raLiveBlockers("TX", "llc", "switching").join(" ")).toMatch(/contracting company/);
+    expect(sales.raLiveBlockers("TX", "llc", "switching").join(" ")).toMatch(/alerts mailbox/);
+    vi.stubEnv("NEXT_PUBLIC_LEGAL_ENTITY", "Harborlune LLC");
+    vi.stubEnv("RA_ALERTS_MAILBOX", "alerts@example.com");
     expect(sales.raLiveBlockers("TX", "llc", "switching")).toEqual([]);
     expect(sales.raLiveBlockers("TX", "corporation", "new_entity")).toEqual([]);
     expect(sales.raSaleCheck("TX", "llc", "switching").ok).toBe(true);
@@ -184,6 +201,8 @@ describe("sales fail closed", () => {
     expect(sales.formationSaleCheck("TX", "llc").ok).toBe(false);
     vi.stubEnv("RA_PROVIDER_AGREEMENT_SIGNED", "true");
     vi.stubEnv("RA_FULFILLMENT_TESTED", "true");
+    vi.stubEnv("NEXT_PUBLIC_LEGAL_ENTITY", "Harborlune LLC");
+    vi.stubEnv("RA_ALERTS_MAILBOX", "alerts@example.com");
     expect(sales.formationLiveBlockers("TX", "llc")).toEqual([]);
     expect(sales.formationSaleCheck("TX", "llc").ok).toBe(true);
   });

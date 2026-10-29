@@ -227,7 +227,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     subject: "Active: registered agent service for {{company_name}} in {{state_name}}",
     body:
       "Your registered agent service for {{company_name}} in {{state_name}} is now active. The agent's name and address are in your dashboard.\n\n" +
-      "When legal documents or government notices arrive for your business, we add them to your dashboard and email you.",
+      "When legal documents or government notices arrive for your business, we add them to your dashboard and email you. We send every notice to the email address on your account, so please keep it and your phone number up to date.",
     ctaLabel: "Open your dashboard",
     description: "Sent when an operator confirms a registered agent appointment with evidence.",
   },
@@ -255,7 +255,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
       "Your registered agent received a {{document_label}} for {{company_name}} in {{state_name}}. It may start a legal deadline, so please read it today.\n\n" +
       "Open your dashboard to view and download it. If you have a lawyer, send it to them.",
     ctaLabel: "View the document",
-    description: "Urgent: service of process received. Staff also follow up by phone where the customer gave a number.",
+    description: "Urgent: service of process received. Staff may also call where the customer gave a number.",
   },
   {
     key: "ra_document_received",

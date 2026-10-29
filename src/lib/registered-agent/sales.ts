@@ -14,6 +14,10 @@ import { changeOfAgentFeeCents, formationFeeCents, getRaJurisdiction, stateSpeci
  *   FORMATION_SALES_<CODE>=true         formation checkout open in that jurisdiction
  *   FORMATION_SALES_ALL=true            open formation in every state whose fee is verified
  *   BUSINESS_SERVICES_PAGES=true        public registered agent / formation pages on production
+ *   RA_ALERTS_MAILBOX=<address>         Filewell's own alerts mailbox, added as a second notification email on the provider account
+ *
+ * Real-money sales also need NEXT_PUBLIC_LEGAL_ENTITY set to a company (Harborlune LLC once
+ * formed). Customers never contract with a person.
  *
  * The "ALL" switches never open a jurisdiction with a missing fact: every check below still
  * runs per jurisdiction, entity type and path.
@@ -70,6 +74,27 @@ export function businessServicesIndexable(): boolean {
   return isProductionEnvironment() && flag("BUSINESS_SERVICES_PAGES") === "true";
 }
 
+/** A company name (LLC, Inc., Corporation and the like), never a person's name. */
+const COMPANY_NAME = /\b(LLC|L\.L\.C\.|Inc\.?|Incorporated|Corporation|Corp\.?|Company|Co\.|Ltd\.?|PLLC|LLP)$/i;
+
+/** The company customers contract with is set, and it is a company. */
+export function contractingCompanyConfigured(): boolean {
+  const name = process.env.NEXT_PUBLIC_LEGAL_ENTITY?.trim() ?? "";
+  return COMPANY_NAME.test(name);
+}
+
+/**
+ * Gates that apply everywhere, before any jurisdiction: the provider contract, a company to
+ * contract with and a second alerts mailbox.
+ */
+export function nationwideBlockers(): string[] {
+  const out: string[] = [];
+  if (!providerAgreementSigned()) out.push("Wholesale Service Agreement not signed.");
+  if (!contractingCompanyConfigured()) out.push("The contracting company (NEXT_PUBLIC_LEGAL_ENTITY) is not set to a company such as Harborlune LLC.");
+  if (!flag("RA_ALERTS_MAILBOX")) out.push("No Filewell alerts mailbox on the provider account (RA_ALERTS_MAILBOX).");
+  return out;
+}
+
 /**
  * Everything standing between this jurisdiction and real-money registered agent sales, in
  * plain words. Empty means only the switch and an approved price remain.
@@ -77,8 +102,7 @@ export function businessServicesIndexable(): boolean {
 export function raLiveBlockers(code: string, entityType: EntityType, situation: RaSituation): string[] {
   const j = getRaJurisdiction(code);
   if (!j) return ["Unknown jurisdiction."];
-  const out: string[] = [];
-  if (!providerAgreementSigned()) out.push("Wholesale Service Agreement not signed.");
+  const out: string[] = nationwideBlockers();
   if (j.providerCoverage === "not_confirmed") out.push("The provider's coverage of this jurisdiction is not confirmed.");
   if (!fulfillmentTested(j)) out.push("No end-to-end test order with the provider yet.");
   if (!RA_ENTITY_TYPES.includes(entityType)) out.push("This entity type is not supported.");
@@ -92,8 +116,7 @@ export function raLiveBlockers(code: string, entityType: EntityType, situation: 
 export function formationLiveBlockers(code: string, entityType: EntityType): string[] {
   const j = getRaJurisdiction(code);
   if (!j) return ["Unknown jurisdiction."];
-  const out: string[] = [];
-  if (!providerAgreementSigned()) out.push("Wholesale Service Agreement not signed.");
+  const out: string[] = nationwideBlockers();
   if (j.providerCoverage === "not_confirmed") out.push("The provider's coverage of this jurisdiction is not confirmed.");
   if (!fulfillmentTested(j)) out.push("No end-to-end test order with the provider yet.");
   if (!RA_ENTITY_TYPES.includes(entityType)) out.push("This entity type is not supported.");
