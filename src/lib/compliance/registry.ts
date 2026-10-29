@@ -5,8 +5,11 @@ import { JURISDICTIONS } from "./jurisdictions";
 import { EXPANSION_STATES, stateSalesEnabled } from "./launch";
 import { COLORADO_RULES } from "./states/colorado";
 import { FLORIDA_RULES } from "./states/florida";
+import { MICHIGAN_RULES } from "./states/michigan";
+import { MONTANA_RULES } from "./states/montana";
 import { NEVADA_RULES } from "./states/nevada";
 import { PENNSYLVANIA_RULES } from "./states/pennsylvania";
+import { SOUTH_DAKOTA_RULES } from "./states/south-dakota";
 import { UTAH_RULES } from "./states/utah";
 import { WASHINGTON_RULES } from "./states/washington";
 import type { ComplianceRuleDef, JurisdictionDef } from "./types";
@@ -19,7 +22,17 @@ import type { ComplianceRuleDef, JurisdictionDef } from "./types";
  * Only rules with verificationStatus "verified" may be shown as definitive facts or
  * sold. Adding a state = adding a rules module here, with official sources.
  */
-export const RULES: ComplianceRuleDef[] = [...PENNSYLVANIA_RULES, ...WASHINGTON_RULES, ...NEVADA_RULES, ...UTAH_RULES, ...FLORIDA_RULES, ...COLORADO_RULES];
+export const RULES: ComplianceRuleDef[] = [
+  ...PENNSYLVANIA_RULES,
+  ...WASHINGTON_RULES,
+  ...NEVADA_RULES,
+  ...UTAH_RULES,
+  ...FLORIDA_RULES,
+  ...COLORADO_RULES,
+  ...SOUTH_DAKOTA_RULES,
+  ...MONTANA_RULES,
+  ...MICHIGAN_RULES,
+];
 
 export const FILING_TYPES = [
   {

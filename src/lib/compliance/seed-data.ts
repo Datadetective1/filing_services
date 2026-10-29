@@ -117,7 +117,7 @@ export function contentHashOf(rule: ComplianceRuleDef, hash: (s: string) => stri
 export const PROVISIONAL_SERVICE_FEE_CENTS = 4900;
 
 export function defaultPriceRows() {
-  return ["PA", "WA", "NV", "UT", "FL", "CO"].map((state) => ({
+  return ["PA", "WA", "NV", "UT", "FL", "CO", "SD", "MT", "MI"].map((state) => ({
     filing_type_code: "annual_report",
     state_code: state,
     entity_type: null,
