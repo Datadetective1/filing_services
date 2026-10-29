@@ -117,6 +117,38 @@ export class SandboxPaymentProvider implements PaymentProvider {
           amountCents: o.amount_total,
           currency: o.currency,
           receiptUrl: null,
+          subscriptionId: o.subscription_id ?? null,
+          invoiceId: o.invoice_id ?? null,
+        };
+      // Simulated subscription lifecycle (tests and the staff renewal simulator).
+      case "invoice.paid":
+      case "invoice.payment_failed":
+        return {
+          ...base,
+          type: evt.type === "invoice.paid" ? "subscription.invoice_paid" : "subscription.invoice_failed",
+          subscriptionId: o.subscription_id ?? null,
+          invoiceId: o.invoice_id ?? null,
+          orderId: o.order_id,
+          billingReason: o.billing_reason ?? "subscription_cycle",
+          amountCents: o.amount_total,
+          currency: o.currency,
+          periodStart: typeof o.period_start === "number" ? new Date(o.period_start * 1000) : null,
+          periodEnd: typeof o.period_end === "number" ? new Date(o.period_end * 1000) : null,
+          attemptCount: o.attempt_count ?? null,
+          nextAttemptAt: typeof o.next_payment_attempt === "number" ? new Date(o.next_payment_attempt * 1000) : null,
+          failureReason: o.failure_reason ?? null,
+        };
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted":
+        return {
+          ...base,
+          type: evt.type === "customer.subscription.updated" ? "subscription.updated" : "subscription.deleted",
+          subscriptionId: o.subscription_id ?? null,
+          orderId: o.order_id,
+          subscriptionStatus: o.status ?? (evt.type === "customer.subscription.deleted" ? "canceled" : null),
+          cancelAtPeriodEnd: o.cancel_at_period_end ?? null,
+          periodStart: typeof o.period_start === "number" ? new Date(o.period_start * 1000) : null,
+          periodEnd: typeof o.period_end === "number" ? new Date(o.period_end * 1000) : null,
         };
       case "payment_intent.payment_failed":
         return {
@@ -150,6 +182,15 @@ export class SandboxPaymentProvider implements PaymentProvider {
     return { providerRefundId: id("sbx_re"), status: "succeeded" };
   }
 
+  async setCancelAtPeriodEnd(): Promise<void> {
+    // The simulator keeps no subscription of its own: the app's ra_subscriptions row is
+    // the record, and the caller updates it. Nothing to tell a processor.
+  }
+
+  async processingFeeCents(): Promise<number | null> {
+    return null; // No processor, no fee: economics fall back to the estimate.
+  }
+
   /** Build a signed event exactly as the hosted sandbox page would deliver it. */
   buildSignedEvent(type: string, data: Record<string, unknown>): { body: string; signature: string } {
     const evt: SandboxEvent = { id: id("sbx_evt"), type, created: Math.floor(Date.now() / 1000), data };
@@ -173,5 +214,14 @@ interface SandboxEvent {
     failure_reason?: string;
     refund_id?: string;
     internal_refund_id?: string;
+    subscription_id?: string;
+    invoice_id?: string;
+    billing_reason?: string;
+    period_start?: number;
+    period_end?: number;
+    attempt_count?: number;
+    next_payment_attempt?: number;
+    status?: string;
+    cancel_at_period_end?: boolean;
   };
 }

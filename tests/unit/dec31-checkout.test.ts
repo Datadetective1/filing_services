@@ -103,6 +103,8 @@ function fakeProvider(mode: "sandbox" | "live") {
     mode,
     retrieveSession: vi.fn(),
     expireSession: vi.fn(),
+    setCancelAtPeriodEnd: vi.fn(),
+    processingFeeCents: vi.fn(),
     createCheckoutSession: vi.fn(async () => ({ sessionId: "cs_new", url: "https://checkout.example/cs_new" })),
     parseWebhook: vi.fn(),
     refund: vi.fn(),

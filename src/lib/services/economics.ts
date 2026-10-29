@@ -1,4 +1,4 @@
-import { SERVICES, type FulfillmentMethod, type ServiceCode } from "./catalog";
+import { SERVICES, WHOLESALE, type FulfillmentMethod, type ServiceCode } from "./catalog";
 
 /**
  * Unit economics. Pure functions, integer cents.
@@ -183,4 +183,80 @@ export function proposedPriceEstimates(): ContributionEstimate[] {
       wholesaleCents: 7500,
     }),
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Per-order economics, recorded when an order is paid
+// ---------------------------------------------------------------------------
+
+/**
+ * What Filewell absorbs to file a customer's change of registered agent (the provider's $25
+ * change charge), tracked as an acquisition cost. Configurable: set
+ * CHANGE_OF_AGENT_ABSORBED_CENTS (whole cents) to change it without a code change.
+ */
+export function changeOfAgentAbsorbedCents(env: Record<string, string | undefined> = process.env): number {
+  const raw = env.CHANGE_OF_AGENT_ABSORBED_CENTS?.trim();
+  if (raw && /^\d{1,6}$/.test(raw)) return Number(raw);
+  return WHOLESALE.changeOfAgent;
+}
+
+export interface OrderEconomicsDraft {
+  serviceCode: ServiceCode;
+  fulfillmentMethod: FulfillmentMethod;
+  serviceRevenueCents: number;
+  governmentFeesCollectedCents: number;
+  wholesaleCostCents: number;
+  acquisitionCostCents: number;
+}
+
+/** Wholesale cost of one unit of each service when the provider fulfils it. */
+function wholesaleFor(code: ServiceCode): number {
+  switch (code) {
+    case "registered_agent":
+    case "ra_annual_report_bundle":
+      // The bundle's annual report is filed by Filewell itself, so only the agent costs us.
+      return WHOLESALE.registeredAgentPerYear;
+    case "formation":
+      return WHOLESALE.formation;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * One economics row per service on an order, from its order summary lines. Government fees
+ * are recorded as collected (pass-through), never as revenue.
+ */
+export function economicsFromLines(
+  lines: { kind: "service_fee" | "government_fee"; serviceCode: ServiceCode; amountCents: number }[],
+  opts: { absorbedChangeCents?: number } = {},
+): OrderEconomicsDraft[] {
+  const codes = [...new Set(lines.map((l) => l.serviceCode))];
+  return codes.map((code) => {
+    const mine = lines.filter((l) => l.serviceCode === code);
+    return {
+      serviceCode: code,
+      fulfillmentMethod: code === "annual_report" ? "internal_manual" : "registered_agents_inc",
+      serviceRevenueCents: mine.filter((l) => l.kind === "service_fee").reduce((n, l) => n + l.amountCents, 0),
+      governmentFeesCollectedCents: mine.filter((l) => l.kind === "government_fee").reduce((n, l) => n + l.amountCents, 0),
+      wholesaleCostCents: wholesaleFor(code),
+      acquisitionCostCents: code === "change_registered_agent" ? (opts.absorbedChangeCents ?? changeOfAgentAbsorbedCents()) : 0,
+    };
+  });
+}
+
+/**
+ * Split one processing fee across an order's services in proportion to what each was
+ * charged (service + government), so the parts always add up to the whole fee.
+ */
+export function allocateProcessingFee(drafts: OrderEconomicsDraft[], feeCents: number): number[] {
+  const charges = drafts.map((d) => d.serviceRevenueCents + d.governmentFeesCollectedCents);
+  const total = charges.reduce((a, b) => a + b, 0);
+  if (feeCents <= 0 || drafts.length === 0) return drafts.map(() => 0);
+  if (total === 0) return drafts.map((_, i) => (i === 0 ? feeCents : 0));
+  const parts = charges.map((c) => Math.floor((feeCents * c) / total));
+  let rest = feeCents - parts.reduce((a, b) => a + b, 0);
+  const order = charges.map((c, i) => [c, i] as const).sort((a, b) => b[0] - a[0]);
+  for (let k = 0; rest > 0; k = (k + 1) % order.length, rest--) parts[order[k][1]] += 1;
+  return parts;
 }

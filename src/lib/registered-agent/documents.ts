@@ -42,6 +42,18 @@ export function isBillableMail(kind: ServiceDocumentKind): boolean {
   return kind === "regular_mail";
 }
 
+/**
+ * Regular mail included per client per service year before the per-item charge applies
+ * (provider terms as reviewed Oct 29, 2026; not verified until the agreement is signed).
+ * Legal documents and government notices are never counted or charged.
+ */
+export const INCLUDED_REGULAR_MAIL_PER_YEAR = 3;
+
+/** Whether this regular mail item is beyond the included ones (itemNumber counts from 1 within the service year). */
+export function mailItemBillable(kind: ServiceDocumentKind, itemNumberThisServiceYear: number): boolean {
+  return isBillableMail(kind) && itemNumberThisServiceYear > INCLUDED_REGULAR_MAIL_PER_YEAR;
+}
+
 /** Internal operator targets, in minutes after the document is available to Filewell. */
 export const ESCALATION_TARGETS_MINUTES: Record<Urgency, { backup: number; owner: number } | null> = {
   urgent: { backup: 120, owner: 240 },

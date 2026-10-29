@@ -199,3 +199,34 @@ export function renewalReminderDue(input: {
   }
   return null;
 }
+
+/**
+ * The provider renews every entity on its own yearly date and must be told at least 30
+ * days before that date to cancel (wholesale agreement, not yet signed). An entity whose
+ * customer has stopped paying is flagged for cancellation with the provider from this many
+ * days before the provider's renewal, leaving a few days for an operator to act.
+ */
+export const PROVIDER_CANCEL_NOTICE_DAYS = 30;
+export const PROVIDER_CANCEL_FLAG_DAYS = 40;
+
+/**
+ * Whether an operator must cancel this entity with the provider now, so Filewell is not
+ * invoiced for a year the customer won't pay for. Only when billing has failed or ended;
+ * never for a customer who is paid up, and never automatically.
+ */
+export function providerCancellationDue(input: {
+  billingStatus: BillingStatus;
+  providerRenewalDate: string | null;
+  providerCancelledAt: string | null;
+  today: string;
+}): { due: boolean; daysLeft: number | null; late: boolean } {
+  if (input.providerCancelledAt || !input.providerRenewalDate) return { due: false, daysLeft: null, late: false };
+  if (!(input.billingStatus === "unpaid" || input.billingStatus === "canceled" || input.billingStatus === "past_due")) {
+    return { due: false, daysLeft: null, late: false };
+  }
+  const days = Math.round(
+    (Date.parse(`${input.providerRenewalDate.slice(0, 10)}T00:00:00Z`) - Date.parse(`${input.today}T00:00:00Z`)) / 86_400_000,
+  );
+  if (Number.isNaN(days)) return { due: false, daysLeft: null, late: false };
+  return { due: days <= PROVIDER_CANCEL_FLAG_DAYS, daysLeft: days, late: days < PROVIDER_CANCEL_NOTICE_DAYS };
+}

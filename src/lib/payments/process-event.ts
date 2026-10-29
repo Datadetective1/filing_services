@@ -6,6 +6,7 @@ import { loadFilingContext } from "@/lib/filings/context";
 import { formatCents } from "@/lib/domain/money";
 import { sendNotification } from "@/lib/notifications/send";
 import { notifyStaff } from "@/lib/notifications/staff";
+import { afterServiceOrderPaid, handleInvoiceFailed, handleInvoicePaid, handleSubscriptionChanged, isServiceOrder } from "@/lib/services/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { NormalizedPaymentEvent } from "./types";
 
@@ -122,7 +123,17 @@ async function handle(event: NormalizedPaymentEvent): Promise<string> {
       if (error) throw new Error(`apply_payment_success: ${error.message}`);
       const res = data as { applied: boolean; reason?: string; filing_id?: string; order_id?: string };
       if (!res.applied) return `ignored:${res.reason ?? "not_applied"}`;
-      await afterPaymentSucceeded(res.filing_id ?? null, res.order_id ?? payment.order_id, payment.user_id);
+      const orderId = res.order_id ?? payment.order_id;
+      if (await isServiceOrder(orderId)) {
+        await afterServiceOrderPaid({
+          orderId,
+          subscriptionId: event.subscriptionId ?? null,
+          invoiceId: event.invoiceId ?? null,
+          providerPaymentId: event.providerPaymentId ?? null,
+        });
+        return "service_payment_succeeded";
+      }
+      await afterPaymentSucceeded(res.filing_id ?? null, orderId, payment.user_id);
       return "payment_succeeded";
     }
 
@@ -187,6 +198,16 @@ async function handle(event: NormalizedPaymentEvent): Promise<string> {
       if (res.applied && status === "succeeded") await afterRefundSucceeded(refundId);
       return res.applied ? `refund_${status}` : `ignored:${res.reason ?? "not_applied"}`;
     }
+
+    case "subscription.invoice_paid":
+      return handleInvoicePaid(event);
+
+    case "subscription.invoice_failed":
+      return handleInvoiceFailed(event);
+
+    case "subscription.updated":
+    case "subscription.deleted":
+      return handleSubscriptionChanged(event);
 
     case "ignored":
       return `ignored:${event.rawType}`;

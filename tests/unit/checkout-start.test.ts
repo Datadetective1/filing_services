@@ -108,6 +108,8 @@ function fakeProvider(mode: "sandbox" | "live", sessions: Array<Partial<SessionS
       return next === null || next === undefined ? null : ({ sessionId, amountCents: TOTAL, currency: "usd", providerPaymentId: "pi_1", orderId: "order-old", paymentId: "pay-old", paid: false, status: "open", ...next } as SessionStatus);
     }),
     expireSession: vi.fn(async () => {}),
+    setCancelAtPeriodEnd: vi.fn(async () => {}),
+    processingFeeCents: vi.fn(async () => null),
     createCheckoutSession: vi.fn(async () => ({ sessionId: "cs_new", url: "https://checkout.example/cs_new" })),
     parseWebhook: vi.fn(),
     refund: vi.fn(),

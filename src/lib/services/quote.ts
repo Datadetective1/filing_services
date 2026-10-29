@@ -1,3 +1,4 @@
+import type { RaSituation } from "@/lib/registered-agent/sales";
 import type { ServiceCode } from "./catalog";
 
 /**
@@ -44,11 +45,7 @@ export interface PriceInput {
   approved: boolean;
 }
 
-export type RaSituation =
-  /** The business exists and names another agent today: the state must be told (change filing). */
-  | "switching"
-  /** The business is being formed by the customer elsewhere and will name us in its formation filing. */
-  | "new_entity";
+export type { RaSituation };
 
 export class QuoteError extends Error {}
 

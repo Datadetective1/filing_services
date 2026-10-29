@@ -94,6 +94,15 @@ create table public.ra_subscriptions (
   appointment_confirmed_at timestamptz,
   appointment_evidence text check (appointment_evidence is null or char_length(appointment_evidence) <= 2000),
   failed_payment_count int not null default 0 check (failed_payment_count >= 0),
+  -- The provider renews each entity yearly on its own date and must be told at least 30
+  -- days before that date to cancel an entity whose customer has not paid.
+  provider_renewal_date date,
+  provider_cancelled_at timestamptz,
+  -- Communications contact the provider may request at short notice (a real person, a
+  -- physical address and a phone number), collected at checkout so a request never waits.
+  contact_name text check (contact_name is null or char_length(contact_name) between 1 and 200),
+  contact_phone text check (contact_phone is null or contact_phone ~ '^[0-9+() .-]{7,30}$'),
+  contact_address text check (contact_address is null or char_length(contact_address) between 5 and 500),
   renewal_reminders_sent text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

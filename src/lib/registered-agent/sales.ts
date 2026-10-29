@@ -21,7 +21,11 @@ import { changeOfAgentFeeCents, formationFeeCents, getRaJurisdiction } from "./j
 
 const flag = (name: string) => process.env[name]?.trim();
 
-export type RaSituation = "switching" | "new_entity";
+export type RaSituation =
+  /** The business exists and names another agent today: the state must be told (change filing). */
+  | "switching"
+  /** The business is being formed by the customer elsewhere and will name us in its formation filing. */
+  | "new_entity";
 
 /** Entity types the registered agent service is built for. */
 export const RA_ENTITY_TYPES: EntityType[] = ["llc", "corporation"];
