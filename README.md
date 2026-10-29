@@ -92,7 +92,17 @@ go on the Vercel Production target only, never "All environments".
 Stripe webhook endpoint: `POST /api/webhooks/payments/stripe` (events:
 `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
 `checkout.session.async_payment_failed`, `checkout.session.expired`,
-`refund.created`, `refund.updated`; `payment_intent.payment_failed` is ignored).
+`refund.created`, `refund.updated`; `payment_intent.payment_failed` is ignored). Registered
+agent subscriptions also need `invoice.paid`, `invoice.payment_failed`,
+`customer.subscription.updated` and `customer.subscription.deleted` on the same endpoint
+before any registered agent sale (`/admin/registered-agent` reminds you).
+
+## Business services (registered agent, bundle, formation)
+
+Built and switched off. Every sale fails closed behind environment switches, verified state
+fees, approved prices and, for real money, the signed wholesale agreement. See
+[docs/REGISTERED_AGENT.md](docs/REGISTERED_AGENT.md) for the launch gates, the operator
+runbook, renewals and the Harborlune LLC transition checklist.
 
 ## Email
 
@@ -108,7 +118,9 @@ deliverability check); tests always do.
 
 `vercel.json` schedules `GET /api/cron/reminders` daily at 13:00 UTC with
 `Authorization: Bearer $CRON_SECRET`. Operators can also run a cycle from
-`/admin/reminders`.
+`/admin/reminders`. The daily run also does the registered agent checks; once registered
+agent service is sold, call `GET /api/cron/services` hourly (same header) so urgent legal
+documents escalate on time.
 
 ## Adding a state
 

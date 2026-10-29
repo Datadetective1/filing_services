@@ -11,6 +11,8 @@ import { Notice } from "@/components/ui/surface";
 import { requireStaff } from "@/lib/auth/session";
 import { SERVICE_DOCUMENT_KIND_LABELS, SERVICE_DOCUMENT_KINDS, type ServiceDocumentKind } from "@/lib/registered-agent/documents";
 import { getRaJurisdiction } from "@/lib/registered-agent/jurisdictions";
+import { providerEntrySheet } from "@/lib/registered-agent/manual-provider";
+import { ENTITY_TYPE_LABELS, isEntityType } from "@/lib/domain/types";
 import {
   nextOperatorAction,
   PROVIDER_ORDER_STATUS_LABELS,
@@ -131,6 +133,28 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
             title={`${KIND_LABEL[kind]} · ${PROVIDER_ORDER_STATUS_LABELS[status]}`}
             description={nextOperatorAction(kind, status) ?? undefined}
           >
+            {status === "payment_confirmed" || status === "information_needed" || status === "ready_for_provider" ? (
+              (() => {
+                const sheet = providerEntrySheet({
+                  kind,
+                  legalName: business?.legal_name ?? "",
+                  stateName,
+                  entityTypeLabel: business && isEntityType(business.entity_type) ? ENTITY_TYPE_LABELS[business.entity_type] : (business?.entity_type ?? ""),
+                  entityNumber: business?.state_entity_number ?? null,
+                  contactName: sub.contact_name,
+                  contactPhone: sub.contact_phone,
+                  contactAddress: sub.contact_address,
+                  currentAgentName: o.details?.current_agent_name ? String(o.details.current_agent_name) : null,
+                });
+                return (
+                  <div className="mb-5 grid gap-2 rounded-[var(--radius-control)] border border-border bg-bg p-4">
+                    <p className="text-sm font-semibold text-fg">Partner dashboard entry sheet</p>
+                    {sheet.missing.length > 0 ? <p className="text-sm text-danger">Missing: {sheet.missing.join(", ")}. Ask the customer first.</p> : null}
+                    <KeyValues items={sheet.rows.map((r) => ({ term: r.label, value: r.value || "Missing" }))} />
+                  </div>
+                );
+              })()
+            ) : null}
             <div className="grid gap-5 lg:grid-cols-2">
               <KeyValues
                 items={[
