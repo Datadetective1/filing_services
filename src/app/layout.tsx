@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Figtree, Geist_Mono } from "next/font/google";
+import { VercelAnalytics } from "@/components/analytics/vercel-analytics";
 import { isIndexable, site, siteUrl } from "@/config/site";
 import "./globals.css";
 
@@ -37,7 +38,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${figtree.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        {children}
+        <VercelAnalytics />
+      </body>
     </html>
   );
 }

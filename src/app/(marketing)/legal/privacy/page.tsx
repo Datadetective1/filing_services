@@ -82,6 +82,11 @@ export default function PrivacyPage() {
         source, any campaign tag in the link, the referring website&apos;s domain (not the full address), the first page you
         landed on and the date. This is kept with analytics events and, if you add a business, with that business.
       </p>
+      <p>
+        We also count page views with Vercel Web Analytics, run by our hosting provider. It does not set cookies, records the
+        page path without its query string (campaign tags excepted), and does not store IP addresses. It is not used on staff
+        or sign-in pages, and we turn it off if your browser sends a Global Privacy Control or Do Not Track signal.
+      </p>
       <h3>Cookies and browser storage</h3>
       <p>
         We use cookies that are needed to run the site: sign-in cookies that keep you logged in, and, if you look up a business
@@ -122,7 +127,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Service providers</strong> that run parts of the service for us under contract. Today these are Vercel
-          (website hosting), Supabase (database, sign-in, account emails such as sign-up confirmation and password reset, and
+          (website hosting and page view counts), Supabase (database, sign-in, account emails such as sign-up confirmation and password reset, and
           file storage), Resend (email delivery) and Stripe (payment processing, once card payments are enabled). They may use the
           information only to provide their services to us.
         </li>
