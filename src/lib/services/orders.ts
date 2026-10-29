@@ -53,13 +53,19 @@ export interface OwnedBusiness {
   entity_type: EntityType;
   is_foreign: boolean;
   is_nonprofit: boolean;
+  lifecycle: "existing" | "forming";
+}
+
+/** A formed business already has an agent on the state record, so ordering for it is a switch. */
+export function situationFor(business: Pick<OwnedBusiness, "lifecycle">): RaSituation {
+  return business.lifecycle === "forming" ? "new_entity" : "switching";
 }
 
 export async function loadOwnedBusiness(userId: string, businessId: string): Promise<OwnedBusiness | null> {
   if (!/^[0-9a-f-]{36}$/i.test(businessId)) return null;
   const { data } = await createAdminClient()
     .from("businesses")
-    .select("id, legal_name, state_code, entity_type, is_foreign, is_nonprofit, owner_user_id, archived_at")
+    .select("id, legal_name, state_code, entity_type, is_foreign, is_nonprofit, owner_user_id, archived_at, lifecycle")
     .eq("id", businessId)
     .maybeSingle();
   if (!data || data.owner_user_id !== userId || data.archived_at) return null;
@@ -70,6 +76,7 @@ export async function loadOwnedBusiness(userId: string, businessId: string): Pro
     entity_type: data.entity_type as EntityType,
     is_foreign: Boolean(data.is_foreign),
     is_nonprofit: Boolean(data.is_nonprofit),
+    lifecycle: data.lifecycle === "forming" ? "forming" : "existing",
   };
 }
 
@@ -110,36 +117,39 @@ async function openRequirements(businessId: string): Promise<RequirementLike[]> 
 /** Quote and availability for a business, without creating anything. */
 export async function previewServiceOrder(
   u: SessionUser,
-  input: { businessId: string; service: OrderableService; situation: RaSituation },
+  input: { businessId: string; service: OrderableService },
   now = new Date(),
 ): Promise<ServiceOrderPreview> {
   const business = await loadOwnedBusiness(u.id, input.businessId);
   if (!business) throw new ServiceOrderError("Business not found", "not_found");
   const j = getRaJurisdiction(business.state_code);
   const stateName = j?.name ?? business.state_code;
+  // Every formed business already names an agent, so ordering for it is a switch; only a
+  // business still being formed names us in its formation filing. Never asked: derived.
+  const situation = situationFor(business);
   const sale =
     input.service === "ra_annual_report_bundle"
       ? bundleSaleCheck(
           business.state_code,
           { entityType: business.entity_type, isForeign: business.is_foreign, isNonprofit: business.is_nonprofit },
-          input.situation,
+          situation,
         )
-      : raSaleCheck(business.state_code, business.entity_type, input.situation);
-  const base: ServiceOrderPreview = { business, service: input.service, situation: input.situation, stateName, sale, quote: null, bundle: null };
+      : raSaleCheck(business.state_code, business.entity_type, situation);
+  const base: ServiceOrderPreview = { business, service: input.service, situation, stateName, sale, quote: null, bundle: null };
   if (!sale.ok) return base;
 
   const prices = await listActivePricesAdmin();
   const scope = { stateCode: business.state_code, entityType: business.entity_type, variant: STANDARD_PRICE_VARIANT };
   const changePrice =
-    input.situation === "switching"
+    situation === "switching"
       ? priceInput(resolveServicePrice(prices, { filingTypeCode: SERVICES.change_registered_agent.filingTypeCode, ...scope }), "the change of agent filing")
       : undefined;
-  const changeGovernmentFeeCents = input.situation === "switching" ? changeOfAgentFeeCents(business.state_code, business.entity_type) : undefined;
+  const changeGovernmentFeeCents = situation === "switching" ? changeOfAgentFeeCents(business.state_code, business.entity_type) : undefined;
 
   try {
     if (input.service === "registered_agent") {
       const agentPrice = priceInput(resolveServicePrice(prices, { filingTypeCode: SERVICES.registered_agent.filingTypeCode, ...scope }), "registered agent service");
-      return { ...base, quote: registeredAgentQuote({ stateName, situation: input.situation, agentPrice, changePrice, changeGovernmentFeeCents }) };
+      return { ...base, quote: registeredAgentQuote({ stateName, situation, agentPrice, changePrice, changeGovernmentFeeCents }) };
     }
     const rule = findRule(business.state_code, business.entity_type, "annual_report", business.is_foreign);
     if (!rule) return { ...base, sale: { ok: false, reason: "We can't file this business's annual report, so the bundle isn't available." } };
@@ -150,7 +160,7 @@ export async function previewServiceOrder(
     const bundlePrice = priceInput(resolveServicePrice(prices, { filingTypeCode: SERVICES.ra_annual_report_bundle.filingTypeCode, ...scope }), "the bundle");
     const quote = bundleQuote({
       stateName,
-      situation: input.situation,
+      situation,
       bundlePrice,
       changePrice,
       changeGovernmentFeeCents,
@@ -171,7 +181,7 @@ export async function previewServiceOrder(
 export interface ServiceCheckoutInput {
   businessId: string;
   service: OrderableService;
-  situation: RaSituation;
+  /** Optional: the state record shows the current agent, and an operator checks it before filing. */
   currentAgentName: string | null;
   contactName: string;
   contactPhone: string;
@@ -179,32 +189,31 @@ export interface ServiceCheckoutInput {
   acceptedTerms: boolean;
 }
 
-/** Validate the customer's form (plain errors, shown next to the form). */
+/**
+ * Checkout details. Only what the provider can ask for at short notice (a real contact person,
+ * their phone and a physical address) is required before payment, plus consent to the
+ * renewal terms. Whether this is a switch is derived from the business, never asked.
+ */
 export function validateServiceCheckoutInput(raw: Record<string, unknown>): { ok: true; value: ServiceCheckoutInput } | { ok: false; error: string } {
   const s = (k: string) => (typeof raw[k] === "string" ? (raw[k] as string).trim() : "");
   const service = s("service");
-  const situation = s("situation");
   if (!isOrderableService(service)) return { ok: false, error: "Choose a service." };
-  if (situation !== "switching" && situation !== "new_entity") return { ok: false, error: "Tell us whether you're switching agents." };
   const contactName = s("contactName");
   const contactPhone = s("contactPhone");
   const contactAddress = s("contactAddress");
   if (contactName.length < 2 || contactName.length > 200) return { ok: false, error: "Enter the name of the person we should contact." };
   if (!/^[0-9+() .-]{7,30}$/.test(contactPhone) || (contactPhone.match(/\d/g) ?? []).length < 7) return { ok: false, error: "Enter a phone number we can reach that person on." };
-  if (contactAddress.length < 5 || contactAddress.length > 500) return { ok: false, error: "Enter that person's physical address (not a PO box)." };
-  if (/\bP\.?\s*O\.?\s*Box\b/i.test(contactAddress)) return { ok: false, error: "Enter a physical address, not a PO box." };
+  if (contactAddress.length < 5 || contactAddress.length > 500) return { ok: false, error: "Enter that person's street address (not a PO box)." };
+  if (/\bP\.?\s*O\.?\s*Box\b/i.test(contactAddress)) return { ok: false, error: "Enter a street address, not a PO box." };
   const currentAgentName = s("currentAgentName");
-  if (situation === "switching" && (currentAgentName.length < 2 || currentAgentName.length > 200)) {
-    return { ok: false, error: "Enter your current registered agent's name, as the state lists it." };
-  }
-  if (raw.acceptedTerms !== "on" && raw.acceptedTerms !== true) return { ok: false, error: "Please confirm you've read how renewal and cancellation work." };
+  if (currentAgentName.length > 200) return { ok: false, error: "Shorten your current agent's name." };
+  if (raw.acceptedTerms !== "on" && raw.acceptedTerms !== true) return { ok: false, error: "Please confirm the yearly renewal to continue." };
   return {
     ok: true,
     value: {
       businessId: s("businessId"),
       service,
-      situation,
-      currentAgentName: situation === "switching" ? currentAgentName : null,
+      currentAgentName: currentAgentName.length >= 2 ? currentAgentName : null,
       contactName,
       contactPhone,
       contactAddress,
@@ -319,7 +328,7 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
       pricing_snapshot: {
         kind: "business_services",
         service: input.service,
-        situation: input.situation,
+        situation: preview.situation,
         state_code: business.state_code,
         state_name: preview.stateName,
         entity_type: business.entity_type,
@@ -347,7 +356,7 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
       business_id: business.id,
       state_code: business.state_code,
       plan: input.service,
-      origin: input.situation,
+      origin: preview.situation,
       order_id: orderId,
       renewal_price_cents: quote.renewal?.amountCents ?? 0,
       contact_name: input.contactName,
@@ -367,10 +376,10 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
       kind: "registered_agent",
       state_code: business.state_code,
       wholesale_cost_cents: WHOLESALE.registeredAgentPerYear,
-      details: { situation: input.situation, entity_type: business.entity_type, legal_name: business.legal_name },
+      details: { situation: preview.situation, entity_type: business.entity_type, legal_name: business.legal_name },
     },
   ];
-  if (input.situation === "switching") {
+  if (preview.situation === "switching") {
     providerOrders.push({
       user_id: u.id,
       business_id: business.id,
@@ -434,6 +443,7 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
     idempotencyKey: `service-checkout:${payment.id}`,
   });
   await db.from("payments").update({ provider_session_id: session.sessionId }).eq("id", payment.id);
+  await rememberContact(u.id, input);
 
   await audit({
     actorUserId: u.id,
@@ -441,16 +451,64 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
     action: "service_checkout.started",
     entityType: "order",
     entityId: orderId,
-    after: { service: input.service, situation: input.situation, total_cents: quote.dueTodayCents, mode: provider.mode, state_code: business.state_code },
+    after: { service: input.service, situation: preview.situation, total_cents: quote.dueTodayCents, mode: provider.mode, state_code: business.state_code },
   });
   await trackServer("checkout_started", {
     userId: u.id,
     stateCode: business.state_code,
     filingTypeCode: SERVICES[input.service].filingTypeCode,
     entityType: business.entity_type,
-    properties: { order_id: orderId, service_code: input.service, situation: input.situation, price_variant: STANDARD_PRICE_VARIANT },
+    properties: { order_id: orderId, service_code: input.service, situation: preview.situation, price_variant: STANDARD_PRICE_VARIANT },
   });
   return { url: session.url };
+}
+
+/** Fill the profile's empty name and phone from the contact given, so the next order is prefilled. Never overwrites. */
+async function rememberContact(userId: string, input: Pick<ServiceCheckoutInput, "contactName" | "contactPhone">): Promise<void> {
+  const db = createAdminClient();
+  const { data: profile } = await db.from("profiles").select("full_name, phone").eq("id", userId).maybeSingle();
+  if (!profile) return;
+  const patch: { full_name?: string; phone?: string } = {};
+  if (!profile.full_name?.trim()) patch.full_name = input.contactName;
+  if (!profile.phone?.trim()) patch.phone = input.contactPhone;
+  if (Object.keys(patch).length) await db.from("profiles").update(patch).eq("id", userId);
+}
+
+export interface OrderPrefill {
+  contactName: string;
+  contactPhone: string;
+  contactAddress: string;
+  currentAgentName: string;
+}
+
+/** One line of a stored address ("1 Main St, Suite 2, Austin, TX 78701"). */
+export function addressLine(a: { line1?: string | null; line2?: string | null; city?: string | null; region?: string | null; postal_code?: string | null } | null | undefined): string {
+  if (!a?.line1) return "";
+  const cityLine = [a.city, [a.region, a.postal_code].filter(Boolean).join(" ")].filter((x) => x && String(x).trim()).join(", ");
+  return [a.line1, a.line2, cityLine].filter((x) => x && String(x).trim()).join(", ");
+}
+
+/**
+ * What we already know, so the order form opens filled in: the customer's last contact on any
+ * registered agent order, else their profile; the business's office address; the agent the
+ * state record named, where we saved it. The customer can change any of it.
+ */
+export async function loadOrderPrefill(userId: string, businessId: string): Promise<OrderPrefill> {
+  const db = createAdminClient();
+  const [{ data: profile }, { data: lastSub }, { data: addresses }] = await Promise.all([
+    db.from("profiles").select("full_name, phone").eq("id", userId).maybeSingle(),
+    db.from("ra_subscriptions").select("contact_name, contact_phone, contact_address").eq("user_id", userId).not("contact_name", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    db.from("business_addresses").select("kind, line1, line2, city, region, postal_code, crop_name").eq("business_id", businessId),
+  ]);
+  const byKind = (k: string) => (addresses ?? []).find((a) => a.kind === k);
+  const office = byKind("principal_office") ?? byKind("mailing");
+  const officeLine = addressLine(office);
+  return {
+    contactName: lastSub?.contact_name ?? profile?.full_name ?? "",
+    contactPhone: lastSub?.contact_phone ?? profile?.phone ?? "",
+    contactAddress: officeLine && !/\bP\.?\s*O\.?\s*Box\b/i.test(officeLine) ? officeLine : (lastSub?.contact_address ?? ""),
+    currentAgentName: byKind("registered_office")?.crop_name ?? "",
+  };
 }
 
 /**

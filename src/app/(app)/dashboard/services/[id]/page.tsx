@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, Warning } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, CheckCircle, Circle, FileText, Warning } from "@phosphor-icons/react/dist/ssr";
 import { requireUser } from "@/lib/auth/session";
 import { formatCents } from "@/lib/domain/money";
 import { SERVICE_DOCUMENT_KIND_LABELS } from "@/lib/registered-agent/documents";
 import { PROVIDER_ORDER_STATUS_LABELS } from "@/lib/registered-agent/status";
 import { SERVICES } from "@/lib/services/catalog";
 import { loadServiceDetail } from "@/lib/services/customer-view";
+import { serviceProgress } from "@/lib/services/progress";
 import { reconcileServiceCheckoutReturn } from "@/lib/services/orders";
 import { backLinkClass, DashboardSection, QuietEmpty } from "@/components/dashboard/section";
 import { formatTimestampDate } from "@/components/dashboard/format";
@@ -54,6 +55,7 @@ export default async function ServicePage(props: PageProps<"/dashboard/services/
   if (!s) notFound();
   const service = SERVICE_STATUS[s.serviceStatus];
   const billing = BILLING_STATUS[s.billingStatus];
+  const progress = s.serviceStatus === "pending_appointment" ? serviceProgress(s) : null;
   const canChangeRenewal = (s.billingStatus === "active" || s.billingStatus === "past_due") && s.serviceStatus !== "ended";
 
   return (
@@ -72,17 +74,29 @@ export default async function ServicePage(props: PageProps<"/dashboard/services/
         </div>
       </header>
 
-      {s.billingStatus === "pending" ? (
-        <Notice className="mt-6" tone="info" title="We're confirming your payment">
-          <p>This page updates once your payment is confirmed. If you closed checkout early, nothing was charged.</p>
-        </Notice>
-      ) : s.serviceStatus === "pending_appointment" ? (
-        <Notice className="mt-6" tone="info" title="Your service is being set up">
-          <p>
-            Payment received. Your service is not active yet: we place the order with our provider and confirm the appointment
-            {s.origin === "switching" ? " and the state's change of agent filing" : ""} before we mark it active. If we need anything, we&apos;ll ask here.
-          </p>
-        </Notice>
+      {progress ? (
+        <Card className="mt-6 p-4 sm:p-5">
+          <h2 className="text-[17px] font-semibold text-fg">What happens next</h2>
+          <ol className="mt-3 grid gap-3">
+            {progress.steps.map((step) => (
+              <li key={step.key} className="flex gap-3" aria-current={step.state === "current" ? "step" : undefined}>
+                {step.state === "done" ? (
+                  <CheckCircle size={22} weight="fill" className="mt-0.5 shrink-0 text-accent" aria-hidden />
+                ) : (
+                  <Circle size={22} weight={step.state === "current" ? "bold" : "regular"} className={step.state === "current" ? "mt-0.5 shrink-0 text-accent" : "mt-0.5 shrink-0 text-subtle"} aria-hidden />
+                )}
+                <div className="grid">
+                  <span className={step.state === "upcoming" ? "font-medium text-muted" : "font-semibold text-fg"}>
+                    {step.label}
+                    <span className="sr-only">{step.state === "done" ? " (done)" : step.state === "current" ? " (in progress)" : ""}</span>
+                  </span>
+                  {step.state !== "upcoming" ? <span className="text-sm text-muted">{step.detail}</span> : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-3 text-sm text-muted">Your service counts as active only once the appointment is confirmed. If you closed checkout early, nothing was charged.</p>
+        </Card>
       ) : null}
       {s.billingStatus === "past_due" || s.billingStatus === "unpaid" ? (
         <Notice className="mt-4" tone="danger" title="Your renewal payment didn't go through">

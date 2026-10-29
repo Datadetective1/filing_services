@@ -248,7 +248,9 @@ describe("manual provider", () => {
       contactAddress: "1 Main St, Austin, TX",
       currentAgentName: null,
     });
-    expect(sheet.missing).toEqual(["State entity number", "Contact phone", "Current registered agent"]);
+    // The current agent is read from the state record, so it is never a blocker.
+    expect(sheet.missing).toEqual(["State entity number", "Contact phone"]);
+    expect(sheet.rows.find((r) => r.label === "Current registered agent")?.value).toMatch(/state record/);
     const ra = providerEntrySheet({ ...{ kind: "registered_agent" as const }, legalName: "Acme LLC", stateName: "Texas", entityTypeLabel: "LLC", entityNumber: null, contactName: "Jo", contactPhone: "512 555 0100", contactAddress: "1 Main St", currentAgentName: null });
     expect(ra.missing).toEqual([]);
     expect(ra.rows.map((r) => r.label)).not.toContain("Current registered agent");
@@ -275,15 +277,17 @@ describe("checkout input", () => {
   it("collects the communications contact the provider can ask for", () => {
     expect(validateServiceCheckoutInput({ ...good, contactName: "" }).ok).toBe(false);
     expect(validateServiceCheckoutInput({ ...good, contactPhone: "call me" }).ok).toBe(false);
-    expect(validateServiceCheckoutInput({ ...good, contactAddress: "PO Box 12, Austin TX" })).toEqual({ ok: false, error: "Enter a physical address, not a PO box." });
+    expect(validateServiceCheckoutInput({ ...good, contactAddress: "PO Box 12, Austin TX" })).toEqual({ ok: false, error: "Enter a street address, not a PO box." });
     expect(validateServiceCheckoutInput({ ...good, contactAddress: "P.O. Box 12, Austin TX" }).ok).toBe(false);
   });
 
-  it("needs the current agent only when switching, and the renewal terms always", () => {
-    expect(validateServiceCheckoutInput({ ...good, currentAgentName: "" }).ok).toBe(false);
-    const r = validateServiceCheckoutInput({ ...good, situation: "new_entity", currentAgentName: "" });
+  it("doesn't ask whether this is a switch, makes the current agent optional, and always needs renewal consent", () => {
+    const r = validateServiceCheckoutInput({ ...good, situation: undefined, currentAgentName: "" });
+    expect(r.ok).toBe(true);
     expect(r.ok && r.value.currentAgentName).toBeNull();
-    expect(validateServiceCheckoutInput({ ...good, acceptedTerms: undefined }).ok).toBe(false);
+    expect(r.ok && "situation" in r.value).toBe(false);
+    expect(validateServiceCheckoutInput({ ...good, currentAgentName: "x".repeat(201) }).ok).toBe(false);
+    expect(validateServiceCheckoutInput({ ...good, acceptedTerms: undefined })).toEqual({ ok: false, error: "Please confirm the yearly renewal to continue." });
   });
 
   it("refuses services that aren't orderable", () => {

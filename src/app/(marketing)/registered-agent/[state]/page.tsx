@@ -120,9 +120,9 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
           </div>
           <Card className="grid content-start gap-3 p-5">
             <h2 className="text-lg font-semibold text-fg">Ready to switch?</h2>
-            <p className="text-[15px] text-muted">Add your business, then choose registered agent service from its page.</p>
-            <Link href="/find" className={buttonClasses("primary", "md")}>
-              Find your business
+            <p className="text-[15px] text-muted">Look up your business and we fill in the order for you.</p>
+            <Link href={`/registered-agent/start?state=${j.code}`} prefetch={false} className={buttonClasses("primary", "md")}>
+              Get started
             </Link>
             <Link href="/registered-agent" className={textLinkClasses}>
               How registered agent service works

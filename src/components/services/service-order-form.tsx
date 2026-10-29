@@ -2,14 +2,15 @@
 
 import { useActionState } from "react";
 import type { ActionMessageState } from "@/components/funnel/types";
-import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
+import { Checkbox, Field, Input } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 /**
- * Registered agent order details. The provider can ask for the business's communications
- * contact (a real person, a physical address and a phone number) at short notice, so we
- * collect it before payment rather than chasing it later.
+ * Registered agent order details. Only what the provider can ask for at short notice (a real
+ * contact person, a phone number and a street address) is required before payment, and it
+ * opens filled in from what we already know. The current agent is optional: it is on the
+ * state record and an operator checks it before filing the change.
  */
 export function ServiceOrderForm({
   action,
@@ -17,61 +18,61 @@ export function ServiceOrderForm({
   service,
   situation,
   dueTodayLabel,
+  renewalLabel,
   renewalTerms,
+  prefill,
 }: {
   action: (state: ActionMessageState, formData: FormData) => Promise<ActionMessageState>;
   businessId: string;
   service: string;
   situation: "switching" | "new_entity";
   dueTodayLabel: string;
+  renewalLabel: string | null;
   renewalTerms: string[];
+  prefill: { contactName: string; contactPhone: string; contactAddress: string; currentAgentName: string };
 }) {
   const [state, formAction] = useActionState(action, {});
   return (
     <form action={formAction} className="grid gap-5">
       <input type="hidden" name="businessId" value={businessId} />
       <input type="hidden" name="service" value={service} />
-      <input type="hidden" name="situation" value={situation} />
-      {situation === "switching" ? (
-        <Field
-          label="Your current registered agent"
-          htmlFor="currentAgentName"
-          hint="As the state lists it today. We use it to file the change with the state."
-        >
-          <Input id="currentAgentName" name="currentAgentName" required maxLength={200} autoComplete="off" />
-        </Field>
-      ) : null}
       <fieldset className="grid gap-4">
-        <legend className="mb-1 text-[15px] font-semibold text-fg">Contact for this business</legend>
-        <p className="-mt-2 text-sm text-muted">
-          A real person we and our registered agent provider can reach about this business. We never publish it.
-        </p>
+        <legend className="mb-1 text-[16px] font-semibold text-fg">Who should we contact about legal mail?</legend>
         <Field label="Full name" htmlFor="contactName">
-          <Input id="contactName" name="contactName" required maxLength={200} autoComplete="name" />
+          <Input id="contactName" name="contactName" required maxLength={200} autoComplete="name" defaultValue={prefill.contactName} />
         </Field>
         <Field label="Phone" htmlFor="contactPhone">
-          <Input id="contactPhone" name="contactPhone" type="tel" required maxLength={30} autoComplete="tel" />
+          <Input id="contactPhone" name="contactPhone" type="tel" inputMode="tel" required maxLength={30} autoComplete="tel" defaultValue={prefill.contactPhone} />
         </Field>
-        <Field label="Physical address" htmlFor="contactAddress" hint="Street address, city, state and ZIP. Not a PO box.">
-          <Textarea id="contactAddress" name="contactAddress" required maxLength={500} rows={3} autoComplete="street-address" />
+        <Field label="Street address" htmlFor="contactAddress" hint="Not a PO box. Never published.">
+          <Input id="contactAddress" name="contactAddress" required maxLength={500} autoComplete="street-address" defaultValue={prefill.contactAddress} />
         </Field>
+        {situation === "switching" ? (
+          <Field label="Current registered agent (optional)" htmlFor="currentAgentName" hint="Skip it if you're not sure. We check the state record.">
+            <Input id="currentAgentName" name="currentAgentName" maxLength={200} autoComplete="off" defaultValue={prefill.currentAgentName} />
+          </Field>
+        ) : null}
       </fieldset>
-      <div className="grid gap-2 rounded-[var(--radius-control)] border border-border bg-surface-2 px-4 py-3.5 text-sm text-muted">
+      <label className="flex items-start gap-3 text-[15px] text-fg">
+        <Checkbox name="acceptedTerms" required />
+        <span>
+          {renewalLabel ? `Renews every year at ${renewalLabel} until I turn off renewal.` : "I agree to the terms of this order."}{" "}
+          <span className="text-muted">You can turn it off any time from your dashboard.</span>
+        </span>
+      </label>
+      {/* Kept in view next to the consent, as auto-renewal rules expect. */}
+      <div className="-mt-2 grid gap-1.5 pl-8 text-[13px] leading-5 text-muted">
         {renewalTerms.map((t) => (
           <p key={t}>{t}</p>
         ))}
       </div>
-      <label className="flex items-start gap-3 text-[15px] text-fg">
-        <Checkbox name="acceptedTerms" required />
-        <span>I understand how renewal and cancellation work.</span>
-      </label>
       {state.error ? (
         <Notice tone="danger" role="alert" title="We couldn't continue">
           <p>{state.error}</p>
         </Notice>
       ) : null}
       <SubmitButton size="lg" pendingLabel="Opening secure checkout…" className="w-full">
-        Continue to payment ({dueTodayLabel} today)
+        Pay {dueTodayLabel} securely
       </SubmitButton>
     </form>
   );

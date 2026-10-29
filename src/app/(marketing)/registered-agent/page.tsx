@@ -69,10 +69,10 @@ export default async function RegisteredAgentPage() {
               <Card className="grid gap-2 p-5">
                 <h3 className="text-lg font-semibold text-fg">I already have a business</h3>
                 <p className="text-[15px] text-muted">
-                  Add your business, then choose registered agent service from its page. If another agent is listed today, we file the change with the state: you pay the state&apos;s fee and our filing is included.
+                  Look up your business and we fill in the order for you. We file the change of agent with the state: you pay only the state&apos;s fee.
                 </p>
-                <Link href="/find" className={buttonClasses("primary", "md", "mt-2 w-fit")}>
-                  Find your business
+                <Link href="/registered-agent/start" prefetch={false} className={buttonClasses("primary", "md", "mt-2 w-fit")}>
+                  Get started
                 </Link>
               </Card>
               <Card className="grid gap-2 p-5">

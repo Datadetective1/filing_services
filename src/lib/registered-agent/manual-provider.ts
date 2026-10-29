@@ -62,10 +62,13 @@ export function providerEntrySheet(input: {
     { label: "Communications contact", value: input.contactName ?? "" },
     { label: "Contact phone", value: input.contactPhone ?? "" },
     { label: "Contact physical address", value: input.contactAddress ?? "" },
-    ...(input.kind === "change_of_agent" ? [{ label: "Current registered agent", value: input.currentAgentName ?? "" }] : []),
+    ...(input.kind === "change_of_agent"
+      ? [{ label: "Current registered agent", value: input.currentAgentName ?? "Not given: read it from the state record" }]
+      : []),
   ];
   const required = ["Business legal name", "Jurisdiction", "Communications contact", "Contact phone", "Contact physical address"];
-  if (input.kind === "change_of_agent") required.push("State entity number", "Current registered agent");
+  // The current agent is on the state record, so the customer isn't asked for it.
+  if (input.kind === "change_of_agent") required.push("State entity number");
   const missing = rows.filter((r) => required.includes(r.label) && !r.value.trim()).map((r) => r.label);
   return { rows, missing };
 }
