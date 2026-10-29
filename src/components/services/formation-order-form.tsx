@@ -19,7 +19,6 @@ export function FormationOrderForm({
   totalLabel,
   totalWithAgentLabel,
   agentRenewalLabel,
-  agentTerms,
   askOwnerAddresses,
   prefill,
 }: {
@@ -33,7 +32,6 @@ export function FormationOrderForm({
   /** Null when registered agent service can't be added here. */
   totalWithAgentLabel: string | null;
   agentRenewalLabel: string | null;
-  agentTerms: string[];
   askOwnerAddresses: boolean;
   prefill: { contactName: string; contactPhone: string };
 }) {
@@ -150,49 +148,24 @@ export function FormationOrderForm({
         </Field>
       </fieldset>
       {totalWithAgentLabel ? (
-        <div className="grid gap-2 rounded-[var(--radius-control)] border border-border bg-surface p-4">
-          <label className="flex items-start gap-3 text-[15px] text-fg">
-            <Checkbox
-              name="addRegisteredAgent"
-              checked={withAgent}
-              onChange={(e) => setWithAgent(e.target.checked)}
-            />
-            <span>
-              Add registered agent service
-              {agentRenewalLabel ? ` (${agentRenewalLabel} a year)` : ""}.{" "}
-              <span className="text-muted">
-                Optional. You can name any agent you like instead.
-              </span>
-            </span>
-          </label>
-          {withAgent ? (
-            <>
-              <label className="flex items-start gap-3 text-[15px] text-fg">
-                <Checkbox name="acceptedTerms" required />
-                <span>
-                  Renews every year at {agentRenewalLabel} until I turn off
-                  renewal.{" "}
-                  <span className="text-muted">
-                    You can turn it off any time from your dashboard.
-                  </span>
-                </span>
-              </label>
-              <div className="grid gap-1.5 pl-8 text-[13px] leading-5 text-muted">
-                {agentTerms.map((t) => (
-                  <p key={t}>{t}</p>
-                ))}
-              </div>
-            </>
-          ) : null}
-        </div>
+        <label className="flex items-start gap-3 rounded-[var(--radius-control)] border border-border bg-surface p-4 text-[15px] text-fg">
+          <Checkbox name="addRegisteredAgent" checked={withAgent} onChange={(e) => setWithAgent(e.target.checked)} />
+          <span>
+            Add registered agent service{agentRenewalLabel ? ` (${agentRenewalLabel} a year)` : ""}.{" "}
+            <span className="text-muted">Optional. You can name any agent you like instead.</span>
+          </span>
+        </label>
       ) : null}
-      <p className="text-[13px] leading-5 text-muted">
-        By paying, you agree to the{" "}
-        <Link href="/legal/business-services" target="_blank" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
-          business services terms
-        </Link>
-        . The state decides whether and when to approve your filing, and our liability is limited to the service fees you paid.
-      </p>
+      <label className="flex items-start gap-3 text-[15px] text-fg">
+        <Checkbox name="acceptedTerms" required />
+        <span>
+          I agree to the{" "}
+          <Link href="/legal/business-services" target="_blank" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
+            terms
+          </Link>
+          {withAgent && agentRenewalLabel ? ` and to yearly registered agent renewal at ${agentRenewalLabel} until I turn it off.` : "."}
+        </span>
+      </label>
       {state.error ? (
         <Notice tone="danger" role="alert" title="We couldn't continue">
           <p>{state.error}</p>

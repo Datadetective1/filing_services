@@ -170,7 +170,6 @@ export default async function FormationPage(
                   ? formatCents(preview.addOnQuote.renewal.amountCents)
                   : null
               }
-              agentTerms={preview.addOnQuote?.disclosures ?? []}
               askOwnerAddresses={
                 preview.jurisdiction.extraIntake.beneficialOwners
               }

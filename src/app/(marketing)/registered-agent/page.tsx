@@ -6,7 +6,7 @@ import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { PageIntro, Section, SectionHeading } from "@/components/marketing/section";
 import { buttonClasses, textLinkClasses } from "@/components/ui/button";
-import { Card, Notice } from "@/components/ui/surface";
+import { Card } from "@/components/ui/surface";
 import { formatCents } from "@/lib/domain/money";
 import { raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
 import { businessServicesIndexable, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
@@ -37,7 +37,7 @@ const STEPS = [
   { title: "Order", body: "Tell us about your business and who we should contact. You see every charge, including any state fee, before you pay." },
   { title: "We set it up", body: `We place your order with ${PROVIDER_LEGAL_NAME} and, if you're switching, file the change with your state.` },
   { title: "We confirm it", body: "Your service becomes active once the appointment is confirmed (and the state's record shows the change). We email you when it does." },
-  { title: "We forward what arrives", body: "Legal documents and government notices go to your dashboard and we email you, usually within one business day. We may also call about a legal document." },
+  { title: "We forward what arrives", body: "We scan legal documents and government notices to your secure dashboard and email you, so you can read them from anywhere." },
 ];
 
 export default async function RegisteredAgentPage() {
@@ -112,7 +112,7 @@ export default async function RegisteredAgentPage() {
               ) : null}
             </dl>
             <p className="text-sm text-muted">
-              Renews every year at the same price unless you turn off renewal before the renewal date. Government fees are passed through at cost and shown on their own line.
+              Renews yearly at the same price. Turn off renewal any time. State fees are passed through at cost.
             </p>
           </div>
         </div>
@@ -154,9 +154,6 @@ export default async function RegisteredAgentPage() {
       <Section band>
         <SectionHeading title="Questions" />
         <FaqList items={REGISTERED_AGENT_FAQ} className="mt-8" />
-        <Notice className="mt-8" tone="neutral">
-          <p>Filewell is not a law firm and is not affiliated with any government agency. Nothing here is legal advice.</p>
-        </Notice>
       </Section>
     </>
   );

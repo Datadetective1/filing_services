@@ -210,7 +210,7 @@ export function validateServiceCheckoutInput(raw: Record<string, unknown>): { ok
   if (currentAgentName.length > 200) return { ok: false, error: "Shorten your current agent's name." };
   const beneficialOwners = s("beneficialOwners");
   if (beneficialOwners.length > 2000) return { ok: false, error: "Shorten the owners list." };
-  if (raw.acceptedTerms !== "on" && raw.acceptedTerms !== true) return { ok: false, error: "Please confirm the yearly renewal to continue." };
+  if (raw.acceptedTerms !== "on" && raw.acceptedTerms !== true) return { ok: false, error: "Please agree to the terms to continue." };
   return {
     ok: true,
     value: {

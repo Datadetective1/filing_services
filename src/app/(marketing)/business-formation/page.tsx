@@ -76,7 +76,6 @@ export default async function BusinessFormationPage() {
               </Link>{" "}
               are for businesses that already exist.
             </p>
-            <p>Filewell is not a law firm and doesn&apos;t give legal or tax advice.</p>
           </Prose>
         </div>
       </Section>

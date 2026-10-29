@@ -200,14 +200,10 @@ export function validateFormationInput(
     };
   const addRegisteredAgent =
     raw.addRegisteredAgent === "on" || raw.addRegisteredAgent === true;
-  if (
-    addRegisteredAgent &&
-    raw.acceptedTerms !== "on" &&
-    raw.acceptedTerms !== true
-  )
+  if (raw.acceptedTerms !== "on" && raw.acceptedTerms !== true)
     return {
       ok: false,
-      error: "Please confirm the yearly renewal to continue.",
+      error: "Please agree to the terms to continue.",
     };
   return {
     ok: true,

@@ -22,6 +22,7 @@ const good = {
   owners: "Jo Smith",
   contactName: "Jo Smith",
   contactPhone: "(512) 555-0100",
+  acceptedTerms: "on",
 };
 
 describe("formation order details", () => {
@@ -61,13 +62,13 @@ describe("formation order details", () => {
     expect(r.ok && r.value.management).toBeNull();
   });
 
-  it("the registered agent add-on needs its own renewal consent", () => {
-    expect(
-      validateFormationInput({ ...good, addRegisteredAgent: "on" }),
-    ).toEqual({
-      ok: false,
-      error: "Please confirm the yearly renewal to continue.",
-    });
+  it("every order needs the one terms box, with or without the add-on", () => {
+    for (const extra of [{}, { addRegisteredAgent: "on" }]) {
+      expect(validateFormationInput({ ...good, ...extra, acceptedTerms: undefined })).toEqual({
+        ok: false,
+        error: "Please agree to the terms to continue.",
+      });
+    }
     const r = validateFormationInput({
       ...good,
       addRegisteredAgent: "on",

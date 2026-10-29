@@ -7,10 +7,6 @@ import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
 
-/** The terms that matter most, kept in view next to the consent. */
-const SERVICE_TERMS_SUMMARY =
-  "We send notices to the email and phone on your account, usually within one business day of receiving a document, never guaranteed. Our liability is limited to the service fees you paid in the 12 months before a claim.";
-
 /**
  * Registered agent order details. Only what the provider can ask for at short notice (a real
  * contact person, a phone number and a street address) is required before payment, and it
@@ -40,6 +36,8 @@ export function ServiceOrderForm({
   askOwners?: boolean;
 }) {
   const [state, formAction] = useActionState(action, {});
+  // The renewal is in the consent line; only order-specific notes (the bundle's report fee) stay.
+  const notes = renewalTerms.filter((t) => !t.startsWith("Renews every year"));
   return (
     <form action={formAction} className="grid gap-5">
       <input type="hidden" name="businessId" value={businessId} />
@@ -73,21 +71,20 @@ export function ServiceOrderForm({
       <label className="flex items-start gap-3 text-[15px] text-fg">
         <Checkbox name="acceptedTerms" required />
         <span>
-          {renewalLabel ? `Renews every year at ${renewalLabel} until I turn off renewal.` : null} I agree to the{" "}
+          I agree to the{" "}
           <Link href="/legal/business-services" target="_blank" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
-            business services terms
+            terms
           </Link>
-          .{" "}
-          <span className="text-muted">You can turn off renewal any time from your dashboard.</span>
+          {renewalLabel ? ` and to yearly renewal at ${renewalLabel} until I turn it off.` : "."}
         </span>
       </label>
-      {/* Kept in view next to the consent, as auto-renewal rules expect. */}
-      <div className="-mt-2 grid gap-1.5 pl-8 text-[13px] leading-5 text-muted">
-        {renewalTerms.map((t) => (
-          <p key={t}>{t}</p>
-        ))}
-        <p>{SERVICE_TERMS_SUMMARY}</p>
-      </div>
+      {notes.length > 0 ? (
+        <div className="-mt-2 grid gap-1.5 pl-8 text-[13px] leading-5 text-muted">
+          {notes.map((t) => (
+            <p key={t}>{t}</p>
+          ))}
+        </div>
+      ) : null}
       {state.error ? (
         <Notice tone="danger" role="alert" title="We couldn't continue">
           <p>{state.error}</p>

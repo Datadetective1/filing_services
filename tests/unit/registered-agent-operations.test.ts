@@ -430,7 +430,7 @@ describe("checkout input", () => {
     expect(r.ok && r.value.currentAgentName).toBeNull();
     expect(r.ok && "situation" in r.value).toBe(false);
     expect(validateServiceCheckoutInput({ ...good, currentAgentName: "x".repeat(201) }).ok).toBe(false);
-    expect(validateServiceCheckoutInput({ ...good, acceptedTerms: undefined })).toEqual({ ok: false, error: "Please confirm the yearly renewal to continue." });
+    expect(validateServiceCheckoutInput({ ...good, acceptedTerms: undefined })).toEqual({ ok: false, error: "Please agree to the terms to continue." });
   });
 
   it("refuses services that aren't orderable", () => {

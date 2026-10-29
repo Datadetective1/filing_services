@@ -91,8 +91,9 @@ needed, so the whole journey can be tested end to end without real money.
 
 ## Customer terms
 
-Customers agree to `/legal/business-services` at checkout (the registered agent consent box,
-and "By paying, you agree" on formation). The owner chose to publish these terms as written,
+Customers agree to `/legal/business-services` at checkout with one checkbox and a link (on
+registered agent and formation orders alike). Sales pages, the FAQ and checkout stay short and
+confident; every limit lives in the terms, not on the sales pages. The owner chose to publish these terms as written,
 without attorney review for now, so they carry no draft banner. They never promise more than
 the provider promises Filewell:
 

@@ -102,12 +102,11 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
             <div className="grid gap-2">
               <h3 className="font-semibold text-fg">Sources{checked ? `, checked ${checked}` : ""}</h3>
               <ul className="grid gap-2 text-sm text-muted">
-                {change.sources.map((s) => (
-                  <li key={s.url + s.quote}>
+                {change.sources.filter((s, k, all) => all.findIndex((x) => x.url === s.url) === k).map((s) => (
+                  <li key={s.url}>
                     <a href={s.url} className={textLinkClasses} rel="noopener noreferrer" target="_blank">
                       {s.publisher}
                     </a>
-                    : &ldquo;{s.quote}&rdquo;
                   </li>
                 ))}
               </ul>
