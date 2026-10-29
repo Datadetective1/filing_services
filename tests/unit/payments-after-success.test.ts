@@ -125,7 +125,14 @@ describe("afterPaymentSucceeded", () => {
     expect(notifyStaff).toHaveBeenCalledTimes(1);
     expect(notifyStaff.mock.calls[0][0]).toEqual({
       templateKey: "staff_new_paid_order",
-      vars: { ...CTX.vars, government_fee: "$7.00", service_fee: "$49.00", amount: "$56.00", payment_mode: "live" },
+      vars: {
+        ...CTX.vars,
+        government_fee: "$7.00",
+        service_fee: "$49.00",
+        amount: "$56.00",
+        payment_mode: "live",
+        filing_id: "f1",
+      },
       dedupeKey: "staff_new_paid_order:order-1",
       ctaPath: "/admin/filings/f1",
       filingId: "f1",

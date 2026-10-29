@@ -222,7 +222,8 @@ export async function afterPaymentSucceeded(filingId: string | null, orderId: st
   // Staff alert; notifyStaff never throws, so it cannot break payment processing.
   await notifyStaff({
     templateKey: "staff_new_paid_order",
-    vars: { ...ctx.vars, ...feeVars, payment_mode: order.payment_mode },
+    // filing_id: the same 8-character ID the admin filing page shows, so the email matches the order.
+    vars: { ...ctx.vars, ...feeVars, payment_mode: order.payment_mode, filing_id: ctx.filing.id.slice(0, 8) },
     dedupeKey: `staff_new_paid_order:${orderId}`,
     ctaPath: `/admin/filings/${ctx.filing.id}`,
     filingId: ctx.filing.id,
