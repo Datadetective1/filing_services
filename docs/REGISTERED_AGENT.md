@@ -97,12 +97,12 @@ list of Commercial Registered Office Providers, so the Pennsylvania block is cle
 provider's name goes after "c/o" on the change form.
 
 Formation fees are left out on purpose wherever one fixed fee would be a guess: corporation
-fees that rise with authorized shares or add a tax (CT, DE, IL, KY, MA, MD, MI, MO, NV, NY,
-OH, RI, VA), publication requirements (NY LLCs, NE, AZ, and GA and PA corporations), Nevada's
+fees that rise with authorized shares or add a tax (CT, DE, IL, KY, MA, MD, MI, MO, NM, NV,
+NY, OH, OK, RI, VA), Tennessee LLCs (priced per member), publication requirements (NY LLCs, NE, AZ, and GA and PA corporations), Nevada's
 extra Initial List and business license, and New Jersey, where two official pages disagree.
 Those stay closed for formation; registered agent service there is not affected.
 
-Coverage as of October 29, 2026. Status is for registered agent service: 46 of 52 jurisdictions have every fact verified, so only the nationwide gates remain. Fees are the state's own fee; "not verified" stays closed.
+Coverage as of October 29, 2026. Status is for registered agent service: 51 of 52 jurisdictions have every fact verified, so only the nationwide gates remain. Fees are the state's own fee; "not verified" stays closed.
 
 | Jurisdiction | Change fee LLC | Change fee corp. | Formation LLC | Formation corp. | New business | Status |
 |---|---|---|---|---|---|---|
@@ -110,7 +110,7 @@ Coverage as of October 29, 2026. Status is for registered agent service: 46 of 5
 | Alaska | $25 | $25 | $250 | $250 | verified | Verified, ready |
 | Arizona | $5 | $0 | not verified | not verified | verified | Verified, ready |
 | Arkansas | $0 | $0 | $45 | $45 | verified | Verified, ready |
-| California | $0 | not verified | $70 | $100 | verified | Not verified |
+| California | $0 | $0 | $70 | $100 | verified | Verified, ready |
 | Colorado | $10 | $10 | $50 | $50 | verified | Verified, ready |
 | Connecticut | $50 | $50 | $120 | not verified | verified | Verified, ready |
 | Delaware | $50 | $50 | $110 | not verified | verified | Verified, ready |
@@ -137,21 +137,21 @@ Coverage as of October 29, 2026. Status is for registered agent service: 46 of 5
 | Nevada | $60 | $60 | not verified | not verified | verified | Verified, ready |
 | New Hampshire | $15 | $15 | $100 | $100 | verified | Verified, ready |
 | New Jersey | $25 | $25 | not verified | not verified | verified | Verified, ready |
-| New Mexico | not verified | not verified | not verified | not verified | not verified | Not verified |
+| New Mexico | $20 | $25 | $50 | not verified | verified | Verified, ready |
 | New York | $30 | $30 | not verified | not verified | verified | Verified, ready |
 | North Carolina | $5 | $5 | $125 | $125 | verified | Verified, ready |
 | North Dakota | $10 | $10 | $135 | $100 | verified | Verified, ready |
 | Ohio | $25 | $25 | $99 | not verified | verified | Verified, ready |
-| Oklahoma | not verified | not verified | not verified | not verified | not verified | Not verified |
+| Oklahoma | $25 | $25 | $100 | not verified | verified | Verified, ready |
 | Oregon | $0 | $0 | $100 | $100 | verified | Verified, ready |
 | Pennsylvania | $5 | $5 | $125 | not verified | verified | Verified, ready |
 | Rhode Island | $20 | $20 | $150 | not verified | verified | Verified, ready |
 | South Carolina | $10 | $10 | $110 | $135 | verified | Verified, ready |
 | South Dakota | $10 | $10 | $150 | $150 | verified | Verified, ready |
-| Tennessee | $20 | $20 | not verified | not verified | not verified | Not verified |
+| Tennessee | $20 | $20 | not verified | $100 | verified | Verified, ready |
 | Texas | $15 | $15 | $300 | $300 | verified | Verified, ready |
 | Utah | $17 | $17 | $59 | $59 | verified | Verified, ready |
-| Vermont | not verified | $25 | $155 | $155 | verified | Not verified |
+| Vermont | $35 | $25 | $155 | $155 | verified | Verified, ready |
 | Virginia | $0 | $0 | $100 | not verified | verified | Verified, ready |
 | Washington | $0 | $0 | $180 | $180 | verified | Verified, ready |
 | West Virginia | $15 | $15 | $100 | $100 | verified | Verified, ready |

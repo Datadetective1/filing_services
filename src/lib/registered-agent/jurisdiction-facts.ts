@@ -425,6 +425,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         "Statement of Information: Form LLC-12 (Limited Liability Company) or Form SI-550 (California Stock, Agricultural Cooperative and Foreign Corporations), filed online at bizfile Online or on paper",
       governmentFeeCents: {
         llc: 0,
+        corporation: 0,
       },
       newAgentConsentRequired: null,
       sources: [
@@ -458,6 +459,54 @@ export const STATE_FACTS: Record<string, StateFacts> = {
             "California Secretary of State, Business Programs Division",
           quote:
             "Submission of a statement between applicable filing periods to report a change of information",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?amp=&lawCode=GOV&sectionNum=12186.",
+          publisher:
+            "California Legislative Information, Government Code § 12186 (Secretary of State corporate filing fees)",
+          quote:
+            "(i) Filing changes to any statement of information subject to subdivisions (g) and (h): No fee.",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?amp=&lawCode=GOV&sectionNum=12186.",
+          publisher:
+            "California Legislative Information, Government Code § 12186",
+          quote:
+            "(g) Filing the statement of information for every corporation pursuant to Sections 1502, 6210, 8210, 9660, and 12570 of the Corporations Code and Section 14101.6 of the Financial Code: Twenty dollars ($20).",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=1502.&lawCode=CORP",
+          publisher:
+            "California Legislative Information, Corporations Code § 1502",
+          quote:
+            "In order to change its agent for service of process or the address of the agent, the corporation must file a current statement containing all the information required by subdivisions (a) and (b).",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?sectionNum=1502.&lawCode=CORP",
+          publisher:
+            "California Legislative Information, Corporations Code § 1502",
+          quote:
+            "(i) In addition to any other fees required, a corporation shall pay a five-dollar ($5) disclosure fee when filing the statement required by subdivision (a).",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ca.gov/business-programs/business-entities/forms/corporations-statement-information",
+          publisher:
+            "California Secretary of State, Business Programs Division",
+          quote:
+            "Statement of Information - Domestic and Foreign Stock (Form SI-550) $25.00",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ca.gov/business-programs/business-entities/statements",
+          publisher:
+            "California Secretary of State, Business Programs Division",
+          quote:
+            "any time there are information changes in between statutory filing periods, an updated statement should be filed.",
           checkedAt: "2026-10-29",
         },
       ],
@@ -525,11 +574,13 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       "The 2018 fee schedule names the corporation form SI-200, since replaced by SI-550; the SI-550 form itself lists only the $25.00 fee and does not state the no fee update rule.",
       "A California registered corporate agent (Section 1505 corporation) must give advance approval before an entity designates it as agent, per the LLC-12 form and the SOS FAQ; no consent form is required for an individual agent.",
       "Formation fees are the same online (bizfile Online) and on paper; online is faster (5 days or less vs 10+ days for PDF forms). Paper in person submissions add a $15 special handling fee.",
+      "Resolved: a corporation that changes its agent for service of process with an updated Statement of Information (SI-550) filed between its required filing periods pays no filing fee. Government Code § 12186(i) (amended Stats. 2011, ch. 204, effective January 1, 2012) sets No fee for filing changes to a corporation statement of information. This is the current statute and agrees with the SOS 2018 fee schedule used in the main CA.json.",
+      "The SOS forms page lists SI-550 at $25.00; that is the required periodic filing ($20 under § 12186(g) plus the $5 disclosure fee of Corporations Code § 1502(i)). The $5 disclosure fee is tied to the statement required by subdivision (a) (the periodic filing); no official page loaded says whether bizfile charges it on an off cycle update, so treat the update as $0 by statute and confirm in bizfile if needed.",
+      "Corporations Code § 1502(e) makes the updated statement the only way to change the agent: a filed statement supersedes the agent named in the articles.",
     ],
     unverified: [
       "change.consentRequired: official pages require advance approval only when a registered corporate agent is designated; nothing states consent for an individual agent, so left null.",
-      "change.corpFeeCents: the $0 update fee for corporations rests on the SOS fee schedule dated 06/2018 (which cites the older SI-200 form); the current SI-550 form and forms page do not restate it.",
-      "Corporation change fee rests on a 2018 fee schedule naming an older form.",
+      "change.corpFeeCents: no official page says whether bizfile Online adds the $5 disclosure fee to an update filed between periodic filings; the statute (Gov. Code § 12186(i)) says no fee.",
     ],
     stateBlockers: [],
   },
@@ -3250,9 +3301,123 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     stateBlockers: [],
   },
   NM: {
-    change: null,
-    appointment: null,
-    formation: null,
+    change: {
+      formName:
+        "Statement of change of registered office or registered agent (LLC: statement under NMSA 1978 Section 53-19-5(B); corporation: statement under NMSA 1978 Section 53-11-13); the SOS form title in the online portal was not confirmed",
+      governmentFeeCents: {
+        llc: 2000,
+        corporation: 2500,
+      },
+      newAgentConsentRequired: true,
+      sources: [
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-19-63",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-19-63",
+          quote:
+            "I. for filing a statement of change of address of registered office or registered agent, or both, twenty dollars ($20.00);",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-2-1",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-2-1",
+          quote:
+            "(6) filing a statement of a change of address of the registered office or change of the registered agent, or both, a fee of twenty-five dollars ($25.00);",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#a19",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-19-5",
+          quote:
+            "B. A limited liability company may change its registered office or registered agent by delivering to the commission [secretary of state] a statement setting forth:",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#a19",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-19-5",
+          quote:
+            "(d) the statement of the successor registered agent that the agent accepts the appointment;",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-11-12",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-11-13",
+          quote:
+            "A. A corporation may change its registered office or change its registered agent, or both, upon filing in the office of the public regulation commission [secretary of state] a statement setting forth:",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-11-12",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-11-13",
+          quote:
+            "(b) a statement executed by the successor registered agent acknowledging his acceptance of the appointment by the filing corporation as its registered agent",
+          checkedAt: "2026-10-29",
+        },
+      ],
+    },
+    appointment: {
+      text: "The initial registered agent and registered office are named in the Articles of Organization (LLC) or the Articles of Incorporation (corporation) filed to form the entity.",
+      sources: [
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-19-8",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-19-8 Articles of organization",
+          quote:
+            "B. the street address of the initial registered office and the name of the initial registered agent at that address",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-12-1",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-12-2 Articles of incorporation",
+          quote:
+            "(8) the address of its initial registered office and the name of its initial registered agent at the address;",
+          checkedAt: "2026-10-29",
+        },
+      ],
+    },
+    formation: {
+      governmentFeeCents: {
+        llc: 5000,
+      },
+      sources: [
+        {
+          url: "https://enterprise.sos.nm.gov/forms/business",
+          publisher: "New Mexico Secretary of State, Business Services portal",
+          quote:
+            "Use this form to file an Articles of Organization for a Limited Liability Company. Non-Refundable Application Fee: $50.00",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://enterprise.sos.nm.gov/forms/business",
+          publisher: "New Mexico Secretary of State, Business Services portal",
+          quote:
+            "Use this form to file Articles of Incorporation for a Domestic Profit Corporation. Non-Refundable Application Fee: Based on the number of shares; Minimum $100, Maximum $1,000",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-19-63",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-19-63",
+          quote:
+            "A. for filing the original articles of organization and issuing a certificate of organization, fifty dollars ($50.00);",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-2-1",
+          publisher:
+            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-2-1",
+          quote:
+            "a fee of one dollar ($1.00) for each one thousand shares of the total amount of authorized shares, but in no case less than one hundred dollars ($100) or more than one thousand dollars ($1,000);",
+          checkedAt: "2026-10-29",
+        },
+      ],
+    },
     provider: {
       url: "https://www.registeredagentsinc.com/new-mexico/",
       publisher: "Registered Agents Inc.",
@@ -3261,20 +3426,18 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
-      "The New Mexico Secretary of State's forms and fees live in the BFS enterprise portal (enterprise.sos.nm.gov/forms/business), a JavaScript application whose content could not be read by a fetch. The public sos.nm.gov Business Services, Resources and Statutes pages carry no fee amounts or registered agent change instructions.",
-      "The SOS Resources page links a 'Registered Agent Statement of Acceptance' form (titled 'Statement of Acceptance of Appointment as Registered Agent'), which suggests New Mexico uses a separate agent acceptance, but the page does not say when it is required.",
-      "An older SOS e filing guide (portal.sos.state.nm.us, undated) says the registered agent name cannot be changed through e file and requires a Registered Agent Change request form sent to the SOS; this is from a legacy system and was not used as a fact.",
-      "The SOS Statutes page points fees to NMSA 53-2-1 to 53-2-11 (Fees and Miscellaneous Corporation Law) on nmonesource.com, which could not be loaded.",
-      "Operator action: open enterprise.sos.nm.gov/forms/business in a real browser (no login should be needed for the forms list) to read the LLC Articles of Organization, Articles of Incorporation and Statement of Change forms and their fees.",
+      "Change fees come from statute (LLC $20 under NMSA 53-19-63(I); corporation $25 under NMSA 53-2-1(A)(6)). The SOS forms portal lists only formation forms publicly; the change filing appears to be made after login in the SOS business portal, so its exact title and any portal convenience fee were not seen.",
+      "Consent: both statutes require a statement from the successor registered agent accepting the appointment (LLC: 53-19-5(B)(4)(d); corporation: 53-11-13(A)(5)(b)).",
+      "corpFeeCents for formation is the $100 minimum; the actual fee is $1.00 per 1,000 authorized shares, capped at $1,000.",
+      "NMSA 53-2-1(E) lets the SOS set extra fees by rule for expedited service and card handling; none were read.",
+      "nmonesource.com is published by the New Mexico Compilation Commission, the official publisher of New Mexico law; its text still says commission with the compiler's bracket [secretary of state].",
+      "NMOneSource is a single page app; the URL fragments listed are the section links the site itself uses, and the quoted section is named in each publisher field.",
     ],
     unverified: [
-      "change: SOS forms portal is a JavaScript app that could not be read; no official page loaded showed the change form name, fee or consent rule",
-      "appointment: no loadable official page stated where the registered agent is named at formation",
-      "formation: no loadable official page stated the LLC or corporation formation fee; third party sites (not usable) cite $50 for an LLC",
+      "change.formName: the SOS portal's own name for the change filing could not be seen without logging in",
+      "Corporation formation fee rises with authorized shares ($100 minimum, $1,000 maximum).",
     ],
-    stateBlockers: [
-      "New Mexico's filing office forms could not be read; nothing is verified.",
-    ],
+    stateBlockers: [],
   },
   NV: {
     change: {
@@ -3564,9 +3727,106 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     stateBlockers: [],
   },
   OK: {
-    change: null,
-    appointment: null,
-    formation: null,
+    change: {
+      formName:
+        "Change or Designation of Registered Agent and/or Registered Office (Oklahoma Corporation), SOS Form 0056; for an Oklahoma LLC: Change or Designation of Registered Agent and/or Registered Office and/or Principal Office (Oklahoma LLC), SOS Form 0075. Both can be filed online or on the PDF form.",
+      governmentFeeCents: {
+        llc: 2500,
+        corporation: 2500,
+      },
+      newAgentConsentRequired: null,
+      sources: [
+        {
+          url: "https://www.sos.ok.gov/business/forms.aspx",
+          publisher: "Oklahoma Secretary of State, Business Services",
+          quote:
+            "Change or Designation of Registered Agent and/or Registered Office $25 Online PDF",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ok.gov/business/forms.aspx",
+          publisher: "Oklahoma Secretary of State, Business Services",
+          quote:
+            "Change or Designation of Registered Agent and/or Registered Office and/or Principal Office $25 Online PDF",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ok.gov/forms/fm0056.pdf",
+          publisher: "Oklahoma Secretary of State",
+          quote:
+            "CHANGE OR DESIGNATION OF REGISTERED AGENT AND/OR REGISTERED OFFICE (OKLAHOMA CORPORATION) Filing Fee: $25.00",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ok.gov/forms/Fm0075.PDF",
+          publisher: "Oklahoma Secretary of State",
+          quote:
+            "I hereby execute the following articles for the purpose of changing the registered agent and/or registered office and/or principal office of an Oklahoma limited liability company pursuant to the provisions of Title 18, Section 2010B",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ok.gov/business/fees.aspx",
+          publisher: "Oklahoma Secretary of State, Filing Fees",
+          quote: "Change of Registered Agent and/or Office 25.00",
+          checkedAt: "2026-10-29",
+        },
+      ],
+    },
+    appointment: {
+      text: "The registered agent and registered office are named in the Articles of Organization (LLC) or the Certificate of Incorporation (corporation) filed to form the entity.",
+      sources: [
+        {
+          url: "https://www.sos.ok.gov/forms/Fm0074.PDF",
+          publisher:
+            "Oklahoma Secretary of State (Procedures for Organizing an Oklahoma Limited Liability Company)",
+          quote:
+            "REGISTERED AGENT AND REGISTERED OFFICE - The name and street address of the registered agent in the state of Oklahoma.",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ok.gov/forms/Fm0001.PDF",
+          publisher:
+            "Oklahoma Secretary of State (Procedures for Organizing an Oklahoma Profit Corporation)",
+          quote:
+            "REGISTERED AGENT AND REGISTERED OFFICE - The name and street address of the registered agent in the state of Oklahoma.",
+          checkedAt: "2026-10-29",
+        },
+      ],
+    },
+    formation: {
+      governmentFeeCents: {
+        llc: 10000,
+      },
+      sources: [
+        {
+          url: "https://www.sos.ok.gov/business/fees.aspx",
+          publisher: "Oklahoma Secretary of State, Filing Fees",
+          quote: "Articles of Organization - Oklahoma LLC 18 OS 2055 100.00",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ok.gov/business/fees.aspx",
+          publisher: "Oklahoma Secretary of State, Filing Fees",
+          quote:
+            "Certificate of Incorporation - Oklahoma For Profit Corporation 18 OS 1142 Min. 50.00(1/10 of 1%)",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ok.gov/forms/Fm0074.PDF",
+          publisher: "Oklahoma Secretary of State",
+          quote:
+            "Pay to the Secretary of State a filing fee of One Hundred Dollars ($100.00). (Title 18, Section 2055)",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.sos.ok.gov/forms/Fm0001.PDF",
+          publisher: "Oklahoma Secretary of State",
+          quote:
+            "If the TAC is $50,000.00 or less, the filing fee is $50.00. If the TAC is greater than $50,000.00, the fee is $1.00 per $1,000.00.",
+          checkedAt: "2026-10-29",
+        },
+      ],
+    },
     provider: {
       url: "https://www.registeredagentsinc.com/oklahoma/",
       publisher: "Registered Agents Inc.",
@@ -3575,18 +3835,17 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
-      "Every official Oklahoma source tried refused automated fetching (robots disallowed): sos.ok.gov (fees page https://www.sos.ok.gov/business/fees.aspx and all forms PDFs), oscn.net (Oklahoma Statutes, Title 18), and oklegislature.gov (statute files and bills). The proxy also blocks direct downloads. A person must open these pages in a browser to confirm.",
-      "Pages to check by hand: fee schedule https://www.sos.ok.gov/business/fees.aspx ; change form https://www.sos.ok.gov/forms/fm0056.pdf (search result title: '(SOS FORM 0056-10/23) CHANGE OR DESIGNATION OF REGISTERED AGENT AND/OR'); LLC formation procedures https://www.sos.ok.gov/forms/fm0074.pdf ; forms index https://www.sos.ok.gov/business/forms.aspx",
-      "Search result titles also show SOS Form 0076 'CHANGE OF REGISTERED OFFICE AND/OR PRINCIPAL OFFICE' and Form 0022 'CHANGE OF NAME OF REGISTERED AGENT AND/OR' (agent's own name or address change). These titles were not loaded and are not verified facts.",
+      "The corporation formation fee is a minimum: $50.00 or one tenth of one percent of total authorized capital, whichever is greater; no par value stock is valued at $50.00 per share for fee purposes. corpFeeCents is that $50 minimum.",
+      "Online and in person card payments carry a four percent (4%) service charge (Title 18, Section 1142), and in person filings add a $25.00 same day fee, per the SOS procedures PDFs. The government filing fee itself is the same online and on paper.",
+      "Form 0056 is for Oklahoma corporations (cites Title 18, Section 1023); LLCs use Form 0075 (cites Title 18, Section 2010B). Both list $25.",
+      "Neither change form has a signature or consent line for the new agent; Form 0056 must be signed by an authorized officer and Form 0075 by a manager. No official page loaded states a consent rule, so consentRequired is null.",
+      "Earlier fetch tools were refused by sos.ok.gov; these pages were read in a browser on 2026-10-29.",
     ],
     unverified: [
-      "change: sos.ok.gov fee page and Form 0056 blocked to the fetch tool (robots disallowed); statutes on oscn.net and oklegislature.gov also blocked",
-      "appointment: Articles of Organization and Certificate of Incorporation forms on sos.ok.gov blocked (robots disallowed)",
-      "formation: sos.ok.gov fee page blocked (robots disallowed); a state library archive copy (digitalprairie.ok.gov) states a $100 LLC filing fee but shows no publisher or date, so it was not used",
+      "change.consentRequired: the forms carry no agent consent section and no official text addressing consent was found",
+      "Corporation formation fee is a $50 minimum that rises with authorized capital.",
     ],
-    stateBlockers: [
-      "Oklahoma's filing office site could not be read; nothing is verified.",
-    ],
+    stateBlockers: [],
   },
   OR: {
     change: {
@@ -3867,6 +4126,61 @@ export const STATE_FACTS: Record<string, StateFacts> = {
             "The written consent of the new resident agent shall appear in this certificate or attached hereto.",
           checkedAt: "2026-10-29",
         },
+        {
+          url: "https://bvirtualogp.pr.gov/ogp/Bvirtual/leyesreferencia/PDF/Corporaciones%20Privadas/164-2009/164-2009.pdf#page=159",
+          publisher:
+            "Oficina de Gerencia y Presupuesto de Puerto Rico, Ley General de Corporaciones (Ley 164-2009, según enmendada), Artículo 19.04",
+          quote:
+            "Toda compañía de responsabilidad limitada tendrá y mantendrá en Puerto Rico una oficina registrada y un agente residente conforme a lo dispuesto en el Capítulo III de esta Ley.",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://bvirtualogp.pr.gov/ogp/Bvirtual/leyesreferencia/PDF/Corporaciones%20Privadas/164-2009/164-2009.pdf",
+          publisher:
+            "Oficina de Gerencia y Presupuesto de Puerto Rico, Ley General de Corporaciones (Ley 164-2009), Artículo 3.03",
+          quote:
+            "sustituir al agente residente por otra persona natural o jurídica.",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://bvirtualogp.pr.gov/ogp/Bvirtual/leyesreferencia/PDF/Corporaciones%20Privadas/164-2009/164-2009.pdf",
+          publisher:
+            "Oficina de Gerencia y Presupuesto de Puerto Rico, Ley General de Corporaciones (Ley 164-2009), Artículo 3.03",
+          quote:
+            "una copia certificada indicadora del cambio deberá radicarse en las oficinas del Departamento de Estado.",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://bvirtualogp.pr.gov/ogp/Bvirtual/leyesreferencia/PDF/Corporaciones%20Privadas/164-2009/164-2009.pdf#page=162",
+          publisher:
+            "Oficina de Gerencia y Presupuesto de Puerto Rico, Ley General de Corporaciones (Ley 164-2009), Artículo 19.12",
+          quote:
+            "al igual que su enmienda, cancelación, reafirmación y el restablecimiento de la personalidad jurídica de una compañía de responsabilidad limitada se hará conforme a los términos y requisitos establecidos en esta Ley para las corporaciones.",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.statedepartment.pr.gov/forms-for-corporation",
+          publisher:
+            "Puerto Rico Department of State (Departamento de Estado), Registry of Corporations",
+          quote:
+            "CF - $60.00 SF - $4.00 Change of Resident Agent of a Corporation",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://www.statedepartment.pr.gov/forms-for-corporation",
+          publisher:
+            "Puerto Rico Department of State (Departamento de Estado), Registry of Corporations",
+          quote:
+            "$80.00 Certificate of Amendment of the Certificate of Organization",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://docs.pr.gov/files/Estado/Corporaciones/Formularios/43-CORPLLC11.pdf",
+          publisher: "Puerto Rico Department of State (Departamento de Estado)",
+          quote:
+            "CERTIFICADO DE ENMIENDA AL CERTIFICADO DE ORGANIZACION DE UNA COMPAÑÍA DE RESPONSABILIDAD LIMITADA",
+          checkedAt: "2026-10-29",
+        },
       ],
     },
     appointment: {
@@ -3941,6 +4255,8 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       "Puerto Rico uses the term resident agent (agente residente) and designated office (oficina designada).",
       "The Department of State forms page lists no LLC specific change of resident agent form; the corporation change form 22-CORPOTR05 is labeled for corporations only.",
       "Filings are made through the online Registry of Corporations (prcorpfiling.f1hst.com); online fees were not separately listed on the pages checked.",
+      "Not resolved for LLCs. Article 19.04 sends LLC resident agent matters to Chapter III (the corporation rules), and Article 3.03 lets the entity replace its resident agent and file a certified copy of the change with the Department of State. That points to the change of resident agent certificate (22-CORPOTR05, $60.00) rather than an amendment, but the Department's forms page files that form under corporations only and its LLC table has no change of agent row.",
+      "The other possible route for an LLC is the Certificate of Amendment of the Certificate of Organization (43-CORPLLC11), $80.00 (revenue codes R-4391 $50.00 and R-4392 $30.00), since the certificate of organization names the resident agent. The amendment form itself does not mention the resident agent and cites no article.",
     ],
     unverified: [
       "change.llcFeeCents: no LLC change of resident agent form or fee was found on the Department of State forms page; the LLC may need a Certificate of Amendment of the Certificate of Organization ($80.00) or an online registry update, but no official page confirming which was loaded.",
@@ -4305,13 +4621,45 @@ export const STATE_FACTS: Record<string, StateFacts> = {
   TN: {
     change: {
       formName:
-        "Registered Agent Change (filed online through Tennessee Business Services Online, or printed and mailed); paper form believed to be SS-4534 Change of Registered Agent/Office (not loaded)",
+        "Statement of Change of Registered Agent by Entity (SS-4534), filed online through TNCaB (tncab.tnsos.gov) or on the paper form",
       governmentFeeCents: {
         llc: 2000,
         corporation: 2000,
       },
       newAgentConsentRequired: null,
       sources: [
+        {
+          url: "https://sos.tn.gov/businesses/services/business-forms-fees",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations (Business Forms & Fees)",
+          quote:
+            "Statement of Change of Registered Agent/Office by Entity or Agent (PDF, 270.5KB) SS-4534 $20",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4534.pdf?VersionId=ujACRQyLNNVtzYsotVRBA5AIWTyr4k2C",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+          quote:
+            "A business entity may change its Registered Agent by filing a Statement of Change of Registered Agent.",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4534.pdf?VersionId=ujACRQyLNNVtzYsotVRBA5AIWTyr4k2C",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+          quote:
+            "Pursuant to the provisions of T.C.A. § 48-15-102 or § 48-25-108 of the Tennessee Business Corporation Act, T.C.A. § 48-55-102 or § 48-65-108 of the Tennessee Nonprofit Corporation Act, T.C.A. § 48-208-102 of the Tennessee Limited Liability Company Act, T.C.A. § 48-249-110 of the Tennessee Revised Limited Liability Company Act",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4534.pdf?VersionId=ujACRQyLNNVtzYsotVRBA5AIWTyr4k2C",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+          quote:
+            "The filing fee for Statement of Change of Registered Agent by Entity is $20.",
+          checkedAt: "2026-10-29",
+        },
         {
           url: "https://tnbear.tn.gov/Ecommerce/RAChangeInstr.aspx",
           publisher:
@@ -4328,8 +4676,64 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         },
       ],
     },
-    appointment: null,
-    formation: null,
+    appointment: {
+      text: "The initial registered agent and office are named in the Articles of Organization (LLC, Form SS-4270) or the Charter (for profit corporation, Form SS-4417) filed to form the entity.",
+      sources: [
+        {
+          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4270%20LLC_0.pdf?VersionId=SHQcvmBKLxqwiWe3Ficu3Iv3gOHscm6X",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+          quote:
+            "17. The name, complete address, and email of the initial registered agent and office located in the state of Tennessee is:",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4417%20Charter%20For-Profit_0.pdf?VersionId=7EoQqZ9wQioAfzxr30fLXGI1MD2HhuUh",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+          quote:
+            "16. The name, complete address, and email address of the initial registered agent and office located in the state of Tennessee is:",
+          checkedAt: "2026-10-29",
+        },
+      ],
+    },
+    formation: {
+      governmentFeeCents: {
+        corporation: 10000,
+      },
+      sources: [
+        {
+          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4270%20LLC_0.pdf?VersionId=SHQcvmBKLxqwiWe3Ficu3Iv3gOHscm6X",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+          quote:
+            "Filing Fee: $50.00 per member (minimum fee = $300/maximum fee = $3,000)",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://sos.tn.gov/businesses/services/business-forms-fees",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations (Business Forms & Fees)",
+          quote:
+            "Articles of Organization Limited Liability Company (PDF, 294.3KB) SS-4270 $300*",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4417%20Charter%20For-Profit_0.pdf?VersionId=7EoQqZ9wQioAfzxr30fLXGI1MD2HhuUh",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+          quote: "Filing Fee: $100.00",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://sos.tn.gov/businesses/services/business-forms-fees",
+          publisher:
+            "Tennessee Secretary of State, Division of Business and Charitable Organizations (Business Forms & Fees)",
+          quote: "Charter For-Profit Corporation (PDF, 285.2KB) SS-4417 $100",
+          checkedAt: "2026-10-29",
+        },
+      ],
+    },
     provider: {
       url: "https://www.registeredagentsinc.com/tennessee/",
       publisher: "Registered Agents Inc.",
@@ -4338,22 +4742,19 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
+      "Conflict resolved: an existing LLC or corporation changes its registered agent with the Statement of Change of Registered Agent by Entity (SS-4534, $20), not Articles of Amendment. The SS-4534 form cites the change of agent sections of both the Business Corporation Act (48-15-102) and the Revised LLC Act (48-249-110), and its instructions say a business entity may change its agent by filing it. The Business Forms & Fees page lists SS-4534 at $20 under Domestic Corporations and under Domestic LLCs. The sos.tn.gov FAQ line quoted in the main TN.json (agent change requires Articles of Amendment) was not re-read here and does not match the current forms.",
+      "LLC formation fee is $50 per member, minimum $300 and maximum $3,000; llcFeeCents is the $300 minimum (1 to 6 members).",
+      "Card and e-check payments online or in person add a convenience fee; mailing the paper form with a check avoids it (SS-4534 instructions). Online filing has moved to TNCaB (tncab.tnsos.gov) per the SS-4534 instructions.",
+      "The SS-4534 asks for the new agent's name, address and business email, and the filer acknowledges the registered office and agent's business office will be identical; it has no consent or signature line for the new agent.",
       "The online Registered Agent Change page shows a $20 filing fee plus a possible online service fee; its payment step shows $22.25, so the online card or eCheck total is about $2.25 more than the $20 statutory fee. Mailing the printed form avoids the service fee.",
       "The online Registered Agent Change page says a registered agent or a business representative may file for any business entity it is registered for; it does not distinguish LLCs and corporations, so the $20 fee is applied to both.",
-      "Tennessee's business FAQ separately says 'A change in Registered Agent or principal address requires filing Articles of Amendment and paying the statutory filing fee.' This conflicts with the dedicated Registered Agent Change filing; confirm with Business Services (615) 741-2286.",
       "A registered agent change can also be made on the annual report: 'an additional $20 is required if any change is made concerning the registered agent/registered office' (sos.tn.gov FAQ).",
-      "sos.tn.gov's Business Forms & Fees page and every PDF on sos-prod.tnsosgovfiles.com (SS-4270 Articles of Organization, SS-4417 Charter, SS-4534) returned an error to the fetch tool, so formation fees and form text could not be read.",
     ],
     unverified: [
-      "change.consentRequired: the Registered Agent Change page does not address agent consent and the SS-4534 form could not be loaded",
-      "change.formName: SS-4534 form number comes only from a search result title; the PDF could not be loaded",
-      "appointment: SS-4270 (LLC Articles of Organization) and SS-4417 (Charter, For-Profit Corporation) PDFs could not be loaded (site error)",
-      "formation.llcFeeCents: sos.tn.gov Business Forms & Fees page and SS-4270 PDF could not be loaded (site error)",
-      "formation.corpFeeCents: sos.tn.gov Business Forms & Fees page and SS-4417 PDF could not be loaded (site error)",
+      "change.consentRequired: SS-4534 neither requires nor mentions the new agent's consent; the statute text (T.C.A. 48-15-102, 48-249-110) was not read",
+      "LLC formation fee is $50 per member ($300 minimum, $3,000 maximum).",
     ],
-    stateBlockers: [
-      "Tennessee's FAQ says an agent change needs Articles of Amendment, which conflicts with its Registered Agent Change filing. Confirm with the state before selling switches.",
-    ],
+    stateBlockers: [],
   },
   TX: {
     change: {
@@ -4691,6 +5092,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     change: {
       formName: "Statement of Change",
       governmentFeeCents: {
+        llc: 3500,
         corporation: 2500,
       },
       newAgentConsentRequired: true,
@@ -4721,6 +5123,30 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           publisher: "Vermont General Assembly (Vermont Statutes Online)",
           quote:
             "(b) Attestation. A person who designates an agent for service of process attests that the agent consents to the appointment.",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://legislature.vermont.gov/statutes/section/11/025/04012",
+          publisher:
+            "Vermont General Assembly (Vermont Statutes Online), 11 V.S.A. § 4012 (LLC fees)",
+          quote:
+            "$35.00 and not to exceed $1,000.00 per filer per calendar year",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://legislature.vermont.gov/statutes/section/11/025/04008",
+          publisher:
+            "Vermont General Assembly (Vermont Statutes Online), 11 V.S.A. § 4008",
+          quote:
+            "§ 4008. Change of designated office or agent for service of process",
+          checkedAt: "2026-10-29",
+        },
+        {
+          url: "https://legislature.vermont.gov/statutes/section/11/015/01625",
+          publisher:
+            "Vermont General Assembly (Vermont Statutes Online), 11 V.S.A. § 1625",
+          quote:
+            "Statement of change of designated agent or designated office, or both, for a person registered under this subchapter: $25.00, not to exceed $1,000.00 per filer per calendar year.",
           checkedAt: "2026-10-29",
         },
       ],
@@ -4783,10 +5209,13 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       "Consent is by attestation: under 11 V.S.A. § 1655(b) the person designating the agent attests that the agent consents; no separate signed consent document was found.",
       "The SOS fee table lists $35.00 for an LLC Statement of Change and $25.00 for a business corporation Statement of Change. 11 V.S.A. § 1625(c) separately lists $25.00 for a statement of change of designated agent for persons registered under that subchapter; the SOS fee table was used for the LLC fee.",
       "Vermont fees were revised in 2025; the SOS fee table showed $155.00 for both LLC and corporation formation on 2026-10-29.",
+      "Conflict resolved: the LLC change of agent fee is $35. 11 V.S.A. § 1625 applies only to persons registered under Title 11, chapter 15, subchapter 1 (assumed business names, partnerships and similar registrants), so its $25 statement of change fee does not apply to LLCs. LLC fees are set by 11 V.S.A. § 4012, whose item (a)(9) for a change of designated agent or office is $35.00 (capped at $1,000 per filer per calendar year), and the SOS fee table lists the LLC Statement of Change at $35.00 citing § 4012.",
+      "The business corporation Statement of Change is $25.00 per the SOS fee table (11A V.S.A. § 1.22); the 11A § 1.22 statute page loaded without its text, so the corporation fee rests on the SOS fee table alone.",
+      "11 V.S.A. § 4012 history shows its latest amendment as 2023, No. 77, § 37, eff. June 20, 2023; § 1625 was last amended 2025, No. 10, § 4, eff. July 1, 2025. The SOS fee page shows no date.",
     ],
     unverified: [
       "corporation appointment quote: the 11A V.S.A. § 2.02(a)(4) text was read through a summarizing fetch tool that could only quote part of the clause; confirm exact wording on the statute page.",
-      "The fee schedule ($35) and the statute ($25) disagree on the LLC change fee.",
+      "change.corpFeeCents: 11A V.S.A. § 1.22 page loaded without statute text; $25 rests on the SOS fee table",
     ],
     stateBlockers: [],
   },
