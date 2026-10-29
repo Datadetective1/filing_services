@@ -96,7 +96,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Colorado",
     slug: "colorado",
     timezone: "America/Denver",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Colorado Secretary of State, Business and Licensing Division (Business Organizations)",
@@ -160,7 +160,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Florida",
     slug: "florida",
     timezone: "America/New_York",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Florida Department of State, Division of Corporations (Sunbiz)",

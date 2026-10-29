@@ -9,7 +9,7 @@ import type { SessionUser } from "@/lib/auth/session";
 import { stableStringify } from "@/lib/compliance/hash";
 import { findRule, getJurisdiction, isSellableForBusiness } from "@/lib/compliance/registry";
 import { openQuestionsFor } from "@/lib/compliance/open-questions";
-import type { ComplianceRuleDef } from "@/lib/compliance/types";
+import type { ComplianceRuleDef, StateAuthorization } from "@/lib/compliance/types";
 import { todayInTimeZone } from "@/lib/domain/dates";
 import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen, type FilingPeriod } from "@/lib/domain/deadlines";
 import { formatLongDate } from "@/lib/domain/dates";
@@ -32,6 +32,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash, userAgent } from "@/lib/security/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { principalSignerProblem } from "./principal-signature";
 import { buildFilingPacket, packetSha256, registeredAgentConsentRequired, signedCurrentCertification, type PacketRow, type RegisteredAgentConsent } from "./packet";
 import { getCurrentRuleVersion, listActivePricesAdmin } from "./rules-db";
 
@@ -69,6 +70,11 @@ export interface StateAuthorizationTextInput {
   filingAgent: string;
   /** The state's own certification wording, verbatim; null when the state publishes none in text. */
   certificationText: string | null;
+  /**
+   * The state requires a principal of the business to sign (Florida): the signer gives the filing
+   * agent permission to type their own name and title. The state's warnings, verbatim.
+   */
+  principalSignature?: { warnings: string[] };
 }
 
 /** Suffix on terms_version when the state-specific paragraph is part of the signed text. */
@@ -85,7 +91,12 @@ export function authorizationText(input: {
   const who = input.state && !input.state.filingAgent.startsWith(input.brand) ? `${input.state.filingAgent}, doing business as ${input.brand},` : input.state?.filingAgent ?? input.brand;
   const statePart = input.state
     ? `I have reviewed every item of the ${input.stateName} filing information shown above, in the order the state's form asks for it, and I confirm that each item is true, correct and complete. ` +
-      (input.state.certificationText
+      (input.state.principalSignature
+        ? `I am one of the business's principals listed in this ${input.filingName}, and the name and title I sign with below are my own. I give ${input.state.filingAgent} permission to type my name and title, exactly as I sign below, as my electronic signature on this ${input.filingName} only. ` +
+          (input.state.principalSignature.warnings.length
+            ? `I understand that the state says: ${input.state.principalSignature.warnings.map((w) => `“${w}”`).join(" ")} `
+            : "")
+        : input.state.certificationText
         ? `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the state's certification: “${input.state.certificationText}” `
         : `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the attestations the state's form requires. `) +
       `If any of this information changes, I will review and sign again before it is filed. `
@@ -104,6 +115,15 @@ export function stateAuthorizationFor(stateCode: string, business: { entity_type
   const rule = findRule(stateCode, business.entity_type as EntityType, "annual_report", Boolean(business.is_foreign));
   if (!rule?.stateAuthorization || !rule.operatorRunbook) return null;
   return { rule, auth: rule.stateAuthorization, runbook: rule.operatorRunbook };
+}
+
+/** The state-specific paragraph's inputs for the signed authorization text. */
+export function stateAuthorizationTextInput(auth: StateAuthorization, filingAgent: string): StateAuthorizationTextInput {
+  return {
+    filingAgent,
+    certificationText: auth.certificationText,
+    principalSignature: auth.principalSignature ? { warnings: auth.principalSignature.warnings.map((w) => w.text) } : undefined,
+  };
 }
 
 /** The filing agent named in a state-specific authorization: the configured legal operator. */
@@ -531,6 +551,8 @@ export async function authorizeFiling(
     agentConsent?: { mode: "signer_is_agent" | "agent_to_sign" | ""; consent: boolean };
     /** Legal operator named as the filing agent (site.legalEntity) and whether it is configured. */
     legalEntity?: { name: string; configured: boolean };
+    /** Principal-signature states (Florida): the signer lets the agent type their name and title. */
+    permitTypedSignature?: boolean;
   },
 ) {
   const loaded = await getCustomerFiling(filingId);
@@ -563,6 +585,11 @@ export async function authorizeFiling(
       throw new FilingError("We can't accept this authorization yet. Nothing has been charged, and your details are saved.", "unavailable");
     }
     if (!input.certifyFacts) throw new FilingError("Confirm that you reviewed every item and that it is true and correct.", "invalid");
+    if (stateAuth.auth.principalSignature) {
+      if (!input.permitTypedSignature) throw new FilingError("Give permission for us to type your name and title as your signature.", "invalid");
+      const problem = principalSignerProblem(stateAuth.auth, snapshot, { name: signerName, title: signerTitle });
+      if (problem) throw new FilingError(problem, "invalid");
+    }
     packet = buildFilingPacket(stateAuth.runbook, loaded.schema, snapshot);
     if (registeredAgentConsentRequired(stateAuth.auth, snapshot)) {
       const ra = stateAuth.auth.registeredAgentConsent!;
@@ -584,7 +611,7 @@ export async function authorizeFiling(
     stateName,
     filingName,
     brand: input.brand,
-    state: stateAuth ? { filingAgent: agent, certificationText: stateAuth.auth.certificationText } : undefined,
+    state: stateAuth ? stateAuthorizationTextInput(stateAuth.auth, agent) : undefined,
   });
 
   const db = createAdminClient();

@@ -8,6 +8,10 @@ export function dueRuleText(rule: DueRule): string {
     case "fixed_annual":
       return `${formatMonthDay(rule.month, rule.day)} each year`;
     case "anniversary_month_end":
+      if (rule.monthsAfter) {
+        const months = rule.monthsAfter === 1 ? "month" : `${rule.monthsAfter === 2 ? "second" : rule.monthsAfter} month`;
+        return `End of the ${months} after your formation anniversary month each year`;
+      }
       return rule.intervalYears === 2
         ? "End of your formation anniversary month, every two years"
         : "End of your formation anniversary month each year";

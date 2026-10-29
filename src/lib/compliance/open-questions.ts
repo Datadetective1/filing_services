@@ -51,6 +51,20 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
       "How a filing service files for a customer: whether Filing Authority / designated-user setup or other customer authorization is required, and which signer title an authorized agent selects on the signature page.",
     answeredBy: "Utah Division of Corporations, and the owner inside the UtahID portal",
   },
+  {
+    key: "fl_signer_permission",
+    stateCode: "FL",
+    summary:
+      "Florida's report must be signed by one of the business's principals typing their name, and Sunbiz warns that typing someone's name without their permission is forgery. Filewell's design has the principal sign Filewell's authorization and give explicit permission for Filewell's operator to type their name and title on that one report. Until counsel confirms this permission is enough under s.15.16 F.S. and Sunbiz's instructions, Filewell does not sell or file Florida reports.",
+    answeredBy: "Counsel, and the Florida Division of Corporations if counsel asks",
+  },
+  {
+    key: "co_delivery_affirmation",
+    stateCode: "CO",
+    summary:
+      "Colorado's Periodic Report names the individual causing it to be delivered for filing, and that individual is responsible for complying with the applicable statutes. Until counsel confirms what that delivery affirms under C.R.S. 7-90-301 and that Filewell's operator may cause delivery as the customer's authorized filing agent, Filewell does not sell or file Colorado reports.",
+    answeredBy: "Counsel",
+  },
 ];
 
 export function openQuestionsFor(stateCode: string, entityType?: string | null): OpenQuestion[] {

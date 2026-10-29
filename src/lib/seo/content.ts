@@ -42,6 +42,9 @@ export function stateFeeSentence(rule: Pick<ComplianceRuleDef, "stateFeeCents" |
 /** "September 30" for fixed annual deadlines, else the generic due text. */
 export function dueDayText(rule: ComplianceRuleDef): string {
   if (rule.dueRule.kind === "fixed_annual") return formatMonthDay(rule.dueRule.month, rule.dueRule.day);
+  if (rule.dueRule.kind === "anniversary_month_end" && rule.dueRule.monthsAfter) {
+    return dueRuleText(rule.dueRule).replace(/^End of/, "the last day of").replace(/ each year$/, "");
+  }
   if (rule.dueRule.kind === "anniversary_month_end") return "the last day of the month it was formed (or registered, if formed elsewhere)";
   return dueRuleText(rule.dueRule).replace(/^\w/, (c) => c.toLowerCase());
 }

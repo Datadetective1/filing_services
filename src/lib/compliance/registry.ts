@@ -3,6 +3,8 @@ import { openQuestionsFor } from "./open-questions";
 import type { EntityType } from "@/lib/domain/types";
 import { JURISDICTIONS } from "./jurisdictions";
 import { EXPANSION_STATES, stateSalesEnabled } from "./launch";
+import { COLORADO_RULES } from "./states/colorado";
+import { FLORIDA_RULES } from "./states/florida";
 import { NEVADA_RULES } from "./states/nevada";
 import { PENNSYLVANIA_RULES } from "./states/pennsylvania";
 import { UTAH_RULES } from "./states/utah";
@@ -17,7 +19,7 @@ import type { ComplianceRuleDef, JurisdictionDef } from "./types";
  * Only rules with verificationStatus "verified" may be shown as definitive facts or
  * sold. Adding a state = adding a rules module here, with official sources.
  */
-export const RULES: ComplianceRuleDef[] = [...PENNSYLVANIA_RULES, ...WASHINGTON_RULES, ...NEVADA_RULES, ...UTAH_RULES];
+export const RULES: ComplianceRuleDef[] = [...PENNSYLVANIA_RULES, ...WASHINGTON_RULES, ...NEVADA_RULES, ...UTAH_RULES, ...FLORIDA_RULES, ...COLORADO_RULES];
 
 export const FILING_TYPES = [
   {

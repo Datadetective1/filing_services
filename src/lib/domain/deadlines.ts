@@ -28,7 +28,12 @@ export function dueDateForYear(rule: DueRule, year: number, formationDate?: ISOD
       if (year <= f.year) return null;
       if ((year - f.year) % interval !== 0) return null;
       if (rule.kind === "anniversary_month_end") {
-        return toISODate(year, f.month, lastDayOfMonth(year, f.month));
+        // monthsAfter can carry the due date into the next calendar year (Colorado: a
+        // November report month is due January 31); the report year stays the anniversary year.
+        const index = f.month - 1 + (rule.monthsAfter ?? 0);
+        const dueYear = year + Math.floor(index / 12);
+        const dueMonth = (index % 12) + 1;
+        return toISODate(dueYear, dueMonth, lastDayOfMonth(dueYear, dueMonth));
       }
       return toISODate(year, f.month, Math.min(f.day, lastDayOfMonth(year, f.month)));
     }
@@ -76,6 +81,13 @@ export function currentFilingPeriod(rule: DeadlineRule, input: PeriodInput): Fil
   const todayYear = parseISODate(input.today).year;
   const first = firstReportYear(rule, input.formationDate);
   let year = Math.max(todayYear, first ?? todayYear, (input.lastFiledYear ?? -Infinity) + 1);
+  // A due date carried into the next calendar year (monthsAfter) belongs to that year's work:
+  // last year's report, due this January, stays current (and overdue) like any other.
+  const prev = year - 1;
+  if (prev >= (first ?? -Infinity) && prev > (input.lastFiledYear ?? -Infinity)) {
+    const prevDue = dueDateForYear(rule.dueRule, prev, input.formationDate);
+    if (prevDue && parseISODate(prevDue).year === todayYear) year = prev;
+  }
 
   // Skip years with no report due (biennial rules), bounded to avoid infinite loops.
   let due: ISODate | null = null;

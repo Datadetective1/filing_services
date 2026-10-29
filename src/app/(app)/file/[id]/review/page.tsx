@@ -6,7 +6,7 @@ import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
 import { formatLongDate } from "@/lib/domain/dates";
 import { CUSTOMER_EDITABLE_STATUSES, type FilingStatus } from "@/lib/domain/filing-status";
-import { authorizationBusinessName, authorizationText, filingAgentName, stateAuthorizationFor } from "@/lib/filings/customer";
+import { authorizationBusinessName, authorizationText, filingAgentName, stateAuthorizationFor, stateAuthorizationTextInput } from "@/lib/filings/customer";
 import { buildFilingPacket, registeredAgentConsentRequired } from "@/lib/filings/packet";
 import { FilingPacketView } from "@/components/intake/filing-packet-view";
 import { validateAll } from "@/lib/intake/validate";
@@ -72,7 +72,7 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
     stateName: summary.stateName,
     filingName: summary.filingName,
     brand: site.name,
-    state: stateAuth ? { filingAgent, certificationText: stateAuth.auth.certificationText } : undefined,
+    state: stateAuth ? stateAuthorizationTextInput(stateAuth.auth, filingAgent) : undefined,
   });
 
   return (
@@ -197,6 +197,11 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
               titleSuggestions={titleSuggestions}
               submitLabel={paid ? "Sign and resubmit" : "Sign and continue"}
               certify={stateAuth ? { stateName: summary.stateName, filingAgent, certificationText: stateAuth.auth.certificationText } : undefined}
+              principalSignature={
+                stateAuth?.auth.principalSignature
+                  ? { stateName: summary.stateName, filingAgent, warnings: stateAuth.auth.principalSignature.warnings.map((w) => w.text) }
+                  : undefined
+              }
               agentConsent={
                 consentNeeded && ra ? { agentName: String(all.values[ra.agentNameKey] ?? "the new agent"), consentText: ra.consentText } : undefined
               }

@@ -27,6 +27,7 @@ export interface AuthorizeFormState {
     certifyFacts?: boolean;
     agentConsentMode?: "signer_is_agent" | "agent_to_sign" | "";
     agentConsent?: boolean;
+    permitTypedSignature?: boolean;
   };
   nonce: number;
 }
