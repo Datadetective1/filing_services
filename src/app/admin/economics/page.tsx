@@ -94,7 +94,7 @@ export default async function EconomicsPage() {
   const allSubs = subs ?? [];
   const paidSubs = allSubs.filter((s) => s.billing_status !== "pending");
   const activeEntities = allSubs.filter((s) => s.service_status === "active").length;
-  const in30 = Date.now() + 30 * 86_400_000;
+  const in30 = new Date().getTime() + 30 * 86_400_000;
   const upcoming = allSubs.filter((s) => s.billing_status === "active" && !s.cancel_at_period_end && s.current_period_end && Date.parse(s.current_period_end) <= in30).length;
   const failed = allSubs.filter((s) => s.billing_status === "past_due" || s.billing_status === "unpaid").length;
   const bundles = paidSubs.filter((s) => s.plan === "ra_annual_report_bundle").length;
