@@ -13,7 +13,7 @@ import { JURISDICTIONS } from "./jurisdictions";
  */
 
 export const LIVE_STATES = ["PA"] as const;
-export const EXPANSION_STATES = ["WA", "NV", "UT"] as const;
+export const EXPANSION_STATES = ["WA", "NV", "UT", "FL", "CO", "SD", "MT", "MI"] as const;
 export type LaunchState = (typeof LIVE_STATES)[number] | (typeof EXPANSION_STATES)[number];
 
 const flag = (name: string) => process.env[name]?.trim();

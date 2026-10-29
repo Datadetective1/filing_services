@@ -142,7 +142,9 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
 
   const feeSentence =
     rule.stateFeeCents === 0
-      ? "There is no state fee."
+      ? rule.lateFeeCents
+        ? "There is no state fee for a report filed on time."
+        : "There is no state fee."
       : `The state fee is ${formatCents(rule.stateFeeCents, { trimZeros: true })}${
           rule.nonprofitStateFeeCents === 0 ? `, and ${copy.plural} with a not-for-profit purpose pay nothing` : ""
         }.`;

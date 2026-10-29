@@ -5,6 +5,7 @@ import { z } from "zod";
 import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
 import { authorizeFiling, stateAuthorizationFor } from "@/lib/filings/customer";
+import { principalSignerProblem } from "@/lib/filings/principal-signature";
 import { registeredAgentConsentRequired } from "@/lib/filings/packet";
 import { validateAll } from "@/lib/intake/validate";
 import type { AuthorizeFormState } from "@/components/intake/types";
@@ -42,6 +43,7 @@ export async function authorizeAction(filingId: string, _prev: AuthorizeFormStat
     certifyFacts: formData.get("certifyFacts") === "on",
     agentConsentMode: (mode === "signer_is_agent" || mode === "agent_to_sign" ? mode : "") as "signer_is_agent" | "agent_to_sign" | "",
     agentConsent: formData.get("agentConsent") === "on",
+    permitTypedSignature: formData.get("permitTypedSignature") === "on",
   };
   if (!FILING_ID_RE.test(filingId)) return { errors: {}, formError: "This form is out of date. Reload the page and try again.", values, nonce };
 
@@ -62,7 +64,13 @@ export async function authorizeAction(filingId: string, _prev: AuthorizeFormStat
   if (stateAuth) {
     const errors: Record<string, string> = {};
     if (!values.certifyFacts) errors.certifyFacts = "Confirm you reviewed every item and that it is true and correct.";
-    if (registeredAgentConsentRequired(stateAuth.auth, validateAll(loaded.schema, loaded.answers).values)) {
+    const answers = validateAll(loaded.schema, loaded.answers).values;
+    if (stateAuth.auth.principalSignature) {
+      if (!values.permitTypedSignature) errors.permitTypedSignature = "Give permission for us to type your name and title as your signature.";
+      const problem = principalSignerProblem(stateAuth.auth, answers, { name: parsed.data.signerName, title: parsed.data.signerTitle });
+      if (problem) errors.signerName = problem;
+    }
+    if (registeredAgentConsentRequired(stateAuth.auth, answers)) {
       if (!values.agentConsentMode) errors.agentConsentMode = "Tell us who the new registered agent is.";
       else if (values.agentConsentMode === "signer_is_agent" && !values.agentConsent) {
         errors.agentConsent = "Tick the consent to serve, or choose that someone else is the agent.";
@@ -80,6 +88,7 @@ export async function authorizeAction(filingId: string, _prev: AuthorizeFormStat
       brand: site.name,
       certifyFacts: values.certifyFacts,
       agentConsent: { mode: values.agentConsentMode, consent: values.agentConsent },
+      permitTypedSignature: values.permitTypedSignature,
       legalEntity: { name: site.legalEntity, configured: site.legalEntityConfigured },
     });
   } catch (e) {

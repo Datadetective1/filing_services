@@ -3,8 +3,12 @@ import type { EntityType, ISODate, SupportLevel, VerificationStatus } from "@/li
 export type DueRule =
   /** Same calendar date every year (e.g. Pennsylvania LLCs: September 30). */
   | { kind: "fixed_annual"; month: number; day: number }
-  /** Last day of the formation anniversary month, every `intervalYears` years. */
-  | { kind: "anniversary_month_end"; intervalYears?: 1 | 2 }
+  /**
+   * Last day of the formation anniversary month, every `intervalYears` years. With
+   * `monthsAfter`, the last day of the month that many months later (Colorado: the report is
+   * due "by the last day of the second month following the Periodic Report Month").
+   */
+  | { kind: "anniversary_month_end"; intervalYears?: 1 | 2; monthsAfter?: number }
   /** The formation anniversary date, every `intervalYears` years. */
   | { kind: "anniversary_date"; intervalYears?: 1 | 2 };
 
@@ -178,6 +182,18 @@ export interface StateAuthorization {
   };
   /** The operator must record a packet-vs-portal comparison before marking submitted. */
   operatorCheckpoint: boolean;
+  /**
+   * The state requires one of the business's own principals to sign (Florida: a manager,
+   * officer or other principal types their own name). Filewell's operator never signs as
+   * itself here: it types the name and title of the principal who signs Filewell's
+   * authorization, and only with that person's explicit permission. The signer must be one
+   * of the people listed in `principalsKey`.
+   */
+  principalSignature?: {
+    principalsKey: string;
+    /** The state's own warnings about typed signatures, verbatim, shown before permission is given. */
+    warnings: { text: string; sourceFactKey: string }[];
+  };
 }
 
 export interface ComplianceRuleDef {

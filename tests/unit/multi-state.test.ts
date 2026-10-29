@@ -18,11 +18,11 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("registry: four states, verified with official sources", () => {
   it("has rules for PA, WA, NV and UT, all verified, each citing official URLs", () => {
-    for (const st of ["PA", "WA", "NV", "UT"]) expect(rulesForState(st).length, st).toBeGreaterThan(0);
+    for (const st of ["PA", "WA", "NV", "UT", "FL", "CO", "SD", "MT", "MI"]) expect(rulesForState(st).length, st).toBeGreaterThan(0);
     for (const r of RULES) {
       expect(r.verificationStatus).toBe("verified");
       expect(r.sources.length).toBeGreaterThan(3);
-      for (const s of r.sources) expect(s.url).toMatch(/^https:\/\/([a-z0-9-]+\.)*(pa\.gov|palegis\.us|wa\.gov|nv\.gov|nvsos\.gov|state\.nv\.us|utah\.gov)\//);
+      for (const s of r.sources) expect(s.url).toMatch(/^https:\/\/([a-z0-9-]+\.)*(pa\.gov|palegis\.us|wa\.gov|nv\.gov|nvsos\.gov|state\.nv\.us|utah\.gov|fl\.gov|sunbiz\.org|flsenate\.gov|state\.co\.us|coloradosos\.gov|sdsos\.gov|sd\.gov|sdlegislature\.gov|sosmt\.gov|legmt\.gov|michigan\.gov)\//);
     }
   });
 

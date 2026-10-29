@@ -96,7 +96,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Colorado",
     slug: "colorado",
     timezone: "America/Denver",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Colorado Secretary of State, Business and Licensing Division (Business Organizations)",
@@ -160,7 +160,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Florida",
     slug: "florida",
     timezone: "America/New_York",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Florida Department of State, Division of Corporations (Sunbiz)",
@@ -368,7 +368,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Michigan",
     slug: "michigan",
     timezone: "America/Detroit",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Michigan Department of Licensing and Regulatory Affairs (LARA) - Corporations, Securities & Commercial Licensing Bureau, Corporations Division",
@@ -432,7 +432,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "Montana",
     slug: "montana",
     timezone: "America/Denver",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "Montana Secretary of State - Business Services (Business & UCC Services)",
@@ -672,7 +672,7 @@ export const JURISDICTIONS: JurisdictionDef[] = [
     name: "South Dakota",
     slug: "south-dakota",
     timezone: "America/Chicago",
-    supportLevel: "unsupported",
+    supportLevel: "manual",
     filingEnabled: false,
     agency: {
       name: "South Dakota Secretary of State - Business Services Division",

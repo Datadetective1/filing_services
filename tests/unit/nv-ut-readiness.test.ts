@@ -127,7 +127,17 @@ describe("Utah v2", () => {
 
 describe("fail closed on unresolved state questions", () => {
   it("lists exactly the Nevada and Utah questions; Washington and Pennsylvania have none", () => {
-    expect(OPEN_QUESTIONS.map((q) => q.key).sort()).toEqual(["nv_orion_client_access", "nv_signer_authority", "ut_sb40_operations", "ut_third_party_filing"]);
+    expect(OPEN_QUESTIONS.map((q) => q.key).sort()).toEqual([
+      "co_delivery_affirmation",
+      "fl_signer_permission",
+      "mi_milogin_access",
+      "mt_signer_declarations",
+      "nv_orion_client_access",
+      "nv_signer_authority",
+      "sd_2027_filing_date",
+      "ut_sb40_operations",
+      "ut_third_party_filing",
+    ]);
     expect(openQuestionsFor("WA", "llc")).toEqual([]);
     expect(openQuestionsFor("PA", "llc")).toEqual([]);
     expect(openQuestionsFor("NV", "llc").map((q) => q.key)).toEqual(["nv_signer_authority", "nv_orion_client_access"]);

@@ -18,6 +18,7 @@ const LABELS: Record<string, string> = {
   certifyFacts: "Filing information confirmation",
   agentConsentMode: "Registered agent consent",
   agentConsent: "Consent to serve as registered agent",
+  permitTypedSignature: "Permission to type your signature",
 };
 
 const choiceClasses =
@@ -35,6 +36,7 @@ export function AuthorizeForm({
   submitLabel,
   certify,
   agentConsent,
+  principalSignature,
 }: {
   action: (state: AuthorizeFormState, formData: FormData) => Promise<AuthorizeFormState>;
   defaults: { signerName: string; signerTitle: string };
@@ -45,9 +47,14 @@ export function AuthorizeForm({
   certify?: { stateName: string; filingAgent: string; certificationText: string | null };
   /** The registered agent changes: the new agent's own consent is required. */
   agentConsent?: { agentName: string; consentText: string };
+  /**
+   * The state requires a principal to sign (Florida): the signer lets the filing agent type
+   * their name and title, after reading the state's own warnings.
+   */
+  principalSignature?: { stateName: string; filingAgent: string; warnings: string[] };
 }) {
   const [state, formAction] = useActionState(action, { errors: {}, nonce: 0 });
-  const v = state.values ?? { ...defaults, attest: false, authorize: false, certifyFacts: false, agentConsentMode: "" as const, agentConsent: false };
+  const v = state.values ?? { ...defaults, attest: false, authorize: false, certifyFacts: false, agentConsentMode: "" as const, agentConsent: false, permitTypedSignature: false };
   const hasErrors = Object.keys(state.errors).length > 0 || Boolean(state.formError);
 
   return (
@@ -175,8 +182,9 @@ export function AuthorizeForm({
                 className="mt-1"
               />
               <span>
-                I reviewed every item of the {certify.stateName} filing information above and it is true and correct. I understand{" "}
-                {certify.certificationText ? (
+                I reviewed every item of the {certify.stateName} filing information above and it is true and correct.
+                {principalSignature ? null : <> I understand </>}
+                {principalSignature ? null : certify.certificationText ? (
                   <>
                     {certify.filingAgent} will certify to the state, relying on my confirmation: &ldquo;{certify.certificationText}&rdquo;
                   </>
@@ -186,6 +194,36 @@ export function AuthorizeForm({
               </span>
             </label>
             <FieldError id={`${fieldId("certifyFacts")}-error`}>{state.errors.certifyFacts}</FieldError>
+          </div>
+        ) : null}
+        {principalSignature ? (
+          <div className="grid gap-1.5">
+            {principalSignature.warnings.length ? (
+              <div className="rounded-[var(--radius-control)] border border-border bg-surface px-4 py-3.5 text-[15px] leading-7 text-fg">
+                <p className="font-semibold">{principalSignature.stateName} requires one of the business&apos;s principals to sign. The state says:</p>
+                <ul className="mt-1 grid gap-1">
+                  {principalSignature.warnings.map((w) => (
+                    <li key={w}>&ldquo;{w}&rdquo;</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <label htmlFor={fieldId("permitTypedSignature")} className={choiceClasses}>
+              <Checkbox
+                id={fieldId("permitTypedSignature")}
+                name="permitTypedSignature"
+                defaultChecked={v.permitTypedSignature}
+                required
+                aria-invalid={state.errors.permitTypedSignature ? true : undefined}
+                aria-describedby={state.errors.permitTypedSignature ? `${fieldId("permitTypedSignature")}-error` : undefined}
+                className="mt-1"
+              />
+              <span>
+                I am one of the principals listed in this report, and the name and title above are my own. I give {principalSignature.filingAgent}{" "}
+                permission to type my name and title as my electronic signature on this report only.
+              </span>
+            </label>
+            <FieldError id={`${fieldId("permitTypedSignature")}-error`}>{state.errors.permitTypedSignature}</FieldError>
           </div>
         ) : null}
         <div className="grid gap-1.5">
