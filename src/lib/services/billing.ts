@@ -468,3 +468,55 @@ export async function handleSubscriptionChanged(event: NormalizedPaymentEvent): 
   });
   return deleted ? "subscription_ended" : "subscription_updated";
 }
+
+/**
+ * A refund on a business services or renewal order: add it to that order's economics rows
+ * (service refunds against the main service, state fee refunds against the row that collected
+ * them) and record the analytics event. Idempotent per refund via the analytics dedupe key
+ * and an audit marker.
+ */
+export async function recordServiceRefund(refundId: string): Promise<void> {
+  const db = createAdminClient();
+  const { data: refund } = await db
+    .from("refunds")
+    .select("id, order_id, user_id, amount_cents, service_fee_cents, government_fee_cents")
+    .eq("id", refundId)
+    .maybeSingle();
+  if (!refund) return;
+  const { data: order } = await db.from("orders").select("order_type").eq("id", refund.order_id).maybeSingle();
+  if (!order || order.order_type === "annual_report") return;
+  const { data: marker } = await db
+    .from("audit_logs")
+    .select("id")
+    .eq("action", "order_economics.refund_recorded")
+    .eq("entity_id", refund.id)
+    .maybeSingle();
+  if (!marker) {
+    const { data: rows } = await db
+      .from("order_economics")
+      .select("id, service_code, service_revenue_cents, government_fees_collected_cents, service_refunds_cents, government_refunds_cents")
+      .eq("order_id", refund.order_id);
+    const list = rows ?? [];
+    const main = [...list].sort((a, b) => b.service_revenue_cents - a.service_revenue_cents)[0];
+    const gov = list.find((r) => r.government_fees_collected_cents > 0) ?? main;
+    if (main) {
+      await db.from("order_economics").update({ service_refunds_cents: main.service_refunds_cents + refund.service_fee_cents }).eq("id", main.id);
+    }
+    if (gov && refund.government_fee_cents > 0) {
+      await db.from("order_economics").update({ government_refunds_cents: gov.government_refunds_cents + refund.government_fee_cents }).eq("id", gov.id);
+    }
+    await audit({
+      actorUserId: null,
+      actorType: "system",
+      action: "order_economics.refund_recorded",
+      entityType: "refund",
+      entityId: refund.id,
+      after: { order_id: refund.order_id, service_fee_cents: refund.service_fee_cents, government_fee_cents: refund.government_fee_cents },
+    });
+  }
+  await trackServer("refund_issued", {
+    userId: refund.user_id,
+    properties: { order_id: refund.order_id, amount_cents: refund.amount_cents, order_type: order.order_type },
+    dedupeKey: `refund_issued:${refund.id}`,
+  });
+}

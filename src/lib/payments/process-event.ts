@@ -6,7 +6,14 @@ import { loadFilingContext } from "@/lib/filings/context";
 import { formatCents } from "@/lib/domain/money";
 import { sendNotification } from "@/lib/notifications/send";
 import { notifyStaff } from "@/lib/notifications/staff";
-import { afterServiceOrderPaid, handleInvoiceFailed, handleInvoicePaid, handleSubscriptionChanged, isServiceOrder } from "@/lib/services/billing";
+import {
+  afterServiceOrderPaid,
+  handleInvoiceFailed,
+  handleInvoicePaid,
+  handleSubscriptionChanged,
+  isServiceOrder,
+  recordServiceRefund,
+} from "@/lib/services/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { NormalizedPaymentEvent } from "./types";
 
@@ -269,6 +276,8 @@ export async function afterRefundSucceeded(refundId: string) {
     .eq("id", refundId)
     .maybeSingle();
   if (!refund) return;
+  // Business services and renewals: economics and analytics (no filing to notify about).
+  await recordServiceRefund(refund.id);
   const { data: filing } = await db.from("filings").select("id").eq("order_id", refund.order_id).maybeSingle();
   const ctx = filing ? await loadFilingContext(filing.id) : null;
   if (!ctx) return;

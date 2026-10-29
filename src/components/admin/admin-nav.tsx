@@ -9,6 +9,8 @@ import {
   ClockCounterClockwise,
   CreditCard,
   EnvelopeSimple,
+  IdentificationBadge,
+  Coins,
   ListChecks,
   MegaphoneSimple,
   Plant,
@@ -35,6 +37,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin", label: "Today", icon: SunHorizon },
       { href: "/admin/queue", label: "Queue", icon: Tray },
+      { href: "/admin/registered-agent", label: "Registered agent", icon: IdentificationBadge },
     ],
   },
   {
@@ -42,6 +45,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/payments", label: "Payments", icon: CreditCard },
       { href: "/admin/pricing", label: "Pricing", icon: Tag },
+      { href: "/admin/economics", label: "Economics", icon: Coins, adminOnly: true },
     ],
   },
   {

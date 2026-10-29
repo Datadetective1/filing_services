@@ -25,6 +25,7 @@ interface PriceRow {
   approved_by: string | null;
   active: boolean;
   notes: string | null;
+  price_variant: string;
   updated_by: string | null;
   updated_at: string;
 }
@@ -33,7 +34,8 @@ function scopeLabel(p: PriceRow): string {
   const type = FILING_TYPES.find((t) => t.code === p.filing_type_code)?.name ?? p.filing_type_code;
   const state = p.state_code ? (getJurisdiction(p.state_code)?.name ?? p.state_code) : "All states";
   const entity = p.entity_type ? (isEntityType(p.entity_type) ? ENTITY_TYPE_LABELS[p.entity_type] : p.entity_type) : "All entity types";
-  return `${type} · ${state} · ${entity}`;
+  const variant = p.price_variant && p.price_variant !== "standard" ? ` · test variant "${p.price_variant}" (charged only when ANNUAL_REPORT_PRICE_VARIANT selects it)` : "";
+  return `${type} · ${state} · ${entity}${variant}`;
 }
 
 export default async function PricingPage() {
@@ -42,11 +44,12 @@ export default async function PricingPage() {
   const db = await createClient();
   const { data, error } = await db
     .from("service_prices")
-    .select("id, filing_type_code, state_code, entity_type, service_fee_cents, approved, approved_at, approved_by, active, notes, updated_by, updated_at")
+    .select("id, filing_type_code, state_code, entity_type, service_fee_cents, approved, approved_at, approved_by, active, notes, price_variant, updated_by, updated_at")
     .order("active", { ascending: false })
     .order("filing_type_code")
     .order("state_code", { nullsFirst: true })
-    .order("entity_type", { nullsFirst: true });
+    .order("entity_type", { nullsFirst: true })
+    .order("price_variant");
   const prices = (data ?? []) as PriceRow[];
   const people = await profilesByIds(prices.flatMap((p) => [p.approved_by, p.updated_by]));
 
