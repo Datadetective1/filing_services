@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { LegalPage } from "@/components/marketing/legal-page";
+import { JURISDICTIONS } from "@/lib/compliance/jurisdictions";
+import { stateSupportLabel } from "@/lib/compliance/registry";
+import { joinList } from "@/lib/seo/entities";
 import { governingLawText, legalEntityText, postalAddressText } from "@/lib/seo/legal";
 import { pageMetadata } from "@/lib/seo/metadata";
 
@@ -14,6 +17,8 @@ export const metadata: Metadata = pageMetadata({
 export default function TermsPage() {
   const governingLaw = governingLawText();
   const brand = site.name;
+  // Same test as the "Filing supported" badge, so the terms never name a state we don't sell in.
+  const filingStates = JURISDICTIONS.filter((j) => stateSupportLabel(j.code) === "Filing supported").map((j) => j.name);
   return (
     <LegalPage
       title="Terms of service"
@@ -50,8 +55,10 @@ export default function TermsPage() {
       <h2>2. The service</h2>
       <p>
         {brand} helps businesses see which filings a state requires, when they are due and what they cost, sends deadline
-        reminders, and, when you order it, prepares and submits a specific filing for your business. Today we file annual reports
-        only in Pennsylvania, shown as &ldquo;Filing supported&rdquo; on our site.
+        reminders, and, when you order it, prepares and submits a specific filing for your business.{" "}
+        {filingStates.length > 0
+          ? <>Today we file annual reports in {joinList(filingStates)}, shown as &ldquo;Filing supported&rdquo; on our site.</>
+          : <>We file only in states shown as &ldquo;Filing supported&rdquo; on our site.</>}
       </p>
       <p>
         Requirement summaries on our site come from official government publications, with links to those sources and the date
