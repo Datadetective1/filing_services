@@ -18,7 +18,7 @@ const LABELS: Record<string, string> = {
   certifyFacts: "Filing information confirmation",
   agentConsentMode: "Registered agent consent",
   agentConsent: "Consent to serve as registered agent",
-  permitTypedSignature: "Permission to type your signature",
+  permitTypedSignature: "Your signature on the report",
 };
 
 const choiceClasses =
@@ -36,7 +36,7 @@ export function AuthorizeForm({
   submitLabel,
   certify,
   agentConsent,
-  principalSignature,
+  customerSignature,
 }: {
   action: (state: AuthorizeFormState, formData: FormData) => Promise<AuthorizeFormState>;
   defaults: { signerName: string; signerTitle: string };
@@ -48,10 +48,18 @@ export function AuthorizeForm({
   /** The registered agent changes: the new agent's own consent is required. */
   agentConsent?: { agentName: string; consentText: string };
   /**
-   * The state requires a principal to sign (Florida): the signer lets the filing agent type
-   * their name and title, after reading the state's own warnings.
+   * The customer signs the report themselves (Florida, Colorado, Montana): we enter their
+   * signature on the state's form exactly as typed, after they read the state's own wording.
    */
-  principalSignature?: { stateName: string; filingAgent: string; warnings: string[] };
+  customerSignature?: {
+    stateName: string;
+    filingName: string;
+    filingAgent: string;
+    warnings: string[];
+    listedSigner: boolean;
+    signerIsDeliverer: boolean;
+    declarationsPending: boolean;
+  };
 }) {
   const [state, formAction] = useActionState(action, { errors: {}, nonce: 0 });
   const v = state.values ?? { ...defaults, attest: false, authorize: false, certifyFacts: false, agentConsentMode: "" as const, agentConsent: false, permitTypedSignature: false };
@@ -168,6 +176,41 @@ export function AuthorizeForm({
         </fieldset>
       ) : null}
 
+      {customerSignature ? (
+        <div id="customer-signature-help" className="grid gap-2 rounded-[var(--radius-control)] border border-border bg-surface px-4 py-3.5 text-[15px] leading-7 text-fg">
+          <p className="font-semibold">You sign this report. We file it.</p>
+          <p className="text-muted">
+            Your name and title above are your signature. We enter them on the {customerSignature.stateName} form exactly as you typed
+            them. We never sign for you.
+            {customerSignature.listedSigner ? " You need to be one of the people listed in the report." : null}
+            {customerSignature.signerIsDeliverer
+              ? ` ${customerSignature.stateName} lists you as the person filing it, at your business's mailing address.`
+              : null}
+            {customerSignature.declarationsPending
+              ? ` ${customerSignature.stateName}'s form also has a few declarations. We'll show you their exact wording to confirm before we file.`
+              : null}
+          </p>
+          {certify?.certificationText ? (
+            <>
+              <p className="font-semibold">{customerSignature.stateName}&apos;s statement, which you make by signing:</p>
+              <blockquote className="max-h-48 overflow-y-auto border-l-2 border-border-strong pl-3 text-sm leading-6 text-muted" tabIndex={0}>
+                &ldquo;{certify.certificationText}&rdquo;
+              </blockquote>
+            </>
+          ) : null}
+          {customerSignature.warnings.length ? (
+            <>
+              <p className="font-semibold">{customerSignature.stateName} says:</p>
+              <ul className="grid gap-1 text-muted">
+                {customerSignature.warnings.map((w) => (
+                  <li key={w}>&ldquo;{w}&rdquo;</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid gap-3">
         {certify ? (
           <div className="grid gap-1.5">
@@ -183,8 +226,8 @@ export function AuthorizeForm({
               />
               <span>
                 I reviewed every item of the {certify.stateName} filing information above and it is true and correct.
-                {principalSignature ? null : <> I understand </>}
-                {principalSignature ? null : certify.certificationText ? (
+                {customerSignature ? (certify.certificationText ? <> I make {certify.stateName}&apos;s statement shown above.</> : null) : <> I understand </>}
+                {customerSignature ? null : certify.certificationText ? (
                   <>
                     {certify.filingAgent} will certify to the state, relying on my confirmation: &ldquo;{certify.certificationText}&rdquo;
                   </>
@@ -196,18 +239,8 @@ export function AuthorizeForm({
             <FieldError id={`${fieldId("certifyFacts")}-error`}>{state.errors.certifyFacts}</FieldError>
           </div>
         ) : null}
-        {principalSignature ? (
+        {customerSignature ? (
           <div className="grid gap-1.5">
-            {principalSignature.warnings.length ? (
-              <div className="rounded-[var(--radius-control)] border border-border bg-surface px-4 py-3.5 text-[15px] leading-7 text-fg">
-                <p className="font-semibold">{principalSignature.stateName} requires one of the business&apos;s principals to sign. The state says:</p>
-                <ul className="mt-1 grid gap-1">
-                  {principalSignature.warnings.map((w) => (
-                    <li key={w}>&ldquo;{w}&rdquo;</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
             <label htmlFor={fieldId("permitTypedSignature")} className={choiceClasses}>
               <Checkbox
                 id={fieldId("permitTypedSignature")}
@@ -219,8 +252,8 @@ export function AuthorizeForm({
                 className="mt-1"
               />
               <span>
-                I am one of the principals listed in this report, and the name and title above are my own. I give {principalSignature.filingAgent}{" "}
-                permission to type my name and title as my electronic signature on this report only.
+                The name and title above are my own, and I&apos;m signing this {customerSignature.filingName} with them. Enter my signature on
+                the state&apos;s form exactly as I typed it.
               </span>
             </label>
             <FieldError id={`${fieldId("permitTypedSignature")}-error`}>{state.errors.permitTypedSignature}</FieldError>

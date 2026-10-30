@@ -3,7 +3,15 @@ import Link from "next/link";
 import { site } from "@/config/site";
 import { LegalPage } from "@/components/marketing/legal-page";
 import { WA_CERTIFICATION_TEXT, WA_RA_CONSENT_TEXT } from "@/lib/compliance/states/washington";
-import { AUTHORIZATION_TERMS_VERSION, authorizationText, filingAgentName, STATE_AUTHORIZATION_REVISION } from "@/lib/filings/customer";
+import { findRule } from "@/lib/compliance/registry";
+import {
+  AUTHORIZATION_TERMS_VERSION,
+  authorizationText,
+  CUSTOMER_SIGNATURE_REVISION,
+  filingAgentName,
+  STATE_AUTHORIZATION_REVISION,
+  stateAuthorizationTextInput,
+} from "@/lib/filings/customer";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -32,6 +40,14 @@ export default function FilingAuthorizationPage() {
     filingName: "Annual Report",
     brand: site.name,
     state: { filingAgent: filingAgentName(site.name, site.legalEntity, site.legalEntityConfigured), certificationText: WA_CERTIFICATION_TEXT },
+  });
+
+  const florida = authorizationText({
+    businessName: "[your business]",
+    stateName: "Florida",
+    filingName: "Annual Report",
+    brand: site.name,
+    state: stateAuthorizationTextInput(findRule("FL", "llc")!.stateAuthorization!, filingAgentName(site.name, site.legalEntity, site.legalEntityConfigured)),
   });
 
   return (
@@ -78,6 +94,19 @@ export default function FilingAuthorizationPage() {
         {WA_RA_CONSENT_TEXT}
       </blockquote>
       <p>If someone else is the new agent, they sign it and you send it to us. We never give that consent for anyone and won&apos;t file without it.</p>
+
+      <h2>Florida, Colorado and Montana</h2>
+      <p>
+        These states need the report signed by someone at your business. You sign it yourself: you type your own name and title
+        on the exact report we prepared, and we enter that signature on the state&apos;s form exactly as you typed it. We never sign,
+        certify or affirm it for you. In Colorado you are also the person named as filing it, and you make Colorado&apos;s statement
+        yourself, word for word. In Montana you confirm the state&apos;s declarations, word for word, before we file. Version{" "}
+        <strong className="tnum">
+          {AUTHORIZATION_TERMS_VERSION}.{CUSTOMER_SIGNATURE_REVISION}
+        </strong>
+        . The Florida text reads:
+      </p>
+      <blockquote className="mt-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 text-[15px] leading-7 text-fg">{florida}</blockquote>
 
       <h2>What it means</h2>
       <ul>

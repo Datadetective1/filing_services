@@ -144,8 +144,10 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
         {packet && all.ok ? (
           <div className="grid gap-3 py-6 sm:py-7">
             <p className="max-w-[62ch] text-[15px] leading-relaxed text-muted">
-              This is everything we&apos;ll enter on the {summary.agencyName}&apos;s online form, in the same order. Check each item: the
-              person who files will certify it to the state based on your confirmation.
+              This is everything we&apos;ll enter on the {summary.agencyName}&apos;s online form, in the same order.{" "}
+              {stateAuth?.auth.customerSignature
+                ? "Check each item. You sign it below, and we file it with your signature."
+                : "Check each item: the person who files will certify it to the state based on your confirmation."}
             </p>
             <FilingPacketView
               rows={packet}
@@ -197,9 +199,17 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
               titleSuggestions={titleSuggestions}
               submitLabel={paid ? "Sign and resubmit" : "Sign and continue"}
               certify={stateAuth ? { stateName: summary.stateName, filingAgent, certificationText: stateAuth.auth.certificationText } : undefined}
-              principalSignature={
-                stateAuth?.auth.principalSignature
-                  ? { stateName: summary.stateName, filingAgent, warnings: stateAuth.auth.principalSignature.warnings.map((w) => w.text) }
+              customerSignature={
+                stateAuth?.auth.customerSignature
+                  ? {
+                      stateName: summary.stateName,
+                      filingName: summary.filingName,
+                      filingAgent: site.name,
+                      warnings: stateAuth.auth.customerSignature.warnings.map((w) => w.text),
+                      listedSigner: Boolean(stateAuth.auth.customerSignature.principalsKey),
+                      signerIsDeliverer: Boolean(stateAuth.auth.customerSignature.signerIsDeliverer),
+                      declarationsPending: Boolean(stateAuth.auth.customerSignature.declarationsPending),
+                    }
                   : undefined
               }
               agentConsent={

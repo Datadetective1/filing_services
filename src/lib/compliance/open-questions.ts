@@ -26,6 +26,9 @@ export interface OpenQuestion {
 }
 
 /** Owner decision (Amary, 2026-10-29): take $49 orders in FL, CO, SD, MT and MI now; file each only once its question is answered, else refund. */
+// Closed 2026-10-30 (owner decision): fl_signer_permission and co_delivery_affirmation. The customer
+// now signs Florida and Colorado reports themselves (StateAuthorization.customerSignature), so
+// Filewell never signs or affirms for them and there is nothing left for counsel to approve.
 const ORDERS_OPEN_FILING_BLOCKED = { blocksSales: false } as const;
 
 export const OPEN_QUESTIONS: OpenQuestion[] = [
@@ -59,22 +62,6 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
     answeredBy: "Utah Division of Corporations, and the owner inside the UtahID portal",
   },
   {
-    key: "fl_signer_permission",
-    ...ORDERS_OPEN_FILING_BLOCKED,
-    stateCode: "FL",
-    summary:
-      "Florida's report must be signed by one of the business's principals typing their name, and Sunbiz warns that typing someone's name without their permission is forgery. Filewell's design has the principal sign Filewell's authorization and give explicit permission for Filewell's operator to type their name and title on that one report. Until counsel confirms this permission is enough under s.15.16 F.S. and Sunbiz's instructions, Filewell does not sell or file Florida reports.",
-    answeredBy: "Counsel, and the Florida Division of Corporations if counsel asks",
-  },
-  {
-    key: "co_delivery_affirmation",
-    ...ORDERS_OPEN_FILING_BLOCKED,
-    stateCode: "CO",
-    summary:
-      "Colorado's Periodic Report names the individual causing it to be delivered for filing, and that individual is responsible for complying with the applicable statutes. Until counsel confirms what that delivery affirms under C.R.S. 7-90-301 and that Filewell's operator may cause delivery as the customer's authorized filing agent, Filewell does not sell or file Colorado reports.",
-    answeredBy: "Counsel",
-  },
-  {
     key: "sd_2027_filing_date",
     ...ORDERS_OPEN_FILING_BLOCKED,
     stateCode: "SD",
@@ -83,12 +70,12 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
     answeredBy: "South Dakota Secretary of State (Business Services)",
   },
   {
-    key: "mt_signer_declarations",
+    key: "mt_declaration_text",
     ...ORDERS_OPEN_FILING_BLOCKED,
     stateCode: "MT",
     summary:
-      "Montana's online report has declaration boxes whose wording isn't published in text, and the corporation statute doesn't say who may sign. Until the owner captures the declarations in the portal and counsel confirms Filewell's operator may sign them as the customer's authorized agent, Filewell does not sell or file Montana reports.",
-    answeredBy: "The owner inside biz.sosmt.gov, then counsel",
+      "Montana's online report asks the signer to check declaration boxes whose wording isn't published in text. The customer signs the report themselves, but they can only confirm declarations they have read. Until the exact wording is captured from biz.sosmt.gov (or from the Secretary of State) and added as the rule's certification text, so each customer confirms it word for word, Filewell does not file Montana reports.",
+    answeredBy: "The owner inside biz.sosmt.gov (stop before filing), or Montana Business Services",
   },
   {
     key: "mi_milogin_access",

@@ -92,7 +92,9 @@ export default function TermsPage() {
         make us your registered agent. It ends when the filing is completed, cancelled or refunded, except that, for a filing we
         have submitted, it continues to cover correcting and resubmitting it if the state rejects it or we find an error. A
         cancelled order is never filed without a new authorization. If the information to be filed changes, we will ask you to
-        sign again. The exact wording you sign is on the{" "}
+        sign again. Where a state needs the report signed by someone at your business (today Florida, Colorado and Montana), you
+        sign the report yourself: we enter your signature on the state&apos;s form exactly as you typed it, and we never sign,
+        certify or affirm it for you. The exact wording you sign is on the{" "}
         <Link href="/legal/filing-authorization">filing authorization</Link> page.
       </p>
 

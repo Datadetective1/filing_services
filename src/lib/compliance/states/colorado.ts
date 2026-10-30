@@ -12,11 +12,12 @@ import type { ComplianceRuleDef, IntakeSchema, LateFeeRule, RuleSource } from ".
  * $100 to cure.
  *
  * Filing: no account unless the business turned on Secure Business Filing, in which case
- * the owner adds Filewell as an authorized user. The report names the individual causing it
- * to be delivered for filing (Filewell's operator, as the customer's authorized filing
- * agent). Whether that delivery carries an affirmation Filewell's agent can make for the
- * customer is an open question for counsel (co_delivery_affirmation), so sales and filing
- * stay closed.
+ * the owner adds Filewell as an authorized user. The report names "at least one individual
+ * causing the document to be delivered for filing", and delivery is that individual's
+ * affirmation under penalties of perjury. So the customer signs (owner decision 2026-10-30):
+ * the customer is the individual named, and makes Colorado's affirmation themselves in
+ * Filewell, word for word; the operator enters the customer's name and the business's
+ * mailing address there. Filewell never names its own operator as that individual.
  *
  * Periodic Report Month: Filewell models it as the formation (or registration) month. The
  * Secretary shows the actual month on each entity's summary page; the operator checks it.
@@ -34,6 +35,7 @@ export const CO_URLS = {
   delinquencyFaq: "https://www.sos.state.co.us/pubs/business/FAQs/delinquency.html",
   reportHelp: "https://www.sos.state.co.us/pubs/business/helpFiles/REPORT_HELP.html",
   secureFiling: "https://www.coloradosos.gov/pubs/business/FAQs/secureFiling.html",
+  noticeForm: "https://coloradosos.gov/pubs/business/sampleForms/RESTATE.pdf",
   search: "https://www.coloradosos.gov/biz/BusinessEntityCriteriaExt.do",
   info: "https://www.coloradosos.gov/pubs/business/businessHome.html",
 } as const;
@@ -41,6 +43,13 @@ export const CO_URLS = {
 function src(factKey: string, url: string, title: string, quote: string, publisher = SOS): RuleSource {
   return { factKey, url, title, publisher, quote, lastVerifiedAt: VERIFIED };
 }
+
+/**
+ * Colorado's notice on its filing forms, verbatim (sample form on the Secretary's site). The
+ * online Periodic Report's own notice wasn't read; the operator compares it at the checkpoint.
+ */
+export const CO_DELIVERY_NOTICE =
+  "Causing this document to be delivered to the Secretary of State for filing shall constitute the affirmation or acknowledgment of each individual causing such delivery, under penalties of perjury, that such document is such individual's act and deed, or that such individual in good faith believes such document is the act and deed of the person on whose behalf such individual is causing such document to be delivered for filing, taken in conformity with the requirements of part 3 of article 90 of title 7, C.R.S. and, if applicable, the constituent documents and the organic statutes, and that such individual in good faith believes the facts stated in such document are true and such document complies with the requirements of that Part, the constituent documents, and the organic statutes.";
 
 const COMMON: RuleSource[] = [
   src("state_fee", CO_URLS.fees, "Business fees", "Periodic Report | $25.00 | n/a"),
@@ -69,6 +78,13 @@ const COMMON: RuleSource[] = [
     CO_URLS.reportHelp,
     "Periodic Report help",
     "Provide the last name and first name of at least one individual causing the document to be delivered for filing.",
+  ),
+  src("delivery_notice", CO_URLS.noticeForm, "Secretary of State form, Notice", CO_DELIVERY_NOTICE),
+  src(
+    "one_individual",
+    CO_URLS.noticeForm,
+    "Secretary of State form, Filer's information",
+    "The document need not state the true name and address of more than one individual.",
   ),
   src(
     "delivery_responsibility",
@@ -199,7 +215,7 @@ function buildRule(p: CoProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
-    // v1 (2026-10-29): not sold. Open question co_delivery_affirmation keeps sales and filing closed.
+    // v1 (2026-10-29). Since 2026-10-30 the customer is the individual causing delivery (customerSignature).
     version: 1,
     verificationStatus: "verified",
     effectiveFrom: VERIFIED,
@@ -251,7 +267,8 @@ function buildRule(p: CoProfile): ComplianceRuleDef {
         "Pay the $50 late filing penalty only if the order collected it; otherwise contact the customer first.",
         "Choose File a form, then the Periodic Report, and make every value match the packet. Never change the registered agent here.",
         "On the review screen, compare every value with the packet, then record the comparison checkpoint in Filewell.",
-        "Enter your own name and mailing address as the individual causing the document to be delivered, pay by card and save the filed report.",
+        "If the portal's notice about causing delivery reads differently from the packet's, stop: the customer must sign the new wording first.",
+        "Enter the customer's name exactly as they signed in Filewell, with the business's mailing address, as the individual causing the document to be delivered. Never enter your own name. Pay by card and save the filed report.",
       ],
       fieldMap: [
         { section: "Entity information", portalField: "ID number", answerKey: "entity_number" },
@@ -265,17 +282,17 @@ function buildRule(p: CoProfile): ComplianceRuleDef {
           section: "Individual causing delivery",
           portalField: "Name and mailing address",
           answerKey: null,
-          note: "Your own name and Filewell's mailing address, as the customer's authorized filing agent, only after the comparison checkpoint.",
+          note: "The customer's name exactly as they signed in Filewell, with the principal office mailing address, only after the comparison checkpoint.",
         },
       ],
       confirmationLabel: "Colorado document number",
       receipt: "The filed Periodic Report (PDF) from the business's record.",
     },
-    // Colorado's help page publishes no affirmation text, so none is quoted.
     stateAuthorization: {
-      certificationText: null,
-      certificationSourceFactKey: "individual_causing_delivery",
+      certificationText: CO_DELIVERY_NOTICE,
+      certificationSourceFactKey: "delivery_notice",
       operatorCheckpoint: true,
+      customerSignature: { warnings: [], signerIsDeliverer: true },
     },
     sources: [
       src("who_must_file", CO_URLS.reportsFaq, "Periodic Report FAQs", `Reporting entities, such as limited liability companies, corporations, nonprofit corporations, and foreign entities`),

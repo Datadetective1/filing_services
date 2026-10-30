@@ -117,7 +117,7 @@ export const OWNER_CHECKS: CheckState[] = [
         title: "2. Washington: authorization text for counsel review",
         counselText: true,
         intro: [
-          "This is exactly what a Washington customer signs. Version `2026-10-01.v2.state1` is generated from the shipped code. `[Business legal name]` is filled in from the customer's confirmed answers.",
+          "This is exactly what a Washington customer signs. Version `2026-10-30.v2.state1` is generated from the shipped code. `[Business legal name]` is filled in from the customer's confirmed answers.",
           "**Operator identity:** \"Amary Coulibaly, sole proprietor, doing business as Filewell\", from the production setting `NEXT_PUBLIC_LEGAL_ENTITY`. Production refuses a Washington signature if this isn't set.",
           "**Authorization text (the scrollable box above the checkboxes):**",
         ],
