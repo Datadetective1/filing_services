@@ -105,16 +105,51 @@ export default async function HomePage() {
       <section aria-labelledby="hero-title" className="overflow-hidden">
         <Container className="grid items-center gap-10 pb-16 pt-10 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)] lg:gap-14 lg:pb-24 lg:pt-16">
           <div className="grid gap-7">
-            <h1
-              id="hero-title"
-              className="max-w-[13ch] text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] text-fg sm:text-[64px] lg:text-[76px]"
-            >
-              Never miss a <span className="mark-highlight">business filing</span> again.
-            </h1>
-            <p className="max-w-[34ch] text-lg leading-relaxed text-muted sm:text-xl">
-              We&apos;ll tell you what&apos;s due before it becomes urgent, and file it for you when you ask.
-            </p>
+            {raPrice !== undefined ? (
+              <>
+                <h1
+                  id="hero-title"
+                  className="max-w-[15ch] text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] text-fg sm:text-[56px] lg:text-[64px]"
+                >
+                  Annual reports and registered agent, <span className="mark-highlight">handled</span>.
+                </h1>
+                <p className="max-w-[38ch] text-lg leading-relaxed text-muted sm:text-xl">
+                  We file your state annual report, and we can be your registered agent. Pick what your business needs.
+                </p>
+                <ul className="grid gap-3 sm:grid-cols-2" aria-label="Our services">
+                  <ServiceChoice
+                    title="Annual report filing"
+                    price={quote ? `${formatCents(quote.serviceFeeCents, { trimZeros: true })} plus the state fee` : "Plus the state fee"}
+                    body="We tell you what's due and file it when you ask."
+                    href="/find"
+                    cta="Find my business"
+                  />
+                  <ServiceChoice
+                    title="Registered agent"
+                    price={`${formatCents(raPrice, { trimZeros: true })} a year`}
+                    body="Same price at renewal. Legal mail is scanned to your dashboard."
+                    href="/registered-agent"
+                    cta="Get a registered agent"
+                  />
+                </ul>
+              </>
+            ) : (
+              <>
+                <h1
+                  id="hero-title"
+                  className="max-w-[13ch] text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] text-fg sm:text-[64px] lg:text-[76px]"
+                >
+                  Never miss a <span className="mark-highlight">business filing</span> again.
+                </h1>
+                <p className="max-w-[34ch] text-lg leading-relaxed text-muted sm:text-xl">
+                  We&apos;ll tell you what&apos;s due before it becomes urgent, and file it for you when you ask.
+                </p>
+              </>
+            )}
             {/* The main acquisition path: search the register right here, no account needed. */}
+            {raPrice !== undefined ? (
+              <p className="-mb-4 text-sm font-medium text-fg">Check your annual report deadline</p>
+            ) : null}
             <div id="find" className="grid scroll-mt-24 gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5">
               <HeroFinder
                 states={lookupStates().map((code) => ({ code, name: getJurisdiction(code)?.name ?? code }))}
@@ -135,9 +170,7 @@ export default async function HomePage() {
             </p>
             <p className="flex max-w-[46ch] items-start gap-2 text-sm leading-6 text-muted">
               <ShieldCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
-              <span>
-                Pennsylvania annual reports today. {site.disclaimer}
-              </span>
+              <span>{site.disclaimer}</span>
             </p>
           </div>
 
@@ -429,5 +462,25 @@ export default async function HomePage() {
         <DisclaimerNote className="mx-auto mt-6 max-w-7xl" stateName="Pennsylvania" />
       </section>
     </>
+  );
+}
+
+/** One of the two services in the hero: what it is, what it costs, and where to start. */
+function ServiceChoice({ title, price, body, href, cta }: { title: string; price: string; body: string; href: string; cta: string }) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="group grid h-full content-start gap-1.5 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card transition-[border-color,box-shadow] hover:border-accent/40 sm:p-5"
+      >
+        <span className="text-[17px] font-semibold text-fg">{title}</span>
+        <span className="text-[15px] font-medium text-fg">{price}</span>
+        <span className="text-sm leading-6 text-muted">{body}</span>
+        <span className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
+          {cta}
+          <ArrowRight size={16} weight="bold" aria-hidden className="transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </Link>
+    </li>
   );
 }
