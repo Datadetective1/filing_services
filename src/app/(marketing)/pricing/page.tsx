@@ -26,7 +26,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = pageMetadata({
   title: "Pricing: State Fee Plus Our Service Fee",
   description:
-    "Transparent pricing for annual report filing. The state fee is passed through at cost and our service fee is shown separately. You can always file directly with the state for the state fee alone.",
+    "Transparent pricing for annual report filing. The state fee is passed through at cost and our service fee is shown separately.",
   path: "/pricing",
 });
 

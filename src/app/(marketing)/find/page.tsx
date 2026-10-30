@@ -131,7 +131,7 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
           </div>
 
           <p className="max-w-[62ch] text-sm leading-6 text-subtle">
-            {site.disclaimer} You can always file directly with your state for the state fee alone.
+            {site.disclaimer} You can also file directly with your state.
           </p>
         </div>
 
