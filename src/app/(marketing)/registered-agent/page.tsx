@@ -13,7 +13,7 @@ import { businessServicesIndexable, businessServicesPagesEnabled } from "@/lib/r
 import { PROVIDER_LEGAL_NAME } from "@/lib/services/catalog";
 import { REGISTERED_AGENT_FAQ } from "@/lib/services/public-faq";
 import { publicServicePrices } from "@/lib/services/public-prices";
-import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
+import { breadcrumbJsonLd, businessServiceJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 3600;
@@ -49,7 +49,22 @@ export default async function RegisteredAgentPage() {
 
   return (
     <>
-      <JsonLd data={graph(breadcrumbJsonLd(CRUMBS))} />
+      <JsonLd
+        data={graph(
+          breadcrumbJsonLd(CRUMBS),
+          businessServiceJsonLd({
+            name: "Registered agent service",
+            serviceType: "Registered agent service",
+            description: "Registered agent service for LLCs and corporations. Legal documents and government notices are scanned to your dashboard and emailed to you.",
+            path: "/registered-agent",
+            offer:
+              ra !== undefined
+                ? { name: "Registered agent service, one year", priceCents: ra, description: "Yearly price, the same at renewal. Any state fee for changing your agent is shown separately before you pay." }
+                : undefined,
+          }),
+          faqJsonLd(REGISTERED_AGENT_FAQ),
+        )}
+      />
       <PageIntro
         breadcrumbs={<Breadcrumbs items={CRUMBS} />}
         title="Registered agent service, one clear yearly price"

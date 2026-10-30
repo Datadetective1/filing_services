@@ -12,7 +12,7 @@ import { getRaJurisdictionBySlug, raJurisdictionsWithPublicFacts } from "@/lib/r
 import { businessServicesIndexable, businessServicesPagesEnabled, RA_ENTITY_TYPES } from "@/lib/registered-agent/sales";
 import { PROVIDER_LEGAL_NAME } from "@/lib/services/catalog";
 import { publicServicePrices } from "@/lib/services/public-prices";
-import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
+import { breadcrumbJsonLd, businessServiceJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 3600;
@@ -60,7 +60,22 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
 
   return (
     <>
-      <JsonLd data={graph(breadcrumbJsonLd(crumbs))} />
+      <JsonLd
+        data={graph(
+          breadcrumbJsonLd(crumbs),
+          businessServiceJsonLd({
+            name: `${j.name} registered agent service`,
+            serviceType: "Registered agent service",
+            description: `Registered agent service in ${j.name}, including filing the change of registered agent with the state when you switch.`,
+            path: `/registered-agent/${j.slug}`,
+            stateName: j.name,
+            offer:
+              prices.registered_agent !== undefined
+                ? { name: `${j.name} registered agent service, one year`, priceCents: prices.registered_agent, description: "Yearly price, the same at renewal. The state's fee for the change of agent is shown separately before you pay." }
+                : undefined,
+          }),
+        )}
+      />
       <PageIntro
         breadcrumbs={<Breadcrumbs items={crumbs} />}
         title={`Registered agent service in ${j.name}`}

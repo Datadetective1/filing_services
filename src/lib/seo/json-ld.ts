@@ -21,8 +21,13 @@ export function organizationJsonLd(): Json {
     "@type": "Organization",
     "@id": organizationId(),
     name: site.name,
+    // The operating company, only once it is configured (never the placeholder text).
+    ...(site.legalEntityConfigured ? { legalName: site.legalEntity } : {}),
     url: siteUrl(),
+    logo: { "@type": "ImageObject", url: absoluteUrl("/apple-icon"), width: 180, height: 180 },
     description: `${site.description} ${site.disclaimer}`,
+    email: site.supportEmail,
+    areaServed: { "@type": "Country", name: "United States" },
     contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: site.supportEmail, availableLanguage: "en" },
   };
 }
@@ -119,6 +124,45 @@ export function serviceJsonLd(input: {
     areaServed: { "@type": "State", name: input.stateName },
     ...(input.offers.length
       ? { offers: input.offers.length === 1 ? offerJsonLd(input.offers[0], input.stateName) : input.offers.map((o) => offerJsonLd(o, input.stateName)) }
+      : {}),
+  };
+}
+
+/**
+ * A business service (registered agent, formation) offered by the private Organization.
+ * The offer appears only when a price is set: a missing price is left out, never guessed.
+ * No ratings or reviews.
+ */
+export function businessServiceJsonLd(input: {
+  name: string;
+  serviceType: string;
+  description: string;
+  path: string;
+  /** A state's name, or omitted for the whole United States. */
+  stateName?: string;
+  offer?: { name: string; priceCents: number; description: string };
+}): Json {
+  return {
+    "@type": "Service",
+    "@id": absoluteUrl(`${input.path}#service`),
+    name: input.name,
+    serviceType: input.serviceType,
+    description: `${input.description} ${site.disclaimer}`,
+    url: absoluteUrl(input.path),
+    provider: organizationRef(),
+    areaServed: input.stateName ? { "@type": "State", name: input.stateName } : { "@type": "Country", name: "United States" },
+    ...(input.offer
+      ? {
+          offers: {
+            "@type": "Offer",
+            name: input.offer.name,
+            url: absoluteUrl(input.path),
+            price: usd(input.offer.priceCents),
+            priceCurrency: "USD",
+            description: input.offer.description,
+            seller: organizationRef(),
+          },
+        }
       : {}),
   };
 }

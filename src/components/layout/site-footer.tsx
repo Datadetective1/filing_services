@@ -2,12 +2,17 @@ import { EnvelopeSimple, Lifebuoy } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { Container } from "@/components/ui/surface";
+import { isStateVerified, listJurisdictions } from "@/lib/compliance/registry";
+import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { LEGAL_PAGES, operatorName } from "@/lib/seo/legal";
 import { Logo } from "./logo";
 
 const linkClass = "text-[15px] text-muted transition-colors hover:text-fg";
 
 export function SiteFooter() {
+  const businessServices = businessServicesPagesEnabled();
+  // Every verified state's annual report page is one click from any public page.
+  const states = listJurisdictions().filter((j) => isStateVerified(j.code));
   return (
     <footer className="mt-auto border-t border-border bg-surface-2">
       <Container className="grid gap-12 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:gap-16">
@@ -35,25 +40,36 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           <nav aria-label="Product" className="grid content-start gap-3">
             <p className="text-sm font-semibold text-fg">{site.name}</p>
             <Link className={linkClass} href="/find">Find my business</Link>
-            <Link className={linkClass} href="/annual-report/pennsylvania">Pennsylvania annual report</Link>
+            <Link className={linkClass} href="/annual-report">Annual report filing</Link>
+            {businessServices ? (
+              <>
+                <Link className={linkClass} href="/registered-agent">Registered agent</Link>
+                <Link className={linkClass} href="/business-formation">Start a business</Link>
+              </>
+            ) : null}
             <Link className={linkClass} href="/states">Filing requirements by state</Link>
             <Link className={linkClass} href="/pricing">Pricing</Link>
             <Link className={linkClass} href="/help">Help</Link>
           </nav>
-          <nav aria-label="State guides" className="grid content-start gap-3">
-            <p className="text-sm font-semibold text-fg">State guides</p>
+          <nav aria-label="Annual reports by state" className="grid content-start gap-3">
+            <p className="text-sm font-semibold text-fg">Annual reports by state</p>
+            {states.map((j) => (
+              <Link key={j.code} className={linkClass} href={`/annual-report/${j.slug}`}>
+                {j.name}
+              </Link>
+            ))}
+          </nav>
+          <nav aria-label="Pennsylvania guides" className="grid content-start gap-3">
+            <p className="text-sm font-semibold text-fg">Pennsylvania guides</p>
             <Link className={linkClass} href="/pennsylvania/annual-report-deadline">Annual report deadline</Link>
             <Link className={linkClass} href="/pennsylvania/annual-report-fee">Annual report fee</Link>
             <Link className={linkClass} href="/pennsylvania/how-to-file-annual-report">How to file</Link>
             <Link className={linkClass} href="/pennsylvania/annual-report-after-deadline">Filing after the deadline</Link>
             <Link className={linkClass} href="/pennsylvania/business-search">Business search</Link>
-            <Link className={linkClass} href="/annual-report/washington">Washington annual report</Link>
-            <Link className={linkClass} href="/annual-report/nevada">Nevada annual list</Link>
-            <Link className={linkClass} href="/annual-report/utah">Utah annual renewal</Link>
           </nav>
           <nav aria-label="Legal" className="grid content-start gap-3">
             <p className="text-sm font-semibold text-fg">Legal</p>

@@ -16,12 +16,12 @@ import { Section, SectionHeading } from "@/components/marketing/section";
 import { ButtonLink, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { HeroFinder } from "@/components/funnel/hero-finder";
-import { lookupStates } from "@/lib/compliance/launch";
+import { lookupStates, stateSalesEnabled } from "@/lib/compliance/launch";
 import { Receipt } from "@/components/visual/receipt";
 import { searchRegistry, selectRegistryEntity } from "./find/registry-actions";
 import { ReminderTimeline } from "@/components/visual/reminder-timeline";
 import { publicQuote } from "@/lib/compliance/public-quote";
-import { findRule, getJurisdiction, rulesForState } from "@/lib/compliance/registry";
+import { findRule, getJurisdiction, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { FaqItem } from "@/lib/compliance/types";
 import { verifiedText } from "@/lib/compliance/view";
@@ -32,20 +32,18 @@ import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { agencyShortName, dueGroups } from "@/lib/seo/content";
 import { ENTITY_COPY } from "@/lib/seo/entities";
 import { heroRule } from "@/lib/seo/hero-rule";
-import { graph, organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
-import { pageMetadata } from "@/lib/seo/metadata";
+import { businessServicesIndexable } from "@/lib/registered-agent/sales";
+import { faqJsonLd, graph, organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
+import { homeMetadata, supportedStatesAnswer } from "@/lib/seo/home";
 import { marketingPeriod } from "@/lib/seo/period";
 
 // The status card and product preview count days to a deadline, so render on every
 // request: a cached (stale-while-revalidate) copy could show yesterday's countdown.
 export const revalidate = 0;
 
-export const metadata: Metadata = pageMetadata({
-  title: `${site.name}: ${site.tagline}`,
-  description: site.description,
-  path: "/",
-  absoluteTitle: true,
-});
+export function generateMetadata(): Metadata {
+  return homeMetadata(businessServicesIndexable());
+}
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -87,7 +85,7 @@ export default async function HomePage() {
     },
     {
       q: "Which states do you support?",
-      a: "Pennsylvania annual reports today. We add a state only after checking its requirements against official government sources. Until then, we list it as not yet verified and link to the state's own website.",
+      a: supportedStatesAnswer(listJurisdictions().filter((j) => stateSalesEnabled(j.code)).map((j) => j.name)),
     },
     {
       q: "Do you give legal advice?",
@@ -98,7 +96,7 @@ export default async function HomePage() {
   return (
     <>
       <TrackView event="landing_viewed" />
-      <JsonLd data={graph(organizationJsonLd(), websiteJsonLd())} />
+      <JsonLd data={graph(organizationJsonLd(), websiteJsonLd(), faqJsonLd(faq))} />
 
       {/* 1. Hero */}
       <section aria-labelledby="hero-title" className="overflow-hidden">
