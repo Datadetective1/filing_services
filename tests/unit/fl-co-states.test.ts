@@ -5,6 +5,7 @@ import { findRule, isRuleSellable, RULES } from "@/lib/compliance/registry";
 import { formationDateRequired } from "@/lib/compliance/state-meta";
 import { CO_DELIVERY_NOTICE } from "@/lib/compliance/states/colorado";
 import { FL_FELONY_WARNING, FL_FORGERY_WARNING } from "@/lib/compliance/states/florida";
+import { MT_DECLARATIONS, MT_DECLARATIONS_WARNING } from "@/lib/compliance/states/montana";
 import { dueRuleText } from "@/lib/compliance/view";
 import { currentFilingPeriod, dueDateForYear, isFilingWindowOpen } from "@/lib/domain/deadlines";
 import { authorizationText, stateAuthorizationTextInput } from "@/lib/filings/customer";
@@ -123,10 +124,11 @@ describe("customer signature", () => {
     expect(t).not.toContain("will sign the Periodic Report as the business's authorized person");
   });
 
-  it("tells the Montana customer the declarations come before filing", () => {
+  it("has the Montana customer make the state's three declarations themselves", () => {
     const t = text("MT", "Montana");
-    expect(t).toContain("The state's form also asks the signer to confirm declarations. Filewell will show me their exact wording, and nothing is filed until I confirm them.");
-    expect(t).not.toContain("I make the state's statement");
+    expect(t).toContain(`I make the state's statement myself: “${MT_DECLARATIONS.join(" ")}”`);
+    expect(t).toContain(`I understand that the state says: “${MT_DECLARATIONS_WARNING}”`);
+    expect(t).not.toContain("will show me their exact wording");
   });
 });
 
@@ -179,13 +181,23 @@ describe("Colorado Periodic Report", () => {
 });
 
 describe("Montana annual report signing", () => {
-  it("keeps filing closed only until the declaration wording is captured", () => {
-    expect(openQuestionsFor("MT", "llc").map((q) => q.key)).toEqual(["mt_declaration_text"]);
-    expect(openQuestionsFor("MT", "llc")[0].blocksSales).toBe(false);
-    expect(openQuestionBlockers("MT", "corporation").join(" ")).toMatch(/mt_declaration_text.*Do not file/);
-    const auth = findRule("MT", "llc")!.stateAuthorization!;
-    expect(auth.certificationText).toBeNull();
-    expect(auth.customerSignature).toMatchObject({ principalsKey: "governors", declarationsPending: true });
+  it("quotes Montana's three declarations verbatim and no longer blocks filing", () => {
+    expect(openQuestionsFor("MT", "llc")).toEqual([]);
+    expect(openQuestionBlockers("MT", "corporation")).toEqual([]);
+    for (const et of ["llc", "corporation"] as const) {
+      const r = findRule("MT", et)!;
+      const auth = r.stateAuthorization!;
+      expect(auth.certificationText).toBe(MT_DECLARATIONS.join(" "));
+      expect(MT_DECLARATIONS).toHaveLength(3);
+      expect(auth.certificationText).toContain("I, HEREBY SWEAR AND/OR AFFIRM, under penalty of law, including criminal prosecution, that the facts contained in this document are true.");
+      expect(auth.customerSignature).toMatchObject({ principalsKey: "governors" });
+      expect(auth.customerSignature!.declarationsPending).toBeUndefined();
+      const keys = new Set(r.sources.map((s) => s.factKey));
+      expect(keys.has(auth.certificationSourceFactKey)).toBe(true);
+      for (const w of auth.customerSignature!.warnings) expect(keys.has(w.sourceFactKey)).toBe(true);
+      expect(r.sources.find((s) => s.factKey === "declaration_text")!.quote).toBe(MT_DECLARATIONS[1]);
+      expect(r.operatorRunbook!.steps.join(" ")).toMatch(/If any box reads differently or there are more boxes, stop/);
+    }
   });
 
   it("never tells the operator to sign with their own name", () => {

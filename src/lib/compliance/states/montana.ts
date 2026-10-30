@@ -14,9 +14,10 @@ import type { ComplianceRuleDef, IntakeField, IntakeSchema, LateFeeRule, RuleSou
  * An LLC report is executed by "at least one member" or "the authorized agent" (MCA
  * 35-8-208). The customer signs it themselves (owner decision 2026-10-30): they must be one of
  * the people listed in the report, and the operator enters their name and title as the signer.
- * The signer also checks declaration boxes whose wording isn't published in text, so the
- * open question mt_declaration_text keeps filing closed until the wording is captured and
- * the customer has confirmed it.
+ * The signer also checks three declaration boxes. Their wording isn't published in text; Montana
+ * Business Services emailed a screenshot of the Declarations section on 2026-10-30, and
+ * MT_DECLARATIONS quotes it verbatim. The customer makes those declarations themselves when they
+ * sign in Filewell, and the operator checks the boxes only to match.
  *
  * Launch scope: LLCs (domestic and foreign) and domestic for-profit corporations.
  */
@@ -36,6 +37,15 @@ export const MT_URLS = {
   corpDissolution: "https://mca.legmt.gov/bills/mca/title_0350/chapter_0140/part_0140/section_0200/0350-0140-0140-0200.html",
   portal: "https://biz.sosmt.gov/search/business",
 } as const;
+
+/** The Declarations section of the online annual report, verbatim (screenshot from Montana Business Services, 2026-10-30). */
+export const MT_DECLARATIONS = [
+  "I understand that the information I enter into the online system is public information and will appear online and on copy requests exactly as I key it into the system.",
+  "I have been authorized by the business entity to file this document online.",
+  "I, HEREBY SWEAR AND/OR AFFIRM, under penalty of law, including criminal prosecution, that the facts contained in this document are true. I certify that I am signing this document as the person(s) whose signature is required, or as an agent of the person(s) whose signature is required, who has authorized me to place his/her signature on this document.",
+] as const;
+export const MT_DECLARATIONS_WARNING = "Intentionally filing a false document may result in a criminal or civil liability.";
+const DECLARATIONS_VERIFIED = "2026-10-30";
 
 function src(factKey: string, url: string, title: string, quote: string, publisher = SOS): RuleSource {
   return { factKey, url, title, publisher, quote, lastVerifiedAt: VERIFIED };
@@ -61,6 +71,22 @@ const COMMON: RuleSource[] = [
     "How do I file my annual report?",
     "To sign, read, and check each declaration box, and fill in all fields marked with a red asterisk.",
   ),
+  {
+    factKey: "declaration_text",
+    url: MT_URLS.portal,
+    title: "Annual report, Sign and Submit, Declarations (screenshot emailed by Montana Business Services)",
+    publisher: SOS,
+    quote: MT_DECLARATIONS[1],
+    lastVerifiedAt: DECLARATIONS_VERIFIED,
+  },
+  {
+    factKey: "declaration_warning",
+    url: MT_URLS.portal,
+    title: "Annual report, Sign and Submit, Declarations (screenshot emailed by Montana Business Services)",
+    publisher: SOS,
+    quote: MT_DECLARATIONS_WARNING,
+    lastVerifiedAt: DECLARATIONS_VERIFIED,
+  },
   src("no_login_path", MT_URLS.help, "How do I file my annual report?", "On the right-side panel, click the “File Annual Report” button."),
 ];
 
@@ -254,7 +280,7 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: p.appliesTo,
-    // v1 (2026-10-29). Since 2026-10-30 the customer signs (customerSignature); mt_declaration_text keeps filing closed.
+    // v1 (2026-10-29). Since 2026-10-30 the customer signs (customerSignature) and makes the declarations (MT_DECLARATIONS).
     version: 1,
     verificationStatus: "verified",
     effectiveFrom: VERIFIED,
@@ -305,7 +331,7 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
         "Make every value match the packet. Never change the registered agent or share numbers here.",
         "On the review screen, compare every value with the packet, then record the comparison checkpoint in Filewell.",
         "Signature: enter the customer's own name and title exactly as they signed in Filewell. Never sign with your own name.",
-        "Check only the declarations the customer confirmed in Filewell, word for word. If a box reads differently, stop: the customer must confirm the new wording first. Then file online.",
+        "Declarations: compare each box with the declarations the customer made in Filewell, word for word, then check all three. If any box reads differently or there are more boxes, stop: the customer must confirm the new wording first. Then file online.",
       ],
       fieldMap: [
         { section: "Search", portalField: "Business name or ID", answerKey: "entity_number" },
@@ -321,16 +347,19 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
       receipt: "The filed annual report (PDF) from Montana's site.",
     },
     stateAuthorization: {
-      certificationText: null,
-      certificationSourceFactKey: "declarations",
+      certificationText: MT_DECLARATIONS.join(" "),
+      certificationSourceFactKey: "declaration_text",
       operatorCheckpoint: true,
-      customerSignature: { principalsKey: "governors", warnings: [], declarationsPending: true },
+      customerSignature: {
+        principalsKey: "governors",
+        warnings: [{ text: MT_DECLARATIONS_WARNING, sourceFactKey: "declaration_warning" }],
+      },
     },
     sources: [src("state_fee", MT_URLS.fees, "Business Services Filing Fees", p.feeQuote), ...p.sources, ...COMMON],
     lastVerifiedAt: VERIFIED,
     verifiedBy: REVIEWER,
     notes:
-      "Fee waived on time in 2026 and 2027 only; re-check the on-time fee for 2028 (an older fee PDF listed $20). The declaration wording is not verified.",
+      "Fee waived on time in 2026 and 2027 only; re-check the on-time fee for 2028 (an older fee PDF listed $20). Declaration wording from Montana Business Services' screenshot (2026-10-30); the operator re-checks it at filing.",
   };
 }
 
