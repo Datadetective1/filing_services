@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { buttonClasses } from "@/components/ui/button";
 import { useHasSessionCookie } from "./account-link";
-import { SITE_NAV } from "./site-nav";
+import type { NavItem } from "./site-nav";
 
 /** Small-screen navigation. Closes on route change, Escape, or a tap outside. */
-export function MobileMenu() {
+export function MobileMenu({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState(false);
   const [openedOn, setOpenedOn] = useState<string | null>(null);
   const pathname = usePathname();
@@ -55,7 +55,7 @@ export function MobileMenu() {
         className="absolute inset-x-0 top-full border-b border-border bg-bg px-4 pb-5 pt-2 shadow-lift sm:px-6"
       >
         <nav aria-label="Main" className="grid">
-          {SITE_NAV.map((item) => (
+          {items.map((item) => (
             <Link
               key={item.href}
               href={item.href}

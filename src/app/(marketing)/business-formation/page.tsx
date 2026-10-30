@@ -10,7 +10,7 @@ import { formatCents } from "@/lib/domain/money";
 import { RA_JURISDICTIONS } from "@/lib/registered-agent/jurisdictions";
 import { businessServicesIndexable, businessServicesPagesEnabled, formationSaleCheck } from "@/lib/registered-agent/sales";
 import { publicServicePrices } from "@/lib/services/public-prices";
-import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
+import { breadcrumbJsonLd, businessServiceJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 3600;
@@ -35,7 +35,17 @@ export default async function BusinessFormationPage() {
   const open = RA_JURISDICTIONS.filter((j) => formationSaleCheck(j.code, "llc").ok || formationSaleCheck(j.code, "corporation").ok);
   return (
     <>
-      <JsonLd data={graph(breadcrumbJsonLd(CRUMBS))} />
+      <JsonLd
+        data={graph(
+          breadcrumbJsonLd(CRUMBS),
+          businessServiceJsonLd({
+            name: "Business formation",
+            serviceType: "LLC and corporation formation filing",
+            description: "We file your LLC or corporation with the state for one service fee plus the state's own fee, each shown on its own line.",
+            path: "/business-formation",
+          }),
+        )}
+      />
       <PageIntro breadcrumbs={<Breadcrumbs items={CRUMBS} />} title="Starting a business" lede={<p>We file your LLC or corporation with the state for one service fee plus the state&apos;s own fee, each on its own line.</p>} />
       <Section>
         <div className="grid gap-8">
