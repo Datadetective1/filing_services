@@ -145,18 +145,7 @@ export function RequirementCard({
         {actions ? <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">{actions}</div> : null}
         <p className="flex gap-2 text-[13px] leading-5 text-muted">
           <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
-          <span>
-            You can also file directly with the state at{" "}
-            <a
-              className="font-semibold text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
-              href={rule.officialFilingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {new URL(rule.officialFilingUrl).host}
-            </a>{" "}
-            for the state fee alone. Online filings there are approved automatically.
-          </span>
+          <span>You can also file directly with the state.</span>
         </p>
       </div>
     </div>

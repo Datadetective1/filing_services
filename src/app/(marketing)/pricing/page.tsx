@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowSquareOut, Check, Minus, SealCheck } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Check, Minus, SealCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
@@ -7,17 +7,16 @@ import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
-import { buttonClasses, textLinkClasses } from "@/components/ui/button";
+import { textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { isRuleSellable, isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import type { FaqItem } from "@/lib/compliance/types";
-import { verifiedText } from "@/lib/compliance/view";
 import { formatCents } from "@/lib/domain/money";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
-import { agencyShortName, sortByDue } from "@/lib/seo/content";
+import { sortByDue } from "@/lib/seo/content";
 import { ENTITY_COPY, joinList } from "@/lib/seo/entities";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -76,7 +75,7 @@ export default async function PricingPage() {
     },
     {
       q: "Can I file it myself instead?",
-      a: "Yes. Filing directly with the state costs only the state fee. We're an optional service, and the state's own online filing is always available.",
+      a: "Yes, you can file directly with the state. If you'd rather not deal with it, we prepare and submit it, pay the state fee for you and keep the records.",
     },
     {
       q: "What if the state sends the filing back?",
@@ -113,61 +112,11 @@ export default async function PricingPage() {
           </div>
 
           {exampleRule && exampleState ? (
-            <div className="grid gap-8 md:grid-cols-2 md:gap-10 lg:mx-auto lg:w-full lg:max-w-5xl lg:gap-14">
+            <div className="mx-auto grid w-full max-w-md">
               <div className="grid content-start gap-3">
-                <p className="px-1 text-[13px] font-semibold uppercase tracking-wider text-subtle">Option 1</p>
                 <Receipt
-                  title="If you file it yourself"
+                  title="We file it for you"
                   meta={`${exampleState.name} ${ENTITY_TYPE_LABELS[exampleRule.entityType]} annual report`}
-                  className="md:rotate-[-1deg]"
-                  footer={
-                    <span className="flex items-start gap-2">
-                      <SealCheck size={16} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
-                      State fee verified against the {agencyShortName(exampleState)}, {verifiedText(exampleRule.lastVerifiedAt)}.
-                    </span>
-                  }
-                >
-                  <dl className="grid gap-3 text-[15px]">
-                    <div className="flex items-baseline justify-between gap-4">
-                      <dt className="text-fg">
-                        State filing fee
-                        <span className="block text-[13px] text-muted">Paid directly to {exampleState.name}</span>
-                      </dt>
-                      <dd className="tnum font-semibold text-fg">{formatCents(exampleRule.stateFeeCents)}</dd>
-                    </div>
-                    <div className="flex items-baseline justify-between gap-4">
-                      <dt className="text-fg">
-                        No service fee
-                        <span className="block text-[13px] text-muted">You enter and submit it on the state&apos;s site</span>
-                      </dt>
-                      <dd className="tnum font-semibold text-subtle">{formatCents(0)}</dd>
-                    </div>
-                    <div className="mt-1 flex items-baseline justify-between gap-4 border-t-2 border-dashed border-border-strong pt-3.5">
-                      <dt className="font-semibold text-fg">Total if you file it</dt>
-                      <dd className="tnum font-display text-2xl font-semibold text-fg">{formatCents(exampleRule.stateFeeCents)}</dd>
-                    </div>
-                  </dl>
-                  <div className="mt-5">
-                    <a
-                      href={exampleRule.officialFilingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={buttonClasses("secondary", "lg", "w-full")}
-                    >
-                      File at {new URL(exampleRule.officialFilingUrl).host}
-                      <ArrowSquareOut size={18} aria-hidden />
-                      <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
-                    </a>
-                  </div>
-                </Receipt>
-              </div>
-
-              <div className="grid content-start gap-3">
-                <p className="px-1 text-[13px] font-semibold uppercase tracking-wider text-subtle">Option 2</p>
-                <Receipt
-                  title="If we file it for you"
-                  meta={`${exampleState.name} ${ENTITY_TYPE_LABELS[exampleRule.entityType]} annual report`}
-                  className="md:rotate-[1deg]"
                   footer={
                     <span className="flex items-start gap-2">
                       <SealCheck size={16} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
@@ -299,10 +248,6 @@ export default async function PricingPage() {
                     their total is lower by the state fee.
                   </p>
                 ) : null}
-                <p>
-                  Filing directly with the state costs only the state fee. We&apos;re an optional service, and the state&apos;s own
-                  online filing is always available.
-                </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code}>
@@ -375,7 +320,7 @@ export default async function PricingPage() {
           <FaqList items={faq} />
         </Container>
         <Container className="mt-14">
-          <DisclaimerNote stateName={tables[0]?.j.name} filingUrl={tables[0]?.rules[0]?.officialFilingUrl} />
+          <DisclaimerNote stateName={tables[0]?.j.name} />
         </Container>
       </section>
     </>

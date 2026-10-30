@@ -279,6 +279,6 @@ async function dispatchOne(
 /** Offer our filing service in a reminder only where we sell it (the state's sales switch is on). */
 export function filingOptionsSentence(sellable: boolean, brand = site.name): string {
   return sellable
-    ? `You can file it yourself on the state's website, or have ${brand} prepare and submit it for you.`
+    ? `${brand} can prepare and submit it for you. You can also file it on the state's website.`
     : "You can file it yourself on the state's website.";
 }

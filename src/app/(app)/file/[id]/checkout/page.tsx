@@ -72,15 +72,6 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
       : summary.daysRemaining < 0
         ? `The due date for this report passed on ${formatLongDate(summary.dueDate)}`
         : null;
-  const directUrl = summary.officialFilingUrl;
-  const directHost = (() => {
-    try {
-      return directUrl ? new URL(directUrl).host : null;
-    } catch {
-      return null;
-    }
-  })();
-
   const receiptMeta = `${summary.stateName} ${summary.filingName} ${summary.periodYear}`;
   // A new registered agent who isn't the signer must sign the state's consent before we file.
   const { data: latestAuth } = await (await createClient())
@@ -247,20 +238,7 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
       </div>
 
       <p className="mt-10 max-w-[70ch] text-sm leading-6 text-subtle">
-        {site.disclaimer} You can file directly with the {summary.agencyName}
-        {directUrl && directHost ? (
-          <>
-            {" "}at{" "}
-            <a href={directUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
-              {directHost}
-            </a>
-          </>
-        ) : null}
-        {quote
-          ? quote.governmentFeeCents > 0
-            ? ` for the ${formatCents(quote.governmentFeeCents)} state fee alone.`
-            : ", where there is no state fee for your business."
-          : " for the state fee alone."}
+        {site.disclaimer} You can also file directly with the {summary.agencyName}.
       </p>
     </Container>
   );

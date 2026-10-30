@@ -232,18 +232,22 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
               {sellable ? "Have us file it" : "Check my business"}
               <ArrowRight size={18} weight="bold" aria-hidden />
             </FilingCtaLink>
-            <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
-              File it yourself
-              <ArrowSquareOut size={18} aria-hidden />
-              <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
-            </a>
+            {sellable ? null : (
+              <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
+                File it yourself
+                <ArrowSquareOut size={18} aria-hidden />
+                <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
+              </a>
+            )}
           </div>
         }
         note={
           <p className="flex max-w-[46ch] items-start gap-2 text-sm leading-6 text-muted">
             <ShieldCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
             <span>
-              Filing it yourself at {filingHost} costs only the state fee: {feeText}.
+              {sellable
+                ? `State fee: ${feeText}, passed through at cost. Our service fee is its own line.`
+                : `Filing it yourself at ${filingHost} costs only the state fee: ${feeText}.`}
             </span>
           </p>
         }
@@ -474,7 +478,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
               )}
             </Receipt>
           </section>
-          <DisclaimerNote className="-mt-14 sm:-mt-16" stateName={j.name} filingUrl={first.officialFilingUrl} />
+          <DisclaimerNote className="-mt-14 sm:-mt-16" stateName={j.name} />
 
           {/* Required information */}
           <GuideSection
@@ -564,7 +568,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 Last reviewed {verifiedText(reviewed)}. This page summarizes published requirements and is not legal advice.
               </p>
             ) : null}
-            <DisclaimerNote stateName={j.name} filingUrl={first.officialFilingUrl} />
+            <DisclaimerNote stateName={j.name} />
           </div>
         </div>
 
@@ -572,14 +576,16 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
           <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code} size="md" className="w-full">
             {sellable ? "Have us file it" : "Check my business"}
           </FilingCtaLink>
-          <p className="text-[13px] leading-5 text-muted">
-            Or file it yourself at{" "}
-            <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent">
-              {filingHost}
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>{" "}
-            for the state fee.
-          </p>
+          {sellable ? null : (
+            <p className="text-[13px] leading-5 text-muted">
+              Or file it yourself at{" "}
+              <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent">
+                {filingHost}
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>{" "}
+              for the state fee.
+            </p>
+          )}
         </OnThisPageAside>
       </Container>
     </>

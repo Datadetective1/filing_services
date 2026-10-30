@@ -386,7 +386,7 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
             </Link>
           </nav>
 
-          <DisclaimerNote stateName={j.name} filingUrl={rule.officialFilingUrl} />
+          <DisclaimerNote stateName={j.name} />
         </div>
       </Container>
     </>

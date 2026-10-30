@@ -84,8 +84,11 @@ function feeLine(v: SubscriberCopyVars): string {
     ? `${formatCents(total)} in state fees (${v.feeComponents!.map((c) => `${formatCents(c.cents)} ${c.label}`).join(" + ")})`
     : `${formatCents(total)} state fee${nonprofit}`;
   const govShort = multi ? `${formatCents(total)} in state fees` : `${formatCents(total)} state fee`;
-  const ours = v.serviceFeeCents !== null ? ` Or Filewell can prepare and file it for you: ${formatCents(v.serviceFeeCents)} service fee plus the ${govShort}.` : "";
-  return `You can file it yourself at ${host} for the ${gov}.${ours}`;
+  // Where we file it, our service leads and filing direct is one plain sentence with no link.
+  if (v.serviceFeeCents !== null) {
+    return `Filewell can prepare and file it for you: ${formatCents(v.serviceFeeCents)} service fee plus the ${govShort}. You can also file it yourself on the state's website.`;
+  }
+  return `You can file it yourself at ${host} for the ${gov}.`;
 }
 
 export function confirmationEmail(v: SubscriberCopyVars): SubscriberEmail {

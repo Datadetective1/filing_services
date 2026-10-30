@@ -233,7 +233,7 @@ export default async function StatePage({ params }: PageProps<"/states/[state]">
       </section>
 
       <Container className="py-12">
-        <DisclaimerNote stateName={j.name} filingUrl={annual[0]?.officialFilingUrl} />
+        <DisclaimerNote stateName={j.name} />
       </Container>
     </>
   );
