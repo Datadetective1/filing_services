@@ -7,7 +7,17 @@
  * Existing (rule, version) rows are left untouched.
  */
 import { createHash } from "node:crypto";
-import { contentHashOf, defaultPriceRows, RULES, ruleRow, sourceRows, stateRows, supersededEffectiveTo, versionRow } from "../src/lib/compliance/seed-data";
+import {
+  contentHashOf,
+  defaultPriceRows,
+  filingTypeRows,
+  RULES,
+  ruleRow,
+  sourceRows,
+  stateRows,
+  supersededEffectiveTo,
+  versionRow,
+} from "../src/lib/compliance/seed-data";
 
 const states = process.argv.slice(2).map((s) => s.toUpperCase());
 if (!states.length) {
@@ -19,6 +29,14 @@ const lit = (v: string) => `'${v.replace(/'/g, "''")}'`;
 const json = (v: unknown) => `$j$${JSON.stringify(v)}$j$::jsonb`;
 
 const out: string[] = ["begin;"];
+// Filing types first: rules and prices reference them, and the business-service types
+// (change_registered_agent, ra_annual_report_bundle, additional_mail, ...) exist only in code
+// until a seed adds them. Existing types are left untouched, as with rules and prices.
+for (const ft of filingTypeRows()) {
+  out.push(`insert into public.filing_types (code, name, description, category, launch_enabled, sort_order)
+values (${lit(ft.code)}, ${lit(ft.name)}, ${ft.description === null ? "null" : lit(ft.description)}, ${lit(ft.category)}, ${ft.launch_enabled}, ${ft.sort_order})
+on conflict (code) do nothing;`);
+}
 for (const st of stateRows().filter((s) => states.includes(s.code))) {
   out.push(`update public.states set support_level = ${lit(st.support_level)}, filing_enabled = ${st.filing_enabled} where code = ${lit(st.code)};`);
 }

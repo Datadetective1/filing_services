@@ -64,3 +64,47 @@ describe("seed-sql", () => {
     expect(p.rows[0].n).toBe(3);
   });
 });
+
+describe("seed-sql SERVICES", () => {
+  let fresh: Db;
+  const NEW_TYPES = ["additional_mail", "change_registered_agent", "ein_assistance", "ra_annual_report_bundle", "reinstatement"];
+
+  beforeAll(async () => {
+    fresh = await createTestDb();
+    // Production as of Oct 30, 2026: migration 015 applied, but the business-service filing
+    // types and prices were never seeded (they come from code, not from the migration).
+    await fresh.exec(`
+      delete from public.service_prices where filing_type_code in ('registered_agent','formation', ${NEW_TYPES.map((t) => `'${t}'`).join(",")}) or price_variant <> 'standard';
+      delete from public.filing_types where code in (${NEW_TYPES.map((t) => `'${t}'`).join(",")});
+    `);
+  }, 120_000);
+
+  const servicesSql = () =>
+    execFileSync(process.execPath, ["--import", "tsx", "scripts/seed-sql.mts", "SERVICES"], { encoding: "utf8", cwd: process.cwd() });
+
+  it("adds the missing business-service filing types before their prices, all unapproved", async () => {
+    const s = servicesSql();
+    await fresh.exec(s);
+    const types = await fresh.query<{ code: string }>(`select code from public.filing_types where code in (${NEW_TYPES.map((t) => `'${t}'`).join(",")}) order by code`);
+    expect(types.rows.map((r) => r.code)).toEqual(NEW_TYPES);
+    const prices = await fresh.query<{ filing_type_code: string; service_fee_cents: number; approved: boolean }>(
+      "select filing_type_code, service_fee_cents, approved from public.service_prices where state_code is null and active order by filing_type_code",
+    );
+    expect(prices.rows).toEqual([
+      { filing_type_code: "additional_mail", service_fee_cents: 1500, approved: false },
+      { filing_type_code: "change_registered_agent", service_fee_cents: 0, approved: false },
+      { filing_type_code: "formation", service_fee_cents: 9900, approved: false },
+      { filing_type_code: "ra_annual_report_bundle", service_fee_cents: 16900, approved: false },
+      { filing_type_code: "registered_agent", service_fee_cents: 11900, approved: false },
+    ]);
+  });
+
+  it("is idempotent and leaves existing filing types alone", async () => {
+    await fresh.exec("update public.filing_types set name = 'Kept' where code = 'annual_report'");
+    await fresh.exec(servicesSql());
+    const n = await fresh.query<{ n: number }>("select count(*)::int as n from public.service_prices where state_code is null and active");
+    expect(n.rows[0].n).toBe(5);
+    const kept = await fresh.query<{ name: string }>("select name from public.filing_types where code = 'annual_report'");
+    expect(kept.rows[0].name).toBe("Kept");
+  });
+});
