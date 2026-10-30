@@ -56,7 +56,7 @@ export default async function RegisteredAgentPage() {
         lede={
           <p>
             {ra !== undefined ? `${formatCents(ra, { trimZeros: true })} a year, and the same price when it renews. ` : ""}
-            We receive lawsuits and official notices for your business and put them in front of you. The registered agent on the state&apos;s record is our provider, {PROVIDER_LEGAL_NAME}.
+            We receive lawsuits and official notices for your business and put them in front of you. The registered agent on the state&apos;s record is our provider, {PROVIDER_LEGAL_NAME}
           </p>
         }
       />
