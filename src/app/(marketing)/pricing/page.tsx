@@ -11,6 +11,7 @@ import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
+import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { isRuleSellable, isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import type { FaqItem } from "@/lib/compliance/types";
 import { verifiedText } from "@/lib/compliance/view";
@@ -344,6 +345,15 @@ export default async function PricingPage() {
                   </li>
                 ))}
               </ul>
+              {businessServicesPagesEnabled() ? (
+                <p className="text-[15px] leading-6 text-muted">
+                  Need a registered agent?{" "}
+                  <Link href="/registered-agent" className={textLinkClasses}>
+                    See registered agent service and its price
+                  </Link>
+                  .
+                </p>
+              ) : null}
             </div>
             <div className="grid content-start gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
               <h2 className="text-xl font-semibold tracking-tight text-fg">Refunds</h2>

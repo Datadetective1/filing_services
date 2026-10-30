@@ -21,6 +21,7 @@ import { DashboardNotices } from "@/components/dashboard/notices";
 import { OpenRequirement } from "@/components/dashboard/open-requirement";
 import { backLinkClass, DashboardSection, QuietEmpty, quietLinkClass } from "@/components/dashboard/section";
 import { filingHref } from "@/components/dashboard/steps";
+import { BusinessServicesSection } from "@/components/services/business-services-section";
 import { loadBusinessDetail, type AddressView, type BusinessView, type PersonView } from "../../_lib/data";
 
 export const metadata: Metadata = {
@@ -289,6 +290,8 @@ export default async function BusinessPage(props: PageProps<"/dashboard/business
               <QuietEmpty>No filing periods yet.</QuietEmpty>
             )}
           </DashboardSection>
+
+          <BusinessServicesSection userId={user.id} businessId={business.id} />
 
           <DashboardSection id="history" title="Filing history" description="Filings you've started with us, newest first.">
             {filings.length > 0 ? (

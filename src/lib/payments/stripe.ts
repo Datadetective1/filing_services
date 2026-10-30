@@ -22,6 +22,8 @@ import {
  */
 export const CHECKOUT_PAYMENT_METHOD_TYPES = ["card", "link"] as const;
 
+const idOf = (v: string | { id: string } | null | undefined): string | null => (v ? (typeof v === "string" ? v : v.id) : null);
+
 /**
  * Stripe adapter (hosted Checkout — we never see or store card data).
  * Constructing it with a live key throws unless PAYMENTS_LIVE_ENABLED=true.
@@ -50,27 +52,33 @@ export class StripePaymentProvider implements PaymentProvider {
 
   async createCheckoutSession(input: CreateCheckoutInput): Promise<CheckoutSession> {
     if (input.totalCents < 50) throw new PaymentConfigurationError("Stripe requires a total of at least $0.50");
+    const metadata = { order_id: input.orderId, payment_id: input.paymentId };
+    const recurring = input.lineItems.some((li) => li.recurring);
+    const lineItems = input.lineItems
+      // A $0 recurring line still has to exist so the subscription renews; one-time $0 lines are dropped.
+      .filter((li) => li.amountCents > 0 || li.recurring)
+      .map((li) => ({
+        quantity: 1,
+        price_data: {
+          currency: input.currency,
+          unit_amount: li.amountCents,
+          product_data: { name: li.name },
+          ...(li.recurring ? { recurring: { interval: li.recurring.interval } } : {}),
+        },
+      }));
     const session = await this.stripe.checkout.sessions.create(
       {
-        mode: "payment",
+        // Subscription mode: recurring lines renew yearly; one-time lines (state fees) are
+        // charged on the first invoice only.
+        mode: recurring ? "subscription" : "payment",
         payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
         customer_email: input.customerEmail,
         client_reference_id: input.orderId,
-        line_items: input.lineItems
-          .filter((li) => li.amountCents > 0)
-          .map((li) => ({
-            quantity: 1,
-            price_data: {
-              currency: input.currency,
-              unit_amount: li.amountCents,
-              product_data: { name: li.name },
-            },
-          })),
-        metadata: { order_id: input.orderId, payment_id: input.paymentId },
-        payment_intent_data: {
-          description: input.description,
-          metadata: { order_id: input.orderId, payment_id: input.paymentId },
-        },
+        line_items: lineItems,
+        metadata,
+        ...(recurring
+          ? { subscription_data: { description: input.description, metadata } }
+          : { payment_intent_data: { description: input.description, metadata } }),
         success_url: `${input.successUrl}${input.successUrl.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: input.cancelUrl,
         expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 2,
@@ -93,6 +101,8 @@ export class StripePaymentProvider implements PaymentProvider {
         providerPaymentId: typeof s.payment_intent === "string" ? s.payment_intent : (s.payment_intent?.id ?? null),
         orderId: s.metadata?.order_id ?? null,
         paymentId: s.metadata?.payment_id ?? null,
+        subscriptionId: idOf(s.subscription),
+        invoiceId: idOf(s.invoice),
       };
     } catch {
       return null;
@@ -139,6 +149,8 @@ export class StripePaymentProvider implements PaymentProvider {
           amountCents: s.amount_total,
           currency: s.currency,
           receiptUrl: null,
+          subscriptionId: idOf(s.subscription),
+          invoiceId: idOf(s.invoice),
         };
       }
       case "checkout.session.async_payment_failed": {
@@ -174,8 +186,73 @@ export class StripePaymentProvider implements PaymentProvider {
         if (r.status === "failed" || r.status === "canceled") return { ...base, ...common, type: "refund.failed" };
         return { ...base, type: "ignored" };
       }
+      // Subscription billing (registered agent service). These change billing records only;
+      // the legal appointment is moved by operators (lib/registered-agent/billing.ts).
+      case "invoice.paid":
+      case "invoice.payment_failed": {
+        const inv = evt.data.object;
+        const subscriptionId = idOf(inv.parent?.subscription_details?.subscription ?? null);
+        if (!subscriptionId) return { ...base, type: "ignored" };
+        const line = inv.lines?.data?.[0];
+        return {
+          ...base,
+          type: evt.type === "invoice.paid" ? "subscription.invoice_paid" : "subscription.invoice_failed",
+          subscriptionId,
+          invoiceId: inv.id ?? null,
+          billingReason: inv.billing_reason ?? null,
+          amountCents: evt.type === "invoice.paid" ? inv.amount_paid : inv.amount_due,
+          currency: inv.currency,
+          periodStart: line?.period?.start ? new Date(line.period.start * 1000) : null,
+          periodEnd: line?.period?.end ? new Date(line.period.end * 1000) : null,
+          attemptCount: inv.attempt_count ?? null,
+          nextAttemptAt: inv.next_payment_attempt ? new Date(inv.next_payment_attempt * 1000) : null,
+          orderId: inv.parent?.subscription_details?.metadata?.order_id ?? null,
+        };
+      }
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const sub = evt.data.object;
+        const item = sub.items?.data?.[0];
+        return {
+          ...base,
+          type: evt.type === "customer.subscription.deleted" ? "subscription.deleted" : "subscription.updated",
+          subscriptionId: sub.id,
+          subscriptionStatus: sub.status,
+          cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end || sub.cancel_at),
+          periodStart: item?.current_period_start ? new Date(item.current_period_start * 1000) : null,
+          periodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000) : null,
+          orderId: sub.metadata?.order_id ?? null,
+        };
+      }
       default:
         return { ...base, type: "ignored" };
+    }
+  }
+
+  async setCancelAtPeriodEnd(subscriptionId: string, cancel: boolean): Promise<void> {
+    await this.stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: cancel });
+  }
+
+  /**
+   * Stripe's actual fee from the balance transaction, so unit economics don't depend on an
+   * assumed rate. Returns null when it can't be read yet (e.g. the charge hasn't settled).
+   */
+  async processingFeeCents(ref: { paymentIntentId?: string | null; invoiceId?: string | null }): Promise<number | null> {
+    try {
+      let paymentIntentId = ref.paymentIntentId ?? null;
+      if (!paymentIntentId && ref.invoiceId) {
+        const payments = await this.stripe.invoicePayments.list({ invoice: ref.invoiceId, limit: 1 });
+        const p = payments.data[0]?.payment;
+        paymentIntentId = idOf(p?.payment_intent ?? null);
+      }
+      if (!paymentIntentId) return null;
+      const pi = await this.stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge.balance_transaction"] });
+      const charge = pi.latest_charge;
+      if (!charge || typeof charge === "string") return null;
+      const bt = charge.balance_transaction;
+      return bt && typeof bt !== "string" ? bt.fee : null;
+    } catch {
+      return null;
     }
   }
 

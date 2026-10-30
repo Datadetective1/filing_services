@@ -20,6 +20,18 @@ export const REQUIRED_STRIPE_EVENTS = [
   "refund.updated",
 ] as const;
 
+/**
+ * Extra events registered agent subscriptions need (renewals, failed renewals, cancellations).
+ * Not required for annual report checkout, so their absence doesn't mark Stripe "not ready";
+ * the endpoint must send them before any registered agent sale (docs/REGISTERED_AGENT.md).
+ */
+export const SUBSCRIPTION_STRIPE_EVENTS = [
+  "invoice.paid",
+  "invoice.payment_failed",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+] as const;
+
 export const STRIPE_WEBHOOK_URL = `${CANONICAL_PRODUCTION_URL}/api/webhooks/payments/stripe`;
 
 /** The API version the SDK is pinned to; the endpoint's payloads must use the same shape. */
@@ -39,6 +51,8 @@ export interface StripeWebhookSummary {
   found: boolean;
   enabled: boolean;
   missingEvents: string[];
+  /** Subscription events not enabled yet (needed only for registered agent service). */
+  missingSubscriptionEvents?: string[];
   apiVersion: string | null;
   apiVersionMatches: boolean;
 }
@@ -74,13 +88,23 @@ export function summarizeAccount(a: AccountLike): StripeAccountSummary {
 export function summarizeWebhook(endpoints: EndpointLike[], url: string = STRIPE_WEBHOOK_URL): StripeWebhookSummary {
   const matches = endpoints.filter((e) => e.url === url);
   const ep = matches.find((e) => e.status === "enabled") ?? matches[0];
-  if (!ep) return { found: false, enabled: false, missingEvents: [...REQUIRED_STRIPE_EVENTS], apiVersion: null, apiVersionMatches: false };
+  if (!ep) {
+    return {
+      found: false,
+      enabled: false,
+      missingEvents: [...REQUIRED_STRIPE_EVENTS],
+      missingSubscriptionEvents: [...SUBSCRIPTION_STRIPE_EVENTS],
+      apiVersion: null,
+      apiVersionMatches: false,
+    };
+  }
   const all = ep.enabled_events.includes("*");
   const apiVersion = ep.api_version ?? null;
   return {
     found: true,
     enabled: ep.status === "enabled",
     missingEvents: all ? [] : REQUIRED_STRIPE_EVENTS.filter((e) => !ep.enabled_events.includes(e)),
+    missingSubscriptionEvents: all ? [] : SUBSCRIPTION_STRIPE_EVENTS.filter((e) => !ep.enabled_events.includes(e)),
     apiVersion,
     apiVersionMatches: apiVersion === STRIPE_API_VERSION,
   };

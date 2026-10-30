@@ -16,6 +16,8 @@ import { Container, Notice } from "@/components/ui/surface";
 import { submitLookup } from "./actions";
 import { searchRegistry, selectRegistryEntity } from "./registry-actions";
 import { readLookupHomeJurisdiction } from "./lookup-extras";
+import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { readServiceIntent } from "@/lib/services/intent";
 
 export const metadata: Metadata = {
   title: "Find your business",
@@ -30,6 +32,8 @@ function one(v: string | string[] | undefined): string | undefined {
 export default async function FindPage({ searchParams }: PageProps<"/find">) {
   const sp = await searchParams;
   const jurisdictions = listJurisdictions();
+  // A visitor here for a registered agent doesn't need the annual report's formation date.
+  const forAgent = businessServicesPagesEnabled() && (await readServiceIntent()) === "registered_agent";
   const codes = new Set(jurisdictions.map((j) => j.code));
 
   const options: LookupJurisdictionOption[] = [...jurisdictions]
@@ -41,7 +45,7 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
         name: j.name,
         searchUrl,
         isBusinessSearch: j.code === "PA" || Boolean(j.agency.businessSearchUrl),
-        formationRequired: formationDateRequired(j.code),
+        formationRequired: !forAgent && formationDateRequired(j.code),
       };
     });
 
@@ -79,10 +83,20 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
               id="find-title"
               className="text-[36px] font-semibold leading-[1.04] tracking-[-0.03em] text-fg sm:text-[52px]"
             >
-              Find out <span className="mark-highlight">what&apos;s due</span>.
+              {forAgent ? (
+                <>
+                  Find your <span className="mark-highlight">business</span>.
+                </>
+              ) : (
+                <>
+                  Find out <span className="mark-highlight">what&apos;s due</span>.
+                </>
+              )}
             </h1>
             <p className="max-w-[44ch] text-[17px] leading-relaxed text-muted sm:text-lg">
-              Your deadline, the state fee and the official source, in about a minute. No account needed.
+              {forAgent
+                ? "We'll fill in your registered agent order from it. No account needed yet."
+                : "Your deadline, the state fee and the official source, in about a minute. No account needed."}
             </p>
           </div>
 

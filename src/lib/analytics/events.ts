@@ -21,6 +21,13 @@ export const ANALYTICS_EVENTS = [
   "reminder_confirmed",
   "reminder_unsubscribed",
   "reminder_sent",
+  // Business services (registered agent, bundle, formation). The price variant shown is
+  // recorded in properties.price_variant so pricing tests can be compared.
+  "service_page_viewed",
+  "checkout_abandoned",
+  "subscription_renewed",
+  "subscription_cancelled",
+  "refund_issued",
 ] as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];

@@ -244,7 +244,7 @@ describe("tenant isolation: reads", () => {
   });
 
   it("anon can read public reference data", async () => {
-    expect(await asAnon(db, (tx) => count(tx, "select 1 from public.states"))).toBe(51);
+    expect(await asAnon(db, (tx) => count(tx, "select 1 from public.states"))).toBe(52);
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.state_agencies"))).toBe(51);
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.filing_types"))).toBeGreaterThan(0);
     expect(await asAnon(db, (tx) => count(tx, "select 1 from public.compliance_rules"))).toBe(RULES.length);

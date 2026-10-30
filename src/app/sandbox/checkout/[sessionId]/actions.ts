@@ -33,6 +33,8 @@ export async function payTest(sessionId: string): Promise<void> {
   if (session.status !== "open") redirect(page);
 
   const paymentIntent = `sbx_pi_${randomBytes(12).toString("hex")}`;
+  // A checkout with a yearly line simulates a subscription, like Stripe's subscription mode.
+  const recurring = Array.isArray(session.line_items) && (session.line_items as { recurring?: unknown }[]).some((li) => li?.recurring);
   try {
     const { body, signature } = provider.buildSignedEvent("checkout.session.completed", {
       session_id: session.id,
@@ -41,6 +43,7 @@ export async function payTest(sessionId: string): Promise<void> {
       payment_id: session.payment_id,
       amount_total: session.amount_cents,
       currency: session.currency,
+      ...(recurring ? { subscription_id: `sbx_sub_${randomBytes(12).toString("hex")}`, invoice_id: `sbx_in_${randomBytes(12).toString("hex")}` } : {}),
     });
     const event = provider.parseWebhook(body, new Headers({ [SANDBOX_SIGNATURE_HEADER]: signature }));
     await processPaymentEvent(event);

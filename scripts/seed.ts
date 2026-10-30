@@ -103,13 +103,19 @@ async function main() {
   }
 
   for (const price of defaultPriceRows()) {
-    const existing = await must(
-      db.from("service_prices").select("id").eq("filing_type_code", price.filing_type_code).eq("state_code", price.state_code).is("entity_type", null).eq("active", true),
-      "price lookup",
-    );
+    // Only adds a missing price; never changes an existing one (admins own amounts and approvals).
+    let lookup = db
+      .from("service_prices")
+      .select("id")
+      .eq("filing_type_code", price.filing_type_code)
+      .is("entity_type", null)
+      .eq("price_variant", price.price_variant)
+      .eq("active", true);
+    lookup = price.state_code === null ? lookup.is("state_code", null) : lookup.eq("state_code", price.state_code);
+    const existing = await must(lookup, "price lookup");
     if (!(existing as unknown[]).length) {
       await must(db.from("service_prices").insert(price), "price insert");
-      console.log(`+ provisional service price for ${price.state_code} ${price.filing_type_code}`);
+      console.log(`+ provisional service price for ${price.state_code ?? "all states"} ${price.filing_type_code} (${price.price_variant})`);
     }
   }
 

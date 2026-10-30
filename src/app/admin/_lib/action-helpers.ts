@@ -4,6 +4,7 @@ import type { z } from "zod";
 import type { ActionState } from "@/components/admin/action-state";
 import { DocumentValidationError } from "@/lib/documents/storage";
 import { OperationError } from "@/lib/filings/operations";
+import { OperationError as ServiceOperationError } from "@/lib/registered-agent/operations";
 
 /** Helpers shared by the console's server actions. Never used for authorization. */
 
@@ -43,7 +44,9 @@ export function parseForm<S extends z.ZodType>(
  */
 export function actionError(error: unknown): ActionState {
   unstable_rethrow(error);
-  if (error instanceof OperationError || error instanceof DocumentValidationError) return fail(error.message);
+  if (error instanceof OperationError || error instanceof ServiceOperationError || error instanceof DocumentValidationError) {
+    return fail(error.message);
+  }
   console.error("[admin action]", error);
   if (error instanceof Error) return fail(`The action failed: ${error.message}`);
   return fail("The action failed. Try again.");

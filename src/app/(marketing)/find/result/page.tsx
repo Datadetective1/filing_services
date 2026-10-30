@@ -35,6 +35,11 @@ import { GovernmentFeeList } from "@/components/compliance/government-fee-list";
 import { readLookupHomeJurisdiction } from "../lookup-extras";
 import { optInToReminders } from "../reminder-actions";
 import { reminderConsentText } from "@/lib/reminders/consent";
+import { changeOfAgentFeeCents } from "@/lib/registered-agent/jurisdictions";
+import { businessServicesPagesEnabled, raSaleCheck } from "@/lib/registered-agent/sales";
+import { readServiceIntent } from "@/lib/services/intent";
+import { publicServicePrices } from "@/lib/services/public-prices";
+import { RaLookupResult } from "@/components/services/ra-lookup-result";
 
 export const metadata: Metadata = {
   title: "Your filing requirement",
@@ -224,6 +229,23 @@ export default async function FindResultPage() {
       </div>
     </details>
   );
+
+  // Came for a registered agent: show that offer, not the annual report, and go straight to the order.
+  if ((await readServiceIntent()) === "registered_agent" && businessServicesPagesEnabled()) {
+    const sale = raSaleCheck(lookup.stateCode, lookup.entityType, "switching");
+    const prices = await publicServicePrices().catch(() => ({}) as Awaited<ReturnType<typeof publicServicePrices>>);
+    return (
+      <RaLookupResult
+        legalName={lookup.legalName}
+        stateName={stateName}
+        entered={entered}
+        signedIn={signedIn}
+        agentPriceCents={prices.registered_agent ?? null}
+        changeFeeCents={changeOfAgentFeeCents(lookup.stateCode, lookup.entityType)}
+        unavailableReason={sale.ok ? null : sale.reason}
+      />
+    );
+  }
 
   if (!rule || !supported) {
     const searchUrl = lookup.stateCode === "PA" ? PENNSYLVANIA_FACTS.businessSearchUrl : jurisdiction?.agency.businessSearchUrl;

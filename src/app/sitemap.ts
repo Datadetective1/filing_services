@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/config/site";
 import { isStateVerified, listJurisdictions, RULES } from "@/lib/compliance/registry";
 import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
+import { raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
+import { businessServicesIndexable } from "@/lib/registered-agent/sales";
 import { LEGAL_LAST_UPDATED, LEGAL_PAGES } from "@/lib/seo/legal";
 import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
 
@@ -45,6 +47,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     for (const g of set.guides) {
       entries.push({ url: absoluteUrl(`/${set.slug}/${g.slug}`), lastModified: checked, changeFrequency: "monthly", priority: 0.8 });
     }
+  }
+
+  // Business services pages, only once they are launched (and indexable) on production.
+  if (businessServicesIndexable()) {
+    entries.push(
+      { url: absoluteUrl("/registered-agent"), changeFrequency: "monthly", priority: 0.7 },
+      { url: absoluteUrl("/business-formation"), changeFrequency: "monthly", priority: 0.4 },
+      ...raJurisdictionsWithPublicFacts().map((j) => ({ url: absoluteUrl(`/registered-agent/${j.slug}`), changeFrequency: "monthly" as const, priority: 0.6 })),
+    );
   }
 
   const legalUpdated = new Date(`${LEGAL_LAST_UPDATED}T00:00:00Z`);

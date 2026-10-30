@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { formatCents } from "@/lib/domain/money";
 import { reconcileCheckoutReturn } from "@/lib/filings/customer";
+import { businessServicesPagesEnabled, raSwitchOn } from "@/lib/registered-agent/sales";
 import { FilingContext } from "@/components/funnel/filing-context";
 import { FunnelSteps } from "@/components/funnel/funnel-steps";
 import { NextSteps } from "@/components/funnel/next-steps";
@@ -200,6 +201,16 @@ export default async function FilingConfirmationPage({ params, searchParams }: P
               Go to your dashboard
             </ButtonLink>
           </div>
+          {/* Optional cross-sell: only where registered agent sales are open; nothing is added to this order. */}
+          {businessServicesPagesEnabled() && raSwitchOn(String(loaded.filing.state_code)) ? (
+            <p className="text-[15px] text-muted">
+              Optional: we can also be {summary.businessName}&apos;s registered agent in {summary.stateName}.{" "}
+              <Link href={`/dashboard/services/new?business=${String(loaded.filing.business_id)}`} className="font-semibold text-accent underline underline-offset-4">
+                See the price and details
+              </Link>
+              . Nothing is added to this order.
+            </p>
+          ) : null}
         </div>
 
         <div className="relative max-lg:hidden">

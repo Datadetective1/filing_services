@@ -28,11 +28,17 @@ export function LegalPage({
   summary,
   path,
   children,
+  draftNotice = true,
+  lastUpdated = LEGAL_LAST_UPDATED,
 }: {
   title: string;
   summary: ReactNode;
   path: string;
   children: ReactNode;
+  /** The "Draft for legal review" banner. Off for terms the owner chose to publish as written. */
+  draftNotice?: boolean;
+  /** ISO date this document was last revised, when it differs from the shared legal date. */
+  lastUpdated?: string;
 }) {
   return (
     <>
@@ -50,10 +56,11 @@ export function LegalPage({
             </span>
             <div className="grid gap-2">
               <h1 className="text-[36px] font-semibold leading-[1.05] tracking-[-0.025em] text-fg sm:text-[52px]">{title}</h1>
-              <p className="tnum text-sm text-muted">Last updated {formatLongDate(LEGAL_LAST_UPDATED)}</p>
+              <p className="tnum text-sm text-muted">Last updated {formatLongDate(lastUpdated)}</p>
             </div>
           </div>
 
+          {draftNotice ? (
           <div
             role="note"
             className="flex max-w-[70ch] gap-3 rounded-[var(--radius-surface)] border border-warning/30 bg-warning-soft px-4 py-3.5 text-sm"
@@ -67,6 +74,7 @@ export function LegalPage({
               </p>
             </div>
           </div>
+          ) : null}
         </Container>
       </div>
 

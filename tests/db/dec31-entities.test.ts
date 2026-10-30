@@ -33,7 +33,7 @@ beforeAll(async () => {
   const approver = await createUser(db);
   // Production: the PA row approved by the owner (FIRST_CUSTOMER_READINESS.md, section 2).
   const res = await db.query<{ id: string }>(
-    "update public.service_prices set approved = true, approved_at = now(), approved_by = $1, service_fee_cents = 4900 where state_code = 'PA' and entity_type is null and active returning id",
+    "update public.service_prices set approved = true, approved_at = now(), approved_by = $1, service_fee_cents = 4900 where state_code = 'PA' and entity_type is null and active and price_variant = 'standard' returning id",
     [approver],
   );
   expect(res.rows).toHaveLength(1);
@@ -42,7 +42,7 @@ beforeAll(async () => {
 
 async function activePrices(): Promise<ServicePrice[]> {
   const res = await asService(db, (tx) =>
-    tx.query<Record<string, unknown>>("select id, filing_type_code, state_code, entity_type, service_fee_cents, approved, active from public.service_prices where active"),
+    tx.query<Record<string, unknown>>("select id, filing_type_code, state_code, entity_type, service_fee_cents, approved, active, price_variant from public.service_prices where active"),
   );
   return res.rows.map((p) => ({
     id: String(p.id),
@@ -52,6 +52,7 @@ async function activePrices(): Promise<ServicePrice[]> {
     serviceFeeCents: Number(p.service_fee_cents),
     approved: Boolean(p.approved),
     active: Boolean(p.active),
+    variant: String(p.price_variant),
   }));
 }
 

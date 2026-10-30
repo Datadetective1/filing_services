@@ -201,6 +201,135 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     ctaLabel: null,
     description: "Staff-requested delivery test sent to the requesting staff member only.",
   },
+  // -------------------------------------------------------------------------
+  // Business services (registered agent, bundle, formation)
+  // Placeholders: {{company_name}} {{state_name}} {{service_name}} {{amount}}
+  // {{government_fee}} {{service_fee}} {{renewal_amount}} {{renewal_date}} {{document_label}}
+  // {{days}} {{message}} {{payment_mode}} {{order_ref}}
+  // No delivery time is ever promised in these emails.
+  // -------------------------------------------------------------------------
+  {
+    key: "service_order_confirmed",
+    category: "transactional",
+    subject: "Order received: {{service_name}} for {{company_name}}",
+    body:
+      "Thanks. We received your order for {{service_name}} in {{state_name}} for {{company_name}}.\n\n" +
+      "Paid to the state: {{government_fee}}\n" +
+      "Filewell service: {{service_fee}}\n" +
+      "Total paid today: {{amount}}\n\n" +
+      "Your service is not active yet. We check your details, place the order with our registered agent provider and confirm the appointment before we tell you it is active. If we need anything from you, we'll ask in your dashboard.",
+    ctaLabel: "See your order",
+    description: "Sent when a business services checkout is paid.",
+  },
+  {
+    key: "service_active",
+    category: "transactional",
+    subject: "Active: registered agent service for {{company_name}} in {{state_name}}",
+    body:
+      "Your registered agent service for {{company_name}} in {{state_name}} is now active. The agent's name and address are in your dashboard.\n\n" +
+      "When legal documents or government notices arrive for your business, we add them to your dashboard and email you. We send every notice to the email address on your account, so please keep it and your phone number up to date.",
+    ctaLabel: "Open your dashboard",
+    description: "Sent when an operator confirms a registered agent appointment with evidence.",
+  },
+  {
+    key: "service_filing_completed",
+    category: "transactional",
+    subject: "Done: {{service_name}} for {{company_name}}",
+    body: "The state accepted the {{service_name}} filing for {{company_name}} in {{state_name}}. The confirmation is in your dashboard.",
+    ctaLabel: "View confirmation",
+    description: "Sent when an operator records a completed change of agent or formation filing.",
+  },
+  {
+    key: "service_information_requested",
+    category: "transactional",
+    subject: "Action needed: {{service_name}} for {{company_name}}",
+    body: "We need something from you to continue {{company_name}}'s {{service_name}} order:\n\n{{message}}",
+    ctaLabel: "Reply in your dashboard",
+    description: "Sent when an operator needs information for a business services order.",
+  },
+  {
+    key: "ra_document_urgent",
+    category: "transactional",
+    subject: "Legal document received for {{company_name}}",
+    body:
+      "Your registered agent received a {{document_label}} for {{company_name}} in {{state_name}}. It may start a legal deadline, so please read it today.\n\n" +
+      "Open your dashboard to view and download it. If you have a lawyer, send it to them.",
+    ctaLabel: "View the document",
+    description: "Urgent: service of process received. Staff may also call where the customer gave a number.",
+  },
+  {
+    key: "ra_document_received",
+    category: "transactional",
+    subject: "New {{document_label}} for {{company_name}}",
+    body: "Your registered agent received a {{document_label}} for {{company_name}} in {{state_name}}. You can view and download it from your dashboard.",
+    ctaLabel: "View the document",
+    description: "Sent when a government notice, mail item or other document is added for a registered agent customer.",
+  },
+  {
+    key: "ra_renewal_reminder",
+    category: "transactional",
+    subject: "Your registered agent service renews in {{days}} days",
+    body:
+      "Your {{service_name}} for {{company_name}} in {{state_name}} renews on {{renewal_date}} for {{renewal_amount}}, charged to the card on file.\n\n" +
+      "If you no longer need it, you can turn off renewal in your dashboard before that date. Turning off renewal doesn't change the state's record: if you stop using us as your registered agent, you need to name a new agent with the state.",
+    ctaLabel: "Manage your service",
+    description: "Sent 30 and 7 days before a registered agent subscription renews.",
+  },
+  {
+    key: "ra_payment_failed",
+    category: "transactional",
+    subject: "Your registered agent payment didn't go through",
+    body:
+      "We couldn't charge the renewal for {{company_name}}'s {{service_name}} in {{state_name}}. Your service has not been cancelled. We'll try the card again, or you can update it from your dashboard.",
+    ctaLabel: "Update payment",
+    description: "Sent when a registered agent renewal payment fails. Service is never ended because of one failure.",
+  },
+  {
+    key: "ra_renewal_cancelled",
+    category: "transactional",
+    subject: "Renewal turned off: {{company_name}} in {{state_name}}",
+    body:
+      "Your {{service_name}} for {{company_name}} will not renew. It stays in place until {{renewal_date}}.\n\n" +
+      "Before then, name a new registered agent with the state. If we are still listed as your agent after the service ends, our provider may file a resignation with the state, which can cost you good standing.\n\n" +
+      "After the service ends, documents sent to the old agent address are no longer forwarded to you. Please don't set up USPS mail forwarding from that address.",
+    ctaLabel: "Manage your service",
+    description: "Sent when a customer turns off renewal.",
+  },
+  {
+    key: "staff_new_service_order",
+    category: "transactional",
+    subject: "New paid service order: {{company_name}} ({{state_name}} {{service_name}})",
+    body:
+      "A business services order was paid for {{company_name}} in {{state_name}}: {{service_name}}.\n\n" +
+      "Order: {{order_ref}}\n" +
+      "Paid to the state: {{government_fee}}\n" +
+      "Filewell service: {{service_fee}}\n" +
+      "Total paid: {{amount}}\n" +
+      "Payment mode: {{payment_mode}}\n\n" +
+      "Work it in the admin console (Registered agent). Nothing is active until you record the provider's confirmation.",
+    ctaLabel: "Open the queue",
+    description: "Staff alert: a business services payment succeeded.",
+  },
+  {
+    key: "staff_ra_billing_review",
+    category: "transactional",
+    subject: "Billing review: {{company_name}} registered agent in {{state_name}}",
+    body:
+      "Billing for {{company_name}}'s registered agent service in {{state_name}} needs a person: {{message}}.\n\n" +
+      "Nothing has been sent to the provider or the state. Contact the customer before asking the provider to end service.",
+    ctaLabel: "Open the subscription",
+    description: "Staff alert: repeated failed renewals, or a subscription that ended.",
+  },
+  {
+    key: "staff_ra_document_escalation",
+    category: "transactional",
+    subject: "Escalation: {{document_label}} for {{company_name}} not yet delivered",
+    body:
+      "A {{document_label}} for {{company_name}} has not reached the customer within the internal target. Escalation level: {{message}}.\n\n" +
+      "Notify the customer now and record the attempt.",
+    ctaLabel: "Open the document",
+    description: "Staff alert: an urgent or high-priority registered agent document is past its internal target.",
+  },
 ];
 
 export function getDefaultTemplate(key: string): TemplateDef | undefined {

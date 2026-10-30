@@ -3,6 +3,7 @@ import {
   isStripeReady,
   REQUIRED_STRIPE_EVENTS,
   STRIPE_API_VERSION,
+  SUBSCRIPTION_STRIPE_EVENTS,
   STRIPE_WEBHOOK_URL,
   summarizeAccount,
   summarizeWebhook,
@@ -44,9 +45,25 @@ describe("Stripe status check", () => {
 
   it("is ready with charges on, no past-due requirements and a complete, enabled endpoint", () => {
     const w = summarizeWebhook([endpoint()]);
-    expect(w).toEqual({ found: true, enabled: true, missingEvents: [], apiVersion: STRIPE_API_VERSION, apiVersionMatches: true });
+    expect(w).toEqual({
+      found: true,
+      enabled: true,
+      missingEvents: [],
+      missingSubscriptionEvents: [...SUBSCRIPTION_STRIPE_EVENTS],
+      apiVersion: STRIPE_API_VERSION,
+      apiVersionMatches: true,
+    });
+    // Subscription events are needed only for registered agent sales, so they don't block readiness.
     expect(isStripeReady(liveAccount, w)).toBe(true);
     expect(liveAccount.statementDescriptor).toBe("FILEWELL");
+  });
+
+  it("lists the subscription events registered agent renewals need", () => {
+    expect([...SUBSCRIPTION_STRIPE_EVENTS].sort()).toEqual(
+      ["customer.subscription.deleted", "customer.subscription.updated", "invoice.paid", "invoice.payment_failed"].sort(),
+    );
+    const w = summarizeWebhook([endpoint({ enabled_events: [...REQUIRED_STRIPE_EVENTS, ...SUBSCRIPTION_STRIPE_EVENTS] })]);
+    expect(w.missingSubscriptionEvents).toEqual([]);
   });
 
   it("accepts a wildcard endpoint", () => {

@@ -81,6 +81,11 @@ _Updated Oct 28, 2026 from FIRST_CUSTOMER_READINESS.md and an owner read of Stri
 | BLOCKED | Operator set (`NEXT_PUBLIC_LEGAL_ENTITY=Amary Coulibaly, sole proprietor`); retention, reply time, PA fee-refund wording and disputes placeholders resolved without inventing facts. Still open: governing-law state (`NEXT_PUBLIC_GOVERNING_LAW`), public postal address (optional; legal pages say "available on request") | g2-legal-05, g6-legal-0 |
 | BLOCKED | Counsel confirms the service may e-sign the PA report as authorized representative, and the exact signer name and title | g6-legal-11, g2-legal-07 |
 
+Business services (registered agent, formation): the owner decided on Oct 29, 2026 to publish
+`/legal/business-services` as written and get attorney review once revenue starts. The list of
+questions to take to a lawyer is in `docs/REGISTERED_AGENT.md` ("Revisit with a lawyer after
+first revenue").
+
 ## 5. Operations
 
 | Status | Item | Ids |

@@ -11,6 +11,8 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash } from "@/lib/security/request";
 import type { LookupFormState, LookupValues } from "@/components/funnel/types";
 import { setLookupHomeJurisdiction } from "./lookup-extras";
+import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { readServiceIntent } from "@/lib/services/intent";
 
 const FRIENDLY: Record<string, string> = {
   legalName: "Enter your business's legal name, up to 300 characters.",
@@ -54,7 +56,8 @@ export async function submitLookup(_prev: LookupFormState, formData: FormData): 
   if (!/^[A-Z]{2}$/.test(values.stateCode) || !jurisdiction) errors.stateCode = FRIENDLY.stateCode;
   if (!isEntityType(values.entityType)) errors.entityType = FRIENDLY.entityType;
 
-  if (!values.formationDate && jurisdiction && formationDateRequired(jurisdiction.code)) {
+  const forAgent = businessServicesPagesEnabled() && (await readServiceIntent()) === "registered_agent";
+  if (!values.formationDate && jurisdiction && formationDateRequired(jurisdiction.code) && !forAgent) {
     errors.formationDate = `${jurisdiction.name} sets the due date from the month the business formed or registered there. Enter that date.`;
   }
   if (values.formationDate) {

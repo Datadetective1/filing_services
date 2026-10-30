@@ -54,6 +54,13 @@ export const FILING_TYPES = [
   { code: "dissolution", name: "Dissolution", description: null, category: "dissolution", launchEnabled: false, sortOrder: 9 },
   { code: "formation", name: "Business formation", description: null, category: "formation", launchEnabled: false, sortOrder: 10 },
   { code: "compliance_monitoring", name: "Compliance monitoring", description: null, category: "monitoring", launchEnabled: false, sortOrder: 11 },
+  // Business services (registered agent provider: Registered Agents Inc.). Not sold until
+  // their switches, provider agreement and approved prices are in place (lib/registered-agent/sales.ts).
+  { code: "change_registered_agent", name: "Change of registered agent", description: null, category: "registered_agent", launchEnabled: false, sortOrder: 12 },
+  { code: "ra_annual_report_bundle", name: "Registered agent + annual report", description: null, category: "registered_agent", launchEnabled: false, sortOrder: 13 },
+  { code: "additional_mail", name: "Additional regular mail item", description: null, category: "registered_agent", launchEnabled: false, sortOrder: 14 },
+  { code: "reinstatement", name: "Reinstatement", description: null, category: "other", launchEnabled: false, sortOrder: 15 },
+  { code: "ein_assistance", name: "EIN assistance", description: null, category: "other", launchEnabled: false, sortOrder: 16 },
 ] as const;
 
 export function getJurisdiction(code: string): JurisdictionDef | undefined {
@@ -137,7 +144,7 @@ export function isStateVerified(stateCode: string): boolean {
  * Whether real money could be taken here: the production deployment, or any deployment
  * allowed to use live payment keys (PAYMENTS_LIVE_ENABLED=true, see lib/payments).
  */
-function realPaymentsPossible(): boolean {
+export function realPaymentsPossible(): boolean {
   return isProductionEnvironment() || process.env.PAYMENTS_LIVE_ENABLED?.trim() === "true";
 }
 

@@ -34,6 +34,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { principalSignerProblem } from "./principal-signature";
 import { buildFilingPacket, packetSha256, registeredAgentConsentRequired, signedCurrentCertification, type PacketRow, type RegisteredAgentConsent } from "./packet";
+import { annualReportPriceVariant, bundleCoverageFor } from "@/lib/services/annual-report-pricing";
 import { getCurrentRuleVersion, listActivePricesAdmin } from "./rules-db";
 
 export class FilingError extends Error {
@@ -749,16 +750,22 @@ export async function governmentFeeDetails(
 }
 
 export async function quoteForFiling(
-  filing: { state_code: string; rule_snapshot: unknown; business_id: string; due_date?: string | null },
+  filing: { id?: string; requirement_id?: string | null; state_code: string; rule_snapshot: unknown; business_id: string; due_date?: string | null },
   business: { entity_type: string; is_nonprofit: boolean; state_entity_number?: string | null },
 ): Promise<Quote | null> {
   const snapshot = (filing.rule_snapshot ?? {}) as Record<string, unknown>;
+  // A registered agent + annual report bundle already paid Filewell's service for this
+  // report: only the state fee is charged here. Everything else is the normal price.
+  const bundle = await bundleCoverageFor(filing);
   const prices = await listActivePricesAdmin();
-  const price = resolveServicePrice(prices, {
-    filingTypeCode: "annual_report",
-    stateCode: filing.state_code,
-    entityType: business.entity_type as EntityType,
-  });
+  const price = bundle
+    ? { id: `bundle:${bundle.periodId}`, filingTypeCode: "annual_report", stateCode: filing.state_code, entityType: null, serviceFeeCents: 0, approved: true, active: true }
+    : resolveServicePrice(prices, {
+        filingTypeCode: "annual_report",
+        stateCode: filing.state_code,
+        entityType: business.entity_type as EntityType,
+        variant: annualReportPriceVariant(),
+      });
   if (!price) return null;
   const tz = getJurisdiction(filing.state_code)?.timezone ?? "America/New_York";
   // A status-based state charge (e.g. Washington's delinquency fee) is applied only from a
@@ -772,13 +779,20 @@ export async function quoteForFiling(
       status,
     }),
   );
-  return buildQuote({
+  const quote = buildQuote({
     stateName: getJurisdiction(filing.state_code)?.name ?? filing.state_code,
     filingName: String(snapshot.filing_name ?? "Annual Report"),
     governmentFeeCents: gov.totalCents,
     governmentLines: gov.lines,
     price,
   });
+  if (!bundle) return quote;
+  return {
+    ...quote,
+    lineItems: quote.lineItems.map((li) =>
+      li.kind === "service_fee" ? { ...li, description: `Filing service fee: included in your registered agent + annual report plan (${bundle.reportingYear})` } : li,
+    ),
+  };
 }
 
 export async function startCheckout(user: SessionUser, filingId: string): Promise<{ url: string }> {
