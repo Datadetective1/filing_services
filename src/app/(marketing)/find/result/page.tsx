@@ -406,23 +406,26 @@ export default async function FindResultPage() {
         </div>
       )}
 
-      <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
-        <div className="flex items-baseline justify-between gap-4">
-          <p className="font-display text-lg font-semibold text-fg">{sellable ? "Or do it yourself" : "File it yourself"}</p>
-          <p className="tnum font-display text-2xl font-semibold text-fg">
-            {diyFeeCents === 0 ? "No fee" : formatCents(diyFeeCents, { trimZeros: true })}
+      {/* Where we file, "Have us file it" is the one action; the footer line says filing direct is possible. */}
+      {sellable ? null : (
+        <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="font-display text-lg font-semibold text-fg">File it yourself</p>
+            <p className="tnum font-display text-2xl font-semibold text-fg">
+              {diyFeeCents === 0 ? "No fee" : formatCents(diyFeeCents, { trimZeros: true })}
+            </p>
+          </div>
+          <p className="text-sm leading-6 text-muted">
+            File online at {filingHost} and pay only the state {rule.feeComponents?.length ? "fees" : "fee"}.
+            {lookup.stateCode === "PA" ? " Online filings there are approved automatically." : ""}
           </p>
+          <a href={rule.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "md", "mt-1 w-full")}>
+            File it yourself
+            <ArrowSquareOut size={18} aria-hidden />
+            <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
+          </a>
         </div>
-        <p className="text-sm leading-6 text-muted">
-          File online at {filingHost} and pay only the state {rule.feeComponents?.length ? "fees" : "fee"}.
-          {lookup.stateCode === "PA" ? " Online filings there are approved automatically." : ""}
-        </p>
-        <a href={rule.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "md", "mt-1 w-full")}>
-          File it yourself
-          <ArrowSquareOut size={18} aria-hidden />
-          <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
-        </a>
-      </div>
+      )}
 
       <ReminderOptIn action={optInToReminders} businessName={lookup.legalName} consentText={consentText} stateName={stateName} />
     </>
@@ -492,8 +495,7 @@ export default async function FindResultPage() {
       </div>
 
       <p className="mt-12 max-w-[70ch] text-sm leading-6 text-subtle">
-        {site.disclaimer} We don&apos;t provide legal advice. You can file directly with the {agencyName} for the state fee
-        alone.
+        {site.disclaimer} We don&apos;t provide legal advice. You can also file directly with the state.
       </p>
     </Container>
   );

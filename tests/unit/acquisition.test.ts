@@ -136,8 +136,11 @@ describe("free reminder subscriptions: schedule and wording", () => {
     const r = reminderEmail(vars, -30);
     const c = confirmationEmail(vars);
     expect(r.subject).toContain("may be due by December 31, 2026");
-    expect(r.body).toContain("file.dos.pa.gov for the $7.00 state fee");
-    expect(r.body).toContain("$49.00 service fee plus the $7.00 state fee");
+    expect(r.body).toContain("You can also file it yourself on the state's website.");
+    expect(r.body).not.toContain("file.dos.pa.gov");
+    expect(r.body.indexOf("$49.00 service fee plus the $7.00 state fee")).toBeLessThan(r.body.indexOf("file it yourself"));
+    // Where we don't file, the direct option is the whole answer, with the state's site.
+    expect(reminderEmail({ ...vars, serviceFeeCents: null }, -30).body).toContain("file.dos.pa.gov for the $7.00 state fee");
     expect(r.body).toContain("not the Pennsylvania Department of State");
     expect(c.body).toContain("ignore this email");
     for (const text of [r.subject, r.body, c.subject, c.body]) {

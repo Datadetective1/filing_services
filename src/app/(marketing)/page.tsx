@@ -71,7 +71,6 @@ export default async function HomePage() {
     ? ((periodInfo.missed ? reminderFor(periodInfo.missed.dueDate) : null) ?? reminderFor(periodInfo.period.dueDate))
     : null;
   const directFee = rule ? formatCents(rule.stateFeeCents, { trimZeros: true }) : "$7";
-  const filingHost = new URL(rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl).host;
 
   const faq: FaqItem[] = [
     {
@@ -80,7 +79,7 @@ export default async function HomePage() {
     },
     {
       q: "Do I have to use a filing service?",
-      a: `No. You can file directly with your state. Based on the ${agency}'s published requirements, filing a Pennsylvania annual report online costs ${PENNSYLVANIA_FACTS.directFilingFeeText}, and online filings are approved automatically.`,
+      a: "No. You can file directly with your state. If you'd rather not, we prepare and submit it for you and send you the state's confirmation.",
     },
     {
       q: "What does it cost to have you file?",
@@ -283,14 +282,6 @@ export default async function HomePage() {
         <div className="mt-12">
           <FilingProcess stateName={stateName} agency={agency} />
         </div>
-        <p className="mt-10 max-w-[70ch] text-[15px] leading-7 text-muted">
-          Prefer to do it yourself? That&apos;s a good option too: Pennsylvania&apos;s online filing costs {directFee} at{" "}
-          <a href={rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
-            {filingHost}
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
-          , and we&apos;ll still remind you.
-        </p>
       </Section>
 
       {/* 5. Reminders */}
@@ -334,13 +325,8 @@ export default async function HomePage() {
             <div className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:grid-cols-[auto_1fr] sm:items-center">
               <span className="font-display text-4xl font-semibold text-fg">{directFee}</span>
               <p className="text-[15px] leading-6 text-muted">
-                <strong className="font-semibold text-fg">Filing it yourself?</strong> That&apos;s all Pennsylvania charges
-                online. Pay it directly at{" "}
-                <a href={rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
-                  {filingHost}
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
-                .
+                <strong className="font-semibold text-fg">Pennsylvania&apos;s state fee.</strong> Passed through at cost, with
+                our service fee on its own line.
               </p>
             </div>
             <Link href="/pricing" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-start`}>
@@ -425,11 +411,7 @@ export default async function HomePage() {
             decorative
           />
         </div>
-        <DisclaimerNote
-          className="mx-auto mt-6 max-w-7xl"
-          stateName="Pennsylvania"
-          filingUrl={rule?.officialFilingUrl ?? PENNSYLVANIA_FACTS.officialFilingUrl}
-        />
+        <DisclaimerNote className="mx-auto mt-6 max-w-7xl" stateName="Pennsylvania" />
       </section>
     </>
   );

@@ -100,7 +100,7 @@ describe("public pages and reminders never offer paid filing where sales are off
     const tpl = DEFAULT_TEMPLATES.find((t) => t.key === "reminder_upcoming")!;
     expect(tpl.body).not.toContain("prepare and submit");
     expect(tpl.body).toContain("{{filing_options}}");
-    expect(filingOptionsSentence(true, "Filewell")).toContain("have Filewell prepare and submit it for you");
+    expect(filingOptionsSentence(true, "Filewell")).toMatch(/^Filewell can prepare and submit it for you\./);
     expect(filingOptionsSentence(false, "Filewell")).toBe("You can file it yourself on the state's website.");
   });
 });

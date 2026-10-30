@@ -25,7 +25,7 @@ function copyFor(item: FocusItem): { title: string; body: string } {
       rule: requirement.rule ?? business.rule,
       stateName: business.stateName,
     });
-    const body = "Have us file it, or file it yourself with the state. Already done? Tell us and the reminders stop.";
+    const body = "Have us file it. Already done? Tell us and the reminders stop.";
     return deadline.passed
       ? {
           title: `The ${byMonthDay(requirement.dueDate)} deadline for the ${filing} has passed`,

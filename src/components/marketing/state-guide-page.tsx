@@ -213,13 +213,15 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
 
             <GuideSection id="options" title="Your options">
               <GuideText>
-                <p>
-                  <strong className="text-fg">File it yourself.</strong> File online at{" "}
-                  <a href={filingUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
-                    {filingHost}
-                  </a>{" "}
-                  for the state {rule?.feeComponents?.length ? "fees" : "fee"}: {stateFeeText}. You don&apos;t need a filing service.
-                </p>
+                {sellable ? null : (
+                  <p>
+                    <strong className="text-fg">File it yourself.</strong> File online at{" "}
+                    <a href={filingUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
+                      {filingHost}
+                    </a>{" "}
+                    for the state {rule?.feeComponents?.length ? "fees" : "fee"}: {stateFeeText}. You don&apos;t need a filing service.
+                  </p>
+                )}
                 {isPa || lookupOn ? (
                   <p>
                     <strong className="text-fg">Get free reminders.</strong> Find your business and we&apos;ll email you before its
@@ -309,8 +311,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
             )}
             <p className="flex gap-2 text-sm leading-6 text-muted">
               <Info size={18} aria-hidden className="mt-0.5 shrink-0" />
-              {site.disclaimer} You can always file directly with {stateName} for the state {rule?.feeComponents?.length ? "fees" : "fee"}{" "}
-              alone.
+              {site.disclaimer} You can also file directly with {stateName}.
             </p>
           </aside>
         </div>

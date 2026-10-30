@@ -1,8 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, ArrowUpRight, CalendarCheck, CaretDown, CaretRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, CalendarCheck, CaretDown, CaretRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { markFiledElsewhereAction, startFilingAction } from "@/app/(app)/dashboard/actions";
-import { formatCents } from "@/lib/domain/money";
 import { formatLongDate } from "@/lib/domain/dates";
 import { ButtonLink } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -125,32 +124,11 @@ export function MarkFiledDisclosure({ requirement, returnTo }: { requirement: Re
   );
 }
 
-/** Small "file directly with the state" note, required wherever we offer to file. */
+/**
+ * Small "file directly with the state" note wherever we offer to file. A plain line with no
+ * link or price, so "Have us file it" stays the one action.
+ */
 export function FileDirectlyNote({ business, className }: { business: BusinessView; className?: string }) {
-  const rule = business.rule;
-  if (!rule) return null;
-  let host = rule.officialFilingUrl;
-  try {
-    host = new URL(rule.officialFilingUrl).host;
-  } catch {
-    // keep the raw URL
-  }
-  const noFee = rule.stateFeeCents === 0 || (business.isNonprofit && rule.nonprofitStateFeeCents === 0);
-  const fee = noFee ? "with no state fee" : `for the ${formatCents(rule.stateFeeCents, { trimZeros: true })} state fee`;
-  return (
-    <p className={cn("text-[13px] leading-5 text-muted", className)}>
-      You can also file directly with the state at{" "}
-      <a
-        href={rule.officialFilingUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-0.5 font-semibold text-fg underline decoration-border-strong underline-offset-2 hover:decoration-fg"
-      >
-        {host}
-        <ArrowUpRight size={12} weight="bold" aria-hidden />
-        <span className="sr-only"> (opens the state website in a new tab)</span>
-      </a>{" "}
-      {fee}.
-    </p>
-  );
+  if (!business.rule) return null;
+  return <p className={cn("text-[13px] leading-5 text-muted", className)}>You can also file directly with the state.</p>;
 }
