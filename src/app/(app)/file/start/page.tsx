@@ -171,7 +171,7 @@ export default async function FileStartPage({ searchParams }: PageProps<"/file/s
       )}
 
       <p className="mt-6 max-w-[64ch] text-sm leading-6 text-subtle">
-        You can also file directly with the {agencyName} for the state fee alone.
+        You can also file directly with the {agencyName}.
       </p>
 
       {!supported ? (

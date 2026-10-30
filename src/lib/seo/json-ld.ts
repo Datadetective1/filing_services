@@ -78,7 +78,7 @@ function offerJsonLd(offer: ServiceOfferInput, stateName: string): Json {
     url: absoluteUrl(offer.path),
     price: usd(quote.totalCents),
     priceCurrency: "USD",
-    description: `Total $${usd(quote.totalCents)}: the ${stateName} state filing fee of $${usd(quote.governmentFeeCents)} (paid to the state, passed through at cost) plus the ${site.name} service fee of $${usd(quote.serviceFeeCents)}. You can also file directly with the state for the state fee alone.`,
+    description: `Total $${usd(quote.totalCents)}: the ${stateName} state filing fee of $${usd(quote.governmentFeeCents)} (paid to the state, passed through at cost) plus the ${site.name} service fee of $${usd(quote.serviceFeeCents)}. You can also file directly with the state.`,
     priceSpecification: {
       "@type": "CompoundPriceSpecification",
       price: usd(quote.totalCents),
