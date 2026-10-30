@@ -86,8 +86,41 @@ needed, so the whole journey can be tested end to end without real money.
 | `FORMATION_SALES_<CODE>` | Opens formation in one state |
 | `BUSINESS_SERVICES_PAGES` | Shows public pages on production and lets search engines index them |
 | `RA_ALERTS_MAILBOX` | Filewell's alerts mailbox registered on the provider account (an address, not "true") |
+| `RAI_API_SECRET` | The partner API secret that signs new-document alerts (a secret, not "true") |
 | `ANNUAL_REPORT_PRICE_VARIANT` | `standard` (default) or `proposed_79` |
 | `CHANGE_OF_AGENT_ABSORBED_CENTS` | Absorbed change cost for economics (default 2500) |
+
+## Partner document alerts
+
+Registered Agents Inc. posts an alert to `/api/webhooks/registered-agent` when a document
+arrives for one of our entities. Per their account manager, each alert is a JWT signed with
+our API credentials carrying the Document ID, Company ID and Company Name. We have not yet
+seen their published API docs or a real alert, so the exact signing algorithm and field names
+are **not verified**: the receiver accepts HMAC tokens only (HS256, HS384, HS512, signed with
+`RAI_API_SECRET`), refuses unsigned and key-pair tokens, and reads the fields however they're
+spelled. Check the first real alert in the logs and the admin page.
+
+What happens to an alert:
+
+1. The token is verified before anything in it is read. Bad or unsigned alerts get 401; no
+   secret configured gets 503 (the partner retries later).
+2. It is recorded once in `provider_document_events` (unique on the partner document ID), so
+   retries and replays do nothing more.
+3. It is matched to a subscription by the partner company ID saved on the subscription
+   (`provider_account_ref`, "Partner company ID" on the admin subscription page). No match, or
+   two subscriptions with the same ID, leaves it for staff.
+4. Staff get `staff_ra_partner_document` at once, and one reminder if it's still open after
+   four hours (hourly services cron). A matched, live customer gets `ra_document_arriving`.
+5. Staff pull the document from the partner portal and upload it on the subscription. The
+   upload sends the usual "document ready" email and closes the oldest open alert. An alert
+   that needs no upload can be closed with a note.
+
+Saving a company ID on a subscription links any earlier unmatched alerts for that company.
+
+One-time setup (owner): create the API key under API Management on the partner account, set
+`RAI_API_SECRET` in Vercel (Production), redeploy, then register the endpoint with an
+authenticated `POST /callbacks` and `{"url": "https://www.getfilewell.com/api/webhooks/registered-agent"}`.
+`GET /callbacks` lists what is registered.
 
 ## Customer terms
 

@@ -44,7 +44,7 @@ export default async function RegisteredAgentQueuePage() {
   await requireStaff();
   const db = await createClient();
   const today = opsToday();
-  const [{ data: orders }, { data: docs }, { data: subs }] = await Promise.all([
+  const [{ data: orders }, { data: docs }, { data: subs }, { data: alerts }] = await Promise.all([
     db
       .from("provider_orders")
       .select("id, kind, status, state_code, created_at, updated_at, ra_subscription_id, businesses(legal_name)")
@@ -60,6 +60,11 @@ export default async function RegisteredAgentQueuePage() {
       .select("id, state_code, billing_status, service_status, failed_payment_count, provider_renewal_date, provider_cancelled_at, current_period_end, businesses(legal_name)")
       .neq("service_status", "ended")
       .in("billing_status", ["past_due", "unpaid", "canceled"]),
+    db
+      .from("provider_document_events")
+      .select("id, provider_document_id, provider_company_id, provider_company_name, match_status, received_at, ra_subscription_id, businesses(legal_name)")
+      .is("handled_at", null)
+      .order("received_at"),
   ]);
   const now = new Date().toISOString();
   const nationwide = nationwideBlockers();
@@ -119,6 +124,57 @@ export default async function RegisteredAgentQueuePage() {
                     </TD>
                     <TD className="max-w-md text-muted">{nextOperatorAction(o.kind as ProviderOrderKind, o.status as ProviderOrderStatus)}</TD>
                     <TD className="whitespace-nowrap">{formatDateTime(o.updated_at)}</TD>
+                  </TR>
+                ))}
+              </tbody>
+            </Table>
+          </TableScroll>
+        )}
+      </Panel>
+
+      <Panel
+        title="Partner document alerts to upload"
+        description="Registered Agents Inc. reported these documents. Pull each one from the partner portal and upload it on the subscription. An unmatched alert needs the partner company ID saved on the right subscription first."
+        bodyClassName="p-0"
+      >
+        {(alerts ?? []).length === 0 ? (
+          <div className="px-5 py-4">
+            <EmptyRow>No open partner alerts.</EmptyRow>
+          </div>
+        ) : (
+          <TableScroll variant="inset" className="rounded-none border-0">
+            <Table>
+              <THead>
+                <tr>
+                  <TH>Business</TH>
+                  <TH>Partner IDs</TH>
+                  <TH>Received</TH>
+                  <TH>Match</TH>
+                </tr>
+              </THead>
+              <tbody>
+                {(alerts ?? []).map((a) => (
+                  <TR key={a.id}>
+                    <TD>
+                      {a.ra_subscription_id ? (
+                        <Link className={tableLink} href={`/admin/registered-agent/${a.ra_subscription_id}`}>
+                          {one(a.businesses)?.legal_name ?? a.provider_company_name ?? shortId(a.id)}
+                        </Link>
+                      ) : (
+                        (a.provider_company_name ?? "Unknown company")
+                      )}
+                    </TD>
+                    <TD className="text-sm">
+                      Document {a.provider_document_id}
+                      <br />
+                      Company {a.provider_company_id ?? "(none sent)"}
+                    </TD>
+                    <TD className="whitespace-nowrap">{formatDateTime(a.received_at)}</TD>
+                    <TD>
+                      <Badge tone={a.match_status === "matched" ? "neutral" : "warning"}>
+                        {a.match_status === "matched" ? "Matched" : a.match_status === "ambiguous" ? "Two subscriptions share this ID" : "No subscription has this ID"}
+                      </Badge>
+                    </TD>
                   </TR>
                 ))}
               </tbody>
