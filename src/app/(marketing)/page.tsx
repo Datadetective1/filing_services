@@ -5,6 +5,8 @@ import { site } from "@/config/site";
 import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Photo } from "@/components/media/photo";
+import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { publicServicePrices } from "@/lib/services/public-prices";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
@@ -60,6 +62,7 @@ export default async function HomePage() {
   const marketing = rule ? marketingPeriod(rule) : null;
   const periodInfo = marketing?.period ? { period: marketing.period, missed: marketing.missed } : null;
   const quote = rule ? await publicQuote(rule) : null;
+  const raPrice = businessServicesPagesEnabled() ? (await publicServicePrices()).registered_agent : undefined;
   const agency = pa ? agencyShortName(pa) : "Pennsylvania Department of State";
   const stateName = pa?.name ?? "Pennsylvania";
   const groups = dueGroups(paRules);
@@ -333,6 +336,20 @@ export default async function HomePage() {
               See all pricing
               <ArrowRight size={16} weight="bold" aria-hidden />
             </Link>
+            {raPrice !== undefined ? (
+              <div className="grid gap-2 rounded-[var(--radius-surface)] border border-border bg-surface p-5">
+                <p className="font-display text-lg font-semibold text-fg">
+                  Need a registered agent? {formatCents(raPrice, { trimZeros: true })} a year.
+                </p>
+                <p className="text-[15px] leading-6 text-muted">
+                  The same price at renewal. Switching from another agent? We file the change, and you pay only the state&apos;s fee.
+                </p>
+                <Link href="/registered-agent" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-start`}>
+                  See registered agent service
+                  <ArrowRight size={16} weight="bold" aria-hidden />
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <Receipt
