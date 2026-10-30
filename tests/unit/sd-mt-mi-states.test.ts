@@ -90,8 +90,8 @@ describe("new states take orders but don't file until their question is answered
 
   it("with the switch on in production, each is sellable, and any open question still blocks filing", () => {
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
-    // Florida and Colorado have none since the customer signs their own report (2026-10-30).
-    const STILL_OPEN = ["SD", "MT", "MI"];
+    // Florida, Colorado and Montana have none since the customer signs their own report (2026-10-30).
+    const STILL_OPEN = ["SD", "MI"];
     for (const st of NEW) {
       vi.stubEnv(`${st}_LIVE_FILING_SALES`, "true");
       expect(salesBlockingQuestionsFor(st), st).toEqual([]);

@@ -29,6 +29,8 @@ export interface OpenQuestion {
 // Closed 2026-10-30 (owner decision): fl_signer_permission and co_delivery_affirmation. The customer
 // now signs Florida and Colorado reports themselves (StateAuthorization.customerSignature), so
 // Filewell never signs or affirms for them and there is nothing left for counsel to approve.
+// Closed 2026-10-30: mt_declaration_text. Montana Business Services emailed the Declarations
+// wording; the customer makes those declarations themselves (MT_DECLARATIONS in montana.ts).
 const ORDERS_OPEN_FILING_BLOCKED = { blocksSales: false } as const;
 
 export const OPEN_QUESTIONS: OpenQuestion[] = [
@@ -68,14 +70,6 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
     summary:
       "From January 1, 2027, SDCL 59-11-25 lets a business file in its anniversary month or by January 31, and choose on its formation document or a change-of-filing-date form. How the Secretary records each business's choice, how existing businesses are assigned a date, and how early a report can be filed are not confirmed. Filewell blocks businesses on the January 31 date and does not sell or file South Dakota reports until this is answered.",
     answeredBy: "South Dakota Secretary of State (Business Services)",
-  },
-  {
-    key: "mt_declaration_text",
-    ...ORDERS_OPEN_FILING_BLOCKED,
-    stateCode: "MT",
-    summary:
-      "Montana's online report asks the signer to check declaration boxes whose wording isn't published in text. The customer signs the report themselves, but they can only confirm declarations they have read. Until the exact wording is captured from biz.sosmt.gov (or from the Secretary of State) and added as the rule's certification text, so each customer confirms it word for word, Filewell does not file Montana reports.",
-    answeredBy: "The owner inside biz.sosmt.gov (stop before filing), or Montana Business Services",
   },
   {
     key: "mi_milogin_access",

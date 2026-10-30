@@ -20,7 +20,7 @@ guide pages, footer links, admin acquisition and owner-check screens are not add
 | Florida | LLC, profit corporation | $138.75 LLC, $150 corp | May 1 | $400 after May 1, not waivable; non-profits exempt | Document number, no login | None (customer signs) |
 | Colorado | LLC, corporation | $25 | Last day of 2nd month after the report month | $50 after the due date | No login unless Secure Business Filing | None (customer signs) |
 | South Dakota | LLC, corporation | $55 online | End of anniversary month | $55 when late | Business ID, no login | `sd_2027_filing_date` |
-| Montana | LLC, domestic corporation | Waived on time in 2026 and 2027 | April 15 | $35 after April 15 | No login for no-change reports | `mt_declaration_text` |
+| Montana | LLC, domestic corporation | Waived on time in 2026 and 2027 | April 15 | $35 after April 15 | No login for no-change reports | None (customer signs) |
 | Michigan | Corporation only | $25 | May 15 | $10 a month or part, up to $50 | MiLogin for Business + entity access | `mi_milogin_access` |
 
 ## The customer signs (Florida, Colorado, Montana)
@@ -45,10 +45,10 @@ The signature is stored with the packet, its hash, the time, and the exact text 
   checkpoint and stops if it differs. `co_delivery_affirmation` is closed.
 - **Montana.** The signer must be one of the people listed (MCA 35-8-208: a member or the
   authorized agent; MCA 35-2-119(5)(b) for corporations: an officer or authorized agent). The
-  declaration boxes' wording isn't published, so `mt_declaration_text` keeps filing closed
-  (orders stay open) until the wording is captured and added as the rule's certification text.
-  Then every earlier Montana signature no longer matches and the customer confirms the
-  declarations word for word before filing.
+  three declaration boxes aren't published in text; Montana Business Services emailed a
+  screenshot of them on 2026-10-30, and `MT_DECLARATIONS` quotes it verbatim as the rule's
+  certification text. The customer makes the declarations when they sign; the operator compares
+  each box at filing and stops if the wording differs. `mt_declaration_text` is closed.
 
 ## Code changes beyond the state files
 
@@ -70,7 +70,8 @@ The signature is stored with the packet, its hash, the time, and the exact text 
   anniversary month in current Secretary wording (only a 2017 pamphlet); the 2025 session
   law itself. The Secretary's instructions page still says $50 late; statute and fee page
   say $55.
-- Montana: the declaration wording; the on-time fee after the waiver ends.
+- Montana: the on-time fee after the waiver ends. The declaration wording comes from Business
+  Services' emailed screenshot, not a public page.
 - Michigan: report contents, signer, automatic dissolution and the first-year exemption.
   These come from statute pages that showed a CAPTCHA, so they are not cited. Filewell opens
   Michigan reports on January 15, when LARA says online filing begins; whether anything can
@@ -78,8 +79,8 @@ The signature is stored with the packet, its hash, the time, and the exact text 
 
 ## Human actions before each state's first filing
 
-1. Owner or Montana Business Services: Montana's declaration wording (stop before filing).
-2. Owner, in each portal (stop before paying): capture Montana's declaration text, check
+1. Done 2026-10-30: Montana's declaration wording (emailed by Montana Business Services).
+2. Owner, in each portal (stop before paying): check
    Colorado's Secure Business Filing flow, ask Michigan LARA about filing-service access,
    ask South Dakota how the 2027 filing date is recorded.
 3. Close each open question in code once answered, so its filings can be marked ready.
