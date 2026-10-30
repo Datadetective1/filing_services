@@ -266,6 +266,15 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     description: "Sent when a government notice, mail item or other document is added for a registered agent customer.",
   },
   {
+    key: "ra_document_arriving",
+    category: "transactional",
+    subject: "A new document arrived for {{company_name}}",
+    body:
+      "Your registered agent received a new document for {{company_name}} in {{state_name}}. We're adding it to your dashboard now, and we'll email you again as soon as you can view it.",
+    ctaLabel: "Open your service",
+    description: "Sent when the registered agent partner tells us a document arrived, before staff have added the file.",
+  },
+  {
     key: "ra_renewal_reminder",
     category: "transactional",
     subject: "Your registered agent service renews in {{days}} days",
@@ -329,6 +338,17 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
       "Notify the customer now and record the attempt.",
     ctaLabel: "Open the document",
     description: "Staff alert: an urgent or high-priority registered agent document is past its internal target.",
+  },
+  {
+    key: "staff_ra_partner_document",
+    category: "transactional",
+    subject: "Partner document for {{company_name}} ({{state_name}})",
+    body:
+      "Registered Agents Inc. reports a new document for {{company_name}}.\n\n" +
+      "Partner document ID: {{provider_document_id}}\nPartner company ID: {{provider_company_id}}\n\n" +
+      "{{message}}",
+    ctaLabel: "Open registered agent",
+    description: "Staff alert: the registered agent partner reported a new document, which staff must pull from the partner portal and upload.",
   },
 ];
 

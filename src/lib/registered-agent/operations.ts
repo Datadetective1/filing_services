@@ -17,6 +17,7 @@ import {
   type ServiceDocumentKind,
   SERVICE_DOCUMENT_KINDS,
 } from "./documents";
+import { linkUploadToOpenAlert, remindOpenAlerts } from "./document-events";
 import { getRaJurisdiction } from "./jurisdictions";
 import {
   providerCancellationDue,
@@ -298,6 +299,8 @@ export async function uploadServiceDocument(
     throw new OperationError(`Document record failed: ${error?.message}`);
   }
   await audit({ actorUserId: staff.id, actorType: "staff", action: "service_document.uploaded", entityType: "service_document", entityId: doc.id, after: { kind: input.kind, urgency, billable_mail: billable } });
+  // The upload answers the oldest open partner alert on this subscription, if there is one.
+  await linkUploadToOpenAlert(staff.id, sub.id, doc.id);
   const notified = await notifyCustomerOfDocument(doc.id, staff.id);
   return { id: doc.id, notified };
 }
@@ -379,17 +382,18 @@ export async function signedUrlForServiceDocument(documentId: string): Promise<{
 export interface ServiceCycleSummary {
   renewalReminders: number;
   escalations: number;
+  partnerAlertReminders: number;
   providerCancellationsFlagged: number;
   errors: number;
 }
 
 /**
  * Renewal reminders (30 and 7 days ahead), escalation of urgent documents that have not
- * reached the customer, and unpaid entities to cancel with the provider before its
+ * reached the customer, reminders for partner document alerts still open, and unpaid entities to cancel with the provider before its
  * renewal. Never throws: one failure doesn't stop the others.
  */
 export async function runServiceCycle(now = new Date()): Promise<ServiceCycleSummary> {
-  const summary: ServiceCycleSummary = { renewalReminders: 0, escalations: 0, providerCancellationsFlagged: 0, errors: 0 };
+  const summary: ServiceCycleSummary = { renewalReminders: 0, escalations: 0, partnerAlertReminders: 0, providerCancellationsFlagged: 0, errors: 0 };
   const db = createAdminClient();
   const today = now.toISOString().slice(0, 10);
 
@@ -487,6 +491,13 @@ export async function runServiceCycle(now = new Date()): Promise<ServiceCycleSum
   } catch (e) {
     summary.errors += 1;
     console.error("[services cron] document escalation failed", e instanceof Error ? e.message : e);
+  }
+
+  try {
+    summary.partnerAlertReminders = await remindOpenAlerts(now);
+  } catch (e) {
+    summary.errors += 1;
+    console.error("[services cron] partner alert reminders failed", e instanceof Error ? e.message : e);
   }
   return summary;
 }

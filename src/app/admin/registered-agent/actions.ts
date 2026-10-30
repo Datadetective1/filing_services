@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { ActionState } from "@/components/admin/action-state";
 import { UUID_RE } from "@/components/admin/format";
 import { requireAdmin, requireStaff } from "@/lib/auth/session";
+import { closeProviderDocumentAlert, recordProviderCompanyId } from "@/lib/registered-agent/document-events";
 import {
   isServiceDocumentKind,
   notifyCustomerOfDocument,
@@ -176,4 +177,32 @@ export async function providerCancelledAction(_prev: ActionState, formData: Form
     return actionError(e);
   }
   return done(parsed.data.subscriptionId, "Recorded.");
+}
+
+export async function providerCompanyIdAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const staff = await requireStaff();
+  const parsed = parseForm(
+    z.object({ subscriptionId: id, companyId: z.string().trim().regex(/^[A-Za-z0-9_.:-]{1,100}$/, "Enter the company ID exactly as the partner portal shows it.") }),
+    formData,
+  );
+  if (!parsed.ok) return fail(parsed.error);
+  let linked: number;
+  try {
+    linked = await recordProviderCompanyId(staff, parsed.data.subscriptionId, parsed.data.companyId);
+  } catch (e) {
+    return actionError(e);
+  }
+  return done(parsed.data.subscriptionId, linked > 0 ? `Saved. Linked ${linked} earlier partner alert${linked === 1 ? "" : "s"}.` : "Saved.");
+}
+
+export async function closePartnerAlertAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const staff = await requireStaff();
+  const parsed = parseForm(z.object({ subscriptionId: id, alertId: id, note: z.string().trim().min(3, "Note why no upload is needed.").max(500) }), formData);
+  if (!parsed.ok) return fail(parsed.error);
+  try {
+    await closeProviderDocumentAlert(staff, parsed.data.alertId, parsed.data.note);
+  } catch (e) {
+    return actionError(e);
+  }
+  return done(parsed.data.subscriptionId, "Closed.");
 }

@@ -26,7 +26,9 @@ import { PROVIDER_LEGAL_NAME, SERVICES } from "@/lib/services/catalog";
 import { createClient } from "@/lib/supabase/server";
 import { one } from "../../_lib/data";
 import {
+  closePartnerAlertAction,
   notificationAttemptAction,
+  providerCompanyIdAction,
   providerCancelledAction,
   providerRenewalDateAction,
   replacementAgentAction,
@@ -51,7 +53,7 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
   const { data: sub } = await db.from("ra_subscriptions").select("*, businesses(legal_name, entity_type, state_entity_number)").eq("id", id).maybeSingle();
   if (!sub) notFound();
   const PAYMENT_COLUMNS = "id, order_id, status, amount_cents, purpose, mode, created_at, provider_invoice_id";
-  const [{ data: orders }, { data: docs }, { data: years }, { data: firstPayments }, { data: renewalPayments }] = await Promise.all([
+  const [{ data: orders }, { data: docs }, { data: years }, { data: firstPayments }, { data: renewalPayments }, { data: alerts }] = await Promise.all([
     db.from("provider_orders").select("*").eq("ra_subscription_id", id).order("created_at"),
     db.from("service_documents").select("*, document_notification_attempts(channel, status, note, created_at)").eq("ra_subscription_id", id).order("created_at", { ascending: false }),
     db.from("bundle_filing_periods").select("*").eq("ra_subscription_id", id).order("period_start"),
@@ -59,6 +61,12 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
     sub.provider_subscription_id
       ? db.from("payments").select(PAYMENT_COLUMNS).eq("provider_subscription_id", sub.provider_subscription_id).eq("purpose", "renewal")
       : Promise.resolve({ data: [] }),
+    db
+      .from("provider_document_events")
+      .select("id, provider_document_id, received_at, customer_notified_at, handled_at, handled_note, service_document_id")
+      .eq("ra_subscription_id", id)
+      .order("received_at", { ascending: false })
+      .limit(20),
   ]);
   const payments = [...((firstPayments ?? []) as { id: string; order_id: string; status: string; amount_cents: number; purpose: string; mode: string; created_at: string }[]), ...((renewalPayments ?? []) as { id: string; order_id: string; status: string; amount_cents: number; purpose: string; mode: string; created_at: string }[])].sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
   const orderIds = (orders ?? []).map((o) => o.id as string);
@@ -210,6 +218,45 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
           </Panel>
         );
       })}
+
+      <Panel
+        title="Partner document alerts"
+        description="Registered Agents Inc. tells us when a document arrives. Pull it from the partner portal and upload it below; the upload closes the oldest open alert."
+      >
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          {(alerts ?? []).length === 0 ? (
+            <EmptyRow>No partner alerts yet.</EmptyRow>
+          ) : (
+            <ul className="grid gap-3">
+              {(alerts ?? []).map((a) => (
+                <li key={a.id} className="grid gap-2 rounded-[var(--radius-control)] border border-border p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold">Partner document {a.provider_document_id}</span>
+                    <Badge tone={a.handled_at ? "success" : "warning"}>{a.handled_at ? (a.service_document_id ? "Uploaded" : "Closed") : "Open"}</Badge>
+                  </div>
+                  <p className="text-sm text-muted">
+                    Received {formatDateTime(a.received_at)} · customer told it arrived {a.customer_notified_at ? formatDateTime(a.customer_notified_at) : "no"}
+                    {a.handled_note ? ` · ${a.handled_note}` : ""}
+                  </p>
+                  {!a.handled_at ? (
+                    <ActionForm action={closePartnerAlertAction} submitLabel="Close without upload">
+                      <input type="hidden" name="subscriptionId" value={sub.id} />
+                      <input type="hidden" name="alertId" value={a.id} />
+                      <Input name="note" aria-label="Why no upload is needed" maxLength={500} required placeholder="Why no upload is needed" />
+                    </ActionForm>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+          <ActionForm action={providerCompanyIdAction} submitLabel="Save company ID" resetOnSuccess={false}>
+            <input type="hidden" name="subscriptionId" value={sub.id} />
+            <Field label="Partner company ID" htmlFor="provider-company-id" hint="From the partner portal. Alerts find this subscription by it.">
+              <Input id="provider-company-id" name="companyId" maxLength={100} defaultValue={sub.provider_account_ref ?? ""} required />
+            </Field>
+          </ActionForm>
+        </div>
+      </Panel>
 
       <Panel title="Documents" description="Upload what the provider received. The customer is emailed at once; record calls for legal documents.">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
