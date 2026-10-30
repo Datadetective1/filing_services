@@ -234,7 +234,23 @@ export default async function FilingPacketPage(props: PageProps<"/admin/filings/
         </PacketSection>
 
         <PacketSection n={5} title="Signature block">
-          {stateAuth && authorization?.certification_text ? (
+          {stateAuth?.auth.customerSignature ? (
+            <div className="grid gap-2">
+              <p className="rounded-[var(--radius-control)] border border-border-strong bg-bg p-4 font-mono text-[14px] leading-relaxed print:bg-white">
+                {authorization
+                  ? `Customer's own signature (enter exactly, only after the comparison checkpoint): ${authorization.signer_name}, ${authorization.signer_title}`
+                  : "No customer signature recorded. Do not file."}
+                {authorization && stateAuth.auth.customerSignature.signerIsDeliverer
+                  ? `. Individual causing delivery: ${authorization.signer_name}, at the principal office mailing address.`
+                  : ""}
+                {authorization?.certification_text ? ` Statement the customer made: “${authorization.certification_text}”` : ""}
+              </p>
+              <p className="text-xs text-muted">
+                The customer signed this report themselves{authorization ? ` on ${formatDateTime(authorization.created_at)}` : ""}. Never enter your own name or
+                anyone else&apos;s, and don&apos;t tick a declaration the customer hasn&apos;t confirmed word for word.
+              </p>
+            </div>
+          ) : stateAuth && authorization?.certification_text ? (
             <div className="grid gap-2">
               <p className="rounded-[var(--radius-control)] border border-border-strong bg-bg p-4 font-mono text-[14px] leading-relaxed print:bg-white">
                 Authorized Person: {signerOperator}, for {authorization.filing_agent_name ?? site.name}, as the business&apos;s authorized filing agent. Certification

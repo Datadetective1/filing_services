@@ -3,11 +3,12 @@ import { evaluateFees } from "@/lib/compliance/fees";
 import { openQuestionBlockers, openQuestionsFor } from "@/lib/compliance/open-questions";
 import { findRule, isRuleSellable, RULES } from "@/lib/compliance/registry";
 import { formationDateRequired } from "@/lib/compliance/state-meta";
+import { CO_DELIVERY_NOTICE } from "@/lib/compliance/states/colorado";
 import { FL_FELONY_WARNING, FL_FORGERY_WARNING } from "@/lib/compliance/states/florida";
 import { dueRuleText } from "@/lib/compliance/view";
 import { currentFilingPeriod, dueDateForYear, isFilingWindowOpen } from "@/lib/domain/deadlines";
 import { authorizationText, stateAuthorizationTextInput } from "@/lib/filings/customer";
-import { listedPrincipal, principalSignerProblem } from "@/lib/filings/principal-signature";
+import { listedPrincipal, principalSignerProblem } from "@/lib/filings/customer-signature";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -47,23 +48,27 @@ describe("Florida annual report", () => {
     expect(fields.some((f) => /fein_number|ein_number/.test(f.key))).toBe(false);
   });
 
-  it("needs a listed principal's own signature, with Sunbiz's warnings verbatim", () => {
-    const ps = llc.stateAuthorization!.principalSignature!;
+  it("is signed by the customer as a listed principal, with Sunbiz's warnings verbatim", () => {
+    const ps = llc.stateAuthorization!.customerSignature!;
     expect(ps.principalsKey).toBe("governors");
     expect(ps.warnings.map((w) => w.text)).toEqual([FL_FORGERY_WARNING, FL_FELONY_WARNING]);
     for (const w of ps.warnings) expect(llc.sources.find((s) => s.factKey === w.sourceFactKey)?.quote).toBe(w.text);
   });
 
-  it("takes orders with its switch on, but no report is filed until counsel answers the signer question", () => {
+  it("takes orders with its switch on and has no open question now that the customer signs", () => {
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
     vi.stubEnv("FL_LIVE_FILING_SALES", "true");
-    expect(openQuestionsFor("FL", "llc").map((q) => q.key)).toEqual(["fl_signer_permission"]);
+    expect(openQuestionsFor("FL", "llc")).toEqual([]);
+    expect(openQuestionBlockers("FL", "corporation")).toEqual([]);
     for (const r of RULES.filter((x) => x.stateCode === "FL")) expect(isRuleSellable(r), r.ruleKey).toBe(true);
-    expect(openQuestionBlockers("FL", "llc").join(" ")).toMatch(/fl_signer_permission.*Do not file/);
+  });
+
+  it("cites Florida's acceptance of conformed and electronic signatures", () => {
+    expect(llc.sources.find((s) => s.factKey === "signature_forms")?.quote).toBe("any symbol, manual, facsimile, conformed, or electronic signature");
   });
 });
 
-describe("principal signature", () => {
+describe("customer signature", () => {
   const auth = findRule("FL", "llc")!.stateAuthorization!;
   const values = { governors: [{ name: "Ana  Lopez", title: "Manager", address: "1 Main St" }, { name: "Ben Ode", title: "Managing Member" }] };
 
@@ -74,25 +79,54 @@ describe("principal signature", () => {
 
   it("refuses a signer who isn't listed, or who signs with another title", () => {
     expect(principalSignerProblem(auth, values, { name: "Ana Lopez", title: "manager" })).toBeNull();
-    expect(principalSignerProblem(auth, values, { name: "Cara Fox", title: "Manager" })).toMatch(/one of the principals/);
+    expect(principalSignerProblem(auth, values, { name: "Cara Fox", title: "Manager" })).toMatch(/one of the people listed/);
     expect(principalSignerProblem(auth, values, { name: "Ben Ode", title: "Manager" })).toMatch(/Managing Member/);
   });
 
-  it("does nothing for states without a principal signature", () => {
+  it("does nothing for states without a customer signature, or with no people to match (Colorado)", () => {
     expect(principalSignerProblem(findRule("UT", "llc")!.stateAuthorization!, {}, { name: "X", title: "Y" })).toBeNull();
+    expect(principalSignerProblem(findRule("CO", "llc")!.stateAuthorization!, {}, { name: "X", title: "Y" })).toBeNull();
   });
 
-  it("puts the permission and the state's warnings in the signed text, not a certification by the agent", () => {
-    const t = authorizationText({
+  it("requires Montana's signer to be one of the listed people too", () => {
+    const mt = findRule("MT", "llc")!.stateAuthorization!;
+    expect(principalSignerProblem(mt, values, { name: "Ben Ode", title: "Managing Member" })).toBeNull();
+    expect(principalSignerProblem(mt, values, { name: "Cara Fox", title: "Member" })).toMatch(/people listed/);
+  });
+
+  const text = (state: string, stateName: string, filingName = "Annual Report") =>
+    authorizationText({
       businessName: "Sun LLC",
-      stateName: "Florida",
-      filingName: "Annual Report",
+      stateName,
+      filingName,
       brand: "Filewell",
-      state: stateAuthorizationTextInput(auth, "Filewell"),
+      state: stateAuthorizationTextInput(findRule(state, "llc")!.stateAuthorization!, "Filewell"),
     });
-    expect(t).toContain("I give Filewell permission to type my name and title, exactly as I sign below, as my electronic signature on this Annual Report only.");
+
+  it("has the customer sign Florida's report themselves, with the state's warnings, and Filewell never signs", () => {
+    const t = text("FL", "Florida");
+    expect(t).toContain("I am signing this Annual Report myself, as one of the people listed in it.");
+    expect(t).toContain("I adopt them as my electronic signature on this Annual Report, with the intent to sign it.");
+    expect(t).toContain("I authorize Filewell to enter my signature on the state's form exactly as I type it and to submit this Annual Report only. Filewell does not sign, certify or affirm it for me.");
     expect(t).toContain(`“${FL_FORGERY_WARNING}”`);
+    expect(t).toContain("preparing and submitting the Florida Annual Report described above, using the information I provided and my own signature");
+    expect(t).not.toContain("electronically signing");
+    expect(t).not.toContain("permission to type");
     expect(t).not.toContain("will sign the Annual Report as the business's authorized person");
+  });
+
+  it("names the Colorado customer as the individual causing delivery, making Colorado's statement word for word", () => {
+    const t = text("CO", "Colorado", "Periodic Report");
+    expect(t).toContain("I am signing this Periodic Report myself.");
+    expect(t).toContain("I am the individual causing this Periodic Report to be delivered for filing, and Filewell will name me as that individual, at the business's mailing address.");
+    expect(t).toContain(`I make the state's statement myself: “${CO_DELIVERY_NOTICE}”`);
+    expect(t).not.toContain("will sign the Periodic Report as the business's authorized person");
+  });
+
+  it("tells the Montana customer the declarations come before filing", () => {
+    const t = text("MT", "Montana");
+    expect(t).toContain("The state's form also asks the signer to confirm declarations. Filewell will show me their exact wording, and nothing is filed until I confirm them.");
+    expect(t).not.toContain("I make the state's statement");
   });
 });
 
@@ -128,11 +162,36 @@ describe("Colorado Periodic Report", () => {
     expect(isFilingWindowOpen(llc, 2026, "2027-03-31", "2026-10-31")).toBe(false);
   });
 
-  it("takes orders with its switch on, but no report is filed until counsel answers the delivery question", () => {
+  it("takes orders with its switch on and has no open question now that the customer is the individual causing delivery", () => {
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
     vi.stubEnv("CO_LIVE_FILING_SALES", "true");
-    expect(openQuestionsFor("CO", "llc").map((q) => q.key)).toEqual(["co_delivery_affirmation"]);
+    expect(openQuestionsFor("CO", "llc")).toEqual([]);
     for (const r of RULES.filter((x) => x.stateCode === "CO")) expect(isRuleSellable(r), r.ruleKey).toBe(true);
-    expect(openQuestionBlockers("CO", "llc").join(" ")).toMatch(/co_delivery_affirmation.*Do not file/);
+  });
+
+  it("quotes Colorado's delivery notice as the customer's own statement, from a cited source", () => {
+    const auth = llc.stateAuthorization!;
+    expect(auth.certificationText).toBe(CO_DELIVERY_NOTICE);
+    expect(auth.customerSignature).toMatchObject({ signerIsDeliverer: true });
+    expect(llc.sources.find((s) => s.factKey === auth.certificationSourceFactKey)?.quote).toBe(CO_DELIVERY_NOTICE);
+    expect(llc.operatorRunbook!.steps.join(" ")).not.toMatch(/Enter your own name/);
+  });
+});
+
+describe("Montana annual report signing", () => {
+  it("keeps filing closed only until the declaration wording is captured", () => {
+    expect(openQuestionsFor("MT", "llc").map((q) => q.key)).toEqual(["mt_declaration_text"]);
+    expect(openQuestionsFor("MT", "llc")[0].blocksSales).toBe(false);
+    expect(openQuestionBlockers("MT", "corporation").join(" ")).toMatch(/mt_declaration_text.*Do not file/);
+    const auth = findRule("MT", "llc")!.stateAuthorization!;
+    expect(auth.certificationText).toBeNull();
+    expect(auth.customerSignature).toMatchObject({ principalsKey: "governors", declarationsPending: true });
+  });
+
+  it("never tells the operator to sign with their own name", () => {
+    for (const r of RULES.filter((x) => ["FL", "CO", "MT"].includes(x.stateCode))) {
+      expect(r.operatorRunbook!.steps.join(" "), r.ruleKey).not.toMatch(/sign with your own name as|Enter your own name and mailing address/);
+      expect(r.stateAuthorization!.customerSignature, r.ruleKey).toBeDefined();
+    }
   });
 });

@@ -11,11 +11,14 @@ import type { ComplianceRuleDef, IntakeSchema, LateFeeRule, RuleSource } from ".
  *
  * Signing: Sunbiz has no login (the document number opens the report), but the report must
  * be "signed" by one of the business's own principals typing their name. Sunbiz warns that
- * typing someone's name without their permission is forgery. So Filewell's operator never
- * signs as itself: the customer must be a listed principal and give explicit permission for
- * the name and title they sign with (StateAuthorization.principalSignature). Whether that
- * permission is enough is an open question for counsel (fl_signer_permission), so sales
- * and filing stay closed.
+ * typing someone's name without their permission is forgery. So the customer signs the
+ * report themselves (StateAuthorization.customerSignature, owner decision 2026-10-30): they
+ * must be a listed principal, they type their own name and title as their electronic
+ * signature on the exact report Filewell prepared, and the operator enters that signature in
+ * Sunbiz's signature block exactly as typed. Florida accepts "any symbol, manual, facsimile,
+ * conformed, or electronic signature" used with the present intent to authenticate
+ * (s.15.16(5)(b) F.S.). Filewell never signs as itself. Sunbiz has no way to save a report
+ * and come back, so handing the customer a half-filled report to finish isn't possible.
  *
  * Changing the registered agent needs the new agent's own electronic signature on the
  * report, so Filewell doesn't take registered agent changes here.
@@ -32,6 +35,7 @@ export const FL_URLS = {
   annualReport: "https://dos.fl.gov/sunbiz/manage-business/efile/annual-report/",
   instructions: "https://efile.sunbiz.org/sbs_ar_instr.html",
   statute605_0212: "https://www.flsenate.gov/Laws/Statutes/2024/0605.0212",
+  statute15_16: "https://www.flsenate.gov/Laws/Statutes/2024/15.16",
   search: "https://search.sunbiz.org/Inquiry/CorporationSearch/ByName",
   info: "https://dos.fl.gov/sunbiz/",
 } as const;
@@ -62,6 +66,13 @@ const COMMON: RuleSource[] = [
     FL_URLS.instructions,
     "Annual Report instructions",
     "the typed name of the individual \"signing\" the document is sufficient under s.15.16, Florida Statutes.",
+  ),
+  src(
+    "signature_forms",
+    FL_URLS.statute15_16,
+    "Florida Statutes 15.16(5)(b)",
+    "any symbol, manual, facsimile, conformed, or electronic signature",
+    "Florida Legislature (Florida Statutes)",
   ),
   src("forgery", FL_URLS.instructions, "Annual Report instructions", FL_FORGERY_WARNING),
   src("false_document", FL_URLS.instructions, "Annual Report instructions", FL_FELONY_WARNING),
@@ -275,7 +286,7 @@ function buildRule(p: FlProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
-    // v1 (2026-10-29): not sold. Open question fl_signer_permission keeps sales and filing closed.
+    // v1 (2026-10-29). Since 2026-10-30 the customer signs the report themselves (customerSignature).
     version: 1,
     verificationStatus: "verified",
     effectiveFrom: VERIFIED,
@@ -316,7 +327,7 @@ function buildRule(p: FlProfile): ComplianceRuleDef {
       { q: "Is there a late fee?", a: "Yes. Florida adds $400 to a report filed after May 1 and says it cannot waive it." },
       {
         q: "Who signs the report?",
-        a: "One of the business's own principals (for example a manager or an officer). If we file for you, you sign our authorization as that principal and give us permission to type your name and title on the report.",
+        a: "One of the business's own principals (for example a manager or an officer). If we file for you, you sign the report yourself in Filewell and we enter your signature on Sunbiz exactly as you typed it.",
       },
       { q: "Can I file it myself?", a: "Yes. You can file directly on Sunbiz with your document number." },
     ],
@@ -331,7 +342,7 @@ function buildRule(p: FlProfile): ComplianceRuleDef {
         "Pay the $400 late fee only if the order collected it; otherwise contact the customer first.",
         "Go through the screens in the order below and make every value match the packet. Never change the registered agent.",
         "On the review screen, compare every value with the packet, then record the comparison checkpoint in Filewell.",
-        "Signature block: type the signer's name and title exactly as the customer signed Filewell's authorization, and nothing else. Never type your own name or anyone else's.",
+        "Signature block: enter the customer's own signature, the name and title exactly as they signed the report in Filewell, and nothing else. Never type your own name or anyone else's.",
         "Pay by card and save the confirmation.",
       ],
       fieldMap: [
@@ -348,7 +359,7 @@ function buildRule(p: FlProfile): ComplianceRuleDef {
           section: "Signature",
           portalField: "Electronic signature (name and title)",
           answerKey: null,
-          note: "The signer name and title from the customer's authorization, only after the comparison checkpoint.",
+          note: "The customer's own signature (name and title exactly as they signed in Filewell), only after the comparison checkpoint.",
         },
       ],
       confirmationLabel: "Sunbiz confirmation / document number",
@@ -358,7 +369,7 @@ function buildRule(p: FlProfile): ComplianceRuleDef {
       certificationText: null,
       certificationSourceFactKey: "typed_signature",
       operatorCheckpoint: true,
-      principalSignature: {
+      customerSignature: {
         principalsKey: "governors",
         warnings: [
           { text: FL_FORGERY_WARNING, sourceFactKey: "forgery" },

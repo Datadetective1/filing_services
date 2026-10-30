@@ -189,16 +189,25 @@ export interface StateAuthorization {
   /** The operator must record a packet-vs-portal comparison before marking submitted. */
   operatorCheckpoint: boolean;
   /**
-   * The state requires one of the business's own principals to sign (Florida: a manager,
-   * officer or other principal types their own name). Filewell's operator never signs as
-   * itself here: it types the name and title of the principal who signs Filewell's
-   * authorization, and only with that person's explicit permission. The signer must be one
-   * of the people listed in `principalsKey`.
+   * The customer signs the report themselves (Florida, Colorado, Montana). Filewell prepares
+   * it, the customer types their own name and title as their electronic signature on that
+   * exact report, and Filewell's operator enters that signature on the state's form exactly
+   * as typed. Filewell never signs or certifies as itself here. `certificationText`, when
+   * set, is the state's statement the customer makes in their own name.
    */
-  principalSignature?: {
-    principalsKey: string;
-    /** The state's own warnings about typed signatures, verbatim, shown before permission is given. */
+  customerSignature?: {
+    /** Intake key of the people the signer must be one of (Florida's principals). Omitted when the report lists no people (Colorado). */
+    principalsKey?: string;
+    /** The state's own warnings about signatures, verbatim, shown before the customer signs. */
     warnings: { text: string; sourceFactKey: string }[];
+    /** The report names the person who delivers it for filing (Colorado): that person is the customer. */
+    signerIsDeliverer?: boolean;
+    /**
+     * The state's form has declarations whose wording Filewell hasn't captured yet (Montana).
+     * The customer is told they'll confirm them before filing; once the wording is added as
+     * `certificationText`, earlier signatures no longer match and must be signed again.
+     */
+    declarationsPending?: boolean;
   };
 }
 

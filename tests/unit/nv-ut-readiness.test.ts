@@ -128,10 +128,8 @@ describe("Utah v2", () => {
 describe("fail closed on unresolved state questions", () => {
   it("lists exactly the Nevada and Utah questions; Washington and Pennsylvania have none", () => {
     expect(OPEN_QUESTIONS.map((q) => q.key).sort()).toEqual([
-      "co_delivery_affirmation",
-      "fl_signer_permission",
       "mi_milogin_access",
-      "mt_signer_declarations",
+      "mt_declaration_text",
       "nv_orion_client_access",
       "nv_signer_authority",
       "sd_2027_filing_date",

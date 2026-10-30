@@ -5,7 +5,7 @@ import { z } from "zod";
 import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
 import { authorizeFiling, stateAuthorizationFor } from "@/lib/filings/customer";
-import { principalSignerProblem } from "@/lib/filings/principal-signature";
+import { principalSignerProblem } from "@/lib/filings/customer-signature";
 import { registeredAgentConsentRequired } from "@/lib/filings/packet";
 import { validateAll } from "@/lib/intake/validate";
 import type { AuthorizeFormState } from "@/components/intake/types";
@@ -59,14 +59,14 @@ export async function authorizeAction(filingId: string, _prev: AuthorizeFormStat
   if (!loaded) return { errors: {}, formError: "We couldn't find this filing on your account.", values, nonce };
   const wasDraft = loaded.filing.status === "draft";
 
-  // State-specific confirmations (Washington). The server re-checks all of this.
+  // State-specific confirmations (Washington; customer-signed reports in FL, CO, MT). The server re-checks all of this.
   const stateAuth = stateAuthorizationFor(loaded.filing.state_code, loaded.business);
   if (stateAuth) {
     const errors: Record<string, string> = {};
     if (!values.certifyFacts) errors.certifyFacts = "Confirm you reviewed every item and that it is true and correct.";
     const answers = validateAll(loaded.schema, loaded.answers).values;
-    if (stateAuth.auth.principalSignature) {
-      if (!values.permitTypedSignature) errors.permitTypedSignature = "Give permission for us to type your name and title as your signature.";
+    if (stateAuth.auth.customerSignature) {
+      if (!values.permitTypedSignature) errors.permitTypedSignature = "Tick the box to sign the report with your name and title.";
       const problem = principalSignerProblem(stateAuth.auth, answers, { name: parsed.data.signerName, title: parsed.data.signerTitle });
       if (problem) errors.signerName = problem;
     }

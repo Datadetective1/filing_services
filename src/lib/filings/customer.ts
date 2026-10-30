@@ -32,7 +32,7 @@ import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash, userAgent } from "@/lib/security/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { principalSignerProblem } from "./principal-signature";
+import { principalSignerProblem } from "./customer-signature";
 import { buildFilingPacket, packetSha256, registeredAgentConsentRequired, signedCurrentCertification, type PacketRow, type RegisteredAgentConsent } from "./packet";
 import { annualReportPriceVariant, bundleCoverageFor } from "@/lib/services/annual-report-pricing";
 import { getCurrentRuleVersion, listActivePricesAdmin } from "./rules-db";
@@ -72,14 +72,21 @@ export interface StateAuthorizationTextInput {
   /** The state's own certification wording, verbatim; null when the state publishes none in text. */
   certificationText: string | null;
   /**
-   * The state requires a principal of the business to sign (Florida): the signer gives the filing
-   * agent permission to type their own name and title. The state's warnings, verbatim.
+   * The customer signs the report themselves (Florida, Colorado, Montana) and the filing agent
+   * enters that signature exactly as typed. The state's warnings, verbatim.
    */
-  principalSignature?: { warnings: string[] };
+  customerSignature?: { warnings: string[]; listedSigner: boolean; signerIsDeliverer: boolean; declarationsPending: boolean };
 }
 
 /** Suffix on terms_version when the state-specific paragraph is part of the signed text. */
 export const STATE_AUTHORIZATION_REVISION = "state1";
+/** Suffix on terms_version when the customer signs the report themselves (Florida, Colorado, Montana). */
+export const CUSTOMER_SIGNATURE_REVISION = "customer1";
+
+function termsVersionFor(auth: StateAuthorization | null | undefined): string {
+  if (!auth) return AUTHORIZATION_TERMS_VERSION;
+  return `${AUTHORIZATION_TERMS_VERSION}.${auth.customerSignature ? CUSTOMER_SIGNATURE_REVISION : STATE_AUTHORIZATION_REVISION}`;
+}
 
 export function authorizationText(input: {
   businessName: string;
@@ -90,13 +97,22 @@ export function authorizationText(input: {
   state?: StateAuthorizationTextInput;
 }) {
   const who = input.state && !input.state.filingAgent.startsWith(input.brand) ? `${input.state.filingAgent}, doing business as ${input.brand},` : input.state?.filingAgent ?? input.brand;
+  const cs = input.state?.customerSignature;
+  const agent = input.state?.filingAgent ?? input.brand;
   const statePart = input.state
     ? `I have reviewed every item of the ${input.stateName} filing information shown above, in the order the state's form asks for it, and I confirm that each item is true, correct and complete. ` +
-      (input.state.principalSignature
-        ? `I am one of the business's principals listed in this ${input.filingName}, and the name and title I sign with below are my own. I give ${input.state.filingAgent} permission to type my name and title, exactly as I sign below, as my electronic signature on this ${input.filingName} only. ` +
-          (input.state.principalSignature.warnings.length
-            ? `I understand that the state says: ${input.state.principalSignature.warnings.map((w) => `“${w}”`).join(" ")} `
-            : "")
+      (cs
+        ? `I am signing this ${input.filingName} myself${cs.listedSigner ? ", as one of the people listed in it" : ""}. The name and title I type below are my own, and I adopt them as my electronic signature on this ${input.filingName}, with the intent to sign it. ` +
+          `I authorize ${agent} to enter my signature on the state's form exactly as I type it and to submit this ${input.filingName} only. ${agent} does not sign, certify or affirm it for me. ` +
+          (cs.signerIsDeliverer
+            ? `I am the individual causing this ${input.filingName} to be delivered for filing, and ${agent} will name me as that individual, at the business's mailing address. `
+            : "") +
+          (input.state.certificationText
+            ? `I make the state's statement myself: “${input.state.certificationText}” `
+            : cs.declarationsPending
+            ? `The state's form also asks the signer to confirm declarations. ${agent} will show me their exact wording, and nothing is filed until I confirm them. `
+            : "") +
+          (cs.warnings.length ? `I understand that the state says: ${cs.warnings.map((w) => `“${w}”`).join(" ")} ` : "")
         : input.state.certificationText
         ? `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the state's certification: “${input.state.certificationText}” `
         : `I understand that ${input.state.filingAgent} will sign the ${input.filingName} as the business's authorized person and, relying on my confirmation, will make the attestations the state's form requires. `) +
@@ -104,7 +120,7 @@ export function authorizationText(input: {
     : "";
   return (
     `I confirm that I am authorized to act on behalf of ${input.businessName}. ` +
-    `I authorize ${who} and its personnel to act as the business's authorized representative for the limited purpose of preparing, electronically signing and submitting the ${input.stateName} ${input.filingName} described above, using the information I provided, and to pay the state filing fee on the business's behalf from the amount I pay for this order. ` +
+    `I authorize ${who} and its personnel to act as the business's authorized representative for the limited purpose of ${cs ? "preparing and submitting" : "preparing, electronically signing and submitting"} the ${input.stateName} ${input.filingName} described above, using the information I provided${cs ? " and my own signature" : ""}, and to pay the state filing fee on the business's behalf from the amount I pay for this order. ` +
     statePart +
     `I attest that the information I provided is true, correct and complete to the best of my knowledge. I understand that ${input.brand} is a private filing service, is not a government agency, does not provide legal advice, and that I could instead file directly with the state. ` +
     `I agree to ${input.brand}'s Terms of Service and Refund Policy, last updated ${formatLongDate(LEGAL_LAST_UPDATED)}.`
@@ -123,7 +139,14 @@ export function stateAuthorizationTextInput(auth: StateAuthorization, filingAgen
   return {
     filingAgent,
     certificationText: auth.certificationText,
-    principalSignature: auth.principalSignature ? { warnings: auth.principalSignature.warnings.map((w) => w.text) } : undefined,
+    customerSignature: auth.customerSignature
+      ? {
+          warnings: auth.customerSignature.warnings.map((w) => w.text),
+          listedSigner: Boolean(auth.customerSignature.principalsKey),
+          signerIsDeliverer: Boolean(auth.customerSignature.signerIsDeliverer),
+          declarationsPending: Boolean(auth.customerSignature.declarationsPending),
+        }
+      : undefined,
   };
 }
 
@@ -552,7 +575,7 @@ export async function authorizeFiling(
     agentConsent?: { mode: "signer_is_agent" | "agent_to_sign" | ""; consent: boolean };
     /** Legal operator named as the filing agent (site.legalEntity) and whether it is configured. */
     legalEntity?: { name: string; configured: boolean };
-    /** Principal-signature states (Florida): the signer lets the agent type their name and title. */
+    /** Customer-signed states (Florida, Colorado, Montana): the customer signs the report themselves. */
     permitTypedSignature?: boolean;
   },
 ) {
@@ -586,8 +609,8 @@ export async function authorizeFiling(
       throw new FilingError("We can't accept this authorization yet. Nothing has been charged, and your details are saved.", "unavailable");
     }
     if (!input.certifyFacts) throw new FilingError("Confirm that you reviewed every item and that it is true and correct.", "invalid");
-    if (stateAuth.auth.principalSignature) {
-      if (!input.permitTypedSignature) throw new FilingError("Give permission for us to type your name and title as your signature.", "invalid");
+    if (stateAuth.auth.customerSignature) {
+      if (!input.permitTypedSignature) throw new FilingError("Sign the report: confirm the name and title above are your own signature.", "invalid");
       const problem = principalSignerProblem(stateAuth.auth, snapshot, { name: signerName, title: signerTitle });
       if (problem) throw new FilingError(problem, "invalid");
     }
@@ -625,7 +648,7 @@ export async function authorizeFiling(
       signer_title: signerTitle,
       attested_accurate: true,
       authorized_submission: true,
-      terms_version: stateAuth ? `${AUTHORIZATION_TERMS_VERSION}.${STATE_AUTHORIZATION_REVISION}` : AUTHORIZATION_TERMS_VERSION,
+      terms_version: termsVersionFor(stateAuth?.auth),
       authorization_text: text,
       answers_sha256: sha,
       answers_snapshot: snapshot,
@@ -656,7 +679,7 @@ export async function authorizeFiling(
       answers_sha256: sha,
       packet_sha256: packet ? packetSha256(packet) : null,
       registered_agent_consent: agentConsent?.mode ?? null,
-      terms_version: stateAuth ? `${AUTHORIZATION_TERMS_VERSION}.${STATE_AUTHORIZATION_REVISION}` : AUTHORIZATION_TERMS_VERSION,
+      terms_version: termsVersionFor(stateAuth?.auth),
       // Terms of Service and Refund Policy version the customer agreed to (also named in the stored text).
       legal_documents_version: LEGAL_LAST_UPDATED,
       signer_title: signerTitle,

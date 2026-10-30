@@ -17,33 +17,44 @@ guide pages, footer links, admin acquisition and owner-check screens are not add
 
 | State | Scope | State fee | Due | Late charge | Filing access | Open question |
 | --- | --- | --- | --- | --- | --- | --- |
-| Florida | LLC, profit corporation | $138.75 LLC, $150 corp | May 1 | $400 after May 1, not waivable; non-profits exempt | Document number, no login | `fl_signer_permission` |
-| Colorado | LLC, corporation | $25 | Last day of 2nd month after the report month | $50 after the due date | No login unless Secure Business Filing | `co_delivery_affirmation` |
+| Florida | LLC, profit corporation | $138.75 LLC, $150 corp | May 1 | $400 after May 1, not waivable; non-profits exempt | Document number, no login | None (customer signs) |
+| Colorado | LLC, corporation | $25 | Last day of 2nd month after the report month | $50 after the due date | No login unless Secure Business Filing | None (customer signs) |
 | South Dakota | LLC, corporation | $55 online | End of anniversary month | $55 when late | Business ID, no login | `sd_2027_filing_date` |
-| Montana | LLC, domestic corporation | Waived on time in 2026 and 2027 | April 15 | $35 after April 15 | No login for no-change reports | `mt_signer_declarations` |
+| Montana | LLC, domestic corporation | Waived on time in 2026 and 2027 | April 15 | $35 after April 15 | No login for no-change reports | `mt_declaration_text` |
 | Michigan | Corporation only | $25 | May 15 | $10 a month or part, up to $50 | MiLogin for Business + entity access | `mi_milogin_access` |
 
-## Florida signing
+## The customer signs (Florida, Colorado, Montana)
 
-Sunbiz requires one of the business's principals to sign by typing their name, and warns:
-"Typing someone´s name/signature without their permission constitutes forgery." Filewell
-therefore never signs Florida reports as itself. The authorization page (`authorize-form`)
-for a principal-signature state:
+Owner decision, 2026-10-30: no lawyer until there is revenue, so Filewell never signs, certifies
+or affirms these reports for the customer. Filewell prepares the report, the customer signs it
+themselves on the Review and sign step, and the operator enters that signature on the state's
+form exactly as typed (`StateAuthorization.customerSignature`, `src/lib/filings/customer-signature.ts`).
+The signature is stored with the packet, its hash, the time, and the exact text signed.
 
-- shows Sunbiz's two warnings verbatim,
-- requires the signer to be one of the principals listed in the report, with the same title
-  (`src/lib/filings/principal-signature.ts`),
-- requires an explicit "permit typed signature" checkbox, and
-- records signed text that gives Filewell permission to type that name and title on that
-  one report only.
-
-Counsel must confirm this is enough before `fl_signer_permission` is closed.
+- **Florida.** The signer must be one of the principals listed in the report, with the same
+  title. Sunbiz's two warnings are shown verbatim. Florida accepts "any symbol, manual,
+  facsimile, conformed, or electronic signature" used with the present intent to authenticate
+  (s.15.16(5)(b) F.S.), and Sunbiz says typing a name is forgery only "without their
+  permission". Sunbiz can't save a report and come back, so a hand-off for the customer to
+  finish isn't practical. `fl_signer_permission` is closed.
+- **Colorado.** The report names "at least one individual causing the document to be
+  delivered", and delivery is that individual's affirmation under penalties of perjury. The
+  customer is that individual: they make Colorado's notice themselves, word for word, and the
+  operator enters their name with the business's mailing address. The notice is quoted from
+  the Secretary's sample form; the operator compares it with the online report at the
+  checkpoint and stops if it differs. `co_delivery_affirmation` is closed.
+- **Montana.** The signer must be one of the people listed (MCA 35-8-208: a member or the
+  authorized agent; MCA 35-2-119(5)(b) for corporations: an officer or authorized agent). The
+  declaration boxes' wording isn't published, so `mt_declaration_text` keeps filing closed
+  (orders stay open) until the wording is captured and added as the rule's certification text.
+  Then every earlier Montana signature no longer matches and the customer confirms the
+  declarations word for word before filing.
 
 ## Code changes beyond the state files
 
 - `DueRule.anniversary_month_end.monthsAfter` (Colorado), with `currentFilingPeriod` keeping
   last year's report current while its due date falls in January.
-- `StateAuthorization.principalSignature` and the Florida signing step above.
+- `StateAuthorization.customerSignature` and the customer signing step above.
 - Florida, Colorado, Montana and Michigan block registered agent changes in the intake;
   Florida blocks FEIN changes and never collects the FEIN number; South Dakota blocks the
   January 31 filing date and agricultural land; Montana blocks share changes.
@@ -59,8 +70,7 @@ Counsel must confirm this is enough before `fl_signer_permission` is closed.
   anniversary month in current Secretary wording (only a 2017 pamphlet); the 2025 session
   law itself. The Secretary's instructions page still says $50 late; statute and fee page
   say $55.
-- Montana: the declaration wording; who may sign a corporation's report; the on-time fee
-  after the waiver ends.
+- Montana: the declaration wording; the on-time fee after the waiver ends.
 - Michigan: report contents, signer, automatic dissolution and the first-year exemption.
   These come from statute pages that showed a CAPTCHA, so they are not cited. Filewell opens
   Michigan reports on January 15, when LARA says online filing begins; whether anything can
@@ -68,7 +78,7 @@ Counsel must confirm this is enough before `fl_signer_permission` is closed.
 
 ## Human actions before each state's first filing
 
-1. Counsel: Florida principal permission, Colorado delivery affirmation, Montana declarations.
+1. Owner or Montana Business Services: Montana's declaration wording (stop before filing).
 2. Owner, in each portal (stop before paying): capture Montana's declaration text, check
    Colorado's Secure Business Filing flow, ask Michigan LARA about filing-service access,
    ask South Dakota how the 2027 filing date is recorded.

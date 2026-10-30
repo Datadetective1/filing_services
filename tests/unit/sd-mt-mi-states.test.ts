@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { evaluateFees } from "@/lib/compliance/fees";
-import { openQuestionBlockers, openQuestionsFor, salesBlockingQuestionsFor } from "@/lib/compliance/open-questions";
+import { openQuestionBlockers, salesBlockingQuestionsFor } from "@/lib/compliance/open-questions";
 import { findRule, isRuleSellable, RULES } from "@/lib/compliance/registry";
 import { currentFilingPeriod, filingWindowOpensOn, isFilingWindowOpen } from "@/lib/domain/deadlines";
 import { filingWindowText, stateFaq, stateWindowSentence } from "@/lib/seo/content";
@@ -88,13 +88,14 @@ describe("new states take orders but don't file until their question is answered
     for (const r of RULES.filter((x) => NEW.includes(x.stateCode))) expect(isRuleSellable(r), r.ruleKey).toBe(false);
   });
 
-  it("with the switch on in production, each is sellable, and its open question still blocks filing", () => {
+  it("with the switch on in production, each is sellable, and any open question still blocks filing", () => {
     vi.stubEnv("NEXT_PUBLIC_VERCEL_ENV", "production");
+    // Florida and Colorado have none since the customer signs their own report (2026-10-30).
+    const STILL_OPEN = ["SD", "MT", "MI"];
     for (const st of NEW) {
       vi.stubEnv(`${st}_LIVE_FILING_SALES`, "true");
-      expect(openQuestionsFor(st).length, st).toBeGreaterThan(0);
       expect(salesBlockingQuestionsFor(st), st).toEqual([]);
-      expect(openQuestionBlockers(st).length, st).toBeGreaterThan(0);
+      expect(openQuestionBlockers(st).length > 0, st).toBe(STILL_OPEN.includes(st));
     }
     for (const r of RULES.filter((x) => NEW.includes(x.stateCode))) expect(isRuleSellable(r), r.ruleKey).toBe(true);
   });

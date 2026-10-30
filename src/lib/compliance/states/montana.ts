@@ -11,9 +11,12 @@ import type { ComplianceRuleDef, IntakeField, IntakeSchema, LateFeeRule, RuleSou
  * filing. When the waiver ends (2028 at the latest), the on-time fee must be re-checked.
  *
  * Filing: a report with no changes needs no login on biz.sosmt.gov; changes need an account.
- * The signer checks declaration boxes whose wording isn't published in text. An LLC report
- * may be executed by "the authorized agent" (MCA 35-8-208); who may sign a corporation's
- * report is not stated. Open questions mt_signer_declarations keeps sales and filing closed.
+ * An LLC report is executed by "at least one member" or "the authorized agent" (MCA
+ * 35-8-208). The customer signs it themselves (owner decision 2026-10-30): they must be one of
+ * the people listed in the report, and the operator enters their name and title as the signer.
+ * The signer also checks declaration boxes whose wording isn't published in text, so the
+ * open question mt_declaration_text keeps filing closed until the wording is captured and
+ * the customer has confirmed it.
  *
  * Launch scope: LLCs (domestic and foreign) and domestic for-profit corporations.
  */
@@ -251,7 +254,7 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: p.appliesTo,
-    // v1 (2026-10-29): not sold. Open question mt_signer_declarations keeps sales and filing closed.
+    // v1 (2026-10-29). Since 2026-10-30 the customer signs (customerSignature); mt_declaration_text keeps filing closed.
     version: 1,
     verificationStatus: "verified",
     effectiveFrom: VERIFIED,
@@ -301,7 +304,8 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
         "Pay the $35 fee only if the order collected it; otherwise contact the customer first.",
         "Make every value match the packet. Never change the registered agent or share numbers here.",
         "On the review screen, compare every value with the packet, then record the comparison checkpoint in Filewell.",
-        "Read each declaration box, check it only if the packet supports it, sign with your own name as the customer's authorized agent, and file online.",
+        "Signature: enter the customer's own name and title exactly as they signed in Filewell. Never sign with your own name.",
+        "Check only the declarations the customer confirmed in Filewell, word for word. If a box reads differently, stop: the customer must confirm the new wording first. Then file online.",
       ],
       fieldMap: [
         { section: "Search", portalField: "Business name or ID", answerKey: "entity_number" },
@@ -311,7 +315,7 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
         { section: "Registered agent", portalField: "Registered office address", answerKey: "registered_office", note: "Leave as on record" },
         { section: "Principal office", portalField: "Principal office mailing address", answerKey: "principal_office" },
         { section: "People", portalField: "Names and business addresses", answerKey: "governors" },
-        { section: "Signature", portalField: "Declarations, name and title", answerKey: null, note: "Only after the comparison checkpoint." },
+        { section: "Signature", portalField: "Declarations, name and title", answerKey: null, note: "The customer's own name, title and confirmed declarations, only after the comparison checkpoint." },
       ],
       confirmationLabel: "Montana filing number",
       receipt: "The filed annual report (PDF) from Montana's site.",
@@ -320,12 +324,13 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
       certificationText: null,
       certificationSourceFactKey: "declarations",
       operatorCheckpoint: true,
+      customerSignature: { principalsKey: "governors", warnings: [], declarationsPending: true },
     },
     sources: [src("state_fee", MT_URLS.fees, "Business Services Filing Fees", p.feeQuote), ...p.sources, ...COMMON],
     lastVerifiedAt: VERIFIED,
     verifiedBy: REVIEWER,
     notes:
-      "Fee waived on time in 2026 and 2027 only; re-check the on-time fee for 2028 (an older fee PDF listed $20). The declaration wording and who may sign a corporation's report are not verified.",
+      "Fee waived on time in 2026 and 2027 only; re-check the on-time fee for 2028 (an older fee PDF listed $20). The declaration wording is not verified.",
   };
 }
 
