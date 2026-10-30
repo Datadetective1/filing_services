@@ -56,20 +56,32 @@ function mapPrice(row: Record<string, unknown>): ServicePrice {
  * supabase/migrations/20260929000007_column_grants.sql). `select("*")` as anon is refused.
  */
 const PUBLIC_PRICE_COLUMNS = "id, filing_type_code, state_code, entity_type, service_fee_cents, approved, active, price_variant";
+/**
+ * The same columns without price_variant, for a database where the business services
+ * migration (20261029000015) has not run yet. Every row is then the standard price.
+ */
+const LEGACY_PRICE_COLUMNS = "id, filing_type_code, state_code, entity_type, service_fee_cents, approved, active";
+
+type PriceClient = NonNullable<ReturnType<typeof createAnonClient>> | ReturnType<typeof createAdminClient>;
+
+async function selectActivePrices(db: PriceClient): Promise<Record<string, unknown>[]> {
+  const first = await db.from("service_prices").select(PUBLIC_PRICE_COLUMNS).eq("active", true);
+  if (!first.error) return (first.data ?? []) as Record<string, unknown>[];
+  const legacy = await db.from("service_prices").select(LEGACY_PRICE_COLUMNS).eq("active", true);
+  return (legacy.data ?? []) as Record<string, unknown>[];
+}
 
 /** Active service prices (public read). Returns [] if the database is unreachable. */
 export const listActivePrices = cache(async (): Promise<ServicePrice[]> => {
   try {
     const db = createAnonClient();
     if (!db) return [];
-    const { data } = await db.from("service_prices").select(PUBLIC_PRICE_COLUMNS).eq("active", true);
-    return (data ?? []).map(mapPrice);
+    return (await selectActivePrices(db)).map(mapPrice);
   } catch {
     return [];
   }
 });
 
 export async function listActivePricesAdmin(): Promise<ServicePrice[]> {
-  const { data } = await createAdminClient().from("service_prices").select(PUBLIC_PRICE_COLUMNS).eq("active", true);
-  return (data ?? []).map(mapPrice);
+  return (await selectActivePrices(createAdminClient())).map(mapPrice);
 }
