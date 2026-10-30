@@ -120,8 +120,8 @@ describe("parseRaiDocumentAlert and the secret", () => {
   });
 
   it("reads the secret from RAI_API_SECRET only, ignoring blanks", () => {
-    expect(raiWebhookSecret({ RAI_API_SECRET: " s3cret " } as NodeJS.ProcessEnv)).toBe("s3cret");
-    expect(raiWebhookSecret({ RAI_API_SECRET: "  " } as NodeJS.ProcessEnv)).toBeNull();
-    expect(raiWebhookSecret({} as NodeJS.ProcessEnv)).toBeNull();
+    expect(raiWebhookSecret({ RAI_API_SECRET: " s3cret " } as unknown as NodeJS.ProcessEnv)).toBe("s3cret");
+    expect(raiWebhookSecret({ RAI_API_SECRET: "  " } as unknown as NodeJS.ProcessEnv)).toBeNull();
+    expect(raiWebhookSecret({} as unknown as NodeJS.ProcessEnv)).toBeNull();
   });
 });
