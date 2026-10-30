@@ -87,7 +87,7 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
       <ConsoleHeader
         eyebrow={<Link href="/admin/registered-agent">Registered agent</Link>}
         title={`${business?.legal_name ?? "Business"} · ${stateName}`}
-        description={`${SERVICES[sub.plan as "registered_agent" | "ra_annual_report_bundle"].name}, ${sub.origin === "switching" ? "switching from another agent" : "new entity"}. Agent of record: ${PROVIDER_LEGAL_NAME}.`}
+        description={`${SERVICES[sub.plan as "registered_agent" | "ra_annual_report_bundle"].name}, ${sub.origin === "switching" ? "switching from another agent" : "new entity"}. Agent of record: ${PROVIDER_LEGAL_NAME}`}
       >
         <div className="flex flex-wrap gap-2">
           <Badge tone={sub.service_status === "active" ? "success" : sub.service_status === "ended" ? "neutral" : "info"}>Service: {sub.service_status}</Badge>

@@ -53,7 +53,7 @@ export default function BusinessServicesTermsPage() {
 
       <h2>2. Our registered agent provider</h2>
       <p>
-        We provide registered agent service through a wholesale provider, {PROVIDER_LEGAL_NAME}. Its name and address appear on the
+        We provide registered agent service through a wholesale provider, {PROVIDER_LEGAL_NAME} Its name and address appear on the
         state&apos;s records as your registered agent. You deal with {brand} for everything: orders, billing, support and the
         documents you receive. We may change providers. If that needs a state filing, we will tell you first.
       </p>
