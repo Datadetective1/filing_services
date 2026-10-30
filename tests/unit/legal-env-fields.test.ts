@@ -209,3 +209,25 @@ describe("legal entity (NEXT_PUBLIC_LEGAL_ENTITY)", () => {
     expect(html).toContain(`These terms are an agreement between you and ${TEST_ENTITY}`);
   });
 });
+
+describe("terms of service: states we file in", () => {
+  const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&ldquo;|&rdquo;|“|”/g, '"').replace(/\s+/g, " ");
+
+  it("names every state whose sales switch is on, not Pennsylvania alone", async () => {
+    stubLegalEnv({});
+    vi.stubEnv("FL_LIVE_FILING_SALES", "true");
+    vi.stubEnv("CO_LIVE_FILING_SALES", "true");
+    const { html } = await termsHeadings();
+    expect(text(html)).toContain('Today we file annual reports in Colorado, Florida and Pennsylvania, shown as "Filing supported" on our site.');
+    expect(text(html)).not.toContain("only in Pennsylvania");
+  });
+
+  it("never names a state whose switch is off", async () => {
+    stubLegalEnv({});
+    vi.stubEnv("FL_LIVE_FILING_SALES", "");
+    vi.stubEnv("PA_LIVE_FILING_SALES", "false");
+    const { html } = await termsHeadings();
+    expect(text(html)).toContain('We file only in states shown as "Filing supported" on our site.');
+    expect(text(html)).not.toMatch(/Today we file annual reports in/);
+  });
+});
