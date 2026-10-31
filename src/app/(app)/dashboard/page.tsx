@@ -13,6 +13,8 @@ import { rankFocus } from "@/components/dashboard/requirement-state";
 import { DashboardSection, QuietEmpty, quietLinkClass } from "@/components/dashboard/section";
 import { SupportCard } from "@/components/dashboard/support-card";
 import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
+import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { readServiceIntent } from "@/lib/services/intent";
 import { loadDashboard } from "./_lib/data";
 
 export const metadata: Metadata = {
@@ -31,10 +33,12 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const { businesses, openRequirements, filings, notifications } = data;
 
   if (businesses.length === 0) {
+    const agentPages = businessServicesPagesEnabled();
+    const agent = !agentPages ? null : (await readServiceIntent()) === "registered_agent" ? "first" : "offer";
     return (
       <Container className="grid gap-8 py-10 sm:py-14 lg:py-20">
         <DashboardNotices searchParams={searchParams} />
-        <EmptyDashboard />
+        <EmptyDashboard agent={agent} />
       </Container>
     );
   }

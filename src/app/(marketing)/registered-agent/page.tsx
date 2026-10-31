@@ -100,7 +100,7 @@ export default async function RegisteredAgentPage() {
                   </Link>
                   .
                 </p>
-                <Link href="/dashboard/services/new-business" prefetch={false} className={buttonClasses("secondary", "md", "mt-2 w-fit")}>
+                <Link href="/registered-agent/start?for=new" prefetch={false} className={buttonClasses("secondary", "md", "mt-2 w-fit")}>
                   Get an agent for a new business
                 </Link>
               </Card>

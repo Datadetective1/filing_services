@@ -47,10 +47,16 @@ export function QuoteSummary({ quote }: { quote: ServiceQuote }) {
         </div>
         {quote.renewal ? (
           <p className="mt-1 text-sm text-muted">
-            Then {formatCents(quote.renewal.amountCents)} per year: {quote.renewal.description.toLowerCase()}.
+            Then {formatCents(quote.renewal.amountCents)} a year: {renewalLabel(quote.renewal.description)}.
           </p>
         ) : null}
       </div>
     </div>
   );
+}
+
+/** "Registered agent service in Texas, per year" reads as "registered agent service in Texas": state names keep their capitals. */
+export function renewalLabel(description: string): string {
+  const trimmed = description.replace(/,?\s*per year\s*$/i, "").trim();
+  return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
 }

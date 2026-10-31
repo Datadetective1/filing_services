@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { buttonClasses } from "@/components/ui/button";
 import { useHasSessionCookie } from "./account-link";
+import { HeaderCta } from "./header-cta";
 import type { NavItem } from "./site-nav";
 
 /** Small-screen navigation. Closes on route change, Escape, or a tap outside. */
-export function MobileMenu({ items }: { items: NavItem[] }) {
+export function MobileMenu({ items, agentPages = false }: { items: NavItem[]; agentPages?: boolean }) {
   const [open, setOpen] = useState(false);
   const [openedOn, setOpenedOn] = useState<string | null>(null);
   const pathname = usePathname();
@@ -67,9 +68,7 @@ export function MobileMenu({ items }: { items: NavItem[] }) {
           ))}
         </nav>
         <div className="mt-4 grid gap-2">
-          <Link href="/find" className={buttonClasses("primary", "lg")}>
-            Find my business
-          </Link>
+          <HeaderCta agentPages={agentPages} className={buttonClasses("primary", "lg")} />
           <Link href={signedIn ? "/dashboard" : "/login"} className={buttonClasses("secondary", "lg")}>
             {signedIn ? "Dashboard" : "Sign in"}
           </Link>
