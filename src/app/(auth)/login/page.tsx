@@ -15,6 +15,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // /auth/confirm sends every failed email-link exchange here. A link opened in another browser
   // often confirmed the email already, so the copy says what to do next instead of "expired".
   const failed = sp.error === "link" || sp.error === "link_device";
+  const forOrder = next.startsWith("/dashboard/services/");
   return (
     <div className="grid gap-7">
       <div className="grid gap-2">
@@ -29,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       ) : null}
       {failed ? (
         <p role="alert" className="rounded-[var(--radius-control)] border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
-          That link didn&apos;t sign you in. If you were confirming your email, it may already be confirmed — sign in below. If
+          That link didn&apos;t sign you in. If you were confirming your email, it may already be confirmed, so sign in below{forOrder ? " to continue your order" : ""}. If
           you were resetting your password,{" "}
           <Link className="font-semibold underline decoration-danger/40 underline-offset-4 hover:decoration-danger" href="/forgot-password">
             request a new reset link

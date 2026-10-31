@@ -1,4 +1,5 @@
-import { ArrowRight, BellRinging } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, BellRinging, EnvelopeSimpleOpen } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
 import { site } from "@/config/site";
 import { DEFAULT_REMINDER_OFFSETS } from "@/lib/domain/reminders";
 import { Photo } from "@/components/media/photo";
@@ -18,8 +19,13 @@ function reminderLead(): string {
   return `We email you ${before[0]}, ${before[1]} and ${before[2]} days ahead, then closer to the date.`;
 }
 
-/** Getting started, for an account with no businesses yet. */
-export function EmptyDashboard() {
+/**
+ * Getting started, for an account with no businesses yet. Someone who came for a registered
+ * agent ("first") sees that order straight away; otherwise the annual report lookup leads and
+ * the agent is offered underneath ("offer") while those pages are on.
+ */
+export function EmptyDashboard({ agent = null }: { agent?: "first" | "offer" | null }) {
+  if (agent === "first") return <AgentFirst />;
   return (
     <section
       aria-labelledby="welcome-title"
@@ -57,6 +63,14 @@ export function EmptyDashboard() {
           </ButtonLink>
           <p className="text-center text-sm text-muted sm:text-left">It takes about a minute.</p>
         </div>
+        {agent === "offer" ? (
+          <p className="text-[15px] text-muted">
+            Here for a registered agent instead?{" "}
+            <Link href="/registered-agent" className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg">
+              Get one for your business
+            </Link>
+          </p>
+        ) : null}
       </div>
 
       <div className="relative">
@@ -77,6 +91,35 @@ export function EmptyDashboard() {
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function AgentFirst() {
+  return (
+    <section aria-labelledby="welcome-title" className="grid max-w-2xl gap-8">
+      <div className="grid gap-4">
+        <p className="text-sm font-semibold text-accent">Welcome to {site.name}</p>
+        <h1 id="welcome-title" className="text-[38px] font-semibold leading-[1.04] tracking-[-0.03em] text-fg sm:text-[52px]">
+          Let&apos;s set up your <span className="mark-highlight">registered agent</span>.
+        </h1>
+        <p className="max-w-[46ch] text-lg leading-relaxed text-muted">
+          Tell us which business it&apos;s for. You see the full price before you pay.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ButtonLink href="/registered-agent/start" prefetch={false} size="lg">
+          I already have a business
+          <ArrowRight size={18} weight="bold" aria-hidden />
+        </ButtonLink>
+        <ButtonLink href="/dashboard/services/new-business" size="lg" variant="secondary">
+          I&apos;m starting a business
+        </ButtonLink>
+      </div>
+      <p className="flex items-start gap-2 text-[15px] text-muted">
+        <EnvelopeSimpleOpen size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0" />
+        Legal mail is scanned to your dashboard, and we email you when it arrives.
+      </p>
     </section>
   );
 }

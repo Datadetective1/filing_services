@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { clearAfterAuth, pickAfterAuth, readAfterAuth, rememberAfterAuth } from "@/lib/auth/after-auth";
 import { z } from "zod";
 import { absoluteUrl } from "@/config/site";
 import { safeNextPath } from "@/lib/auth/session";
@@ -54,6 +55,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   if (error && !/already registered/i.test(error.message)) {
     return { error: error.message.includes("rate") ? "Too many attempts. Please try again shortly." : "We couldn't create your account. Please try again." };
   }
+  await rememberAfterAuth(next);
   redirect(`/check-email?email=1&next=${encodeURIComponent(next)}`);
 }
 
@@ -70,7 +72,9 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
     if (/confirm/i.test(error.message)) return { error: "Please confirm your email address first. Check your inbox for the link." };
     return { error: "That email and password don't match." };
   }
-  redirect(safeNextPath(String(formData.get("next") ?? ""), "/dashboard"));
+  const target = pickAfterAuth(safeNextPath(String(formData.get("next") ?? ""), "/dashboard"), await readAfterAuth());
+  await clearAfterAuth();
+  redirect(target);
 }
 
 export async function requestPasswordReset(_: AuthState, formData: FormData): Promise<AuthState> {

@@ -3,13 +3,15 @@ import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { AccountLink } from "./account-link";
+import { HeaderCta } from "./header-cta";
 import { Logo } from "./logo";
 import { MobileMenu } from "./mobile-menu";
 import { siteNav } from "./site-nav";
 
 /** Static header (no per-request auth lookup) so marketing and SEO pages can be prerendered. */
 export function SiteHeader() {
-  const nav = siteNav(businessServicesPagesEnabled());
+  const agentPages = businessServicesPagesEnabled();
+  const nav = siteNav(agentPages);
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/90 backdrop-blur-md supports-[backdrop-filter]:bg-bg/80">
       <Container className="relative flex h-[68px] items-center justify-between gap-4">
@@ -29,10 +31,8 @@ export function SiteHeader() {
         </div>
         <div className="flex items-center gap-1.5">
           <AccountLink className="max-lg:hidden" />
-          <Link href="/find" className={buttonClasses("primary", "sm", "px-4 max-[369px]:hidden sm:px-5")}>
-            Find my business
-          </Link>
-          <MobileMenu items={nav} />
+          <HeaderCta agentPages={agentPages} className={buttonClasses("primary", "sm", "px-4 max-[369px]:hidden sm:px-5")} />
+          <MobileMenu items={nav} agentPages={agentPages} />
         </div>
       </Container>
     </header>

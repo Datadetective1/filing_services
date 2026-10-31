@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth/session";
 import { PaymentConfigurationError } from "@/lib/payments/types";
 import { getRaJurisdiction } from "@/lib/registered-agent/jurisdictions";
 import { addFormingBusiness } from "@/lib/services/business";
+import { clearServiceIntent } from "@/lib/services/intent";
 import { startFormationCheckout, validateFormationInput } from "@/lib/services/formation";
 import { setRenewal, ServiceOrderError, startServiceCheckout, validateServiceCheckoutInput } from "@/lib/services/orders";
 import type { ActionMessageState } from "@/components/funnel/types";
@@ -83,5 +84,6 @@ export async function addFormingBusinessAction(_prev: ActionMessageState, formDa
     console.error("[services] forming business failed", e);
     return { error: "We couldn't save that business. Please try again." };
   }
+  await clearServiceIntent();
   redirect(`/dashboard/services/new?business=${id}`);
 }
