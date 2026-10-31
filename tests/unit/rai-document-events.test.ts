@@ -23,6 +23,7 @@ function builder(table: string) {
     eq: chain("eq"),
     in: chain("in"),
     is: chain("is"),
+    neq: chain("neq"),
     lte: chain("lte"),
     order: () => b,
     limit: () => b,
@@ -46,13 +47,18 @@ vi.mock("@/lib/notifications/send", () => ({ sendNotification: (...a: unknown[])
 const notifyStaff = vi.fn();
 vi.mock("@/lib/notifications/staff", () => ({ notifyStaff: (...a: unknown[]) => notifyStaff(...a) }));
 
-const { recordProviderDocumentAlert, remindOpenAlerts, recordProviderCompanyId } = await import("@/lib/registered-agent/document-events");
+const { recordProviderDocumentAlert, remindOpenAlerts, recordProviderCompanyId, normalizeCompanyName } = await import(
+  "@/lib/registered-agent/document-events"
+);
 
 const SUB = { id: "sub-1", user_id: "user-1", business_id: "biz-1", state_code: "TX", service_status: "active" };
 
-function world(opts: { subs?: unknown[]; inserted?: boolean; legalName?: string } = {}) {
+function world(opts: { subs?: unknown[]; byName?: unknown[]; inserted?: boolean; legalName?: string } = {}) {
   handler = (c) => {
-    if (c.table === "ra_subscriptions" && c.op === "select") return { data: opts.subs ?? [], error: null };
+    if (c.table === "ra_subscriptions" && c.op === "select") {
+      const byId = c.filters.some(([op, col]) => op === "eq" && col === "provider_account_ref");
+      return { data: byId ? (opts.subs ?? []) : (opts.byName ?? []), error: null };
+    }
     if (c.table === "provider_document_events" && c.op === "upsert") return { data: opts.inserted === false ? [] : [{ id: "evt-1" }], error: null };
     if (c.table === "businesses") return { data: { legal_name: opts.legalName ?? "Acme LLC" }, error: null };
     return { data: null, error: null };
@@ -157,6 +163,84 @@ describe("recordProviderDocumentAlert", () => {
     handler = (c) => (c.op === "upsert" ? { data: null, error: { message: "db down" } } : { data: [], error: null });
     await expect(recordProviderDocumentAlert(EVENT)).rejects.toThrow("alert record failed");
     expect(notifyStaff).not.toHaveBeenCalled();
+  });
+});
+
+describe("matching by company name when the partner ID isn't saved yet", () => {
+  const named = (id: string, legal: string, extra: Record<string, unknown> = {}) => ({
+    ...SUB,
+    id,
+    user_id: `user-${id}`,
+    business_id: `biz-${id}`,
+    businesses: { legal_name: legal },
+    ...extra,
+  });
+
+  it("normalizes names the way people write them", () => {
+    expect(normalizeCompanyName("Acme, L.L.C.")).toBe("acme llc");
+    expect(normalizeCompanyName("ACME LLC")).toBe("acme llc");
+    expect(normalizeCompanyName("Acme Limited Liability Company")).toBe("acme llc");
+    expect(normalizeCompanyName("Smith & Sons, Incorporated")).toBe("smith and sons inc");
+    expect(normalizeCompanyName("Blue  Corporation")).toBe("blue corp");
+    expect(normalizeCompanyName("Acme LLC")).not.toBe(normalizeCompanyName("Acme Holdings LLC"));
+  });
+
+  it("matches the one live subscription with that name, emails the customer and saves the partner ID", async () => {
+    world({ subs: [], byName: [named("sub-7", "Acme LLC"), named("sub-8", "Other Co LLC")] });
+    expect(await recordProviderDocumentAlert({ documentId: "D-5", companyId: "C-50", companyName: "ACME, L.L.C." })).toBe("recorded");
+
+    const byName = calls.filter((c) => c.table === "ra_subscriptions" && c.op === "select")[1];
+    expect(byName.filters).toContainEqual(["is", "provider_account_ref", null]);
+    expect(byName.filters).toContainEqual(["neq", "service_status", "ended"]);
+
+    expect(calls.find((c) => c.op === "upsert")!.payload).toMatchObject({
+      match_status: "matched",
+      ra_subscription_id: "sub-7",
+      user_id: "user-sub-7",
+      business_id: "biz-sub-7",
+    });
+    const saved = calls.find((c) => c.table === "ra_subscriptions" && c.op === "update")!;
+    expect(saved.payload).toEqual({ provider_account_ref: "C-50" });
+    expect(saved.filters).toEqual([
+      ["eq", "id", "sub-7"],
+      ["is", "provider_account_ref", null],
+    ]);
+    expect(sendNotification).toHaveBeenCalledTimes(1);
+    expect(sendNotification.mock.calls[0][0]).toMatchObject({ userId: "user-sub-7", templateKey: "ra_document_arriving" });
+    expect(notifyStaff.mock.calls[0][0].vars.message).toContain("Matched by company name");
+    expect(audit.mock.calls[0][0].after).toMatchObject({ matched_by: "company_name" });
+  });
+
+  it("leaves it for staff when two subscriptions have that name", async () => {
+    world({ subs: [], byName: [named("sub-7", "Acme LLC"), named("sub-9", "Acme, LLC", { state_code: "FL" })] });
+    await recordProviderDocumentAlert({ documentId: "D-6", companyId: "C-60", companyName: "Acme LLC" });
+    expect(calls.find((c) => c.op === "upsert")!.payload).toMatchObject({ match_status: "ambiguous", ra_subscription_id: null });
+    expect(calls.some((c) => c.table === "ra_subscriptions" && c.op === "update")).toBe(false);
+    expect(sendNotification).not.toHaveBeenCalled();
+    expect(notifyStaff).toHaveBeenCalledTimes(1);
+  });
+
+  it("doesn't match a different name", async () => {
+    world({ subs: [], byName: [named("sub-7", "Acme Holdings LLC")] });
+    await recordProviderDocumentAlert({ documentId: "D-7", companyId: "C-70", companyName: "Acme LLC" });
+    expect(calls.find((c) => c.op === "upsert")!.payload).toMatchObject({ match_status: "unmatched" });
+    expect(sendNotification).not.toHaveBeenCalled();
+  });
+
+  it("never tries the name when the partner ID already matched", async () => {
+    world({ subs: [SUB], byName: [named("sub-7", "Acme Partner Name")] });
+    await recordProviderDocumentAlert(EVENT);
+    expect(calls.filter((c) => c.table === "ra_subscriptions" && c.op === "select")).toHaveLength(1);
+    expect(calls.some((c) => c.table === "ra_subscriptions" && c.op === "update")).toBe(false);
+  });
+
+  it("still emails the customer when saving the partner ID fails", async () => {
+    world({ subs: [], byName: [named("sub-7", "Acme LLC")] });
+    const base = handler;
+    handler = (c) => (c.table === "ra_subscriptions" && c.op === "update" ? { data: null, error: { message: "db down" } } : base(c));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await recordProviderDocumentAlert({ documentId: "D-8", companyId: "C-80", companyName: "Acme LLC" })).toBe("recorded");
+    expect(sendNotification).toHaveBeenCalledTimes(1);
   });
 });
 
