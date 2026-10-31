@@ -107,8 +107,11 @@ What happens to an alert:
 2. It is recorded once in `provider_document_events` (unique on the partner document ID), so
    retries and replays do nothing more.
 3. It is matched to a subscription by the partner company ID saved on the subscription
-   (`provider_account_ref`, "Partner company ID" on the admin subscription page). No match, or
-   two subscriptions with the same ID, leaves it for staff.
+   (`provider_account_ref`, "Partner company ID" on the admin subscription page). When no
+   subscription has that ID yet, the company name is tried: exactly one live subscription
+   without a partner ID whose business has the same name (case, punctuation and LLC/Inc./Corp.
+   spellings ignored) is matched, and the partner ID is saved on it so later alerts match by
+   ID. No match, or two or more, leaves it for staff.
 4. Staff get `staff_ra_partner_document` at once, and one reminder if it's still open after
    four hours (hourly services cron). A matched, live customer gets `ra_document_arriving`.
 5. Staff pull the document from the partner portal and upload it on the subscription. The
