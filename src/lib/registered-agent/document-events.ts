@@ -9,7 +9,8 @@ import type { RaiDocumentEvent } from "./rai-webhook";
 
 /**
  * Partner new-document alerts. Each alert is recorded once (by the partner's document ID),
- * matched to a subscription by the partner's company ID, and announced: staff are told to
+ * matched to a subscription by the partner's company ID (or, the first time, by the company's
+ * name, which then saves the ID on the subscription), and announced: staff are told to
  * pull the document from the partner portal and upload it, and a matched customer hears
  * that a document arrived. The upload itself sends the usual "document ready" email.
  */
@@ -29,6 +30,49 @@ interface MatchedSub {
   business_id: string;
   state_code: string;
   service_status: string;
+}
+
+/**
+ * A company name reduced to what identifies it: case, punctuation, "&" and the common ways
+ * of writing LLC, Inc. and Corp. don't matter. "Acme, L.L.C." and "ACME LLC" compare equal.
+ */
+export function normalizeCompanyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[.,'"`’()]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\blimited liability company\b/g, "llc")
+    .replace(/\bl l c\b/g, "llc")
+    .replace(/\bincorporated\b/g, "inc")
+    .replace(/\bcorporation\b/g, "corp")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * The first alert for a company whose partner ID we haven't saved yet: find the one live
+ * subscription (no partner ID yet) whose business has the same name. Two or more with that
+ * name count as ambiguous and are left for staff. Returns the matches found (0, 1 or 2+).
+ */
+async function matchByCompanyName(companyName: string): Promise<MatchedSub[]> {
+  const wanted = normalizeCompanyName(companyName);
+  if (!wanted) return [];
+  const { data, error } = await createAdminClient()
+    .from("ra_subscriptions")
+    .select("id, user_id, business_id, state_code, service_status, businesses(legal_name)")
+    .eq("provider", RAI_PROVIDER)
+    .is("provider_account_ref", null)
+    .neq("service_status", "ended")
+    .limit(5000);
+  if (error) throw new DocumentEventError(`subscription name lookup failed: ${error.message}`);
+  const rows = (data ?? []) as (MatchedSub & { businesses: { legal_name: string | null } | { legal_name: string | null }[] | null })[];
+  return rows
+    .filter((r) => {
+      const b = Array.isArray(r.businesses) ? r.businesses[0] : r.businesses;
+      return !!b?.legal_name && normalizeCompanyName(b.legal_name) === wanted;
+    })
+    .map(({ id, user_id, business_id, state_code, service_status }) => ({ id, user_id, business_id, state_code, service_status }));
 }
 
 async function companyLabel(businessId: string | null, fallback: string | null): Promise<string> {
@@ -53,6 +97,11 @@ export async function recordProviderDocumentAlert(event: RaiDocumentEvent): Prom
       .limit(2);
     if (error) throw new DocumentEventError(`subscription lookup failed: ${error.message}`);
     matches = (data ?? []) as MatchedSub[];
+  }
+  let matchedByName = false;
+  if (matches.length === 0 && event.companyName) {
+    matches = await matchByCompanyName(event.companyName);
+    matchedByName = matches.length === 1;
   }
   const sub = matches.length === 1 ? matches[0] : null;
   const matchStatus = sub ? "matched" : matches.length > 1 ? "ambiguous" : "unmatched";
@@ -83,16 +132,34 @@ export async function recordProviderDocumentAlert(event: RaiDocumentEvent): Prom
     action: "provider_document_event.received",
     entityType: "provider_document_event",
     entityId: row.id,
-    after: { provider_document_id: event.documentId, provider_company_id: event.companyId, match_status: matchStatus },
+    after: {
+      provider_document_id: event.documentId,
+      provider_company_id: event.companyId,
+      match_status: matchStatus,
+      matched_by: sub ? (matchedByName ? "company_name" : "company_id") : null,
+    },
   });
+
+  // Matched by name: keep the partner's company ID on the subscription so the next alert
+  // matches by ID. Only fills an empty ID; a failure here never loses the alert.
+  if (sub && matchedByName && event.companyId) {
+    const { error: refError } = await db
+      .from("ra_subscriptions")
+      .update({ provider_account_ref: event.companyId })
+      .eq("id", sub.id)
+      .is("provider_account_ref", null);
+    if (refError) console.error("[ra alerts] couldn't save partner company ID", sub.id, refError.message);
+  }
 
   const company = await companyLabel(sub?.business_id ?? null, event.companyName);
   const stateName = sub ? (getRaJurisdiction(sub.state_code)?.name ?? sub.state_code) : "unknown state";
   const why =
     matchStatus === "matched"
-      ? "Download it from the partner portal and upload it on the subscription page; the upload emails the customer the document."
+      ? matchedByName
+        ? "Matched by company name, and the partner company ID is now saved on the subscription. Download the document from the partner portal and upload it on the subscription page; the upload emails the customer the document."
+        : "Download it from the partner portal and upload it on the subscription page; the upload emails the customer the document."
       : matchStatus === "ambiguous"
-        ? "More than one subscription has this partner company ID. Fix the company IDs, then upload the document on the right subscription."
+        ? "More than one subscription matches this company. Save the partner company ID on the right subscription, then upload the document there."
         : "No subscription has this partner company ID yet. Find the customer, save the company ID on their subscription (that links this alert), then upload the document.";
 
   await notifyStaff({
