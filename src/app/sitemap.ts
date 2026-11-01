@@ -55,6 +55,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       { url: absoluteUrl("/registered-agent"), changeFrequency: "monthly", priority: 0.7 },
       { url: absoluteUrl("/business-formation"), changeFrequency: "monthly", priority: 0.4 },
       ...raJurisdictionsWithPublicFacts().map((j) => ({ url: absoluteUrl(`/registered-agent/${j.slug}`), changeFrequency: "monthly" as const, priority: 0.6 })),
+      ...raJurisdictionsWithPublicFacts().map((j) => ({ url: absoluteUrl(`/registered-agent/${j.slug}/change`), changeFrequency: "monthly" as const, priority: 0.5 })),
     );
   }
 
