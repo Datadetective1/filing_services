@@ -1,11 +1,11 @@
-import { ArrowRight, ArrowUpRight, BellSlash, CalendarX, ChatCircleText, SealCheck, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowUpRight, BellSlash, Buildings, CalendarCheck, CalendarX, ChatCircleText, CheckCircle, Envelope, SealCheck, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
 import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Photo } from "@/components/media/photo";
-import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { publicServicePrices } from "@/lib/services/public-prices";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
@@ -60,7 +60,10 @@ export default async function HomePage() {
   const marketing = rule ? marketingPeriod(rule) : null;
   const periodInfo = marketing?.period ? { period: marketing.period, missed: marketing.missed } : null;
   const quote = rule ? await publicQuote(rule) : null;
-  const raPrice = businessServicesPagesEnabled() ? (await publicServicePrices()).registered_agent : undefined;
+  const servicePrices = businessServicesPagesEnabled() ? await publicServicePrices() : {};
+  const raPrice = servicePrices.registered_agent;
+  // Listed only while checkout takes it: a price that checkout refuses would mislead.
+  const bundlePrice = raPrice !== undefined && bundleSalesOpen() ? servicePrices.ra_annual_report_bundle : undefined;
   const agency = pa ? agencyShortName(pa) : "Pennsylvania Department of State";
   const stateName = pa?.name ?? "Pennsylvania";
   const groups = dueGroups(paRules);
@@ -111,25 +114,35 @@ export default async function HomePage() {
                   id="hero-title"
                   className="max-w-[15ch] text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] text-fg sm:text-[56px] lg:text-[64px]"
                 >
-                  Annual reports and registered agent, <span className="mark-highlight">handled</span>.
+                  Registered agent and annual reports, <span className="mark-highlight">handled</span>.
                 </h1>
                 <p className="max-w-[38ch] text-lg leading-relaxed text-muted sm:text-xl">
-                  We file your state annual report, and we can be your registered agent. Pick what your business needs.
+                  For LLCs and corporations in every state. Prices stay the same at renewal.
                 </p>
-                <ul className="grid gap-3 sm:grid-cols-2" aria-label="Our services">
-                  <ServiceChoice
-                    title="Annual report filing"
-                    price={quote ? `${formatCents(quote.serviceFeeCents, { trimZeros: true })} plus the state fee` : "Plus the state fee"}
-                    body="We tell you what's due and file it when you ask."
-                    href="/find"
-                    cta="Find my business"
-                  />
+                <ul className={`grid gap-3 ${bundlePrice !== undefined ? "sm:grid-cols-3" : "sm:grid-cols-2"}`} aria-label="Our services">
                   <ServiceChoice
                     title="Registered agent"
                     price={`${formatCents(raPrice, { trimZeros: true })} a year`}
-                    body="Same price at renewal. Legal mail is scanned to your dashboard."
+                    body="Every state. Legal mail scanned to you."
                     href="/registered-agent"
-                    cta="Get a registered agent"
+                    cta="Get an agent"
+                  />
+                  {bundlePrice !== undefined ? (
+                    <ServiceChoice
+                      title="Agent + annual report"
+                      price={`${formatCents(bundlePrice, { trimZeros: true })} a year`}
+                      body={`Plus the state fee. In ${BUNDLE_STATES.length} states.`}
+                      href="/registered-agent"
+                      cta="See the bundle"
+                      featured
+                    />
+                  ) : null}
+                  <ServiceChoice
+                    title="Annual report"
+                    price={quote ? `${formatCents(quote.serviceFeeCents, { trimZeros: true })} plus state fee` : "Plus the state fee"}
+                    body="We file it when you ask."
+                    href="/find"
+                    cta="Check my deadline"
                   />
                 </ul>
               </>
@@ -152,7 +165,10 @@ export default async function HomePage() {
             ) : null}
             <div id="find" className="grid scroll-mt-24 gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5">
               <HeroFinder
-                states={lookupStates().map((code) => ({ code, name: getJurisdiction(code)?.name ?? code }))}
+                states={lookupStates()
+                  .map((code) => ({ code, name: getJurisdiction(code)?.name ?? code }))
+                  .sort((a, b) => a.name.localeCompare(b.name))}
+                chooseFirst={raPrice !== undefined}
                 search={searchRegistry}
                 select={selectRegistryEntity}
               />
@@ -183,7 +199,9 @@ export default async function HomePage() {
               focus="48% 30%"
               focusWide="54% 30%"
             />
-            {rule && periodInfo ? (
+            {raPrice !== undefined ? (
+              <BusinessStatusCard className="relative z-10 mx-auto -mt-20 sm:-mt-28 lg:absolute lg:-left-10 lg:bottom-10 lg:mt-0" />
+            ) : rule && periodInfo ? (
               <HeroStatusCard
                 rule={rule}
                 period={periodInfo.period}
@@ -195,7 +213,7 @@ export default async function HomePage() {
             ) : null}
           </div>
         </Container>
-        {periodInfo?.missed && rule ? (
+        {raPrice === undefined && periodInfo?.missed && rule ? (
           <Container className="-mt-8 pb-10 lg:-mt-14">
             <p className="max-w-[70ch] text-[13px] leading-5 text-subtle">
               The {formatLongDate(periodInfo.missed.dueDate)} deadline for {stateName} {entityCopy.singular} annual reports has passed. If
@@ -215,6 +233,27 @@ export default async function HomePage() {
             className="order-2 aspect-[16/10] lg:order-1 lg:aspect-[4/5]"
             focus="28% 45%"
           />
+          {raPrice !== undefined ? (
+            <div className="order-1 grid content-start gap-8 lg:order-2">
+              <SectionHeading id="problem-title" title="Two things most states expect from your business." />
+              <ul className="grid gap-3 sm:grid-cols-2">
+                <NeedTile
+                  icon={<Buildings size={22} weight="fill" aria-hidden />}
+                  title="A registered agent"
+                  body="An address in the state that accepts legal papers for you."
+                />
+                <NeedTile
+                  icon={<CalendarCheck size={22} weight="fill" aria-hidden />}
+                  title="An annual report"
+                  body="Miss it and the state can dissolve your business."
+                />
+              </ul>
+              <Link href="/states" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-start`}>
+                See your state&apos;s rules
+                <ArrowRight size={16} weight="bold" aria-hidden />
+              </Link>
+            </div>
+          ) : (
           <div className="order-1 grid content-start gap-8 lg:order-2">
             <SectionHeading
               id="problem-title"
@@ -257,6 +296,7 @@ export default async function HomePage() {
               </p>
             </div>
           </div>
+          )}
         </div>
       </Section>
 
@@ -359,7 +399,7 @@ export default async function HomePage() {
             <div className="grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:grid-cols-[auto_1fr] sm:items-center">
               <span className="font-display text-4xl font-semibold text-fg">{directFee}</span>
               <p className="text-[15px] leading-6 text-muted">
-                <strong className="font-semibold text-fg">Pennsylvania&apos;s state fee.</strong> Passed through at cost, with
+                <strong className="font-semibold text-fg">Example: Pennsylvania&apos;s state fee.</strong> Passed through at cost, with
                 our service fee on its own line.
               </p>
             </div>
@@ -385,7 +425,7 @@ export default async function HomePage() {
 
           <Receipt
             title="If we file it for you"
-            meta={`${stateName} ${entityCopy.singular} annual report`}
+            meta={`Example: ${stateName} ${entityCopy.singular} annual report`}
             className="mx-auto w-full max-w-md lg:rotate-[1.2deg]"
             footer={
               rule ? (
@@ -459,20 +499,35 @@ export default async function HomePage() {
             decorative
           />
         </div>
-        <DisclaimerNote className="mx-auto mt-6 max-w-7xl" stateName="Pennsylvania" />
+        <DisclaimerNote className="mx-auto mt-6 max-w-7xl" />
       </section>
     </>
   );
 }
 
 /** One of the two services in the hero: what it is, what it costs, and where to start. */
-function ServiceChoice({ title, price, body, href, cta }: { title: string; price: string; body: string; href: string; cta: string }) {
+function ServiceChoice({
+  title,
+  price,
+  body,
+  href,
+  cta,
+  featured = false,
+}: {
+  title: string;
+  price: string;
+  body: string;
+  href: string;
+  cta: string;
+  featured?: boolean;
+}) {
   return (
     <li>
       <Link
         href={href}
-        className="group grid h-full content-start gap-1.5 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card transition-[border-color,box-shadow] hover:border-accent/40 sm:p-5"
+        className={`group grid h-full content-start gap-1.5 rounded-[var(--radius-surface)] border bg-surface p-4 shadow-card transition-[border-color,box-shadow] hover:border-accent/40 sm:p-5 ${featured ? "border-accent ring-1 ring-accent/30" : "border-border"}`}
       >
+        {featured ? <span className="text-xs font-bold uppercase tracking-wider text-accent">Best value</span> : null}
         <span className="text-[17px] font-semibold text-fg">{title}</span>
         <span className="text-[15px] font-medium text-fg">{price}</span>
         <span className="text-sm leading-6 text-muted">{body}</span>
@@ -482,5 +537,42 @@ function ServiceChoice({ title, price, body, href, cta }: { title: string; price
         </span>
       </Link>
     </li>
+  );
+}
+
+/** What the business needs, as one tile in the nationwide problem section. */
+function NeedTile({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+  return (
+    <li className="grid content-start gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5">
+      <span className="grid size-10 place-items-center rounded-full bg-highlight-soft text-highlight-fg">{icon}</span>
+      <span className="font-display text-lg font-semibold text-fg">{title}</span>
+      <span className="text-[15px] leading-6 text-muted">{body}</span>
+    </li>
+  );
+}
+
+/** Illustration on the hero photo: what a customer's dashboard shows once we handle both. */
+function BusinessStatusCard({ className = "" }: { className?: string }) {
+  const rows = [
+    { icon: <Buildings size={18} weight="fill" aria-hidden />, label: "Registered agent", value: "Active" },
+    { icon: <Envelope size={18} weight="fill" aria-hidden />, label: "Legal mail", value: "Scanned to you" },
+    { icon: <CalendarCheck size={18} weight="fill" aria-hidden />, label: "Annual report", value: "Filed" },
+  ];
+  return (
+    <div aria-hidden className={`w-[min(20rem,90%)] rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card ${className}`}>
+      <p className="text-xs font-semibold uppercase tracking-wider text-subtle">Your business</p>
+      <ul className="mt-3 grid gap-2.5">
+        {rows.map((r) => (
+          <li key={r.label} className="flex items-center gap-3 text-[15px]">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-highlight-soft text-highlight-fg">{r.icon}</span>
+            <span className="flex-1 font-medium text-fg">{r.label}</span>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent">
+              <CheckCircle size={16} weight="fill" aria-hidden />
+              {r.value}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

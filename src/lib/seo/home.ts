@@ -10,10 +10,10 @@ import { pageMetadata } from "./metadata";
 export function homeMetadata(businessServicesLive: boolean): Metadata {
   return pageMetadata({
     title: businessServicesLive
-      ? `${site.name}: Annual Report Filing and Registered Agent Service`
+      ? `${site.name}: Registered Agent Service and Annual Report Filing`
       : `${site.name}: Annual Report Filing Service`,
     description: businessServicesLive
-      ? "Annual report filing and registered agent service for LLCs and corporations. See what's due and what the state charges, then let us handle it."
+      ? "Registered agent service in every state at one yearly price, and annual report filing for LLCs and corporations. See what's due, then let us handle it."
       : site.description,
     path: "/",
     absoluteTitle: true,

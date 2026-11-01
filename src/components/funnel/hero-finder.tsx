@@ -15,13 +15,16 @@ export function HeroFinder({
   states,
   search,
   select,
+  chooseFirst = false,
 }: {
   states: { code: string; name: string }[];
+  /** Start on "Choose your state" instead of the first state in the list. */
+  chooseFirst?: boolean;
   search: (q: string) => Promise<RegistrySearchResult>;
   select: (state: RegistrySelectState, formData: FormData) => Promise<RegistrySelectState>;
 }) {
   const id = useId();
-  const [state, setState] = useState(states[0]?.code ?? "PA");
+  const [state, setState] = useState(chooseFirst ? "" : (states[0]?.code ?? "PA"));
   const current = states.find((s) => s.code === state) ?? states[0];
 
   return (
@@ -32,6 +35,11 @@ export function HeroFinder({
             Find your business
           </label>
           <Select id={`${id}-state`} value={state} onChange={(e) => setState(e.currentTarget.value)} className="h-12">
+            {chooseFirst ? (
+              <option value="" disabled>
+                Choose your state
+              </option>
+            ) : null}
             {states.map((s) => (
               <option key={s.code} value={s.code}>
                 {s.name}
@@ -52,7 +60,7 @@ export function HeroFinder({
             Business legal name
           </label>
           <Input id={`${id}-name`} name="name" placeholder="Business legal name" autoComplete="organization" maxLength={300} className="h-12 w-full sm:flex-1" />
-          <button type="submit" className={buttonClasses("primary", "md", "h-12 shrink-0")}>
+          <button type="submit" disabled={state === ""} className={buttonClasses("primary", "md", "h-12 shrink-0")}>
             Continue
             <ArrowRight size={18} weight="bold" aria-hidden />
           </button>

@@ -28,7 +28,7 @@ describe("home metadata", () => {
   it("names registered agent service once those pages are live, within search result lengths", () => {
     const m = homeMetadata(true);
     const title = (m.title as { absolute: string }).absolute;
-    expect(title).toBe("Filewell: Annual Report Filing and Registered Agent Service");
+    expect(title).toBe("Filewell: Registered Agent Service and Annual Report Filing");
     expect(title.length).toBeLessThanOrEqual(60);
     expect(String(m.description).length).toBeLessThanOrEqual(160);
     expect(String(m.description)).toMatch(/registered agent/i);
