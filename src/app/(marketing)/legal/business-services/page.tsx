@@ -5,13 +5,13 @@ import { site } from "@/config/site";
 import { LegalPage } from "@/components/marketing/legal-page";
 import { businessServicesIndexable, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { PROVIDER_LEGAL_NAME } from "@/lib/services/catalog";
-import { governingLawText, legalEntityText, postalAddressText } from "@/lib/seo/legal";
+import { governingLawText, legalEntityText, operatorIntroText, postalAddressText } from "@/lib/seo/legal";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 3600;
 
 /** Bump whenever the text below changes. */
-const BUSINESS_SERVICES_TERMS_UPDATED = "2026-10-29";
+const BUSINESS_SERVICES_TERMS_UPDATED = "2026-11-01";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
@@ -47,7 +47,7 @@ export default function BusinessServicesTermsPage() {
     >
       <h2>1. Who you contract with</h2>
       <p>
-        These terms are an agreement between you and {entity} (&ldquo;{brand}&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). You
+        These terms are an agreement between you and {operatorIntroText()} (&ldquo;{brand}&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). You
         contract with the company, not with any of its owners or staff personally.
       </p>
 
