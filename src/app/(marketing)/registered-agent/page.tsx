@@ -9,7 +9,7 @@ import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/surface";
 import { formatCents } from "@/lib/domain/money";
 import { raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
-import { businessServicesIndexable, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { bundleSalesOpen, businessServicesIndexable, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { PROVIDER_LEGAL_NAME } from "@/lib/services/catalog";
 import { REGISTERED_AGENT_FAQ } from "@/lib/services/public-faq";
 import { publicServicePrices } from "@/lib/services/public-prices";
@@ -45,7 +45,8 @@ export default async function RegisteredAgentPage() {
   const prices = await publicServicePrices();
   const states = raJurisdictionsWithPublicFacts();
   const ra = prices.registered_agent;
-  const bundle = prices.ra_annual_report_bundle;
+  // Shown only while the bundle can actually be bought: a listed price that checkout refuses would mislead.
+  const bundle = bundleSalesOpen() ? prices.ra_annual_report_bundle : undefined;
 
   return (
     <>
