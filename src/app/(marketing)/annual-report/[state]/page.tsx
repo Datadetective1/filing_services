@@ -22,6 +22,7 @@ import { GuideSection, GuideText } from "@/components/marketing/guide-section";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { OnThisPageAside, OnThisPageDisclosure } from "@/components/marketing/on-this-page";
 import { PhotoHero } from "@/components/marketing/photo-hero";
+import { RaStateBand } from "@/components/marketing/ra-state-band";
 import { RequiredInfoSheet } from "@/components/marketing/required-info-sheet";
 import { SourceList } from "@/components/marketing/source-list";
 import { StateStatusPanel } from "@/components/marketing/state-status-panel";
@@ -100,8 +101,12 @@ export default async function StateAnnualReportPage({ params }: PageProps<"/annu
   const j = getJurisdictionBySlug(state);
   if (!j) notFound();
   const rules = verifiedRules(j);
-  if (!rules.length) return <UnverifiedState j={j} />;
-  return <VerifiedState j={j} rules={rules} />;
+  return (
+    <>
+      {rules.length ? <VerifiedState j={j} rules={rules} /> : <UnverifiedState j={j} />}
+      <RaStateBand stateCode={j.code} />
+    </>
+  );
 }
 
 // ---------------------------------------------------------------------------

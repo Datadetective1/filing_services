@@ -41,7 +41,7 @@ export async function generateMetadata(props: PageProps<"/registered-agent/[stat
   const ra = (await publicServicePrices()).registered_agent;
   const price = ra !== undefined ? `${formatCents(ra, { trimZeros: true })} a year, the same at renewal. ` : "";
   return pageMetadata({
-    title: `${j.name} Registered Agent Service`,
+    title: ra !== undefined ? `Registered Agent in ${j.name}: ${formatCents(ra, { trimZeros: true })} a Year` : `Registered Agent in ${j.name}`,
     description: `Registered agent service in ${j.name} for LLCs and corporations. ${price}For a new business or a switch: we file the ${j.name} change of agent for you.`,
     path: `/registered-agent/${j.slug}`,
     noindex: !businessServicesIndexable(),
@@ -121,6 +121,9 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
               {change.newAgentConsentRequired ? (
                 <p className="text-muted">The state requires the new agent&apos;s consent. We arrange it with our provider before the change is filed.</p>
               ) : null}
+              <Link href={`/registered-agent/${j.slug}/change`} className={textLinkClasses}>
+                How to change your registered agent in {j.name}, step by step
+              </Link>
               <p className="text-muted">
                 Our filing service for the change is included. Your registered agent service starts once the state&apos;s record shows {PROVIDER_LEGAL_NAME} as your agent.
               </p>
