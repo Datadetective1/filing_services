@@ -40,7 +40,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           <nav aria-label="Product" className="grid content-start gap-3">
             <p className="text-sm font-semibold text-fg">{site.name}</p>
             <Link className={linkClass} href="/find">Find my business</Link>
@@ -70,6 +70,13 @@ export function SiteFooter() {
             <Link className={linkClass} href="/pennsylvania/how-to-file-annual-report">How to file</Link>
             <Link className={linkClass} href="/pennsylvania/annual-report-after-deadline">Filing after the deadline</Link>
             <Link className={linkClass} href="/pennsylvania/business-search">Business search</Link>
+          </nav>
+          <nav aria-label="Florida guides" className="grid content-start gap-3">
+            <p className="text-sm font-semibold text-fg">Florida guides</p>
+            <Link className={linkClass} href="/florida/annual-report-deadline">Annual report deadline</Link>
+            <Link className={linkClass} href="/florida/annual-report-late-fee">$400 late fee</Link>
+            <Link className={linkClass} href="/florida/annual-report-fee">Annual report fee</Link>
+            <Link className={linkClass} href="/florida/how-to-file-annual-report">How to file on Sunbiz</Link>
           </nav>
           <nav aria-label="Legal" className="grid content-start gap-3">
             <p className="text-sm font-semibold text-fg">Legal</p>

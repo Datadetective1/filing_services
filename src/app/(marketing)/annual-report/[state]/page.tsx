@@ -28,7 +28,7 @@ import { SourceList } from "@/components/marketing/source-list";
 import { StateStatusPanel } from "@/components/marketing/state-status-panel";
 import { UnverifiedStatePanel } from "@/components/marketing/unverified-state-panel";
 import { UnverifiedStateSections } from "@/components/marketing/unverified-state-sections";
-import { buttonClasses } from "@/components/ui/button";
+import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { CalendarDate } from "@/components/visual/calendar-date";
 import { FilingYearChart } from "@/components/visual/filing-year-chart";
@@ -56,6 +56,7 @@ import {
 import { ENTITY_COPY, joinList } from "@/lib/seo/entities";
 import { breadcrumbJsonLd, faqJsonLd, graph, serviceJsonLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { guideSet } from "@/lib/seo/state-guides";
 
 export const dynamicParams = false;
 // The status panel counts days to the next deadline: render per request so a cached
@@ -127,6 +128,7 @@ const TOC = [
 
 async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: ComplianceRuleDef[] }) {
   const path = `/annual-report/${j.slug}`;
+  const topicGuides = guideSet(j.code);
   const agency = agencyShortName(j);
   const facts = stateFacts(j.code);
   const first = rules[0];
@@ -551,6 +553,20 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 </li>
               ))}
             </ul>
+            {topicGuides ? (
+              <nav aria-label={`${j.name} guides`} className="grid gap-2 pt-2">
+                <p className="text-sm font-semibold text-fg">{j.name} guides</p>
+                <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[15px]">
+                  {topicGuides.guides.map((g) => (
+                    <li key={g.slug}>
+                      <Link href={`/${topicGuides.slug}/${g.slug}`} className={textLinkClasses}>
+                        {g.h1.replace(/^\w/, (c) => c.toUpperCase())}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ) : null}
           </GuideSection>
 
           {/* FAQ */}
