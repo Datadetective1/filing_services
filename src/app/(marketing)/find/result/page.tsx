@@ -271,6 +271,77 @@ export default async function FindResultPage() {
 
   if (!rule || !supported) {
     const searchUrl = lookup.stateCode === "PA" ? PENNSYLVANIA_FACTS.businessSearchUrl : jurisdiction?.agency.businessSearchUrl;
+    const paExempt =
+      lookup.stateCode === "PA" ? (
+        <div className="flex gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-highlight-soft text-highlight-fg" aria-hidden>
+            <Info size={20} weight="fill" />
+          </span>
+          <div className="grid min-w-0 gap-3">
+            <p className="text-[15px] leading-7 text-fg">
+              Based on the Pennsylvania Department of State&apos;s published requirements: {PENNSYLVANIA_FACTS.exemptTypes}
+            </p>
+            <OfficialSource
+              href={PENNSYLVANIA_FACTS.exemptSource.url}
+              agency="Pennsylvania Department of State"
+              lastVerifiedAt={PENNSYLVANIA_FACTS.exemptSource.lastVerifiedAt}
+            />
+          </div>
+        </div>
+      ) : null;
+    const officialLinks = (primary: boolean) => (
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {jurisdiction ? (
+          <a href={jurisdiction.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses(primary ? "primary" : "secondary", "lg")}>
+            Visit the official agency site
+            <ArrowSquareOut size={18} aria-hidden />
+            <span className="sr-only">(opens a government website in a new tab)</span>
+          </a>
+        ) : null}
+        {searchUrl ? (
+          <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
+            Official business search
+            <ArrowSquareOut size={18} aria-hidden />
+            <span className="sr-only">(opens a government website in a new tab)</span>
+          </a>
+        ) : null}
+      </div>
+    );
+
+    // We don't file this one, but the registered agent is sold in every state: offer it
+    // rather than end the visit at a dead end.
+    const agentSale = businessServicesPagesEnabled() ? raSaleCheck(lookup.stateCode, lookup.entityType, "switching") : null;
+    if (agentSale?.ok) {
+      const prices = await publicServicePrices().catch(() => ({}) as Awaited<ReturnType<typeof publicServicePrices>>);
+      return (
+        <>
+          <TrackView event="lookup_completed" stateCode={lookup.stateCode} entityType={lookup.entityType} />
+          <RaLookupResult
+            legalName={lookup.legalName}
+            stateName={stateName}
+            entered={entered}
+            signedIn={signedIn}
+            agentPriceCents={prices.registered_agent ?? null}
+            changeFeeCents={changeOfAgentFeeCents(lookup.stateCode, lookup.entityType)}
+            unavailableReason={null}
+            title={`We can be your registered agent in ${stateName}`}
+            intro={
+              lookup.stateCode === "PA"
+                ? "We don't file a report for this type of business. The state's notes are below."
+                : `We don't file annual reports in ${stateName} yet. The state's own site has your deadline.`
+            }
+            after={
+              <div className="grid gap-4">
+                {paExempt}
+                <p className="text-sm font-semibold text-fg">Check your deadline with the state</p>
+                {officialLinks(false)}
+              </div>
+            }
+          />
+        </>
+      );
+    }
+
     return (
       <Container className="max-w-3xl pb-16 pt-6 sm:pb-24 sm:pt-10">
         <TrackView event="lookup_completed" stateCode={lookup.stateCode} entityType={lookup.entityType} />
@@ -286,40 +357,9 @@ export default async function FindResultPage() {
           </p>
         </div>
 
-        {lookup.stateCode === "PA" ? (
-          <div className="mt-8 flex gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-highlight-soft text-highlight-fg" aria-hidden>
-              <Info size={20} weight="fill" />
-            </span>
-            <div className="grid min-w-0 gap-3">
-              <p className="text-[15px] leading-7 text-fg">
-                Based on the Pennsylvania Department of State&apos;s published requirements: {PENNSYLVANIA_FACTS.exemptTypes}
-              </p>
-              <OfficialSource
-                href={PENNSYLVANIA_FACTS.exemptSource.url}
-                agency="Pennsylvania Department of State"
-                lastVerifiedAt={PENNSYLVANIA_FACTS.exemptSource.lastVerifiedAt}
-              />
-            </div>
-          </div>
-        ) : null}
+        {paExempt ? <div className="mt-8">{paExempt}</div> : null}
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          {jurisdiction ? (
-            <a href={jurisdiction.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("primary", "lg")}>
-              Visit the official agency site
-              <ArrowSquareOut size={18} aria-hidden />
-              <span className="sr-only">(opens a government website in a new tab)</span>
-            </a>
-          ) : null}
-          {searchUrl ? (
-            <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
-              Official business search
-              <ArrowSquareOut size={18} aria-hidden />
-              <span className="sr-only">(opens a government website in a new tab)</span>
-            </a>
-          ) : null}
-        </div>
+        <div className="mt-8">{officialLinks(true)}</div>
 
         <div className="mt-12">{entered}</div>
         <p className="mt-8 text-sm leading-6 text-subtle">{site.disclaimer}</p>

@@ -64,19 +64,22 @@ export function LookupForm({
   entityOptions,
   defaults,
   maxDate,
+  forAgent = false,
 }: {
   action: (state: LookupFormState, formData: FormData) => Promise<LookupFormState>;
   jurisdictions: LookupJurisdictionOption[];
   entityOptions: { value: string; label: string }[];
   defaults: LookupValues;
   maxDate: string;
+  /** The visitor came for a registered agent: no annual report questions, and the button says what happens next. */
+  forAgent?: boolean;
 }) {
   const [state, formAction] = useActionState(action, { errors: {}, nonce: 0 });
   const v = state.values ?? defaults;
   const [stateCode, setStateCode] = useState(defaults.stateCode);
   const [isForeign, setIsForeign] = useState(defaults.isForeign);
   const started = useRef(false);
-  const selected = jurisdictions.find((j) => j.code === stateCode) ?? jurisdictions[0];
+  const selected = jurisdictions.find((j) => j.code === stateCode) ?? null;
   const e = state.errors;
   const hasErrors = Object.keys(e).length > 0 || Boolean(state.formError);
 
@@ -121,6 +124,11 @@ export function LookupForm({
             aria-invalid={e.stateCode ? true : undefined}
             aria-describedby={e.stateCode ? `${fieldId("stateCode")}-error` : undefined}
           >
+            {!selected ? (
+              <option value="" disabled>
+                Choose your state
+              </option>
+            ) : null}
             {jurisdictions.map((j) => (
               <option key={j.code} value={j.code}>
                 {j.name}
@@ -150,18 +158,22 @@ export function LookupForm({
       <div className="flex gap-3 rounded-[var(--radius-control)] bg-surface-2 px-4 py-3.5 text-sm leading-6 text-muted">
         <Info size={18} className="mt-0.5 shrink-0 text-fg" aria-hidden />
         <p>
-          We don&apos;t pull records from the state yet, so enter the details as they appear on your state record. Look
-          them up on the{" "}
-          <a
-            href={selected.searchUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
-          >
-            {selected.isBusinessSearch ? `official ${selected.name} business search` : `official ${selected.name} business agency site`}
-            <ArrowSquareOut size={14} weight="bold" aria-hidden className="ml-1 inline align-[-2px]" />
-            <span className="sr-only">(opens a government website in a new tab)</span>
-          </a>
+          We don&apos;t pull records from the state yet, so enter the details as they appear on your state record.
+          {selected ? (
+            <>
+              {" "}Look them up on the{" "}
+              <a
+                href={selected.searchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
+              >
+                {selected.isBusinessSearch ? `official ${selected.name} business search` : `official ${selected.name} business agency site`}
+                <ArrowSquareOut size={14} weight="bold" aria-hidden className="ml-1 inline align-[-2px]" />
+                <span className="sr-only">(opens a government website in a new tab)</span>
+              </a>
+            </>
+          ) : null}
         </p>
       </div>
 
@@ -176,15 +188,15 @@ export function LookupForm({
           type="date"
           label="Formation date"
           hint={
-            selected.formationRequired
+            selected?.formationRequired
               ? `Required: ${selected.name} sets the due date from the month the business formed (or registered in ${selected.name}, if formed elsewhere).`
-              : `For a business formed elsewhere, the date it registered in ${selected.name}.`
+              : `For a business formed elsewhere, the date it registered in ${selected?.name ?? "this state"}.`
           }
           value={v.formationDate}
           error={e.formationDate}
           max={maxDate}
           min="1800-01-01"
-          required={Boolean(selected.formationRequired)}
+          required={Boolean(selected?.formationRequired)}
         />
         <LabeledInput
           name="entityNumber"
@@ -204,7 +216,7 @@ export function LookupForm({
         <div className="mt-3 grid divide-y divide-border overflow-hidden rounded-[var(--radius-control)] border border-border-strong">
           <CheckRow
             name="isForeign"
-            label={`Formed outside ${selected.name} (foreign entity)`}
+            label={selected ? `Formed outside ${selected.name} (foreign entity)` : "Formed in another state (foreign entity)"}
             checked={isForeign}
             onChange={setIsForeign}
             controls="home-jurisdiction"
@@ -223,16 +235,20 @@ export function LookupForm({
             ) : null}
           </div>
           <CheckRow name="isNonprofit" label="Has a not-for-profit purpose" defaultChecked={v.isNonprofit} />
-          <CheckRow name="alreadyFiledThisYear" label="We already filed this year's report" defaultChecked={v.alreadyFiledThisYear} />
+          {forAgent ? null : (
+            <CheckRow name="alreadyFiledThisYear" label="We already filed this year's report" defaultChecked={v.alreadyFiledThisYear} />
+          )}
         </div>
       </fieldset>
 
       <div className="grid gap-3 border-t border-border pt-6 sm:flex sm:flex-row-reverse sm:items-center sm:justify-between">
         <SubmitButton size="lg" pendingLabel="Checking…" className="w-full sm:w-auto sm:px-8">
-          See what&apos;s due
+          {forAgent ? "Continue" : <>See what&apos;s due</>}
           <ArrowRight size={18} weight="bold" aria-hidden />
         </SubmitButton>
-        <p className="text-center text-sm text-muted sm:text-left">Free to check. Nothing is filed until you ask.</p>
+        <p className="text-center text-sm text-muted sm:text-left">
+          {forAgent ? "You see the full price before you pay anything." : "Free to check. Nothing is filed until you ask."}
+        </p>
       </div>
     </form>
   );

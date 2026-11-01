@@ -57,7 +57,9 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
 
   const defaults: LookupValues = {
     legalName: one(sp.name)?.replace(/\s+/g, " ").trim().slice(0, 300) || pending?.legalName || "",
-    stateCode: qsState && codes.has(qsState) ? qsState : (pending?.stateCode ?? "PA"),
+    // Annual report visitors start on Pennsylvania's register search, our deepest state. A
+    // visitor here for a registered agent could be anywhere, so they pick their state.
+    stateCode: qsState && codes.has(qsState) ? qsState : (pending?.stateCode ?? (forAgent ? "" : "PA")),
     entityType: qsEntity && isEntityType(qsEntity) ? qsEntity : (pending?.entityType ?? ""),
     formationDate: pending?.formationDate ?? "",
     entityNumber: pending?.entityNumber ?? "",
@@ -127,6 +129,7 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
               entityOptions={entityOptions}
               defaults={defaults}
               maxDate={todayInTimeZone("America/New_York")}
+              forAgent={forAgent}
             />
           </div>
 
@@ -143,7 +146,7 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
             className="aspect-[4/5] max-h-[calc(100dvh-8rem)] min-h-[34rem] w-full"
             focus="50% 28%"
           />
-          {paRule ? (
+          {paRule && defaults.stateCode === "PA" ? (
             <div className="absolute inset-x-5 bottom-5 flex items-start gap-3 rounded-[var(--radius-surface)] bg-surface/95 p-4 shadow-lift backdrop-blur-sm">
               <SealCheck size={22} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
               <p className="text-[15px] leading-6 text-fg">

@@ -17,6 +17,9 @@ export function RaLookupResult({
   agentPriceCents,
   changeFeeCents,
   unavailableReason,
+  title,
+  intro,
+  after,
 }: {
   legalName: string;
   stateName: string;
@@ -25,13 +28,20 @@ export function RaLookupResult({
   agentPriceCents: number | null;
   changeFeeCents: number | null;
   unavailableReason: string | null;
+  /** Replaces "Registered agent for …" when the visitor came for something else. */
+  title?: string;
+  /** One short line under the title. */
+  intro?: ReactNode;
+  /** Shown after the offer, before the details they entered. */
+  after?: ReactNode;
 }) {
   const next = "/dashboard/services/start";
   return (
     <Container className="max-w-2xl pb-16 pt-6 sm:pb-24 sm:pt-10">
       <h1 className="text-[28px] font-semibold leading-[1.1] tracking-[-0.025em] text-fg [overflow-wrap:anywhere] sm:text-[40px]">
-        Registered agent for {legalName}
+        {title ?? `Registered agent for ${legalName}`}
       </h1>
+      {intro ? <p className="mt-3 max-w-[56ch] text-[17px] leading-relaxed text-muted">{intro}</p> : null}
       {unavailableReason ? (
         <Notice className="mt-5" tone="warning" title={`Not open in ${stateName} yet`}>
           <p>{unavailableReason} Nothing has been charged.</p>
@@ -68,6 +78,7 @@ export function RaLookupResult({
           ) : null}
         </div>
       )}
+      {after ? <div className="mt-8">{after}</div> : null}
       <div className="mt-4">{entered}</div>
     </Container>
   );
