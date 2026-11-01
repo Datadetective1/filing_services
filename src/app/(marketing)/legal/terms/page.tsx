@@ -5,7 +5,7 @@ import { LegalPage } from "@/components/marketing/legal-page";
 import { JURISDICTIONS } from "@/lib/compliance/jurisdictions";
 import { stateSupportLabel } from "@/lib/compliance/registry";
 import { joinList } from "@/lib/seo/entities";
-import { governingLawText, legalEntityText, postalAddressText } from "@/lib/seo/legal";
+import { assumedNameNoticeText, governingLawText, operatorIntroText, postalAddressText } from "@/lib/seo/legal";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -16,6 +16,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function TermsPage() {
   const governingLaw = governingLawText();
+  const assumedNameNotice = assumedNameNoticeText();
   const brand = site.name;
   // Same test as the "Filing supported" badge, so the terms never name a state we don't sell in.
   const filingStates = JURISDICTIONS.filter((j) => stateSupportLabel(j.code) === "Filing supported").map((j) => j.name);
@@ -33,9 +34,9 @@ export default function TermsPage() {
     >
       <h2>1. Who we are</h2>
       <p>
-        These terms are an agreement between you and {legalEntityText()} (&ldquo;{brand}&rdquo;, &ldquo;we&rdquo;,
+        These terms are an agreement between you and {operatorIntroText()} (&ldquo;{brand}&rdquo;, &ldquo;we&rdquo;,
         &ldquo;us&rdquo;), which operates this website and the filing service described here. By creating an account or ordering
-        a filing, you agree to these terms.
+        a filing, you agree to these terms.{assumedNameNotice ? ` ${assumedNameNotice}` : null}
       </p>
       <ul>
         <li>

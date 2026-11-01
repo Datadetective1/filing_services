@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { site } from "@/config/site";
 import { LegalPage } from "@/components/marketing/legal-page";
-import { legalEntityText, postalAddressText } from "@/lib/seo/legal";
+import { assumedNameNoticeText, operatorIntroText, postalAddressText } from "@/lib/seo/legal";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -25,8 +25,8 @@ export default function PrivacyPage() {
     >
       <h2>Who this covers</h2>
       <p>
-        This policy explains how {legalEntityText()} (&ldquo;{brand}&rdquo;, &ldquo;we&rdquo;) handles personal information when
-        you visit our website, create an account or order a filing.
+        This policy explains how {operatorIntroText()} (&ldquo;{brand}&rdquo;, &ldquo;we&rdquo;) handles personal information
+        when you visit our website, create an account or order a filing.{assumedNameNoticeText() ? ` ${assumedNameNoticeText()}` : null}
       </p>
 
       <h2>What we collect</h2>

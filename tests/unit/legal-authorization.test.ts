@@ -109,3 +109,31 @@ describe("stateFeeSentence", () => {
     expect(stateFeeSentence(paid!)).toMatch(/^State fee: \$7/);
   });
 });
+
+describe("assumed name on the legal pages", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("introduces Harborlune LLC doing business as Filewell and names the Texas registration", async () => {
+    vi.stubEnv("NEXT_PUBLIC_LEGAL_ENTITY", "Harborlune LLC");
+    vi.stubEnv("NEXT_PUBLIC_BRAND_NAME", "");
+    vi.resetModules();
+    const legal = await import("@/lib/seo/legal");
+    expect(legal.operatorIntroText()).toBe("Harborlune LLC, a Texas limited liability company doing business as Filewell");
+    expect(legal.assumedNameNoticeText()).toBe(
+      "Filewell is an assumed name of Harborlune LLC, registered with the Texas Secretary of State.",
+    );
+    // The bare entity stays the contracting name used elsewhere (footer, filing agent).
+    expect(legal.legalEntityText()).toBe("Harborlune LLC");
+  });
+
+  it("claims no assumed name for any other entity", async () => {
+    vi.stubEnv("NEXT_PUBLIC_LEGAL_ENTITY", "Example Operating Co LLC");
+    vi.resetModules();
+    const legal = await import("@/lib/seo/legal");
+    expect(legal.operatorIntroText()).toBe("Example Operating Co LLC");
+    expect(legal.assumedNameNoticeText()).toBeNull();
+  });
+});
