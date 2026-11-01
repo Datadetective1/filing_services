@@ -4781,19 +4781,6 @@ export const STATE_FACTS: Record<string, StateFacts> = {
             "a person designated as the registered agent of an entity must have consented, either in a written or electronic form,",
           checkedAt: "2026-10-29",
         },
-        {
-          url: "https://direct.sos.state.tx.us/help/help-corp.asp?pg=fee-revised",
-          publisher: "Texas Secretary of State, SOSDirect Fee Schedule",
-          quote: "Change of Registered Agent/Office 15.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://direct.sos.state.tx.us/help/help-corp.asp?pg=fee-revised",
-          publisher: "Texas Secretary of State, SOSDirect Fee Schedule",
-          quote:
-            "Fees same as domestic and foreign for-profit corporation filing fees. (Sections 4.151 & 4.154, BOC)",
-          checkedAt: "2026-10-29",
-        },
       ],
     },
     appointment: {
@@ -4841,12 +4828,6 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           publisher:
             "Texas Secretary of State, Business & Public Filings Division",
           quote: "Filing Fee: $300",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://direct.sos.state.tx.us/help/help-corp.asp?pg=fee-revised",
-          publisher: "Texas Secretary of State, SOSDirect Fee Schedule",
-          quote: "Certificate of Formation 300.00",
           checkedAt: "2026-10-29",
         },
       ],
@@ -5229,14 +5210,14 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       newAgentConsentRequired: true,
       sources: [
         {
-          url: "https://www.sos.wa.gov/sites/default/files/2022-09/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
+          url: "https://www.sos.wa.gov/_assets/corps/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
           publisher:
             "Washington Secretary of State, Corporations and Charities Division",
           quote: "STATEMENT OF CHANGE/ DESIGNATION OF REGISTERED AGENT",
           checkedAt: "2026-10-29",
         },
         {
-          url: "https://www.sos.wa.gov/sites/default/files/2022-09/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
+          url: "https://www.sos.wa.gov/_assets/corps/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
           publisher:
             "Washington Secretary of State, Corporations and Charities Division",
           quote:
@@ -5244,7 +5225,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           checkedAt: "2026-10-29",
         },
         {
-          url: "https://www.sos.wa.gov/sites/default/files/2022-09/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
+          url: "https://www.sos.wa.gov/_assets/corps/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
           publisher:
             "Washington Secretary of State, Corporations and Charities Division",
           quote:
