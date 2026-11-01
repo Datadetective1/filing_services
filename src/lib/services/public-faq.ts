@@ -54,8 +54,10 @@ export function stateRegisteredAgentFaq(input: {
   priceText: string | null;
   changeFormName: string;
   appointmentProcess: string | null;
+  /** The state's verified change-of-agent fee in words ("$15 for an LLC or a corporation"). */
+  changeFee?: string | null;
 }): FaqItem[] {
-  const { stateName, priceText, changeFormName, appointmentProcess } = input;
+  const { stateName, priceText, changeFormName, appointmentProcess, changeFee = null } = input;
   const out: FaqItem[] = [
     {
       q: `Do I need a registered agent in ${stateName}?`,
@@ -71,11 +73,15 @@ export function stateRegisteredAgentFaq(input: {
   out.push(
     {
       q: `How do I change my registered agent in ${stateName}?`,
-      a: `The state's filing is the ${changeFormName}. We file it for you; you pay only the state's fee, shown before you pay.`,
+      a: `The state's filing is the ${changeFormName}${changeFee ? `, and the state's fee is ${changeFee}` : ""}. We file it for you; you pay only the state's fee, shown before you pay.`,
     },
     {
       q: `How much does registered agent service in ${stateName} cost with Filewell?`,
       a: `${priceText ? `${priceText} a year per business, and the same price when it renews. ` : ""}Legal documents and government notices are scanned to your dashboard and emailed to you. Turn off renewal any time.`,
+    },
+    {
+      q: `Can I be my own registered agent in ${stateName}?`,
+      a: `Usually, yes, if you have a street address in ${stateName} and are available there during business hours. Many owners use a service for privacy, and so legal documents go to an address that is staffed every business day.`,
     },
   );
   return out;

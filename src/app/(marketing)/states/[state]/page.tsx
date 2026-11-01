@@ -8,6 +8,7 @@ import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DirectoryListing } from "@/components/marketing/directory-listing";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { JsonLd } from "@/components/marketing/json-ld";
+import { RaStateBand } from "@/components/marketing/ra-state-band";
 import { PhotoHero } from "@/components/marketing/photo-hero";
 import { StateStatusPanel } from "@/components/marketing/state-status-panel";
 import { UnverifiedStatePanel } from "@/components/marketing/unverified-state-panel";
@@ -231,6 +232,8 @@ export default async function StatePage({ params }: PageProps<"/states/[state]">
           </div>
         </Container>
       </section>
+
+      <RaStateBand stateCode={j.code} />
 
       <Container className="py-12">
         <DisclaimerNote stateName={j.name} />

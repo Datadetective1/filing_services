@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
+import { RaOtherStates } from "@/components/marketing/ra-state-links";
 import { PageIntro, Section, SectionHeading } from "@/components/marketing/section";
 import { buttonClasses, textLinkClasses } from "@/components/ui/button";
-import { Card } from "@/components/ui/surface";
+import { Card, Notice } from "@/components/ui/surface";
 import { formatCents } from "@/lib/domain/money";
 import { getRaJurisdictionBySlug, raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
 import { businessServicesIndexable, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
@@ -126,6 +127,9 @@ export default async function ChangeAgentPage(props: PageProps<"/registered-agen
                 ))}
               </ul>
             </div>
+            <Notice tone="neutral">
+              <p>Filewell is a private company, not a government agency. You can also be your own registered agent if you have a street address in {j.name}.</p>
+            </Notice>
           </div>
           <Card className="grid content-start gap-3 p-5 lg:sticky lg:top-24">
             <h2 className="text-lg font-semibold text-fg">Rather we file it?</h2>
@@ -144,6 +148,9 @@ export default async function ChangeAgentPage(props: PageProps<"/registered-agen
       <Section band>
         <SectionHeading title="Questions" />
         <FaqList items={guide.faq} className="mt-8" />
+      </Section>
+      <Section>
+        <RaOtherStates currentCode={j.code} title="Change your agent in another state" hrefSuffix="/change" />
       </Section>
     </>
   );

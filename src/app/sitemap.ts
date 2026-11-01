@@ -3,6 +3,7 @@ import { absoluteUrl } from "@/config/site";
 import { isStateVerified, listJurisdictions, RULES } from "@/lib/compliance/registry";
 import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
+import { changeCheckedAt } from "@/lib/registered-agent/public-copy";
 import { businessServicesIndexable } from "@/lib/registered-agent/sales";
 import { LEGAL_LAST_UPDATED, LEGAL_PAGES } from "@/lib/seo/legal";
 import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
@@ -52,10 +53,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Business services pages, only once they are launched (and indexable) on production.
   if (businessServicesIndexable()) {
     entries.push(
-      { url: absoluteUrl("/registered-agent"), changeFrequency: "monthly", priority: 0.7 },
+      { url: absoluteUrl("/registered-agent"), changeFrequency: "monthly", priority: 0.9 },
       { url: absoluteUrl("/business-formation"), changeFrequency: "monthly", priority: 0.4 },
-      ...raJurisdictionsWithPublicFacts().map((j) => ({ url: absoluteUrl(`/registered-agent/${j.slug}`), changeFrequency: "monthly" as const, priority: 0.6 })),
-      ...raJurisdictionsWithPublicFacts().map((j) => ({ url: absoluteUrl(`/registered-agent/${j.slug}/change`), changeFrequency: "monthly" as const, priority: 0.5 })),
+      ...raJurisdictionsWithPublicFacts().flatMap((j) => {
+        const checked = changeCheckedAt(j);
+        const lastModified = checked ? new Date(`${checked}T00:00:00Z`) : undefined;
+        return [
+          { url: absoluteUrl(`/registered-agent/${j.slug}`), lastModified, changeFrequency: "monthly" as const, priority: 0.7 },
+          { url: absoluteUrl(`/registered-agent/${j.slug}/change`), lastModified, changeFrequency: "monthly" as const, priority: 0.6 },
+        ];
+      }),
     );
   }
 
