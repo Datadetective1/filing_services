@@ -6,7 +6,20 @@ import { DocumentSheet } from "@/components/visual/document-tile";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { formatLongDate, formatShortDate } from "@/lib/domain/dates";
 import type { FilingPeriod } from "@/lib/domain/deadlines";
-import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
+import { ENTITY_TYPE_LABELS, type EntityType } from "@/lib/domain/types";
+
+/** The example business's name ends the way a real one of that type would. */
+const EXAMPLE_SUFFIX: Record<EntityType, string> = {
+  llc: "LLC",
+  corporation: "Inc.",
+  nonprofit_corporation: "Inc.",
+  lp: "LP",
+  llp: "LLP",
+  electing_partnership: "LP",
+  professional_association: "P.A.",
+  business_trust: "Trust",
+  other: "Co.",
+};
 
 /**
  * A still of the customer dashboard, drawn with real rule data and today's date
@@ -48,7 +61,7 @@ export function ProductPreview({
 
         <div aria-hidden className="grid gap-3 p-4 sm:p-5">
           <div>
-            <p className="font-display text-[17px] font-semibold text-fg">Maple &amp; Main Goods LLC</p>
+            <p className="font-display text-[17px] font-semibold text-fg">Maple &amp; Main Goods {EXAMPLE_SUFFIX[rule.entityType]}</p>
             <p className="text-[13px] text-muted">
               {stateName} · {ENTITY_TYPE_LABELS[rule.entityType]}
             </p>

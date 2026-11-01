@@ -11,7 +11,9 @@ import { textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
-import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { ServiceChoice } from "@/components/marketing/service-choice";
+import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { publicServicePrices } from "@/lib/services/public-prices";
 import { isRuleSellable, isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import type { FaqItem } from "@/lib/compliance/types";
 import { formatCents } from "@/lib/domain/money";
@@ -26,7 +28,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = pageMetadata({
   title: "Pricing: State Fee Plus Our Service Fee",
   description:
-    "Transparent pricing for annual report filing. The state fee is passed through at cost and our service fee is shown separately.",
+    "Registered agent service, annual report filing and the bundle, priced up front. State fees are passed through at cost on their own line.",
   path: "/pricing",
 });
 
@@ -67,6 +69,11 @@ export default async function PricingPage() {
   const exampleRule = featured && exampleIndex >= 0 ? featured.rules[exampleIndex] : null;
   const exampleQuote = featured && exampleIndex >= 0 ? featured.quotes[exampleIndex] : null;
   const exampleState = featured?.j ?? null;
+
+  const servicePrices = businessServicesPagesEnabled() ? await publicServicePrices() : {};
+  const raPrice = servicePrices.registered_agent;
+  // Listed only while checkout takes it, as on the homepage.
+  const bundlePrice = raPrice !== undefined && bundleSalesOpen() ? servicePrices.ra_annual_report_bundle : undefined;
 
   const faq: FaqItem[] = [
     {
@@ -110,6 +117,35 @@ export default async function PricingPage() {
               preparing and submitting the filing. You see both before you pay.
             </p>
           </div>
+
+          {raPrice !== undefined ? (
+            <ul className={`grid gap-3 ${bundlePrice !== undefined ? "sm:grid-cols-3" : "sm:grid-cols-2"}`} aria-label="Our services">
+              <ServiceChoice
+                title="Registered agent"
+                price={`${formatCents(raPrice, { trimZeros: true })} a year`}
+                body="Every state. Legal mail scanned to you."
+                href="/registered-agent"
+                cta="Get an agent"
+              />
+              {bundlePrice !== undefined ? (
+                <ServiceChoice
+                  title="Agent + annual report"
+                  price={`${formatCents(bundlePrice, { trimZeros: true })} a year`}
+                  body={`Plus the state fee. In ${BUNDLE_STATES.length} states.`}
+                  href="/registered-agent"
+                  cta="See the bundle"
+                  featured
+                />
+              ) : null}
+              <ServiceChoice
+                title="Annual report"
+                price={exampleQuote ? `${formatCents(exampleQuote.serviceFeeCents, { trimZeros: true })} plus state fee` : "Plus the state fee"}
+                body="We file it when you ask."
+                href="/find"
+                cta="Check my deadline"
+              />
+            </ul>
+          ) : null}
 
           {exampleRule && exampleState ? (
             <div className="mx-auto grid w-full max-w-md">
