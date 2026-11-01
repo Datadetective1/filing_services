@@ -122,6 +122,7 @@ describe("rows to hits and records", () => {
   it("parses queries per state and rejects too-short text", () => {
     expect(parseStateQuery(STATE_DATASETS.CO, "20131234567")).toEqual({ kind: "number", value: "20131234567" });
     expect(parseStateQuery(STATE_DATASETS.NY, "0004072354")).toEqual({ kind: "number", value: "4072354" });
+    expect(parseStateQuery(STATE_DATASETS.CT, "975250")).toEqual({ kind: "number", value: "0975250" });
     expect(parseStateQuery(STATE_DATASETS.CT, "acme widgets")).toEqual({ kind: "name", value: "ACME WIDGETS" });
     expect(parseStateQuery(STATE_DATASETS.CT, "ab")).toBeNull();
   });

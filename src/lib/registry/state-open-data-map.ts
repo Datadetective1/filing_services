@@ -221,7 +221,8 @@ export const STATE_DATASETS: Record<string, StateDataset> = {
     upperCaseNames: false,
     select: ["accountnumber", "name", "business_type", "citizenship", "date_registration", "billingcity", "billingstate", "state_or_territory_formation"],
     where: "status = 'Active'",
-    number: digitsAsIs(4, 10),
+    // Stored zero-padded to 7 digits ("0975250").
+    number: (d) => (d.length >= 4 && d.length <= 10 ? d.padStart(7, "0") : null),
     map: (r) => mapConnecticutType(r.business_type, r.citizenship),
     toHit: (r) => {
       const mapped = mapConnecticutType(r.business_type, r.citizenship);
