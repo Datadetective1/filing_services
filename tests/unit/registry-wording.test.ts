@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
  */
 const SURFACES = [
   "src/components/funnel/registry-search.tsx",
+  "src/lib/registry/sources.ts",
   "src/components/intake/prefill-panel.tsx",
   "src/app/(marketing)/find/result/page.tsx",
   "src/app/(marketing)/find/registry-actions.ts",

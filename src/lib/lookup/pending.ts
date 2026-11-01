@@ -34,7 +34,7 @@ export const lookupSchema = z.object({
   /** Set only by the server after it fetched this entity from the state's register itself. */
   registryEntityNumber: z
     .string()
-    .regex(/^[0-9]{1,10}$/)
+    .regex(/^[A-Za-z0-9-]{1,20}$/)
     .nullable()
     .optional()
     .transform((v) => v || null),

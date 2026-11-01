@@ -9,6 +9,7 @@ import { verifiedText } from "@/lib/compliance/view";
 import { todayInTimeZone } from "@/lib/domain/dates";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPES, isEntityType } from "@/lib/domain/types";
 import { readPendingLookup } from "@/lib/lookup/pending";
+import { registryStates } from "@/lib/registry/sources";
 import { LookupForm } from "@/components/funnel/lookup-form";
 import { RegistrySearch } from "@/components/funnel/registry-search";
 import type { LookupJurisdictionOption, LookupValues } from "@/components/funnel/types";
@@ -118,19 +119,20 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
             </Notice>
           ) : null}
 
-          {defaults.stateCode === "PA" ? (
-            <>
-              <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
-                <RegistrySearch search={searchRegistry} select={selectRegistryEntity} />
-              </div>
+          <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
+            <RegistrySearch
+              search={searchRegistry}
+              select={selectRegistryEntity}
+              states={registryStates().map((s) => ({ code: s.code, name: s.name }))}
+              stateCode={defaults.stateCode}
+            />
+          </div>
 
-              <div className="flex items-center gap-3 text-sm text-subtle" aria-hidden>
-                <span className="h-px flex-1 bg-border" />
-                Not in Pennsylvania, or not listed? Enter your details
-                <span className="h-px flex-1 bg-border" />
-              </div>
-            </>
-          ) : null}
+          <div className="flex items-center gap-3 text-sm text-subtle" aria-hidden>
+            <span className="h-px flex-1 bg-border" />
+            State not listed, or business not found? Enter your details
+            <span className="h-px flex-1 bg-border" />
+          </div>
 
           <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
             <LookupForm

@@ -158,10 +158,9 @@ export function LookupForm({
       <div className="flex gap-3 rounded-[var(--radius-control)] bg-surface-2 px-4 py-3.5 text-sm leading-6 text-muted">
         <Info size={18} className="mt-0.5 shrink-0 text-fg" aria-hidden />
         <p>
-          We don&apos;t pull records from the state yet, so enter the details as they appear on your state record.
           {selected ? (
             <>
-              {" "}Look them up on the{" "}
+              Copy your details from the{" "}
               <a
                 href={selected.searchUrl}
                 target="_blank"
@@ -172,8 +171,11 @@ export function LookupForm({
                 <ArrowSquareOut size={14} weight="bold" aria-hidden className="ml-1 inline align-[-2px]" />
                 <span className="sr-only">(opens a government website in a new tab)</span>
               </a>
+              .
             </>
-          ) : null}
+          ) : (
+            "Copy your details as they appear on your state record."
+          )}
         </p>
       </div>
 

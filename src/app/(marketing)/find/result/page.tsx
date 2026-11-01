@@ -9,6 +9,7 @@ import { publicQuote } from "@/lib/compliance/public-quote";
 import { evaluateFees } from "@/lib/compliance/fees";
 import { stateLookupEnabled } from "@/lib/compliance/launch";
 import { findRule, getJurisdiction, isSellableForBusiness } from "@/lib/compliance/registry";
+import { registrySource } from "@/lib/registry/sources";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
 import { dueRuleText } from "@/lib/compliance/view";
@@ -185,7 +186,8 @@ function DeadlineCard({
 export default async function FindResultPage() {
   const lookup = await readPendingLookup();
   const fromRegistry = Boolean(lookup?.registryEntityNumber);
-  if (fromRegistry) {
+  const registry = fromRegistry ? registrySource(lookup?.stateCode) : null;
+  if (fromRegistry && lookup?.stateCode === "PA") {
     // Postcard visitors: the record was viewed (first time wins; no-op for everyone else).
     const attribution = await mailAttributionFor(lookup?.registryEntityNumber);
     if (attribution) await markMailEvent(attribution, "record_viewed");
@@ -215,7 +217,7 @@ export default async function FindResultPage() {
     <details className="group rounded-[var(--radius-surface)] border border-border bg-surface">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-[var(--radius-surface)] px-5 py-3 hover:bg-surface-2/60 sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="grid gap-0.5">
-          <span className="font-display text-[17px] font-semibold text-fg">{fromRegistry ? "Pennsylvania record found" : "Details you entered"}</span>
+          <span className="font-display text-[17px] font-semibold text-fg">{fromRegistry ? `${registry?.name ?? stateName} record found` : "Details you entered"}</span>
           <span className="text-sm text-muted [overflow-wrap:anywhere]">
             {lookup.legalName} · {stateName} {entityLabel}
           </span>
@@ -243,8 +245,10 @@ export default async function FindResultPage() {
         />
         <p className="flex gap-2 text-sm leading-6 text-muted">
           <Info size={18} aria-hidden className="mt-0.5 shrink-0" />
-          {fromRegistry
+          {fromRegistry && lookup.stateCode === "PA"
             ? "From the Department of State's public register (published on data.pa.gov, updated monthly). It doesn't show standing or whether this year's report was filed. You'll check every detail before you sign."
+            : fromRegistry
+            ? `From the ${registry?.source ?? "state's public register"}. It doesn't show standing or whether this year's report was filed. You'll check every detail before you sign.`
             : "These are the details you typed. We haven't checked them against the state record."}
         </p>
         <EditLink className="justify-self-start" />
