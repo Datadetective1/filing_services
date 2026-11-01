@@ -146,6 +146,11 @@ export function raSaleCheck(code: string, entityType: EntityType, situation: RaS
   return { ok: true, reason: null };
 }
 
+/** The registered agent + annual report bundle switch is on (public pages show the bundle only then). */
+export function bundleSalesOpen(): boolean {
+  return flag("RA_BUNDLE_SALES") === "true";
+}
+
 /** Bundle: registered agent sellable AND Filewell sells this business's annual report here. */
 export function bundleSaleCheck(
   code: string,
@@ -153,7 +158,7 @@ export function bundleSaleCheck(
   situation: RaSituation,
 ): SaleCheck {
   const c = code.toUpperCase();
-  if (flag("RA_BUNDLE_SALES") !== "true") return { ok: false, reason: "The registered agent and annual report bundle isn't open yet." };
+  if (!bundleSalesOpen()) return { ok: false, reason: "The registered agent and annual report bundle isn't open yet." };
   if (!(BUNDLE_STATES as readonly string[]).includes(c)) return { ok: false, reason: "We don't file annual reports in this state, so the bundle isn't available." };
   const ra = raSaleCheck(c, business.entityType, situation);
   if (!ra.ok) return ra;

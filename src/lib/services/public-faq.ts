@@ -44,3 +44,39 @@ export const REGISTERED_AGENT_FAQ: FaqItem[] = [
     a: "Usually, yes, if you have a physical address in the state and are there during business hours. Many owners use a service for privacy, and so legal documents go to an address that is staffed every business day.",
   },
 ];
+
+/**
+ * A short FAQ for one jurisdiction's registered agent page. Only verified facts are used: the
+ * state's change-of-agent form, how a new business names its agent and Filewell's own terms.
+ */
+export function stateRegisteredAgentFaq(input: {
+  stateName: string;
+  priceText: string | null;
+  changeFormName: string;
+  appointmentProcess: string | null;
+}): FaqItem[] {
+  const { stateName, priceText, changeFormName, appointmentProcess } = input;
+  const out: FaqItem[] = [
+    {
+      q: `Do I need a registered agent in ${stateName}?`,
+      a: `Yes, if your LLC or corporation is formed in ${stateName} or registered to do business there. The state lists a registered agent with an address in ${stateName} to receive lawsuits and official notices for your business. Using a service keeps your home address off that public record.`,
+    },
+  ];
+  if (appointmentProcess) {
+    out.push({
+      q: `How do I name a registered agent when I form a new LLC in ${stateName}?`,
+      a: `${appointmentProcess} Order your registered agent first and we give you the details to put in your filing.`,
+    });
+  }
+  out.push(
+    {
+      q: `How do I change my registered agent in ${stateName}?`,
+      a: `The state's filing is the ${changeFormName}. We file it for you; you pay only the state's fee, shown before you pay.`,
+    },
+    {
+      q: `How much does registered agent service in ${stateName} cost with Filewell?`,
+      a: `${priceText ? `${priceText} a year per business, and the same price when it renews. ` : ""}Legal documents and government notices are scanned to your dashboard and emailed to you. Turn off renewal any time.`,
+    },
+  );
+  return out;
+}
