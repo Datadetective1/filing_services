@@ -66,9 +66,9 @@ export const SRC = {
 export const PA_GUIDES: PaGuide[] = [
   {
     slug: "annual-report-deadline",
-    title: "Pennsylvania Annual Report Deadline (2026): Dates by Entity Type",
+    title: "Pennsylvania Annual Report Due Date: June 30, Sept 30 or Dec 31",
     description:
-      "Pennsylvania annual report due dates: corporations by June 30, LLCs by September 30, and LPs, LLPs, business trusts and other associations by December 31. From official sources.",
+      "When is a PA annual report due? Corporations by June 30, LLCs by September 30, and LPs, LLPs and other associations by December 31. The window opens January 1. From official sources.",
     h1: "Pennsylvania annual report deadline",
     answer: [
       "Pennsylvania's annual report deadline depends on the type of entity. Corporations (business and nonprofit) file by June 30. Limited liability companies file by September 30. Every other association that files, such as limited partnerships, limited liability partnerships, business trusts and professional associations, files by December 31.",
@@ -126,7 +126,7 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "annual-report-fee",
-    title: "Pennsylvania Annual Report Fee: $7 State Fee ($0 for Nonprofits)",
+    title: "PA Annual Report Fee: $7 for LLCs and Businesses, $0 Nonprofits",
     description:
       "The Pennsylvania annual report fee is $7 when filed online, and $0 for nonprofit corporations and not-for-profit LPs and LLCs. No state late fee. How filing-service fees differ.",
     h1: "Pennsylvania annual report fee",
@@ -236,9 +236,9 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "annual-report-after-deadline",
-    title: "Missed the Pennsylvania Annual Report Deadline? Filing After the Deadline",
+    title: "Missed the Pennsylvania Annual Report Deadline? No State Late Fee",
     description:
-      "Missed Pennsylvania's annual report deadline? You can still file online, and the Department of State says there is no state late fee. What it says about dissolution from 2027.",
+      "A late Pennsylvania annual report is filed online the same way, for the same $7 ($0 for nonprofits). The Department of State says there is no state late fee. Dissolution starts with 2027 reports.",
     h1: "Filing a Pennsylvania annual report after the deadline",
     answer: [
       "If a Pennsylvania annual report deadline has passed, the report can still be filed online at file.dos.pa.gov in the usual way. The Department of State says there is no state late fee for filing past the deadline.",
@@ -291,9 +291,9 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "business-search",
-    title: "Pennsylvania Business Search: Look Up a PA Business and Its Annual Report",
+    title: "PA Business Entity Search: Look Up a Company by Name or Number",
     description:
-      "Search Pennsylvania's business register by name or entity number. See the entity type, formation date and annual report due date, with links to the official Department of State search.",
+      "Look up a Pennsylvania business by name or entity number: entity type, formation date, county and when its annual report may be due. Links to the official Department of State search.",
     h1: "Pennsylvania business search",
     answer: [
       "Search Pennsylvania's business register below by business name or entity number. We use the Department of State's register as published on data.pa.gov (updated monthly), and show the entity type, formation date, registered office county and when its annual report may be due.",
