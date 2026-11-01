@@ -18,10 +18,13 @@ import { dueDayText, dueGroups, sortByDue } from "@/lib/seo/content";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
+const VERIFIED_STATE_NAMES = listJurisdictions()
+  .filter((j) => isStateVerified(j.code))
+  .map((j) => j.name);
+
 export const metadata: Metadata = pageMetadata({
-  title: "Annual Reports by State: What They Are and When They're Due",
-  description:
-    "What a business annual report is, and which states we support. Pennsylvania due dates and fees are verified against official sources; other states are listed as not yet verified.",
+  title: "Annual Report Due Dates and Fees by State",
+  description: `Annual report due dates, state fees and late fees for ${VERIFIED_STATE_NAMES.join(", ")}, each checked against official state sources.`,
   path: "/annual-report",
 });
 

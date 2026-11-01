@@ -66,9 +66,9 @@ export const SRC = {
 export const PA_GUIDES: PaGuide[] = [
   {
     slug: "annual-report-deadline",
-    title: "Pennsylvania Annual Report Deadline (2026): Dates by Entity Type",
+    title: "PA Annual Report Deadline: June 30, Sept 30 or Dec 31",
     description:
-      "Pennsylvania annual report due dates: corporations by June 30, LLCs by September 30, and LPs, LLPs, business trusts and other associations by December 31. From official sources.",
+      "Pennsylvania annual report due dates: corporations by June 30, LLCs by September 30, and LPs, LLPs, business trusts and other associations by December 31.",
     h1: "Pennsylvania annual report deadline",
     answer: [
       "Pennsylvania's annual report deadline depends on the type of entity. Corporations (business and nonprofit) file by June 30. Limited liability companies file by September 30. Every other association that files, such as limited partnerships, limited liability partnerships, business trusts and professional associations, files by December 31.",
@@ -126,9 +126,9 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "annual-report-fee",
-    title: "Pennsylvania Annual Report Fee: $7 State Fee ($0 for Nonprofits)",
+    title: "Pennsylvania Annual Report Fee: $7 (No State Late Fee)",
     description:
-      "The Pennsylvania annual report fee is $7 when filed online, and $0 for nonprofit corporations and not-for-profit LPs and LLCs. No state late fee. How filing-service fees differ.",
+      "The Pennsylvania annual report fee is $7 online, and $0 for nonprofit corporations and not-for-profit LPs and LLCs. There is no state late fee.",
     h1: "Pennsylvania annual report fee",
     answer: [
       "Filing a Pennsylvania annual report online costs $7. Nonprofit corporations, and limited partnerships or LLCs with a not-for-profit purpose, pay $0.",
@@ -176,9 +176,9 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "how-to-file-annual-report",
-    title: "How to File a Pennsylvania Annual Report Online (Step by Step)",
+    title: "How to File a Pennsylvania Annual Report Online",
     description:
-      "How to file a Pennsylvania annual report at file.dos.pa.gov: the steps, the information you need, the $7 fee, and what you get back. Based on Department of State guidance.",
+      "How to file a Pennsylvania annual report at file.dos.pa.gov: the steps, what you need, the $7 fee and what you get back. From Department of State guidance.",
     h1: "How to file a Pennsylvania annual report",
     answer: [
       "You file the annual report (form DSCB:15-146) online at file.dos.pa.gov. Search for your business, open the annual report, confirm or update the details, and pay the $7 fee by credit card ($0 for nonprofits). Online filings are approved automatically, and the approved report is ready to download within minutes.",
@@ -236,9 +236,9 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "annual-report-after-deadline",
-    title: "Missed the Pennsylvania Annual Report Deadline? Filing After the Deadline",
+    title: "Missed the PA Annual Report Deadline? No State Late Fee",
     description:
-      "Missed Pennsylvania's annual report deadline? You can still file online, and the Department of State says there is no state late fee. What it says about dissolution from 2027.",
+      "Missed Pennsylvania's annual report deadline? You can still file online, with no state late fee. What the Department of State says about dissolution from 2027.",
     h1: "Filing a Pennsylvania annual report after the deadline",
     answer: [
       "If a Pennsylvania annual report deadline has passed, the report can still be filed online at file.dos.pa.gov in the usual way. The Department of State says there is no state late fee for filing past the deadline.",
@@ -291,9 +291,9 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "business-search",
-    title: "Pennsylvania Business Search: Look Up a PA Business and Its Annual Report",
+    title: "Pennsylvania Business Search: Free PA Entity Lookup",
     description:
-      "Search Pennsylvania's business register by name or entity number. See the entity type, formation date and annual report due date, with links to the official Department of State search.",
+      "Search Pennsylvania's business register by name or entity number. See the entity type, formation date and annual report due date, free.",
     h1: "Pennsylvania business search",
     answer: [
       "Search Pennsylvania's business register below by business name or entity number. We use the Department of State's register as published on data.pa.gov (updated monthly), and show the entity type, formation date, registered office county and when its annual report may be due.",

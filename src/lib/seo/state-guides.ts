@@ -1,3 +1,5 @@
+import { FL_URLS } from "@/lib/compliance/states/florida";
+import { MT_URLS } from "@/lib/compliance/states/montana";
 import { NV_URLS } from "@/lib/compliance/states/nevada";
 import { UT_URLS } from "@/lib/compliance/states/utah";
 import { WA_URLS } from "@/lib/compliance/states/washington";
@@ -50,12 +52,262 @@ const UT = {
   renewal: { title: "Renewal process", publisher: UT_DIV, url: UT_URLS.renewalProcess },
 } satisfies Record<string, GuideSource>;
 
+
+const FL_DIV = "Florida Department of State, Division of Corporations";
+const FL_LEG = "Florida Legislature (Florida Statutes)";
+const MT_SOS = "Montana Secretary of State";
+const MT_LEG = "Montana Legislature (MCA)";
+
+const FL = {
+  annualReport: { title: "Annual Report", publisher: FL_DIV, url: FL_URLS.annualReport },
+  instructions: { title: "Annual Report instructions", publisher: FL_DIV, url: FL_URLS.instructions },
+  statute605: { title: "Florida Statutes 605.0212 Annual report", publisher: FL_LEG, url: FL_URLS.statute605_0212 },
+  search: { title: "Search records by name", publisher: FL_DIV, url: FL_URLS.search },
+} satisfies Record<string, GuideSource>;
+
+const MT = {
+  help: { title: "How do I file my annual report?", publisher: MT_SOS, url: MT_URLS.help },
+  waiver: { title: "Secretary Jacobsen continues Montana business support by waiving fees once again", publisher: MT_SOS, url: MT_URLS.waiver },
+  fees: { title: "Fees", publisher: MT_SOS, url: MT_URLS.fees },
+  llcStatute: { title: "MCA 35-8-208 Annual report", publisher: MT_LEG, url: MT_URLS.llcStatute },
+  llcDissolution: { title: "MCA 35-8-209 Administrative dissolution", publisher: MT_LEG, url: MT_URLS.llcDissolution },
+  corpDissolution: { title: "MCA 35-14-1420 Grounds for administrative dissolution", publisher: MT_LEG, url: MT_URLS.corpDissolution },
+} satisfies Record<string, GuideSource>;
+
+const FL_SEPTEMBER_QUOTE =
+  "If you do not file an annual report by the third Friday of September, your business entity will be administratively dissolved or revoked";
+
+const FLORIDA: StateGuide[] = [
+  {
+    slug: "annual-report-deadline",
+    title: "Florida Annual Report Deadline: May 1 (Opens January 1)",
+    description:
+      "Florida LLCs and corporations file their annual report on Sunbiz between January 1 and May 1. After May 1, Florida adds a $400 late fee. From official sources.",
+    h1: "Florida annual report deadline",
+    answer: [
+      "Every Florida LLC and profit corporation, and every foreign one registered in Florida, files an annual report between January 1 and May 1 each year. The first one is due the year after the business was formed or registered.",
+      "A report filed after May 1 costs an extra $400, which Florida says it can't waive. If it still isn't filed by the third Friday of September, Florida dissolves the business or revokes its authority.",
+    ],
+    blocks: [
+      {
+        heading: "What the law says",
+        quote: {
+          text: "Subsequent annual reports must be delivered to the department between January 1 and May 1 of each calendar year thereafter.",
+          source: FL.statute605,
+        },
+      },
+      {
+        heading: "The exact cut-off",
+        quote: { text: "will have until 11:59 PM EST on Friday May 1, 2026, before a $400 late fee is assessed.", source: FL.annualReport },
+        paragraphs: ["That's the cut-off Sunbiz gave for 2026. Check Sunbiz for the next year's exact time."],
+      },
+      {
+        heading: "Two dates to remember",
+        list: [
+          "May 1: last day to file without the $400 late fee.",
+          "Third Friday of September: last day before Florida dissolves or revokes the business.",
+        ],
+        quote: { text: FL_SEPTEMBER_QUOTE, source: FL.annualReport },
+      },
+    ],
+    faq: [
+      { q: "When can I file?", a: "From January 1. Florida's window runs January 1 to May 1 every year." },
+      { q: "Do I file in the year my business was formed?", a: "No. The first report is due between January 1 and May 1 of the year after the business was formed or registered in Florida." },
+      { q: "Do nonprofits pay the late fee?", a: "No. Florida says not for profit corporations aren't subject to the $400 late fee." },
+    ],
+    sources: [FL.annualReport, FL.statute605, FL.instructions],
+  },
+  {
+    slug: "annual-report-late-fee",
+    title: "Florida Annual Report Late Fee: $400 After May 1",
+    description:
+      "Florida adds a $400 late fee to an LLC or corporation annual report filed after May 1, and says it can't be waived. Nonprofits are exempt. From official sources.",
+    h1: "Florida annual report late fee",
+    answer: [
+      "Florida adds a $400 late fee to an LLC or profit corporation annual report filed after May 1. The Division of Corporations says there's no way to waive it.",
+      "Not for profit corporations are exempt. Filing by May 1 is the only way to avoid it.",
+    ],
+    blocks: [
+      {
+        heading: "What Florida says",
+        quote: { text: "There is no provision to abate or waive the $400 late fee.", source: FL.instructions },
+      },
+      {
+        heading: "What a late report costs the state",
+        list: ["LLC: $138.75 report fee + $400 late fee = $538.75", "Profit corporation: $150 report fee + $400 late fee = $550"],
+        paragraphs: ["A filing service's fee, if you use one, is on top of these state fees."],
+      },
+      {
+        heading: "After the third Friday of September",
+        quote: { text: FL_SEPTEMBER_QUOTE, source: FL.annualReport },
+      },
+    ],
+    faq: [
+      { q: "Can the $400 late fee be waived?", a: "Florida's instructions say there's no provision to abate or waive it." },
+      { q: "Can I still file after May 1?", a: "Yes. File on Sunbiz as usual and pay the report fee plus the $400 late fee." },
+      { q: "Do nonprofits pay it?", a: "No. Florida says not for profit corporations aren't subject to the $400 late fee." },
+    ],
+    sources: [FL.instructions, FL.annualReport],
+  },
+  {
+    slug: "annual-report-fee",
+    title: "Florida Annual Report Fee: $138.75 LLC, $150 Corporation",
+    description:
+      "Florida's annual report fee is $138.75 for an LLC and $150 for a profit corporation, paid on Sunbiz. After May 1, a $400 late fee is added. From official sources.",
+    h1: "Florida annual report fee",
+    answer: [
+      "Filing a Florida annual report costs $138.75 for an LLC and $150 for a profit corporation, paid by card on Sunbiz.",
+      "After May 1, Florida adds a $400 late fee. A filing service's fee is separate from, and on top of, the state fee.",
+    ],
+    blocks: [
+      {
+        heading: "LLC",
+        quote: { text: "Annual Report - Limited Liability Company $138.75", source: FL.annualReport },
+      },
+      {
+        heading: "Profit corporation",
+        quote: { text: "Annual Report - Profit Corporation $150.00", source: FL.annualReport },
+      },
+      {
+        heading: "Filing-service fees are extra",
+        paragraphs: [
+          "You never have to use a filing service. You can file directly on Sunbiz for the state fee. If you use a service, compare the total: its fee is in addition to Florida's.",
+        ],
+      },
+    ],
+    faq: [
+      { q: "Is there a late fee?", a: "Yes. Florida adds $400 to a report filed after May 1 and says it can't waive it." },
+      { q: "When can I pay?", a: "Any time from January 1. The fee is the same until May 1." },
+    ],
+    sources: [FL.annualReport, FL.instructions],
+  },
+  {
+    slug: "how-to-file-annual-report",
+    title: "How to File a Florida Annual Report on Sunbiz",
+    description:
+      "How to file a Florida annual report on Sunbiz: your document number, what to check, who signs, the fee and what you get back. From official sources.",
+    h1: "How to file a Florida annual report",
+    answer: [
+      "You file online on Sunbiz using your business's document number. You check the information on record, list at least one principal, have one of the business's own principals sign by typing their name, and pay by card.",
+      "Sunbiz says online reports are processed and posted immediately.",
+    ],
+    blocks: [
+      {
+        heading: "Your document number",
+        quote: { text: "You must use the 6 or 12 digit document number assigned to your corporation", source: FL.instructions },
+        paragraphs: ["It's on your Sunbiz record and on letters from the Division of Corporations."],
+      },
+      {
+        heading: "Information you'll check",
+        list: [
+          "Federal employer identification number, or whether one was applied for.",
+          "Principal office and mailing address.",
+          "Registered agent and its Florida street address.",
+          "At least one principal (manager, member or officer), with title and address.",
+        ],
+      },
+      {
+        heading: "Who signs",
+        quote: { text: "Typing someone´s name/signature without their permission constitutes forgery.", source: FL.instructions },
+        paragraphs: ["One of the business's own principals types their name to sign. Florida treats the typed name as a signature."],
+      },
+      {
+        heading: "Changing your registered agent",
+        quote: { text: "the new registered agent must accept the designation by \"electronically signing\" the annual report.", source: FL.instructions },
+      },
+    ],
+    faq: [
+      { q: "Do I need a Sunbiz account?", a: "No account is needed to file an annual report. You need the business's document number." },
+      { q: "How fast is it?", a: "Sunbiz says reports filed online are processed and posted immediately." },
+      { q: "Can a filing service sign for me?", a: "Not in your name without your permission. With Filewell, you sign the report yourself and we enter your signature exactly as you typed it." },
+    ],
+    sources: [FL.instructions, FL.annualReport, FL.search],
+  },
+];
+
+const MONTANA: StateGuide[] = [
+  {
+    slug: "annual-report-deadline",
+    title: "Montana Annual Report Deadline: April 15 (Fee Waived)",
+    description:
+      "Montana LLCs and corporations file their annual report between January 1 and April 15. Filed on time, the fee is waived in 2026 and 2027; after April 15 it's $35.",
+    h1: "Montana annual report deadline",
+    answer: [
+      "Montana LLCs and corporations file their annual report between January 1 and April 15 each year, starting the year after they were formed.",
+      "The Secretary of State waives the fee for reports filed by April 15, and has said the waiver continues in 2027. After April 15 the fee is $35.",
+    ],
+    blocks: [
+      {
+        heading: "What the law says",
+        quote: { text: "Subsequent annual reports must be delivered to the secretary of state between January 1 and April 15.", source: MT.llcStatute },
+      },
+      {
+        heading: "Free if you file on time",
+        quote: {
+          text: "The Secretary of State's Office will waive the fee for all annual reports filed between January 1st and April 15th.",
+          source: MT.help,
+        },
+        paragraphs: ["Montana announced the waiver continues in 2027."],
+      },
+      {
+        heading: "After April 15",
+        quote: { text: "After April 15th, the fee is $35.", source: MT.help },
+        paragraphs: [
+          "An LLC that still hasn't filed after 140 days can be administratively dissolved. For a corporation, it's 120 days after the report was due.",
+        ],
+      },
+    ],
+    faq: [
+      { q: "When can I file?", a: "From January 1. The window runs January 1 to April 15." },
+      { q: "Is it really free?", a: "Yes for reports filed by April 15 in 2026 and 2027, according to the Secretary of State. After April 15 it's $35." },
+    ],
+    sources: [MT.llcStatute, MT.help, MT.waiver, MT.llcDissolution, MT.corpDissolution],
+  },
+  {
+    slug: "how-to-file-annual-report",
+    title: "How to File a Montana Annual Report Online",
+    description:
+      "How to file a Montana annual report at biz.sosmt.gov: search your business, review, check the declarations and file. No login needed if nothing changed.",
+    h1: "How to file a Montana annual report",
+    answer: [
+      "You file on Montana's business services site, biz.sosmt.gov. If nothing has changed, you don't need to log in: find your business, review the report, check each declaration and file. To change information, log in first.",
+    ],
+    blocks: [
+      {
+        heading: "Steps (no changes)",
+        ordered: true,
+        list: [
+          "Go to biz.sosmt.gov and search for your business.",
+          "Open your business from the results.",
+          "Click File Annual Report on the right.",
+          "Review the information on the report.",
+          "Read and check each declaration box, and fill in the required fields.",
+          "Click File Online.",
+        ],
+      },
+      {
+        heading: "If something changed",
+        paragraphs: ["Log in to biz.sosmt.gov first, then follow the same steps and update the report as you go."],
+      },
+      {
+        heading: "Signing",
+        quote: { text: "To sign, read, and check each declaration box, and fill in all fields marked with a red asterisk.", source: MT.help },
+      },
+    ],
+    faq: [
+      { q: "What does it cost?", a: "Nothing if filed by April 15 in 2026 and 2027. After April 15 it's $35." },
+      { q: "Who can sign an LLC's report?", a: "Montana law says at least one member of the LLC or its authorized agent." },
+    ],
+    sources: [MT.help, MT.llcStatute],
+  },
+];
+
 const WASHINGTON: StateGuide[] = [
   {
     slug: "annual-report-deadline",
-    title: "Washington Annual Report Deadline: Your Expiration Date",
+    title: "Washington Annual Report Due Date: Your Expiration Date",
     description:
-      "A Washington annual report is due by the business's expiration date: the last day of the month it was formed or registered. You can file up to 180 days early. From official sources.",
+      "A Washington annual report is due by the expiration date: the last day of the month the business was formed or registered. You can file up to 180 days early.",
     h1: "Washington annual report deadline",
     answer: [
       "A Washington business's annual report is due by its expiration date: the last day of the month in which it was first formed or registered with the Secretary of State. That applies to domestic and foreign entities.",
@@ -94,9 +346,9 @@ const WASHINGTON: StateGuide[] = [
   },
   {
     slug: "annual-report-fee",
-    title: "Washington Annual Report Fee: $70 (and When the $25 Delinquency Fee Applies)",
+    title: "Washington Annual Report Fee: $70 ($95 If Delinquent)",
     description:
-      "Washington's annual report fee is $70 for profit corporations, LLCs, LPs and LLPs. A $25 delinquency fee applies only when the state lists the business as Delinquent. From official sources.",
+      "Washington's annual report fee is $70 for LLCs, profit corporations, LPs and LLPs. A $25 delinquency fee applies only when the state lists the business as Delinquent.",
     h1: "Washington annual report fee",
     answer: [
       "Filing a Washington annual report costs $70 for domestic and foreign profit corporations, LLCs, limited partnerships and LLPs. Washington doesn't add an online processing fee to annual reports.",
@@ -175,9 +427,9 @@ const WASHINGTON: StateGuide[] = [
 const NEVADA: StateGuide[] = [
   {
     slug: "annual-list-fee",
-    title: "Nevada Annual List and State Business License Fees (LLC $350, Corporation $650)",
+    title: "Nevada Annual List Fee: LLC $350, Corporation $650",
     description:
-      "Nevada's annual list fee plus the State Business License fee: $150 + $200 for LLCs and partnerships, $150 + $500 for corporations at the lowest tier. Late penalties: $75 and $100. From the NRS.",
+      "Nevada's annual list plus State Business License fees: $150 + $200 for LLCs, $150 + $500 for corporations at the lowest tier. Late penalties: $75 and $100.",
     h1: "Nevada annual list and business license fees",
     answer: [
       "Each year a Nevada business pays two state fees together: the annual list fee and the State Business License renewal fee. For LLCs, limited partnerships and LLPs that's $150 + $200 = $350. For corporations whose authorized stock is worth $75,000 or less, it's $150 + $500 = $650.",
@@ -213,7 +465,7 @@ const NEVADA: StateGuide[] = [
   },
   {
     slug: "annual-list-deadline",
-    title: "Nevada Annual List Deadline: Last Day of Your Anniversary Month",
+    title: "Nevada Annual List Deadline: End of Anniversary Month",
     description:
       "A Nevada annual list is due by the last day of the month in which the business was formed (or qualified in Nevada). What happens after the deadline, from the NRS.",
     h1: "Nevada annual list deadline",
@@ -289,7 +541,7 @@ const UTAH: StateGuide[] = [
   },
   {
     slug: "annual-report-deadline",
-    title: "Utah Annual Report Deadline (New Rule From October 1, 2026)",
+    title: "Utah Annual Report Deadline: End of Anniversary Month",
     description:
       "From October 1, 2026, Utah annual reports are due on the last day of the business's anniversary month and may be filed up to 60 days early (Utah Code 16-1a-212).",
     h1: "Utah annual report deadline",
@@ -327,6 +579,8 @@ export const STATE_GUIDE_SETS: StateGuideSet[] = [
   { stateCode: "WA", stateName: "Washington", slug: "washington", checked: "2026-10-01", guides: WASHINGTON },
   { stateCode: "NV", stateName: "Nevada", slug: "nevada", checked: "2026-10-01", guides: NEVADA },
   { stateCode: "UT", stateName: "Utah", slug: "utah", checked: "2026-10-01", guides: UTAH },
+  { stateCode: "FL", stateName: "Florida", slug: "florida", checked: "2026-11-01", guides: FLORIDA },
+  { stateCode: "MT", stateName: "Montana", slug: "montana", checked: "2026-11-01", guides: MONTANA },
 ];
 
 export function guideSet(stateCode: string): StateGuideSet | undefined {
