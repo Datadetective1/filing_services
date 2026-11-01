@@ -1,3 +1,5 @@
+import { nextFilingPeriod, type DeadlineRule } from "@/lib/domain/deadlines";
+
 /**
  * Registered agent + annual report bundle: which annual report each bundle year includes.
  *
@@ -39,6 +41,39 @@ export function includedRequirement(period: BundlePeriod, requirements: Requirem
     .filter((r) => r.status === "open" && r.dueDate >= period.start && r.dueDate < period.end)
     .sort((a, b) => (a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0));
   return candidates[0] ?? null;
+}
+
+/**
+ * The report a first bundle period should include when no open requirement row falls in it
+ * yet. Next year's row is normally created only once this year's report is resolved, so a
+ * customer whose current report is still open (often overdue) would otherwise be told the
+ * bundle isn't available even though the state's next report falls due inside the year.
+ *
+ * Returns the state's next report after every report the business already has a row for,
+ * when its due date falls inside the period. It never plans a year that already has a row,
+ * so a report filed elsewhere or not required is never planned again.
+ */
+export function plannedBundleReport(
+  period: BundlePeriod,
+  requirements: RequirementLike[],
+  rule: DeadlineRule,
+  formationDate?: string | null,
+): { periodYear: number; dueDate: string } | null {
+  if (!(period.start < period.end)) throw new Error("Invalid bundle period");
+  if (includedRequirement(period, requirements)) return null;
+  let year = Math.max(Number(period.start.slice(0, 4)) - 1, ...requirements.map((r) => r.periodYear));
+  for (let i = 0; i < 5; i++) {
+    const next = nextFilingPeriod(rule, year, formationDate);
+    if (!next || next.dueDate >= period.end) return null;
+    if (next.dueDate >= period.start) return next;
+    year = next.periodYear;
+  }
+  return null;
+}
+
+/** Open reports already past due when the bundle starts. The bundle doesn't cover them. */
+export function overdueBeforeBundle(period: BundlePeriod, requirements: RequirementLike[]): RequirementLike[] {
+  return requirements.filter((r) => r.status === "open" && r.dueDate < period.start).sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
 }
 
 /** One year after `start` (Feb 29 rolls to Mar 1, like Stripe's yearly anniversary). */

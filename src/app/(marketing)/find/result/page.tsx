@@ -35,7 +35,7 @@ import { GovernmentFeeList } from "@/components/compliance/government-fee-list";
 import { readLookupHomeJurisdiction } from "../lookup-extras";
 import { optInToReminders } from "../reminder-actions";
 import { reminderConsentText } from "@/lib/reminders/consent";
-import { changeOfAgentFeeCents } from "@/lib/registered-agent/jurisdictions";
+import { changeOfAgentFeeCents, getRaJurisdiction, raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
 import { businessServicesPagesEnabled, raSaleCheck } from "@/lib/registered-agent/sales";
 import { readServiceIntent } from "@/lib/services/intent";
 import { publicServicePrices } from "@/lib/services/public-prices";
@@ -45,6 +45,28 @@ export const metadata: Metadata = {
   title: "Your filing requirement",
   robots: { index: false, follow: false },
 };
+
+async function raOfferFor(stateCode: string): Promise<ReactNode> {
+  const prices = await publicServicePrices().catch(() => ({}) as Awaited<ReturnType<typeof publicServicePrices>>);
+  const agentCents = prices.registered_agent ?? null;
+  const j = getRaJurisdiction(stateCode);
+  const hasStatePage = Boolean(j && raJurisdictionsWithPublicFacts().some((x) => x.code === j.code));
+  const href = hasStatePage && j ? `/registered-agent/${j.slug}` : "/registered-agent";
+  return (
+    <div className="grid gap-2 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="font-display text-lg font-semibold text-fg">Need a registered agent?</p>
+        {agentCents !== null ? (
+          <p className="tnum font-display text-xl font-semibold text-fg">{formatCents(agentCents, { trimZeros: true })}/yr</p>
+        ) : null}
+      </div>
+      <p className="text-sm leading-6 text-muted">Same price at renewal. We file the switch for you.</p>
+      <Link href={href} className={buttonClasses("secondary", "md", "mt-1 w-full")}>
+        See registered agent
+      </Link>
+    </div>
+  );
+}
 
 function EditLink({ className }: { className?: string }) {
   return (
@@ -333,6 +355,12 @@ export default async function FindResultPage() {
   const diyFeeCents = rule.feeComponents?.length ? fees.totalCents : stateFeeCents;
   const consentText = reminderConsentText(stateName, rule.filingName);
 
+  // Every lookup is also a registered agent prospect: offer it where it can be sold.
+  const raOffer =
+    businessServicesPagesEnabled() && raSaleCheck(lookup.stateCode, lookup.entityType, "switching").ok
+      ? await raOfferFor(lookup.stateCode)
+      : null;
+
   const signInLine = !signedIn ? (
     <p className="text-center text-sm text-muted">
       Already have an account?{" "}
@@ -367,6 +395,7 @@ export default async function FindResultPage() {
           </details>
         ) : null}
       </div>
+      {raOffer}
     </>
   ) : (
     <>
@@ -428,6 +457,7 @@ export default async function FindResultPage() {
       )}
 
       <ReminderOptIn action={optInToReminders} businessName={lookup.legalName} consentText={consentText} stateName={stateName} />
+      {raOffer}
     </>
   );
 
