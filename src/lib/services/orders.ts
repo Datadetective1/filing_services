@@ -7,14 +7,15 @@ import { findRule } from "@/lib/compliance/registry";
 import { formatCents } from "@/lib/domain/money";
 import { governmentFeeFor, resolveServicePrice, type ServicePrice } from "@/lib/domain/pricing";
 import type { EntityType } from "@/lib/domain/types";
-import { listActivePricesAdmin } from "@/lib/filings/rules-db";
+import { getCurrentRuleVersion, listActivePricesAdmin } from "@/lib/filings/rules-db";
 import { sendNotification } from "@/lib/notifications/send";
+import { ensureRemindersForRequirement } from "@/lib/reminders/engine";
 import { getPaymentProvider, requiresApprovedPrice } from "@/lib/payments";
 import { changeOfAgentFeeCents, getRaJurisdiction } from "@/lib/registered-agent/jurisdictions";
 import { bundleSaleCheck, raSaleCheck, type RaSituation, type SaleCheck } from "@/lib/registered-agent/sales";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { afterServiceOrderPaid } from "./billing";
-import { addOneYear, includedRequirement, type RequirementLike } from "./bundle";
+import { addOneYear, includedRequirement, overdueBeforeBundle, plannedBundleReport, type RequirementLike } from "./bundle";
 import { SERVICES, STANDARD_PRICE_VARIANT, WHOLESALE } from "./catalog";
 import { economicsFromLines } from "./economics";
 import { bundleQuote, QuoteError, registeredAgentQuote, type PriceInput, type ServiceQuote } from "./quote";
@@ -53,6 +54,7 @@ export interface OwnedBusiness {
   is_foreign: boolean;
   is_nonprofit: boolean;
   lifecycle: "existing" | "forming";
+  formation_date: string | null;
 }
 
 /** A formed business already has an agent on the state record, so ordering for it is a switch. */
@@ -64,7 +66,7 @@ export async function loadOwnedBusiness(userId: string, businessId: string): Pro
   if (!/^[0-9a-f-]{36}$/i.test(businessId)) return null;
   const { data } = await createAdminClient()
     .from("businesses")
-    .select("id, legal_name, state_code, entity_type, is_foreign, is_nonprofit, owner_user_id, archived_at, lifecycle")
+    .select("id, legal_name, state_code, entity_type, is_foreign, is_nonprofit, owner_user_id, archived_at, lifecycle, formation_date")
     .eq("id", businessId)
     .maybeSingle();
   if (!data || data.owner_user_id !== userId || data.archived_at) return null;
@@ -76,6 +78,7 @@ export async function loadOwnedBusiness(userId: string, businessId: string): Pro
     is_foreign: Boolean(data.is_foreign),
     is_nonprofit: Boolean(data.is_nonprofit),
     lifecycle: data.lifecycle === "forming" ? "forming" : "existing",
+    formation_date: (data.formation_date as string | null) ?? null,
   };
 }
 
@@ -91,8 +94,20 @@ export interface ServiceOrderPreview {
   stateName: string;
   sale: SaleCheck;
   quote: ServiceQuote | null;
-  /** Bundle only: the bundle's first year and the report it includes. */
-  bundle: { periodStart: string; periodEnd: string; reportingYear: number; requirementId: string; stateFeeCents: number } | null;
+  /**
+   * Bundle only: the bundle's first year and the report it includes. requirementId is null
+   * when that report has no row yet (next year's report while this year's is still open);
+   * checkout creates the row from ruleKey, periodYear and dueDate.
+   */
+  bundle: {
+    periodStart: string;
+    periodEnd: string;
+    reportingYear: number;
+    requirementId: string | null;
+    ruleKey: string;
+    dueDate: string;
+    stateFeeCents: number;
+  } | null;
 }
 
 function todayIso(now = new Date()): string {
@@ -154,7 +169,16 @@ export async function previewServiceOrder(
     if (!rule) return { ...base, sale: { ok: false, reason: "We can't file this business's annual report, so the bundle isn't available." } };
     const periodStart = todayIso(now);
     const periodEnd = addOneYear(periodStart);
-    const included = includedRequirement({ start: periodStart, end: periodEnd }, await openRequirements(business.id));
+    const period = { start: periodStart, end: periodEnd };
+    const requirements = await openRequirements(business.id);
+    const existing = includedRequirement(period, requirements);
+    const planned = existing ? null : plannedBundleReport(period, requirements, rule, business.formation_date);
+    const included = existing
+      ? { id: existing.id as string | null, periodYear: existing.periodYear, dueDate: existing.dueDate }
+      : planned
+        ? { id: null, periodYear: planned.periodYear, dueDate: planned.dueDate }
+        : null;
+    const notCoveredReportingYears = included ? overdueBeforeBundle(period, requirements).map((r) => r.periodYear) : [];
     const stateFeeCents = governmentFeeFor(rule, { isNonprofit: business.is_nonprofit });
     const bundlePrice = priceInput(resolveServicePrice(prices, { filingTypeCode: SERVICES.ra_annual_report_bundle.filingTypeCode, ...scope }), "the bundle");
     const quote = bundleQuote({
@@ -165,11 +189,14 @@ export async function previewServiceOrder(
       changeGovernmentFeeCents,
       includedReportingYear: included?.periodYear ?? null,
       annualReportStateFeeCents: stateFeeCents,
+      notCoveredReportingYears,
     });
     return {
       ...base,
       quote,
-      bundle: included ? { periodStart, periodEnd, reportingYear: included.periodYear, requirementId: included.id, stateFeeCents } : null,
+      bundle: included
+        ? { periodStart, periodEnd, reportingYear: included.periodYear, requirementId: included.id, ruleKey: rule.ruleKey, dueDate: included.dueDate, stateFeeCents }
+        : null,
     };
   } catch (e) {
     if (e instanceof QuoteError) return { ...base, sale: { ok: false, reason: e.message } };
@@ -303,6 +330,35 @@ export async function applyVerified(
   }
 }
 
+/**
+ * Open the report the bundle includes when it has no row yet, the same row the reminder
+ * engine opens once the current year is resolved. Idempotent on (business, rule, year).
+ */
+async function openPlannedRequirement(
+  userId: string,
+  businessId: string,
+  bundle: { reportingYear: number; ruleKey: string; dueDate: string },
+): Promise<string> {
+  const current = await getCurrentRuleVersion(bundle.ruleKey);
+  if (!current) throw new ServiceOrderError("Filing rules are not available right now.", "unavailable");
+  const db = createAdminClient();
+  const { error } = await db.from("filing_requirements").upsert(
+    { business_id: businessId, owner_user_id: userId, rule_id: current.ruleId, period_year: bundle.reportingYear, due_date: bundle.dueDate, status: "open" },
+    { onConflict: "business_id,rule_id,period_year", ignoreDuplicates: true },
+  );
+  if (error) throw new ServiceOrderError(`Could not save the order: ${error.message}`);
+  const { data } = await db
+    .from("filing_requirements")
+    .select("id, status")
+    .eq("business_id", businessId)
+    .eq("rule_id", current.ruleId)
+    .eq("period_year", bundle.reportingYear)
+    .single();
+  if (!data || data.status !== "open") throw new ServiceOrderError("That annual report is no longer open, so the bundle can't include it.", "not_allowed");
+  await ensureRemindersForRequirement(data.id as string);
+  return data.id as string;
+}
+
 export async function startServiceCheckout(u: SessionUser, input: ServiceCheckoutInput): Promise<{ url: string }> {
   const preview = await previewServiceOrder(u, input);
   if (!preview.sale.ok || !preview.quote) throw new ServiceOrderError(preview.sale.reason ?? "This service isn't available yet.", "unavailable");
@@ -408,6 +464,7 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
   if (poError) throw new ServiceOrderError(`Could not save the order: ${poError.message}`);
 
   if (preview.bundle) {
+    const requirementId = preview.bundle.requirementId ?? (await openPlannedRequirement(u.id, business.id, preview.bundle));
     const { error: bError } = await db.from("bundle_filing_periods").insert({
       ra_subscription_id: sub.id,
       user_id: u.id,
@@ -415,7 +472,7 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
       period_start: preview.bundle.periodStart,
       period_end: preview.bundle.periodEnd,
       reporting_year: preview.bundle.reportingYear,
-      requirement_id: preview.bundle.requirementId,
+      requirement_id: requirementId,
       state_fee_cents: preview.bundle.stateFeeCents,
     });
     if (bError) {

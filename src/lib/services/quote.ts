@@ -124,11 +124,13 @@ export function bundleQuote(input: {
   changeGovernmentFeeCents?: number | null;
   includedReportingYear: number | null;
   annualReportStateFeeCents: number;
+  /** Open reports already past due when the bundle starts: not covered, said plainly. */
+  notCoveredReportingYears?: number[];
 }): ServiceQuote {
   assertCents(input.bundlePrice.serviceFeeCents, "bundle price");
   assertCents(input.annualReportStateFeeCents, "annual report state fee");
   if (input.includedReportingYear === null) {
-    throw new QuoteError("No annual report falls due in the first bundle year, so the bundle can't be sold for this business right now");
+    throw new QuoteError("No annual report falls due in the first bundle year, so the bundle can't be sold for this business right now.");
   }
   const base = registeredAgentQuote({
     stateName: input.stateName,
@@ -155,8 +157,15 @@ export function bundleQuote(input: {
     disclosures: [
       RENEWAL_TERMS,
       `Includes Filewell's service for the ${input.includedReportingYear} annual report. The state's annual report fee (currently ${dollars(input.annualReportStateFeeCents)}) is not charged today: we ask you to review and authorize the filing first, and charge the state fee then.`,
+      ...notCoveredDisclosure(input.notCoveredReportingYears ?? []),
     ],
   });
+}
+
+function notCoveredDisclosure(years: number[]): string[] {
+  if (years.length === 0) return [];
+  const list = years.length === 1 ? `The ${years[0]} annual report` : `The ${years.slice(0, -1).join(", ")} and ${years[years.length - 1]} annual reports`;
+  return [`${list} ${years.length === 1 ? "is" : "are"} past due and not part of this plan. File ${years.length === 1 ? "it" : "them"} separately, with us or with the state.`];
 }
 
 /** Business formation, with registered agent service only if the customer chose it. */

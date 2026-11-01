@@ -20,7 +20,7 @@ import {
   type EconomicsLine,
 } from "@/lib/services/economics";
 import { bundleQuote, dollars, formationQuote, QuoteError, registeredAgentQuote } from "@/lib/services/quote";
-import { addOneYear, includedRequirement, shouldRequestAuthorization, type RequirementLike } from "@/lib/services/bundle";
+import { addOneYear, includedRequirement, overdueBeforeBundle, plannedBundleReport, shouldRequestAuthorization, type RequirementLike } from "@/lib/services/bundle";
 
 /**
  * Business services pricing: the catalog carries the approved proposal, quotes show every
@@ -128,6 +128,13 @@ describe("bundle quote", () => {
     expect(q.lines[0].serviceCode).toBe("ra_annual_report_bundle");
     expect(q.disclosures.join(" ")).toMatch(/not charged today/);
     expect(q.disclosures.join(" ")).toContain("$138.75");
+  });
+
+  it("names a past due report it doesn't cover", () => {
+    const base = { stateName: "Florida", situation: "new_entity" as const, bundlePrice: price("b", 16900), includedReportingYear: 2027, annualReportStateFeeCents: 13875 };
+    expect(bundleQuote(base).disclosures.join(" ")).not.toMatch(/past due/);
+    expect(bundleQuote({ ...base, notCoveredReportingYears: [2026] }).disclosures.join(" ")).toContain("The 2026 annual report is past due and not part of this plan.");
+    expect(bundleQuote({ ...base, notCoveredReportingYears: [2025, 2026] }).disclosures.join(" ")).toContain("The 2025 and 2026 annual reports are past due");
   });
 
   it("can't be sold when no report falls due in the first year", () => {
@@ -255,6 +262,28 @@ describe("bundle year and annual report due date are separate", () => {
     const period = { start: "2026-11-01", end: "2027-11-01" };
     expect(includedRequirement(period, [req("a", "2027-05-01", "filed_elsewhere"), req("b", "2027-06-01", "not_required")])).toBeNull();
     expect(includedRequirement(period, [req("z", "2028-05-01")])).toBeNull();
+  });
+
+  const florida = { dueRule: { kind: "fixed_annual" as const, month: 5, day: 1 }, firstDueRule: { kind: "year_after_formation" as const } };
+
+  it("plans next year's report when this year's is still open and past due", () => {
+    const period = { start: "2026-11-01", end: "2027-11-01" };
+    const reqs = [req("cur", "2026-05-01")];
+    expect(includedRequirement(period, reqs)).toBeNull();
+    expect(plannedBundleReport(period, reqs, florida)).toEqual({ periodYear: 2027, dueDate: "2027-05-01" });
+    expect(overdueBeforeBundle(period, reqs).map((r) => r.periodYear)).toEqual([2026]);
+  });
+
+  it("plans nothing when a report is already inside the year or next year's is handled", () => {
+    const period = { start: "2026-11-01", end: "2027-11-01" };
+    expect(plannedBundleReport(period, [req("a", "2027-05-01")], florida)).toBeNull();
+    expect(plannedBundleReport(period, [req("a", "2026-05-01"), req("b", "2027-05-01", "filed_elsewhere")], florida)).toBeNull();
+    expect(overdueBeforeBundle(period, [req("a", "2026-05-01", "filed_elsewhere")])).toEqual([]);
+  });
+
+  it("plans the first report from the formation date when nothing exists yet", () => {
+    const period = { start: "2026-11-01", end: "2027-11-01" };
+    expect(plannedBundleReport(period, [], florida, "2026-10-01")).toEqual({ periodYear: 2027, dueDate: "2027-05-01" });
   });
 
   it("rejects an empty period and rolls Feb 29 forward", () => {
