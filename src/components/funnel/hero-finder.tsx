@@ -5,10 +5,11 @@ import { useId, useState } from "react";
 import type { RegistrySearchResult, RegistrySelectState } from "@/app/(marketing)/find/registry-actions";
 import { buttonClasses } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { hasRegistrySearch } from "@/lib/registry/sources";
 import { RegistrySearch } from "./registry-search";
 
 /**
- * "Find my business" with a state picker. Pennsylvania searches the state's register
+ * "Find my business" with a state picker. States with an open business register search it
  * inline; other states continue to the short manual lookup with the name carried over.
  */
 export function HeroFinder({
@@ -20,7 +21,7 @@ export function HeroFinder({
   states: { code: string; name: string }[];
   /** Start on "Choose your state" instead of the first state in the list. */
   chooseFirst?: boolean;
-  search: (q: string) => Promise<RegistrySearchResult>;
+  search: (q: string, stateCode: string) => Promise<RegistrySearchResult>;
   select: (state: RegistrySelectState, formData: FormData) => Promise<RegistrySelectState>;
 }) {
   const id = useId();
@@ -51,8 +52,8 @@ export function HeroFinder({
         <p className="text-[15px] font-semibold text-fg">Find your {current?.name ?? "Pennsylvania"} business</p>
       )}
 
-      {state === "PA" ? (
-        <RegistrySearch search={search} select={select} compact />
+      {hasRegistrySearch(state) ? (
+        <RegistrySearch key={state} search={search} select={select} stateCode={state} compact />
       ) : (
         <form action="/find" method="get" className="grid gap-2 sm:flex sm:flex-row">
           <input type="hidden" name="state" value={state} />

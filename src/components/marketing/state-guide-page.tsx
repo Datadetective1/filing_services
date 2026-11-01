@@ -7,6 +7,7 @@ import { searchRegistry, selectRegistryEntity } from "@/app/(marketing)/find/reg
 import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { RegistrySearch } from "@/components/funnel/registry-search";
+import { hasRegistrySearch } from "@/lib/registry/sources";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FaqList } from "@/components/marketing/faq";
 import { GuideSection, GuideText } from "@/components/marketing/guide-section";
@@ -157,6 +158,14 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
         shows.
       </p>
       <RegistrySearch search={searchRegistry} select={selectRegistryEntity} compact />
+    </div>
+  ) : lookupOn && hasRegistrySearch(stateCode) ? (
+    <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
+      <p className="font-display text-lg font-semibold text-fg">Find your {stateName} business</p>
+      <p className="text-sm leading-6 text-muted">
+        See when its report may be due and what it costs. No account needed, and we fill in what the public register shows.
+      </p>
+      <RegistrySearch search={searchRegistry} select={selectRegistryEntity} stateCode={stateCode} compact />
     </div>
   ) : lookupOn ? (
     <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
