@@ -18,11 +18,19 @@ import { pageMetadata } from "@/lib/seo/metadata";
 
 export const revalidate = 3600;
 
+/** "in all 50 states and DC" once every state and DC has a public page, otherwise null. */
+function nationwideLabel(): string | null {
+  const codes = new Set(raJurisdictionsWithPublicFacts().map((j) => j.code));
+  return codes.size >= 51 && codes.has("DC") ? "in all 50 states and DC" : null;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
+  const nationwide = nationwideLabel();
+  const ra = (await publicServicePrices()).registered_agent;
+  const price = ra !== undefined ? `${formatCents(ra, { trimZeros: true })} a year, the same at renewal. ` : "One yearly price, the same at renewal. ";
   return pageMetadata({
-    title: "Registered Agent Service",
-    description:
-      "Registered agent service for LLCs and corporations: one yearly price, the same at renewal. Legal documents and notices go to your dashboard and your inbox.",
+    title: nationwide ? "Registered Agent Service in All 50 States and DC" : "Registered Agent Service",
+    description: `Registered agent service for LLCs and corporations${nationwide ? ` ${nationwide}` : ""}. ${price}Legal documents and notices go to your dashboard and your inbox.`,
     path: "/registered-agent",
     noindex: !businessServicesIndexable(),
   });
@@ -44,6 +52,7 @@ export default async function RegisteredAgentPage() {
   if (!businessServicesPagesEnabled()) notFound();
   const prices = await publicServicePrices();
   const states = raJurisdictionsWithPublicFacts();
+  const nationwide = nationwideLabel();
   const ra = prices.registered_agent;
   // Shown only while the bundle can actually be bought: a listed price that checkout refuses would mislead.
   const bundle = bundleSalesOpen() ? prices.ra_annual_report_bundle : undefined;
@@ -68,7 +77,7 @@ export default async function RegisteredAgentPage() {
       />
       <PageIntro
         breadcrumbs={<Breadcrumbs items={CRUMBS} />}
-        title="Registered agent service, one clear yearly price"
+        title={nationwide ? "Registered agent service in every state, one clear yearly price" : "Registered agent service, one clear yearly price"}
         lede={
           <p>
             {ra !== undefined ? `${formatCents(ra, { trimZeros: true })} a year, and the same price when it renews. ` : ""}
@@ -152,8 +161,12 @@ export default async function RegisteredAgentPage() {
       {states.length > 0 ? (
         <Section>
           <SectionHeading
-            title="Changing your agent, state by state"
-            lede="Where we've checked the state's own form and fee, the details are here. Other states: we'll show the fee at checkout once we've verified it."
+            title="Registered agent by state"
+            lede={
+              nationwide
+                ? "Pick your state for its fees, the form to switch agents and how a new business names its agent. Every fact is checked on the state's own site."
+                : "Where we've checked the state's own form and fee, the details are here. Other states: we'll show the fee at checkout once we've verified it."
+            }
           />
           <ul className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {states.map((j) => (

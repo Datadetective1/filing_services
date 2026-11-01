@@ -67,6 +67,14 @@ export function changeAgentGuide(j: Pick<RaJurisdiction, "name" | "changeOfAgent
       q: `Can I change my ${j.name} registered agent myself?`,
       a: `Yes. You can file the ${change.formName} with the state yourself and pay only the state fee. Or we file it for you when you switch to Filewell.`,
     },
+    {
+      q: `Can I be my own registered agent in ${j.name}?`,
+      a: `Usually, yes, if you have a street address in ${j.name} and are available there during business hours. Many owners use a service for privacy, and so legal papers go to an address that is staffed every business day.`,
+    },
+    {
+      q: "Is Filewell part of the state?",
+      a: "No. Filewell is a private company, not a government agency, and is not affiliated with the state.",
+    },
   ];
   return { fees, lowestFeeText, steps, faq };
 }

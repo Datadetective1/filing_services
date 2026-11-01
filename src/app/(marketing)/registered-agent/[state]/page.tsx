@@ -4,12 +4,15 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
+import { RaOtherStates } from "@/components/marketing/ra-state-links";
 import { PageIntro, Section, SectionHeading } from "@/components/marketing/section";
 import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Card, Notice } from "@/components/ui/surface";
+import { site } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
 import { getRaJurisdictionBySlug, raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
+import { changeFeeText, formationLlcFeeText } from "@/lib/registered-agent/public-copy";
 import { BUNDLE_STATES, bundleSalesOpen, businessServicesIndexable, businessServicesPagesEnabled, RA_ENTITY_TYPES } from "@/lib/registered-agent/sales";
 import { PROVIDER_LEGAL_NAME } from "@/lib/services/catalog";
 import { stateRegisteredAgentFaq } from "@/lib/services/public-faq";
@@ -39,9 +42,10 @@ export async function generateMetadata(props: PageProps<"/registered-agent/[stat
   const j = load(state);
   if (!j) return {};
   const ra = (await publicServicePrices()).registered_agent;
-  const price = ra !== undefined ? `${formatCents(ra, { trimZeros: true })} a year, the same at renewal. ` : "";
+  const priceText = ra !== undefined ? formatCents(ra, { trimZeros: true }) : null;
+  const price = priceText ? `${priceText} a year, the same at renewal. ` : "";
   return pageMetadata({
-    title: ra !== undefined ? `Registered Agent in ${j.name}: ${formatCents(ra, { trimZeros: true })} a Year` : `Registered Agent in ${j.name}`,
+    title: priceText ? `Registered Agent in ${j.name}: ${priceText} a Year` : `Registered Agent in ${j.name}`,
     description: `Registered agent service in ${j.name} for LLCs and corporations. ${price}For a new business or a switch: we file the ${j.name} change of agent for you.`,
     path: `/registered-agent/${j.slug}`,
     noindex: !businessServicesIndexable(),
@@ -62,7 +66,14 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
   ];
   const checked = [...new Set(change.sources.map((s) => s.checkedAt))].sort().pop();
   const priceText = prices.registered_agent !== undefined ? formatCents(prices.registered_agent, { trimZeros: true }) : null;
-  const faq = stateRegisteredAgentFaq({ stateName: j.name, priceText, changeFormName: change.formName, appointmentProcess: j.appointmentProcess });
+  const changeFee = changeFeeText(j);
+  const formationFee = formationLlcFeeText(j);
+  const faq = stateRegisteredAgentFaq({ stateName: j.name, priceText, changeFormName: change.formName, appointmentProcess: j.appointmentProcess, changeFee });
+  const costs = [
+    ...(priceText ? [{ term: `${site.name} registered agent`, value: `${priceText} a year` }] : []),
+    ...(changeFee ? [{ term: "State fee to switch agents", value: changeFee }] : []),
+    ...(formationFee ? [{ term: "State fee to form a new LLC", value: formationFee }] : []),
+  ];
   // Filewell files this state's annual reports itself: link the guide, and the bundle only while it can be bought.
   const filesAnnualReports = (BUNDLE_STATES as readonly string[]).includes(j.code);
   const bundle = filesAnnualReports && bundleSalesOpen() ? prices.ra_annual_report_bundle : undefined;
@@ -100,6 +111,19 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
       <Section>
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="grid content-start gap-6">
+            {costs.length ? (
+              <div className="grid gap-4">
+                <SectionHeading title={`What it costs in ${j.name}`} />
+                <dl className="grid gap-3 sm:grid-cols-3">
+                  {costs.map((c) => (
+                    <div key={c.term} className="rounded-[var(--radius-control)] border border-border bg-surface p-4">
+                      <dt className="text-sm text-muted">{c.term}</dt>
+                      <dd className="tnum mt-1 font-semibold text-fg">{c.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ) : null}
             <SectionHeading title={`Changing your registered agent in ${j.name}`} />
             <Card className="grid gap-3 p-5 text-[15px]">
               <p>
@@ -185,6 +209,9 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
       <Section band>
         <SectionHeading title={`${j.name} registered agent questions`} />
         <FaqList items={faq} className="mt-8" />
+      </Section>
+      <Section>
+        <RaOtherStates currentCode={j.code} title="Registered agent in other states" />
       </Section>
     </>
   );
