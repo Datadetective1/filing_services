@@ -305,9 +305,9 @@ const MONTANA: StateGuide[] = [
 const WASHINGTON: StateGuide[] = [
   {
     slug: "annual-report-deadline",
-    title: "Washington Annual Report Due Date: Your Expiration Date",
+    title: "Washington Annual Report Deadline: Your Expiration Date",
     description:
-      "A Washington annual report is due by the expiration date: the last day of the month the business was formed or registered. You can file up to 180 days early.",
+      "A Washington annual report is due by the business's expiration date: the last day of the month it was formed or registered. You can file up to 180 days early. From official sources.",
     h1: "Washington annual report deadline",
     answer: [
       "A Washington business's annual report is due by its expiration date: the last day of the month in which it was first formed or registered with the Secretary of State. That applies to domestic and foreign entities.",
@@ -346,9 +346,9 @@ const WASHINGTON: StateGuide[] = [
   },
   {
     slug: "annual-report-fee",
-    title: "Washington Annual Report Fee: $70 ($95 If Delinquent)",
+    title: "Washington Annual Report Fee: $70 (and When the $25 Delinquency Fee Applies)",
     description:
-      "Washington's annual report fee is $70 for LLCs, profit corporations, LPs and LLPs. A $25 delinquency fee applies only when the state lists the business as Delinquent.",
+      "Washington's annual report fee is $70 for profit corporations, LLCs, LPs and LLPs. A $25 delinquency fee applies only when the state lists the business as Delinquent. From official sources.",
     h1: "Washington annual report fee",
     answer: [
       "Filing a Washington annual report costs $70 for domestic and foreign profit corporations, LLCs, limited partnerships and LLPs. Washington doesn't add an online processing fee to annual reports.",
@@ -427,9 +427,9 @@ const WASHINGTON: StateGuide[] = [
 const NEVADA: StateGuide[] = [
   {
     slug: "annual-list-fee",
-    title: "Nevada Annual List Fee: LLC $350, Corporation $650",
+    title: "Nevada Annual List and State Business License Fees (LLC $350, Corporation $650)",
     description:
-      "Nevada's annual list plus State Business License fees: $150 + $200 for LLCs, $150 + $500 for corporations at the lowest tier. Late penalties: $75 and $100.",
+      "Nevada's annual list fee plus the State Business License fee: $150 + $200 for LLCs and partnerships, $150 + $500 for corporations at the lowest tier. Late penalties: $75 and $100. From the NRS.",
     h1: "Nevada annual list and business license fees",
     answer: [
       "Each year a Nevada business pays two state fees together: the annual list fee and the State Business License renewal fee. For LLCs, limited partnerships and LLPs that's $150 + $200 = $350. For corporations whose authorized stock is worth $75,000 or less, it's $150 + $500 = $650.",
@@ -465,7 +465,7 @@ const NEVADA: StateGuide[] = [
   },
   {
     slug: "annual-list-deadline",
-    title: "Nevada Annual List Deadline: End of Anniversary Month",
+    title: "Nevada Annual List Deadline: Last Day of Your Anniversary Month",
     description:
       "A Nevada annual list is due by the last day of the month in which the business was formed (or qualified in Nevada). What happens after the deadline, from the NRS.",
     h1: "Nevada annual list deadline",
@@ -541,7 +541,7 @@ const UTAH: StateGuide[] = [
   },
   {
     slug: "annual-report-deadline",
-    title: "Utah Annual Report Deadline: End of Anniversary Month",
+    title: "Utah Annual Report Deadline (New Rule From October 1, 2026)",
     description:
       "From October 1, 2026, Utah annual reports are due on the last day of the business's anniversary month and may be filed up to 60 days early (Utah Code 16-1a-212).",
     h1: "Utah annual report deadline",
