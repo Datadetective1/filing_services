@@ -265,6 +265,14 @@ export default async function FindResultPage() {
         agentPriceCents={prices.registered_agent ?? null}
         changeFeeCents={changeOfAgentFeeCents(lookup.stateCode, lookup.entityType)}
         unavailableReason={sale.ok ? null : sale.reason}
+        after={
+          <p className="text-sm text-muted">
+            Here for the annual report instead?{" "}
+            <Link href="/annual-report/start?next=result" prefetch={false} className={textLinkClasses}>
+              See what&apos;s due
+            </Link>
+          </p>
+        }
       />
     );
   }

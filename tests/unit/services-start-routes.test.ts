@@ -66,6 +66,22 @@ describe("GET /registered-agent/start", () => {
   });
 });
 
+describe("GET /annual-report/start", () => {
+  it("forgets the agent intent and reopens the lookup, or the result already found", async () => {
+    const { GET } = await import("@/app/(marketing)/annual-report/start/route");
+    expect((await GET(req("/annual-report/start"))).headers.get("location")).toBe("http://localhost/find");
+    expect((await GET(req("/annual-report/start?next=result"))).headers.get("location")).toBe("http://localhost/find/result");
+    expect(h.cleared).toEqual(["intent", "intent"]);
+  });
+
+  it("does nothing on a prefetch", async () => {
+    const { GET } = await import("@/app/(marketing)/annual-report/start/route");
+    const res = await GET(req("/annual-report/start", { "next-router-prefetch": "1" }));
+    expect(res.status).toBe(204);
+    expect(h.cleared).toEqual([]);
+  });
+});
+
 describe("GET /dashboard/services/start", () => {
   it("adds the looked-up business and opens its order, clearing the lookup", async () => {
     const { GET } = await import("@/app/(app)/dashboard/services/start/route");

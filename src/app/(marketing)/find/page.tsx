@@ -1,5 +1,6 @@
 import { SealCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { site } from "@/config/site";
 import { findRule, getJurisdiction, listJurisdictions } from "@/lib/compliance/registry";
 import { formationDateRequired } from "@/lib/compliance/state-meta";
@@ -12,6 +13,7 @@ import { LookupForm } from "@/components/funnel/lookup-form";
 import { RegistrySearch } from "@/components/funnel/registry-search";
 import type { LookupJurisdictionOption, LookupValues } from "@/components/funnel/types";
 import { Photo } from "@/components/media/photo";
+import { textLinkClasses } from "@/components/ui/button";
 import { Container, Notice } from "@/components/ui/surface";
 import { submitLookup } from "./actions";
 import { searchRegistry, selectRegistryEntity } from "./registry-actions";
@@ -100,6 +102,14 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
                 ? "We'll fill in your registered agent order from it. No account needed yet."
                 : "Your deadline, the state fee and the official source, in about a minute. No account needed."}
             </p>
+            {forAgent ? (
+              <p className="text-sm text-muted">
+                Here for the annual report instead?{" "}
+                <Link href="/annual-report/start" prefetch={false} className={textLinkClasses}>
+                  Check your deadline
+                </Link>
+              </p>
+            ) : null}
           </div>
 
           {one(sp.missing) === "1" ? (
