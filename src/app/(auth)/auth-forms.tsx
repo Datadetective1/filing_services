@@ -122,7 +122,7 @@ export function EmailLinkForm({ next }: { next: string }) {
     <form action={action} className="grid gap-3" noValidate>
       <input type="hidden" name="next" value={next} />
       {state?.error ? <Notice tone="danger" role="alert">{state.error}</Notice> : null}
-      <Field label="Email" htmlFor="link-email" error={err(state, "email")}>
+      <Field label="Email for a sign-in link" htmlFor="link-email" error={err(state, "email")}>
         <Input id="link-email" name="email" type="email" autoComplete="email" required {...aria(state, "email")} />
       </Field>
       <SubmitButton size="lg" variant="secondary" pendingLabel="Sending…" className="w-full">
