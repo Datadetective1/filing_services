@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { Field, Input } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { requestPasswordReset, signIn, signUp, updatePassword, type AuthState } from "./actions";
+import { requestPasswordReset, sendSignInLink, signIn, signUp, updatePassword, type AuthState } from "./actions";
 
 function err(state: AuthState, key: string) {
   return state?.fieldErrors?.[key];
@@ -112,5 +112,32 @@ export function ResetPasswordForm() {
         Save new password
       </SubmitButton>
     </form>
+  );
+}
+
+/** No password: we email a link that signs this browser in (and creates the account if it's new). */
+export function EmailLinkForm({ next }: { next: string }) {
+  const [state, action] = useActionState(sendSignInLink, undefined);
+  return (
+    <form action={action} className="grid gap-3" noValidate>
+      <input type="hidden" name="next" value={next} />
+      {state?.error ? <Notice tone="danger" role="alert">{state.error}</Notice> : null}
+      <Field label="Email" htmlFor="link-email" error={err(state, "email")}>
+        <Input id="link-email" name="email" type="email" autoComplete="email" required {...aria(state, "email")} />
+      </Field>
+      <SubmitButton size="lg" variant="secondary" pendingLabel="Sending…" className="w-full">
+        Email me a sign-in link
+      </SubmitButton>
+    </form>
+  );
+}
+
+export function OrDivider() {
+  return (
+    <div className="flex items-center gap-3 text-sm text-muted" role="separator" aria-label="or">
+      <span className="h-px flex-1 bg-border" aria-hidden />
+      or
+      <span className="h-px flex-1 bg-border" aria-hidden />
+    </div>
   );
 }

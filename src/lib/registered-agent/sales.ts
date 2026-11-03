@@ -1,7 +1,7 @@
 import { isProductionEnvironment } from "@/config/site";
 import { findRule, isSellableForBusiness, realPaymentsPossible } from "@/lib/compliance/registry";
 import type { EntityType } from "@/lib/domain/types";
-import { changeOfAgentFeeCents, formationFeeCents, getRaJurisdiction, stateSpecificBlockers } from "./jurisdictions";
+import { changeOfAgentFeeCents, formationFeeCents, getRaJurisdiction, RA_JURISDICTIONS, stateSpecificBlockers } from "./jurisdictions";
 
 /**
  * Sales switches for business services. Every one fails closed.
@@ -180,4 +180,26 @@ export function formationSaleCheck(code: string, entityType: EntityType): SaleCh
     return { ok: false, reason: `Business formation isn't open in ${j.name} yet.` };
   }
   return { ok: true, reason: null };
+}
+
+export interface FormationOpenState {
+  code: string;
+  name: string;
+  slug: string;
+  /** The verified state fee for each entity type open here; a missing type is not open. */
+  feeCents: Partial<Record<"llc" | "corporation", number>>;
+}
+
+/** States where formation can be ordered right now (in this environment), with their verified fees. */
+export function formationOpenStates(): FormationOpenState[] {
+  const out: FormationOpenState[] = [];
+  for (const j of RA_JURISDICTIONS) {
+    const feeCents: FormationOpenState["feeCents"] = {};
+    for (const t of ["llc", "corporation"] as const) {
+      const fee = formationFeeCents(j.code, t);
+      if (fee !== null && formationSaleCheck(j.code, t).ok) feeCents[t] = fee;
+    }
+    if (Object.keys(feeCents).length > 0) out.push({ code: j.code, name: j.name, slug: j.slug, feeCents });
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 }

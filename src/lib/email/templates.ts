@@ -222,6 +222,19 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     description: "Sent when a business services checkout is paid.",
   },
   {
+    key: "service_formation_confirmed",
+    category: "transactional",
+    subject: "Order received: forming {{company_name}}",
+    body:
+      "Thanks. We received your order to form {{company_name}} in {{state_name}}.\n\n" +
+      "Paid to the state: {{government_fee}}\n" +
+      "Filewell service: {{service_fee}}\n" +
+      "Total paid today: {{amount}}\n\n" +
+      "Next, we check the name and your details, then file with the state. When the state approves it, the approved document goes in your dashboard and we email you. If we need anything from you, we'll ask in your dashboard.",
+    ctaLabel: "See your order",
+    description: "Sent when a business formation checkout is paid.",
+  },
+  {
     key: "service_active",
     category: "transactional",
     subject: "Active: registered agent service for {{company_name}} in {{state_name}}",

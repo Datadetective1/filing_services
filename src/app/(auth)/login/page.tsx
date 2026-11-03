@@ -3,7 +3,7 @@ import Link from "next/link";
 import { safeNextPath } from "@/lib/auth/session";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { textLinkClasses } from "@/components/ui/button";
-import { SignInForm } from "../auth-forms";
+import { EmailLinkForm, OrDivider, SignInForm } from "../auth-forms";
 import { authLede, authTitle } from "../styles";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       ) : null}
       {failed ? (
         <p role="alert" className="rounded-[var(--radius-control)] border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
-          That link didn&apos;t sign you in. If you were confirming your email, it may already be confirmed, so sign in below{forOrder ? " to continue your order" : ""}. If
+          That link didn&apos;t sign you in. Links only work in the browser that asked for them, so you can ask for a new sign-in link below{forOrder ? " to continue your order" : ""}. If
           you were resetting your password,{" "}
           <Link className="font-semibold underline decoration-danger/40 underline-offset-4 hover:decoration-danger" href="/forgot-password">
             request a new reset link
@@ -39,6 +39,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </p>
       ) : null}
       <SignInForm next={next} />
+      <OrDivider />
+      <EmailLinkForm next={next} />
       <p className="text-[15px] text-muted">
         New here?{" "}
         <Link className={textLinkClasses} href={`/signup?next=${encodeURIComponent(next)}`}>

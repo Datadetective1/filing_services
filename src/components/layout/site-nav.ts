@@ -9,13 +9,19 @@ export const SITE_NAV = [
 export type NavItem = { href: string; label: string };
 
 const REGISTERED_AGENT_NAV: NavItem = { href: "/registered-agent", label: "Registered agent" };
+const FORMATION_NAV: NavItem = { href: "/business-formation", label: "Start a business" };
 
 /**
  * The main navigation, with the registered agent page right after annual reports once the
- * business services pages are live. Computed on the server (the switch is a server env var)
+ * business services pages are live, and formation after it once a state is open for it. Computed on the server (the switch is a server env var)
  * and passed to the mobile menu as a prop.
  */
-export function siteNav(businessServicesPages: boolean): NavItem[] {
+export function siteNav(businessServicesPages: boolean, formationOpen = false): NavItem[] {
   if (!businessServicesPages) return [...SITE_NAV];
-  return [SITE_NAV[0], REGISTERED_AGENT_NAV, ...SITE_NAV.slice(1)];
+  return [
+    SITE_NAV[0],
+    REGISTERED_AGENT_NAV,
+    ...(formationOpen ? [FORMATION_NAV] : []),
+    ...SITE_NAV.slice(1),
+  ];
 }

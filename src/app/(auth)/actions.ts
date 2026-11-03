@@ -77,6 +77,28 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   redirect(target);
 }
 
+/**
+ * Email a one-time sign-in link, no password needed. New emails get an account on first use,
+ * so a customer can go from an order page to checkout without choosing a password. The link
+ * goes through /auth/confirm (PKCE), so it only signs in the browser that asked for it.
+ */
+export async function sendSignInLink(_: AuthState, formData: FormData): Promise<AuthState> {
+  const parsed = z.object({ email }).safeParse({ email: formData.get("email") });
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  if (!(await throttle("link", 5))) return { error: "Too many attempts. Please wait a minute and try again." };
+  const next = safeNextPath(String(formData.get("next") ?? ""), "/dashboard");
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email: parsed.data.email,
+    options: { emailRedirectTo: absoluteUrl(`/auth/confirm?next=${encodeURIComponent(next)}`), shouldCreateUser: true },
+  });
+  if (error) {
+    return { error: /rate|seconds/i.test(error.message) ? "Too many attempts. Please try again shortly." : "We couldn't send the link. Please try again." };
+  }
+  await rememberAfterAuth(next);
+  redirect(`/check-email?link=1&next=${encodeURIComponent(next)}`);
+}
+
 export async function requestPasswordReset(_: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = z.object({ email }).safeParse({ email: formData.get("email") });
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };

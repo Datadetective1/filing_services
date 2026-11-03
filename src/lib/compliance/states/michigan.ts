@@ -12,9 +12,9 @@ import type { ComplianceRuleDef, IntakeSchema, LateFeeRule, RuleSource } from ".
  * regular LLC on LARA's page, so it doesn't fit Filewell's penalty-first expansion.
  *
  * Filing: since June 30, 2025 every filing needs a MiLogin for Business account and the
- * filer must request access to the entity in MiBusiness Registry. Whether a filing service
- * can get access to a client's corporation is open (mi_milogin_access), so sales and filing
- * stay closed. The report's contents and who may sign were taken from the statute on a page
+ * company must be in the filer's My Records. The Corporations Division confirmed by email
+ * (2026-10-29/30) that Filewell may file from its own account, adding each company with its
+ * identification number and initial filing date. Nothing is needed from the client. The report's contents and who may sign were taken from the statute on a page
  * that showed a CAPTCHA, so they're not cited here and are not verified.
  */
 
@@ -138,7 +138,7 @@ function buildRule(): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: "corporation",
     appliesTo: "domestic_and_foreign",
-    // v1 (2026-10-29): not sold. Open question mi_milogin_access keeps sales and filing closed.
+    // v1 (2026-10-29). Filing access confirmed by the Corporations Division 2026-10-30.
     version: 1,
     verificationStatus: "verified",
     effectiveFrom: VERIFIED,
@@ -163,7 +163,7 @@ function buildRule(): ComplianceRuleDef {
     officialFilingUrl: MI_URLS.registry,
     officialInfoUrl: MI_URLS.roadmap,
     filingMethodSummary:
-      "Filed online in MiBusiness Registry with a MiLogin for Business account that has requested access to the corporation, then paid by card. Paper is no longer accepted.",
+      "Filed online in MiBusiness Registry from a MiLogin for Business account that has the corporation in its My Records, then paid by card. Paper is no longer accepted.",
     processingSummary: "LARA files online annual reports in MiBusiness Registry.",
     customerSummary: "Michigan corporations file an annual report by May 15 each year, with a $25 state fee. Filing late adds $10 a month, up to $50.",
     faq: [
@@ -175,11 +175,11 @@ function buildRule(): ComplianceRuleDef {
     operatorRunbook: {
       portalName: "MiBusiness Registry",
       portalUrl: MI_URLS.registry,
-      access: "A MiLogin for Business account that has requested and received access to the corporation. Whether a filing service can do this for a client is not yet confirmed.",
+      access: "Filewell's own MiLogin for Business account, with the corporation added to My Records using its identification number and initial filing date (both on the state's business search). Confirmed by the Corporations Division, 2026-10-30.",
       steps: [
         "Open the filing packet. Confirm there are no blockers (open state questions, re-signing, payment).",
         "Sign in to MiBusiness Registry with Filewell's MiLogin for Business account and search the corporation.",
-        "Request access if needed and answer the two access questions only with facts from the packet. If access is refused, stop and contact the customer.",
+        "If the corporation isn't in My Records yet, add it with its identification number and initial filing date from the state's business search. If it can't be added, stop and contact the customer.",
         "Pay a late penalty only if the order collected it; otherwise contact the customer first.",
         "Choose File Annual Report and make every value match the packet. Never change the resident agent here.",
         "On the review screen, compare every value with the packet, then record the comparison checkpoint in Filewell.",
