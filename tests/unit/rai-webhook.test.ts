@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { extractRaiToken, parseRaiDocumentAlert, RaiWebhookError, raiWebhookSecret, readRaiDocumentEvent, verifyRaiJwt } from "@/lib/registered-agent/rai-webhook";
+import { extractRaiToken, parseRaiDocumentAlert, RaiWebhookError, raiWebhookSecret, readRaiDocumentEvent, verifyRaiBodySignature, verifyRaiJwt } from "@/lib/registered-agent/rai-webhook";
 
 /**
  * Registered Agents Inc. alerts: only an HMAC token signed with our API secret is read,
@@ -25,9 +25,13 @@ function sign(claims: Record<string, unknown>, opts: { alg?: string; secret?: st
 const CLAIMS = { document_id: "D-1001", company_id: "55123", company_name: "Acme LLC" };
 
 describe("verifyRaiJwt", () => {
-  it("accepts a token signed with the API secret (HS256, HS384, HS512)", () => {
-    for (const alg of ["HS256", "HS384", "HS512"]) {
-      expect(verifyRaiJwt(sign(CLAIMS, { alg }), SECRET, NOW)).toMatchObject(CLAIMS);
+  it("accepts a token signed with the API secret using HS256", () => {
+    expect(verifyRaiJwt(sign(CLAIMS), SECRET, NOW)).toMatchObject(CLAIMS);
+  });
+
+  it("refuses other HMAC algorithms, since the partner signs with HS256 only", () => {
+    for (const alg of ["HS384", "HS512"]) {
+      expect(() => verifyRaiJwt(sign(CLAIMS, { alg }), SECRET, NOW)).toThrow("unsupported signing algorithm");
     }
   });
 
@@ -123,5 +127,57 @@ describe("parseRaiDocumentAlert and the secret", () => {
     expect(raiWebhookSecret({ RAI_API_SECRET: " s3cret " } as unknown as NodeJS.ProcessEnv)).toBe("s3cret");
     expect(raiWebhookSecret({ RAI_API_SECRET: "  " } as unknown as NodeJS.ProcessEnv)).toBeNull();
     expect(raiWebhookSecret({} as unknown as NodeJS.ProcessEnv)).toBeNull();
+  });
+});
+
+describe("X-CT-Signature", () => {
+  const expected = { documentId: "D-1001", companyId: "55123", companyName: "Acme LLC" };
+  const body = JSON.stringify({ event: "document.new", ...CLAIMS });
+  const mac = (raw: string, secret = SECRET) => createHmac("sha256", secret).update(raw).digest();
+
+  it("reads the event from a JWT in the header", () => {
+    const headers = new Headers({ "X-CT-Signature": sign(CLAIMS) });
+    expect(parseRaiDocumentAlert("", headers, SECRET, NOW)).toEqual(expected);
+  });
+
+  it("refuses a header JWT signed with another key, even if the body holds a good token", () => {
+    const headers = new Headers({ "X-CT-Signature": sign(CLAIMS, { secret: "someone-else" }) });
+    expect(() => parseRaiDocumentAlert(sign(CLAIMS), headers, SECRET, NOW)).toThrow("bad signature");
+  });
+
+  it("accepts an HMAC-SHA256 of the raw body in hex, base64, base64url or with a sha256= prefix", () => {
+    const m = mac(body);
+    for (const sig of [m.toString("hex"), m.toString("base64"), m.toString("base64url"), `sha256=${m.toString("hex")}`]) {
+      expect(parseRaiDocumentAlert(body, new Headers({ "X-CT-Signature": sig }), SECRET, NOW)).toEqual(expected);
+    }
+  });
+
+  it("refuses a body signature made with another key or over a changed body", () => {
+    const wrongKey = mac(body, "someone-else").toString("hex");
+    expect(() => parseRaiDocumentAlert(body, new Headers({ "X-CT-Signature": wrongKey }), SECRET, NOW)).toThrow("bad signature");
+    const good = mac(body).toString("hex");
+    const changed = body.replace("55123", "99999");
+    expect(() => parseRaiDocumentAlert(changed, new Headers({ "X-CT-Signature": good }), SECRET, NOW)).toThrow("bad signature");
+  });
+
+  it("refuses a header it can't read instead of falling back to the body", () => {
+    expect(() => parseRaiDocumentAlert(sign(CLAIMS), new Headers({ "X-CT-Signature": "nope" }), SECRET, NOW)).toThrow("not a recognised format");
+  });
+
+  it("still checks a token inside a signed body", () => {
+    const raw = JSON.stringify({ token: sign(CLAIMS, { secret: "someone-else" }) });
+    const headers = new Headers({ "X-CT-Signature": mac(raw).toString("hex") });
+    expect(() => parseRaiDocumentAlert(raw, headers, SECRET, NOW)).toThrow("bad signature");
+    const ok = JSON.stringify({ token: sign(CLAIMS) });
+    expect(parseRaiDocumentAlert(ok, new Headers({ "X-CT-Signature": mac(ok).toString("hex") }), SECRET, NOW)).toEqual(expected);
+  });
+
+  it("refuses a signed body that isn't a JSON object", () => {
+    const raw = "[1,2]";
+    expect(() => parseRaiDocumentAlert(raw, new Headers({ "X-CT-Signature": mac(raw).toString("hex") }), SECRET, NOW)).toThrow("not an object");
+  });
+
+  it("refuses everything when no secret is configured", () => {
+    expect(() => verifyRaiBodySignature(body, mac(body).toString("hex"), "")).toThrow("no secret configured");
   });
 });

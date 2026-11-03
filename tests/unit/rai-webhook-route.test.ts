@@ -65,6 +65,20 @@ describe("registered agent alert route", () => {
     expect(record).not.toHaveBeenCalled();
   });
 
+  it("records a plain JSON alert signed in the X-CT-Signature header, and rejects a bad one", async () => {
+    process.env.RAI_API_SECRET = SECRET;
+    const body = JSON.stringify({ event: "document.new", document_id: "D2", company_id: "C9", company_name: "Acme LLC" });
+    const good = createHmac("sha256", SECRET).update(body).digest("hex");
+    const res = await post(body, { "content-type": "application/json", "X-CT-Signature": good });
+    expect(res.status).toBe(200);
+    expect(record).toHaveBeenCalledWith({ documentId: "D2", companyId: "C9", companyName: "Acme LLC" });
+    record.mockClear();
+    const bad = createHmac("sha256", "wrong").update(body).digest("hex");
+    expect((await post(body, { "X-CT-Signature": bad })).status).toBe(401);
+    expect((await post(body, { "X-CT-Signature": sign({ document_id: "D2" }, "wrong") })).status).toBe(401);
+    expect(record).not.toHaveBeenCalled();
+  });
+
   it("rejects a signed alert with no document ID", async () => {
     process.env.RAI_API_SECRET = SECRET;
     const res = await post(sign({ company_id: "C9" }));
