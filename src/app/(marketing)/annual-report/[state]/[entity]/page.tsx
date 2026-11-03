@@ -27,6 +27,7 @@ import { entityTypeFromSlug, ENTITY_TYPE_SLUGS, type EntityType } from "@/lib/do
 import type { PhotoKey } from "@/lib/media/photos";
 import {
   agencyShortName,
+  dueDayText,
   filingWindowText,
   governorInfo,
   groupSources,
@@ -80,7 +81,7 @@ export async function generateMetadata({ params }: PageProps<"/annual-report/[st
   const copy = ENTITY_COPY[rule.entityType];
   return pageMetadata({
     title: `${j.name} ${copy.title} Annual Report: Due Date, Fee & Filing`,
-    description: `${j.name} ${copy.plural} file an annual report by ${dueRuleText(rule.dueRule).replace(" each year", "")} each year. ${stateFeeSentence(rule)} Who counts as a governor, what to report and how to file, from official sources.`,
+    description: `${j.name} ${copy.plural} file an annual report by ${dueDayText(rule)} each year. ${stateFeeSentence(rule)} Who counts as a governor, what to report and how to file, from official sources.`,
     path: `/annual-report/${j.slug}/${ENTITY_TYPE_SLUGS[rule.entityType]}`,
   });
 }

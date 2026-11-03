@@ -1,3 +1,4 @@
+import { ArrowsClockwise } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/components/ui/cn";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -46,7 +47,12 @@ export function CalendarDate({
           size === "sm" ? "py-1.5 text-lg" : size === "lg" ? "py-2.5 text-[28px]" : "py-2 text-[22px]",
         )}
       >
-        {day ?? "?"}
+        {day ?? (
+          <ArrowsClockwise
+            weight="bold"
+            className={cn("mx-auto", size === "sm" ? "h-[18px] w-[18px]" : size === "lg" ? "h-7 w-7" : "h-[22px] w-[22px]")}
+          />
+        )}
       </span>
     </span>
   );
