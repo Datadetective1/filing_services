@@ -120,6 +120,8 @@ export async function afterServiceOrderPaid(input: {
     state_code?: string;
     state_name?: string;
     price_variant?: string;
+    /** Provider-filed annual reports: the state's name for the report. */
+    report_name?: string;
     quote?: { lines?: { kind: "service_fee" | "government_fee"; serviceCode: string; amountCents: number }[] };
   };
 
@@ -185,25 +187,37 @@ export async function afterServiceOrderPaid(input: {
     order_ref: order.id.slice(0, 8),
   };
   const isFormation = service === "formation";
+  const isProviderReport = service === "provider_annual_report";
   const formationPo = isFormation ? (providerOrders ?? []).find((po) => po.kind === "formation") : undefined;
+  const reportPo = isProviderReport ? (providerOrders ?? []).find((po) => po.kind === "annual_report") : undefined;
+  const reportVars = { ...vars, report_name: (snapshot.report_name ?? "annual report").toLowerCase() };
   await sendNotification({
     userId: order.user_id,
-    templateKey: isFormation ? "service_formation_confirmed" : "service_order_confirmed",
+    templateKey: isFormation ? "service_formation_confirmed" : isProviderReport ? "service_report_confirmed" : "service_order_confirmed",
     dedupeKey: `service_order_confirmed:${order.id}`,
-    vars,
-    ctaPath: isFormation ? `/dashboard/services/formation/${order.id}` : sub ? `/dashboard/services/${sub.id}` : "/dashboard",
+    vars: isProviderReport ? reportVars : vars,
+    ctaPath: isFormation
+      ? `/dashboard/services/formation/${order.id}`
+      : isProviderReport
+        ? `/dashboard/services/annual-report/${order.id}`
+        : sub
+          ? `/dashboard/services/${sub.id}`
+          : "/dashboard",
     businessId: order.business_id,
     suppressReason: isProductionEnvironment() && order.payment_mode !== "live" ? "test-mode payment (no real charge)" : null,
   });
+  // An annual report in a state we don't file ourselves: its own alert, worded as the task ("Send to RAI").
   await notifyStaff({
-    templateKey: "staff_new_service_order",
-    vars,
+    templateKey: isProviderReport ? "staff_new_provider_report" : "staff_new_service_order",
+    vars: isProviderReport ? reportVars : vars,
     dedupeKey: `staff_new_service_order:${order.id}`,
     ctaPath: formationPo
       ? `/admin/registered-agent/formation/${formationPo.id}`
-      : sub
-        ? `/admin/registered-agent/${sub.id}`
-        : "/admin/registered-agent",
+      : reportPo
+        ? `/admin/registered-agent/annual-report/${reportPo.id}`
+        : sub
+          ? `/admin/registered-agent/${sub.id}`
+          : "/admin/registered-agent",
     businessId: order.business_id,
   });
   await trackServer("payment_completed", {

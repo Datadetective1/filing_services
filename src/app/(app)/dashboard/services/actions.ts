@@ -9,6 +9,7 @@ import { getRaJurisdiction } from "@/lib/registered-agent/jurisdictions";
 import { addFormingBusiness } from "@/lib/services/business";
 import { clearServiceIntent } from "@/lib/services/intent";
 import { startFormationCheckout, validateFormationInput } from "@/lib/services/formation";
+import { startProviderReportCheckout, validateProviderReportInput } from "@/lib/services/provider-report";
 import { setRenewal, ServiceOrderError, startServiceCheckout, validateServiceCheckoutInput } from "@/lib/services/orders";
 import type { ActionMessageState } from "@/components/funnel/types";
 
@@ -62,6 +63,23 @@ export async function startFormationCheckoutAction(_prev: ActionMessageState, fo
     if (e instanceof ServiceOrderError) return { error: e.message };
     if (e instanceof PaymentConfigurationError) return { error: "Online payment isn't available right now. Nothing has been charged." };
     console.error("[formation] checkout failed", e);
+    return { error: "We couldn't start checkout. Nothing has been charged. Please try again." };
+  }
+  redirect(url);
+}
+
+/** Annual report filed by our partner: validate, quote on the server, then hosted checkout. */
+export async function startProviderReportCheckoutAction(_prev: ActionMessageState, formData: FormData): Promise<ActionMessageState> {
+  const user = await requireUser("/dashboard/services/annual-report");
+  const parsed = validateProviderReportInput(Object.fromEntries(formData.entries()));
+  if (!parsed.ok) return { error: parsed.error };
+  let url: string | null = null;
+  try {
+    url = (await startProviderReportCheckout(user, parsed.value)).url;
+  } catch (e) {
+    if (e instanceof ServiceOrderError) return { error: e.message };
+    if (e instanceof PaymentConfigurationError) return { error: "Online payment isn't available right now. Nothing has been charged." };
+    console.error("[provider-report] checkout failed", e);
     return { error: "We couldn't start checkout. Nothing has been charged. Please try again." };
   }
   redirect(url);

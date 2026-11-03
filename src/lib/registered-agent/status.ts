@@ -27,7 +27,7 @@ export const PROVIDER_ORDER_STATUSES = [
 ] as const;
 export type ProviderOrderStatus = (typeof PROVIDER_ORDER_STATUSES)[number];
 
-export const PROVIDER_ORDER_KINDS = ["registered_agent", "change_of_agent", "formation"] as const;
+export const PROVIDER_ORDER_KINDS = ["registered_agent", "change_of_agent", "formation", "annual_report"] as const;
 export type ProviderOrderKind = (typeof PROVIDER_ORDER_KINDS)[number];
 
 export const PROVIDER_ORDER_STATUS_LABELS: Record<ProviderOrderStatus, string> = {
@@ -118,7 +118,9 @@ export function nextOperatorAction(kind: ProviderOrderKind, status: ProviderOrde
         ? "Place the registered agent order in the Registered Agents Inc. partner dashboard and record its order number."
         : kind === "change_of_agent"
           ? "Order the change of agent filing in the partner dashboard and record its order number."
-          : "Order the formation in the partner dashboard and record its order number.";
+          : kind === "annual_report"
+            ? "Send to RAI: order the annual report in the partner dashboard and record its order number."
+            : "Order the formation in the partner dashboard and record its order number.";
     case "submitted_to_provider":
     case "processing":
       return kind === "registered_agent"

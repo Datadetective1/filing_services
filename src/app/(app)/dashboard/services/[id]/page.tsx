@@ -39,7 +39,7 @@ const BILLING_STATUS: Record<string, { label: string; tone: "neutral" | "info" |
   canceled: { label: "Not renewing", tone: "neutral" },
 };
 
-const KIND_LABEL = { registered_agent: "Registered agent", change_of_agent: "Change of agent filing", formation: "Formation filing" } as const;
+const KIND_LABEL = { registered_agent: "Registered agent", change_of_agent: "Change of agent filing", formation: "Formation filing", annual_report: "Annual report filing" } as const;
 
 function date(iso: string | null): string {
   return iso ? new Date(iso).toLocaleDateString("en-US", { dateStyle: "long", timeZone: "UTC" }) : "";

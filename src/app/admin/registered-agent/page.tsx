@@ -38,6 +38,7 @@ const KIND_LABEL: Record<ProviderOrderKind, string> = {
   registered_agent: "Registered agent",
   change_of_agent: "Change of agent",
   formation: "Formation",
+  annual_report: "Annual report",
 };
 
 export default async function RegisteredAgentQueuePage() {
@@ -111,13 +112,22 @@ export default async function RegisteredAgentQueuePage() {
                     <TD>
                       <Link
                         className={tableLink}
-                        href={o.ra_subscription_id ? `/admin/registered-agent/${o.ra_subscription_id}` : `/admin/registered-agent/formation/${o.id}`}
+                        href={
+                          o.ra_subscription_id
+                            ? `/admin/registered-agent/${o.ra_subscription_id}`
+                            : o.kind === "annual_report"
+                              ? `/admin/registered-agent/annual-report/${o.id}`
+                              : `/admin/registered-agent/formation/${o.id}`
+                        }
                       >
                         {one(o.businesses)?.legal_name ?? shortId(o.id)}
                       </Link>
                     </TD>
                     <TD>
-                      {KIND_LABEL[o.kind as ProviderOrderKind]} · {o.state_code}
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        {KIND_LABEL[o.kind as ProviderOrderKind]} · {o.state_code}
+                        {o.kind === "annual_report" ? <Badge tone="warning">Send to RAI</Badge> : null}
+                      </span>
                     </TD>
                     <TD>
                       <Badge tone={o.status === "information_needed" ? "warning" : "info"}>{PROVIDER_ORDER_STATUS_LABELS[o.status as ProviderOrderStatus]}</Badge>

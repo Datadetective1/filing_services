@@ -75,6 +75,8 @@ export async function transitionAction(_prev: ActionState, formData: FormData): 
   } catch (e) {
     return actionError(e);
   }
+  // A one-off filing (formation or annual report) is worked from its own order page.
+  if (!d.subscriptionId) revalidatePath(`/admin/registered-agent/annual-report/${d.providerOrderId}`);
   return done(d.subscriptionId ?? `formation/${d.providerOrderId}`, "Saved.");
 }
 
