@@ -9,9 +9,10 @@ import type { ComplianceRuleDef, IntakeSchema, LateFeeRule, RuleSource } from ".
  * amended in 2025; the Secretary's instructions page still says $50, the fee page says $55).
  * Sixty days after the due date the business can be administratively dissolved.
  *
- * Due date: the Secretary has long used the anniversary month of formation. From
- * January 1, 2027, SDCL 59-11-25 lets each business file either in its anniversary month or
- * by January 31, chosen on the formation document or by a change-of-filing-date form.
+ * Due date: Business Services told Filewell by email (2026-11-03) that the report "is due on
+ * the 1st of the month of initial filing" and can be filed "up to 60 days prior to that date".
+ * From January 1, 2027, SDCL 59-11-25 lets each business file either in its anniversary month
+ * or by January 31, chosen on the formation document or by a change-of-filing-date form.
  * Filewell models the anniversary month and blocks businesses on the January 31 date until
  * that rule is built (open question sd_2027_filing_date).
  *
@@ -24,6 +25,8 @@ import type { ComplianceRuleDef, IntakeSchema, LateFeeRule, RuleSource } from ".
  */
 
 const VERIFIED = "2026-10-29";
+/** Business Services' emailed answer on the due date and early filing. */
+const DUE_DATE_VERIFIED = "2026-11-03";
 const REVIEWER = "Official-source verification (SDCL + Secretary of State pages; automated research, quotes verbatim)";
 const SOS = "South Dakota Secretary of State";
 const LEG = "South Dakota Legislature (SDCL)";
@@ -67,6 +70,22 @@ const COMMON: RuleSource[] = [
     "At the time of formation, an entity shall indicate on the formation document which filing date the entity has selected.",
     LEG,
   ),
+  {
+    factKey: "due_date",
+    url: SD_URLS.annualReport,
+    title: "Annual report due date and early filing (email from South Dakota Business Services)",
+    publisher: SOS,
+    quote: "the annual report is due on the 1st of the month of initial filing.",
+    lastVerifiedAt: DUE_DATE_VERIFIED,
+  },
+  {
+    factKey: "filing_window",
+    url: SD_URLS.annualReport,
+    title: "Annual report due date and early filing (email from South Dakota Business Services)",
+    publisher: SOS,
+    quote: "You can file up to 60 days prior to that date.",
+    lastVerifiedAt: DUE_DATE_VERIFIED,
+  },
   src("signer", SD_URLS.statute24, "SDCL 59-11-24", "Any other provisions of law notwithstanding, the annual report may be executed by any authorized person.", LEG),
   src(
     "agricultural_land",
@@ -171,10 +190,10 @@ function intakeFor(p: SdProfile): IntakeSchema {
             key: "filing_date_choice",
             type: "choice",
             label: "Which annual report date does your business use?",
-            help: "From 2027, South Dakota lets a business file in its anniversary month or by January 31.",
+            help: "From 2027, South Dakota lets a business file by the 1st of its anniversary month or by January 31.",
             required: true,
             options: [
-              { value: "anniversary", label: "Our anniversary month (the month we were formed)" },
+              { value: "anniversary", label: "The 1st of our anniversary month (the month we were formed)" },
               { value: "jan31", label: "January 31 each year" },
               { value: "unsure", label: "Not sure" },
             ],
@@ -268,19 +287,21 @@ function buildRule(p: SdProfile): ComplianceRuleDef {
     filingTypeCode: "annual_report",
     entityType: p.entityType,
     appliesTo: "domestic_and_foreign",
-    // v1 (2026-10-29): not sold. Open question sd_2027_filing_date keeps sales and filing closed.
-    version: 1,
+    // v1 (2026-10-29): due at the end of the anniversary month, opening 27 days before.
+    // v2 (2026-11-03): Business Services' answer: due on the 1st of that month, filing opens
+    // 60 days before. Open question sd_2027_filing_date still keeps filing closed.
+    version: 2,
     verificationStatus: "verified",
-    effectiveFrom: VERIFIED,
+    effectiveFrom: DUE_DATE_VERIFIED,
     filingName: "Annual Report",
-    dueRule: { kind: "anniversary_month_end" },
+    dueRule: { kind: "anniversary_month_start" },
     firstDueRule: { kind: "year_after_formation" },
     stateFeeCents: 5500,
     nonprofitStateFeeCents: null,
     lateFeeCents: 5500,
     lateFees,
-    // Filed during the anniversary month: the shortest month leaves 27 days before its last day.
-    filingWindowDaysBefore: 27,
+    // "You can file up to 60 days prior to that date." (Business Services, 2026-11-03)
+    filingWindowDaysBefore: 60,
     lateFeeSummary: "South Dakota adds a $55 fee to an annual report not filed on time.",
     consequenceSummary:
       "A late report costs an extra $55. If it isn't filed within 60 days after it's due, South Dakota can administratively dissolve the business.",
@@ -298,11 +319,11 @@ function buildRule(p: SdProfile): ComplianceRuleDef {
     filingMethodSummary:
       "Filed online on South Dakota's annual report tool with the Business ID (no account needed), signed by any authorized person, and paid by card.",
     processingSummary: "South Dakota files online annual reports when they're submitted.",
-    customerSummary: `South Dakota ${p.pluralNoun} file an annual report in their anniversary month each year, with a $55 state fee. Filing late adds $55.`,
+    customerSummary: `South Dakota ${p.pluralNoun} file an annual report by the 1st of their anniversary month each year, with a $55 state fee. Filing late adds $55.`,
     faq: [
       {
         q: `When is a South Dakota ${p.noun}'s annual report due?`,
-        a: "During the month the business was formed (its anniversary month), every year after the year it was formed. From 2027 a business can choose January 31 instead.",
+        a: "On the 1st of the month the business was formed (its anniversary month), every year after the year it was formed. It can be filed up to 60 days before that. From 2027 a business can choose January 31 instead.",
       },
       { q: "How much is the state fee?", a: "$55 online, paid to the South Dakota Secretary of State. Our service fee, if you use us, is shown separately." },
       { q: "Is there a late fee?", a: "Yes. South Dakota adds $55 to a report that isn't filed on time." },
@@ -343,7 +364,7 @@ function buildRule(p: SdProfile): ComplianceRuleDef {
     lastVerifiedAt: VERIFIED,
     verifiedBy: REVIEWER,
     notes:
-      "Not verified: how early South Dakota accepts a report (Filewell opens the month itself); the anniversary month in current Secretary wording (only a 2017 pamphlet says it); the 2025 session law itself. The Secretary's instructions page still says $50 late; statute and fee page say $55.",
+      "Due date and early filing confirmed by Business Services by email (2026-11-03). Not verified: the 2025 session law itself. The Secretary's instructions page still says $50 late; statute and fee page say $55.",
   };
 }
 

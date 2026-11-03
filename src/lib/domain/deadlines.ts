@@ -20,6 +20,12 @@ export function dueDateForYear(rule: DueRule, year: number, formationDate?: ISOD
       const day = Math.min(rule.day, lastDayOfMonth(year, rule.month));
       return toISODate(year, rule.month, day);
     }
+    case "anniversary_month_start": {
+      if (!formationDate || !isISODate(formationDate)) return null;
+      const f = parseISODate(formationDate);
+      if (year <= f.year) return null;
+      return toISODate(year, f.month, 1);
+    }
     case "anniversary_month_end":
     case "anniversary_date": {
       if (!formationDate || !isISODate(formationDate)) return null;

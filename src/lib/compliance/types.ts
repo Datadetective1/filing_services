@@ -15,6 +15,11 @@ export type DueRule =
    * due "by the last day of the second month following the Periodic Report Month").
    */
   | { kind: "anniversary_month_end"; intervalYears?: 1 | 2; monthsAfter?: number }
+  /**
+   * First day of the formation anniversary month, every year (South Dakota: the report "is
+   * due on the 1st of the month of initial filing").
+   */
+  | { kind: "anniversary_month_start" }
   /** The formation anniversary date, every `intervalYears` years. */
   | { kind: "anniversary_date"; intervalYears?: 1 | 2 };
 

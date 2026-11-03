@@ -78,6 +78,7 @@ export function dueDayText(rule: ComplianceRuleDef): string {
     return dueRuleText(rule.dueRule).replace(/^End of/, "the last day of").replace(/ each year$/, "");
   }
   if (rule.dueRule.kind === "anniversary_month_end") return "the last day of the month it was formed (or registered, if formed elsewhere)";
+  if (rule.dueRule.kind === "anniversary_month_start") return "the 1st of the month it was formed (or registered, if formed elsewhere)";
   return dueRuleText(rule.dueRule).replace(/^\w/, (c) => c.toLowerCase());
 }
 

@@ -15,6 +15,8 @@ export function dueRuleText(rule: DueRule): string {
       return rule.intervalYears === 2
         ? "End of your formation anniversary month, every two years"
         : "End of your formation anniversary month each year";
+    case "anniversary_month_start":
+      return "1st of your formation anniversary month each year";
     case "anniversary_date":
       return rule.intervalYears === 2 ? "Your formation anniversary, every two years" : "Your formation anniversary each year";
   }
