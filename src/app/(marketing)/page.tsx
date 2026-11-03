@@ -152,7 +152,7 @@ export default async function HomePage() {
                     <ServiceChoice
                       title="Start a business"
                       price={`${formatCents(formationPrice, { trimZeros: true })} plus state fee`}
-                      body={`LLC or corporation. In ${formationStates.length} states.`}
+                      body={`LLC or corporation. In ${formationStates.length === 1 ? formationStates[0].name : `${formationStates.length} states`}.`}
                       href="/business-formation"
                       cta="See prices"
                     />
