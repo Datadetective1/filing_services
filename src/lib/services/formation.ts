@@ -144,7 +144,14 @@ export interface FormationInput {
   contactName: string;
   contactPhone: string;
   addRegisteredAgent: boolean;
+  /** The customer's own agent, when they don't add ours. */
+  agentName: string | null;
+  agentAddress: string | null;
+  /** Corporations only. Capped so share-based state fees stay at the verified minimum. */
+  authorizedShares: number | null;
 }
+
+export const MAX_AUTHORIZED_SHARES = 60000;
 
 const PO_BOX = /\bP\.?\s*O\.?\s*Box\b/i;
 
@@ -174,8 +181,8 @@ export function validateFormationInput(
       ok: false,
       error:
         entityType === "llc"
-          ? "Enter the members' names."
-          : "Enter the directors' names.",
+          ? "Enter each member's name and address."
+          : "Enter each director's name and address.",
     };
   const management =
     entityType === "llc"
@@ -200,6 +207,29 @@ export function validateFormationInput(
     };
   const addRegisteredAgent =
     raw.addRegisteredAgent === "on" || raw.addRegisteredAgent === true;
+  let agentName: string | null = null;
+  let agentAddress: string | null = null;
+  if (!addRegisteredAgent) {
+    agentName = s("agentName").replace(/\s+/g, " ");
+    agentAddress = s("agentAddress");
+    if (agentName.length < 2 || agentName.length > 200)
+      return { ok: false, error: "Enter your registered agent's name, or add ours." };
+    if (agentAddress.length < 5 || agentAddress.length > 500)
+      return { ok: false, error: "Enter your registered agent's street address." };
+    if (PO_BOX.test(agentAddress))
+      return { ok: false, error: "The registered agent needs a street address, not a PO box." };
+  }
+  let authorizedShares: number | null = null;
+  if (entityType === "corporation") {
+    const sharesText = s("authorizedShares").replace(/[,\s]/g, "") || "1000";
+    const n = Number(sharesText);
+    if (!Number.isInteger(n) || n < 1 || n > MAX_AUTHORIZED_SHARES)
+      return {
+        ok: false,
+        error: `Enter a whole number of shares from 1 to ${MAX_AUTHORIZED_SHARES.toLocaleString("en-US")}.`,
+      };
+    authorizedShares = n;
+  }
   if (raw.acceptedTerms !== "on" && raw.acceptedTerms !== true)
     return {
       ok: false,
@@ -217,6 +247,9 @@ export function validateFormationInput(
       contactName,
       contactPhone,
       addRegisteredAgent,
+      agentName,
+      agentAddress,
+      authorizedShares,
     },
   };
 }
@@ -359,6 +392,12 @@ export async function startFormationCheckout(
     registered_agent: input.addRegisteredAgent
       ? "Filewell's provider"
       : "Customer names their own agent",
+    ...(input.addRegisteredAgent
+      ? {}
+      : { agent_name: input.agentName, agent_address: input.agentAddress }),
+    ...(input.authorizedShares !== null
+      ? { authorized_shares: input.authorizedShares }
+      : {}),
   };
   const providerOrders: Record<string, unknown>[] = [
     {

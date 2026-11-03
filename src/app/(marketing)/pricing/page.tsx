@@ -12,7 +12,7 @@ import { Container } from "@/components/ui/surface";
 import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { ServiceChoice } from "@/components/marketing/service-choice";
-import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
 import { publicServicePrices } from "@/lib/services/public-prices";
 import { isRuleSellable, isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import type { FaqItem } from "@/lib/compliance/types";
@@ -47,7 +47,7 @@ const INCLUDED = [
   "Reminders ahead of next year's deadline",
 ];
 
-const NOT_INCLUDED = ["Legal or tax advice", "Registered agent service", "Filings other than the one you order"];
+const NOT_INCLUDED = ["Legal or tax advice", "Registered agent service, unless you add it", "Filings other than the one you order"];
 
 const REFUND_TEXT =
   "Cancel before we submit to the state and you get a full refund. Once it's submitted, the state keeps its fee, so that part can't be refunded. We refund our service fee if we made an error or can't complete the filing.";
@@ -74,6 +74,9 @@ export default async function PricingPage() {
   const raPrice = servicePrices.registered_agent;
   // Listed only while checkout takes it, as on the homepage.
   const bundlePrice = raPrice !== undefined && bundleSalesOpen() ? servicePrices.ra_annual_report_bundle : undefined;
+  const formationStates = raPrice !== undefined ? formationOpenStates() : [];
+  const formationPrice = formationStates.length > 0 ? servicePrices.formation : undefined;
+  const serviceCount = 2 + (bundlePrice !== undefined ? 1 : 0) + (formationPrice !== undefined ? 1 : 0);
 
   const faq: FaqItem[] = [
     {
@@ -119,7 +122,7 @@ export default async function PricingPage() {
           </div>
 
           {raPrice !== undefined ? (
-            <ul className={`grid gap-3 ${bundlePrice !== undefined ? "sm:grid-cols-3" : "sm:grid-cols-2"}`} aria-label="Our services">
+            <ul className={`grid gap-3 sm:grid-cols-2 ${serviceCount === 3 ? "lg:grid-cols-3" : serviceCount === 4 ? "lg:grid-cols-4" : ""}`} aria-label="Our services">
               <ServiceChoice
                 title="Registered agent"
                 price={`${formatCents(raPrice, { trimZeros: true })} a year`}
@@ -144,6 +147,15 @@ export default async function PricingPage() {
                 href="/find"
                 cta="Check my deadline"
               />
+              {formationPrice !== undefined ? (
+                <ServiceChoice
+                  title="Start a business"
+                  price={`${formatCents(formationPrice, { trimZeros: true })} plus state fee`}
+                  body={`LLC or corporation. In ${formationStates.length} states.`}
+                  href="/business-formation"
+                  cta="See prices"
+                />
+              ) : null}
             </ul>
           ) : null}
 

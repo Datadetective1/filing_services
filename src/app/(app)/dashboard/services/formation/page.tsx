@@ -158,6 +158,7 @@ export default async function FormationPage(
             <FormationOrderForm
               action={startFormationCheckoutAction}
               stateCode={preview.jurisdiction.code}
+              stateName={preview.jurisdiction.name}
               entityType={typeParam}
               totalLabel={formatCents(quote.dueTodayCents)}
               totalWithAgentLabel={
@@ -169,9 +170,6 @@ export default async function FormationPage(
                 preview.addOnQuote?.renewal
                   ? formatCents(preview.addOnQuote.renewal.amountCents)
                   : null
-              }
-              askOwnerAddresses={
-                preview.jurisdiction.extraIntake.beneficialOwners
               }
               prefill={{
                 contactName: prefill.contactName,

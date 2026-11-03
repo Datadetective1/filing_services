@@ -15,11 +15,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 export function FormationOrderForm({
   action,
   stateCode,
+  stateName,
   entityType,
   totalLabel,
   totalWithAgentLabel,
   agentRenewalLabel,
-  askOwnerAddresses,
   prefill,
 }: {
   action: (
@@ -27,12 +27,12 @@ export function FormationOrderForm({
     formData: FormData,
   ) => Promise<ActionMessageState>;
   stateCode: string;
+  stateName: string;
   entityType: "llc" | "corporation";
   totalLabel: string;
   /** Null when registered agent service can't be added here. */
   totalWithAgentLabel: string | null;
   agentRenewalLabel: string | null;
-  askOwnerAddresses: boolean;
   prefill: { contactName: string; contactPhone: string };
 }) {
   const [state, formAction] = useActionState(action, {});
@@ -79,11 +79,7 @@ export function FormationOrderForm({
         <Field
           label={isLlc ? "Members (owners)" : "Directors"}
           htmlFor="owners"
-          hint={
-            askOwnerAddresses
-              ? "Full name and home address for each, one per line."
-              : "Full names, one per line."
-          }
+          hint="Full name and address for each, one per line."
         >
           <Textarea
             id="owners"
@@ -118,7 +114,49 @@ export function FormationOrderForm({
               One or more managers
             </label>
           </fieldset>
+        ) : (
+          <Field
+            label="Authorized shares"
+            htmlFor="authorizedShares"
+            hint="How many shares the corporation may issue. 1,000 suits most small companies."
+          >
+            <Input
+              id="authorizedShares"
+              name="authorizedShares"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={60000}
+              step={1}
+              required
+              defaultValue={1000}
+            />
+          </Field>
+        )}
+      </fieldset>
+      <fieldset className="grid gap-4">
+        <legend className="mb-1 text-[16px] font-semibold text-fg">
+          Registered agent
+        </legend>
+        {totalWithAgentLabel ? (
+          <label className="flex items-start gap-3 rounded-[var(--radius-control)] border border-border bg-surface p-4 text-[15px] text-fg">
+            <Checkbox name="addRegisteredAgent" checked={withAgent} onChange={(e) => setWithAgent(e.target.checked)} />
+            <span>
+              Use ours{agentRenewalLabel ? ` (${agentRenewalLabel} a year)` : ""}.{" "}
+              <span className="text-muted">Optional. Or name your own agent below.</span>
+            </span>
+          </label>
         ) : null}
+        {withAgent ? null : (
+          <>
+            <Field label="Agent's name" htmlFor="agentName" hint="A person or a registered agent company. You can be your own agent.">
+              <Input id="agentName" name="agentName" required maxLength={200} />
+            </Field>
+            <Field label={`Agent's street address in ${stateName}`} htmlFor="agentAddress" hint="Not a PO box.">
+              <Input id="agentAddress" name="agentAddress" required maxLength={500} />
+            </Field>
+          </>
+        )}
       </fieldset>
       <fieldset className="grid gap-4">
         <legend className="mb-1 text-[16px] font-semibold text-fg">
@@ -147,15 +185,6 @@ export function FormationOrderForm({
           />
         </Field>
       </fieldset>
-      {totalWithAgentLabel ? (
-        <label className="flex items-start gap-3 rounded-[var(--radius-control)] border border-border bg-surface p-4 text-[15px] text-fg">
-          <Checkbox name="addRegisteredAgent" checked={withAgent} onChange={(e) => setWithAgent(e.target.checked)} />
-          <span>
-            Add registered agent service{agentRenewalLabel ? ` (${agentRenewalLabel} a year)` : ""}.{" "}
-            <span className="text-muted">Optional. You can name any agent you like instead.</span>
-          </span>
-        </label>
-      ) : null}
       <label className="flex items-start gap-3 text-[15px] text-fg">
         <Checkbox name="acceptedTerms" required />
         <span>

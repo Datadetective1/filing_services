@@ -31,6 +31,10 @@ export interface OpenQuestion {
 // Filewell never signs or affirms for them and there is nothing left for counsel to approve.
 // Closed 2026-10-30: mt_declaration_text. Montana Business Services emailed the Declarations
 // wording; the customer makes those declarations themselves (MT_DECLARATIONS in montana.ts).
+// Closed 2026-11-03: mi_milogin_access. The Corporations Division answered by email (2026-10-29
+// and 2026-10-30): a filing service may file from its own MiLogin for Business account once the
+// company is in its My Records, added with the company's identification number and initial
+// filing date from the state's business search. Nothing is needed from the client.
 const ORDERS_OPEN_FILING_BLOCKED = { blocksSales: false } as const;
 
 export const OPEN_QUESTIONS: OpenQuestion[] = [
@@ -70,14 +74,6 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
     summary:
       "From January 1, 2027, SDCL 59-11-25 lets a business file in its anniversary month or by January 31, and choose on its formation document or a change-of-filing-date form. How the Secretary records each business's choice and how existing businesses are assigned a date are not confirmed. (The current due date, the 1st of the anniversary month, and the 60-day early filing window were confirmed by Business Services on 2026-11-03.) Filewell blocks businesses on the January 31 date and does not sell or file South Dakota reports until this is answered.",
     answeredBy: "South Dakota Secretary of State (Business Services)",
-  },
-  {
-    key: "mi_milogin_access",
-    ...ORDERS_OPEN_FILING_BLOCKED,
-    stateCode: "MI",
-    summary:
-      "MiBusiness Registry requires a MiLogin for Business account that requests access to the corporation by answering two questions. Whether a filing service may request access to a client's corporation, what the questions ask, and who may sign the report are not confirmed. Filewell does not sell or file Michigan reports until they are.",
-    answeredBy: "Michigan LARA Corporations Division, and the owner inside MiBusiness Registry",
   },
 ];
 

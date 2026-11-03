@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
-import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
 import { AccountLink } from "./account-link";
 import { HeaderCta } from "./header-cta";
 import { Logo } from "./logo";
@@ -11,7 +11,7 @@ import { siteNav } from "./site-nav";
 /** Static header (no per-request auth lookup) so marketing and SEO pages can be prerendered. */
 export function SiteHeader() {
   const agentPages = businessServicesPagesEnabled();
-  const nav = siteNav(agentPages);
+  const nav = siteNav(agentPages, agentPages && formationOpenStates().length > 0);
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/90 backdrop-blur-md supports-[backdrop-filter]:bg-bg/80">
       <Container className="relative flex h-[68px] items-center justify-between gap-4">

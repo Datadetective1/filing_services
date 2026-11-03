@@ -22,6 +22,8 @@ const good = {
   owners: "Jo Smith",
   contactName: "Jo Smith",
   contactPhone: "(512) 555-0100",
+  agentName: "Jo Smith",
+  agentAddress: "1 Main St, Austin, TX 78701",
   acceptedTerms: "on",
 };
 
@@ -51,6 +53,32 @@ describe("formation order details", () => {
     expect(validateFormationInput({ ...good, entityType: "lp" }).ok).toBe(
       false,
     );
+  });
+
+  it("asks for the customer's own agent unless ours is added", () => {
+    const noAgent: Record<string, unknown> = { ...good };
+    delete noAgent.agentName;
+    delete noAgent.agentAddress;
+    expect(validateFormationInput(noAgent)).toEqual({ ok: false, error: "Enter your registered agent's name, or add ours." });
+    expect(validateFormationInput({ ...noAgent, addRegisteredAgent: "on" }).ok).toBe(true);
+    expect(validateFormationInput({ ...good, agentAddress: "P.O. Box 4, Austin" })).toEqual({
+      ok: false,
+      error: "The registered agent needs a street address, not a PO box.",
+    });
+    const r = validateFormationInput(good);
+    expect(r.ok && [r.value.agentName, r.value.agentAddress]).toEqual(["Jo Smith", "1 Main St, Austin, TX 78701"]);
+  });
+
+  it("corporations get authorized shares, 1,000 by default and at most 60,000", () => {
+    const corp = { ...good, entityType: "corporation" };
+    const d = validateFormationInput(corp);
+    expect(d.ok && d.value.authorizedShares).toBe(1000);
+    const c = validateFormationInput({ ...corp, authorizedShares: "10,000" });
+    expect(c.ok && c.value.authorizedShares).toBe(10000);
+    expect(validateFormationInput({ ...corp, authorizedShares: "60001" }).ok).toBe(false);
+    expect(validateFormationInput({ ...corp, authorizedShares: "1.5" }).ok).toBe(false);
+    const llc = validateFormationInput(good);
+    expect(llc.ok && llc.value.authorizedShares).toBeNull();
   });
 
   it("corporations have no management choice", () => {
@@ -121,10 +149,14 @@ describe("operator entry sheet", () => {
         owners: "Jo Smith",
         management: "manager",
         registered_agent: "Customer names their own agent",
+        agent_name: "Lone Star Agents",
+        agent_address: "2 Elm St, Austin",
       },
     });
     expect(sheet.missing).toEqual([]);
     expect(sheet.rows).toContainEqual({ label: "Members", value: "Jo Smith" });
+    expect(sheet.rows).toContainEqual({ label: "Agent name", value: "Lone Star Agents" });
+    expect(sheet.rows).toContainEqual({ label: "Agent address", value: "2 Elm St, Austin" });
     expect(sheet.rows).toContainEqual({
       label: "Management",
       value: "Manager-managed",

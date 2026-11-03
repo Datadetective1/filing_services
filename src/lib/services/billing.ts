@@ -148,7 +148,7 @@ export async function afterServiceOrderPaid(input: {
       .eq("id", sub.id);
   }
 
-  const { data: providerOrders } = await db.from("provider_orders").select("id, status").eq("order_id", order.id);
+  const { data: providerOrders } = await db.from("provider_orders").select("id, status, kind").eq("order_id", order.id);
   for (const po of providerOrders ?? []) {
     if (po.status !== "new_order") continue;
     const { error } = await db.rpc("transition_provider_order", {
@@ -184,12 +184,14 @@ export async function afterServiceOrderPaid(input: {
     payment_mode: order.payment_mode,
     order_ref: order.id.slice(0, 8),
   };
+  const isFormation = service === "formation";
+  const formationPo = isFormation ? (providerOrders ?? []).find((po) => po.kind === "formation") : undefined;
   await sendNotification({
     userId: order.user_id,
-    templateKey: "service_order_confirmed",
+    templateKey: isFormation ? "service_formation_confirmed" : "service_order_confirmed",
     dedupeKey: `service_order_confirmed:${order.id}`,
     vars,
-    ctaPath: sub ? `/dashboard/services/${sub.id}` : "/dashboard",
+    ctaPath: isFormation ? `/dashboard/services/formation/${order.id}` : sub ? `/dashboard/services/${sub.id}` : "/dashboard",
     businessId: order.business_id,
     suppressReason: isProductionEnvironment() && order.payment_mode !== "live" ? "test-mode payment (no real charge)" : null,
   });
@@ -197,7 +199,11 @@ export async function afterServiceOrderPaid(input: {
     templateKey: "staff_new_service_order",
     vars,
     dedupeKey: `staff_new_service_order:${order.id}`,
-    ctaPath: sub ? `/admin/registered-agent/${sub.id}` : "/admin/registered-agent",
+    ctaPath: formationPo
+      ? `/admin/registered-agent/formation/${formationPo.id}`
+      : sub
+        ? `/admin/registered-agent/${sub.id}`
+        : "/admin/registered-agent",
     businessId: order.business_id,
   });
   await trackServer("payment_completed", {

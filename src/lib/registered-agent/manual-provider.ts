@@ -75,6 +75,9 @@ export function providerEntrySheet(input: {
           { label: input.entityTypeLabel === "LLC" ? "Members" : "Directors", value: text("owners") },
           ...(text("management") ? [{ label: "Management", value: text("management") === "manager" ? "Manager-managed" : "Member-managed" }] : []),
           { label: "Registered agent", value: text("registered_agent") },
+          ...(text("agent_name") ? [{ label: "Agent name", value: text("agent_name") }] : []),
+          ...(text("agent_address") ? [{ label: "Agent address", value: text("agent_address") }] : []),
+          ...(typeof d.authorized_shares === "number" ? [{ label: "Authorized shares", value: d.authorized_shares.toLocaleString("en-US") }] : []),
         ]
       : []),
     ...(text("beneficial_owners") ? [{ label: "Beneficial owners", value: text("beneficial_owners") }] : []),

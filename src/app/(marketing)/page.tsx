@@ -5,7 +5,7 @@ import { site } from "@/config/site";
 import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Photo } from "@/components/media/photo";
-import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
 import { publicServicePrices } from "@/lib/services/public-prices";
 import { ServiceChoice } from "@/components/marketing/service-choice";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
@@ -65,6 +65,9 @@ export default async function HomePage() {
   const raPrice = servicePrices.registered_agent;
   // Listed only while checkout takes it: a price that checkout refuses would mislead.
   const bundlePrice = raPrice !== undefined && bundleSalesOpen() ? servicePrices.ra_annual_report_bundle : undefined;
+  const formationStates = raPrice !== undefined ? formationOpenStates() : [];
+  const formationPrice = formationStates.length > 0 ? servicePrices.formation : undefined;
+  const serviceCount = 2 + (bundlePrice !== undefined ? 1 : 0) + (formationPrice !== undefined ? 1 : 0);
   const agency = pa ? agencyShortName(pa) : "Pennsylvania Department of State";
   const stateName = pa?.name ?? "Pennsylvania";
   const groups = dueGroups(paRules);
@@ -120,7 +123,7 @@ export default async function HomePage() {
                 <p className="max-w-[38ch] text-lg leading-relaxed text-muted sm:text-xl">
                   For LLCs and corporations in every state. Prices stay the same at renewal.
                 </p>
-                <ul className={`grid gap-3 ${bundlePrice !== undefined ? "sm:grid-cols-3" : "sm:grid-cols-2"}`} aria-label="Our services">
+                <ul className={`grid gap-3 sm:grid-cols-2 ${serviceCount === 3 ? "lg:grid-cols-3" : serviceCount === 4 ? "lg:grid-cols-4" : ""}`} aria-label="Our services">
                   <ServiceChoice
                     title="Registered agent"
                     price={`${formatCents(raPrice, { trimZeros: true })} a year`}
@@ -145,6 +148,15 @@ export default async function HomePage() {
                     href="/find"
                     cta="Check my deadline"
                   />
+                  {formationPrice !== undefined ? (
+                    <ServiceChoice
+                      title="Start a business"
+                      price={`${formatCents(formationPrice, { trimZeros: true })} plus state fee`}
+                      body={`LLC or corporation. In ${formationStates.length} states.`}
+                      href="/business-formation"
+                      cta="See prices"
+                    />
+                  ) : null}
                 </ul>
               </>
             ) : (
