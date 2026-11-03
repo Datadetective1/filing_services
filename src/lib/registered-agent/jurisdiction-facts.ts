@@ -11,7 +11,9 @@ import type {
  * statutes. Every fact carries its source URL, a verbatim quote and the date checked. A fact
  * that could not be confirmed is absent and explained in `unverified`. Corporation formation
  * fees that rise with authorized shares, or that need extra filings or publication, are left
- * out on purpose so a formation quote is never a guess.
+ * out on purpose so a formation quote is never a guess. The one exception is Michigan, whose
+ * minimum applies because checkout caps authorized shares (MAX_AUTHORIZED_SHARES). Formation
+ * facts for TX, PA, CO, FL, SD, MT and MI were rechecked on November 3, 2026.
  *
  * Provider coverage: the jurisdiction's page on Registered Agents Inc.'s own website.
  */
@@ -662,6 +664,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
+      "Formation rechecked 2026-11-03: Articles of Organization and Articles of Incorporation are $50 each, online only (paper n/a), at coloradosos.gov File a Document, paid by card.",
       "The fee schedule lists these fees in the Online fee column with n/a under Paper fee: these filings are made online only.",
       "The change of agent fee sits under the Business Transactions, General applicability table, so the same $10.00 applies to LLCs and corporations.",
       "Consent is affirmed by checking a box on the online form; no separate consent document is filed.",
@@ -1120,6 +1123,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
+      "Formation rechecked 2026-11-03: LLC $125 ($100 filing + $25 registered agent designation), profit corporation $70 ($35 + $35), on Sunbiz E-Filing (efile.sunbiz.org) or by mail.",
       "Corporation formation fee of $70 is the required $35 filing fee plus the $35 registered agent designation. The $78.75 and $87.50 totals shown on Sunbiz pages include optional certified copy and certificate of status fees.",
       "LLC formation $125 is $100 filing fee plus $25 registered agent fee.",
       "Change of agent fee differs by entity type: $25 for LLCs, $35 for corporations.",
@@ -2400,6 +2404,9 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     formation: {
       governmentFeeCents: {
         llc: 5000,
+        // $10 filing fee + $50 organization fee for 1 to 60,000 authorized shares. Checkout caps
+        // authorized shares at 60,000 (MAX_AUTHORIZED_SHARES), so this is always the fee charged.
+        corporation: 6000,
       },
       sources: [
         {
@@ -2422,7 +2429,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           publisher:
             "Michigan Department of Licensing and Regulatory Affairs, Corporations Division",
           quote: "1-60,000: $50.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
         },
       ],
     },
@@ -2435,10 +2442,11 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     },
     notes: [
       "Michigan calls the registered agent the resident agent; the same Form 520 is used for corporations and LLCs per the verified change facts supplied.",
+      "Formation forms are Rev. 07/25 (LLC 700, corporation 500), filed online in the MiBusiness Registry Portal with a MiLogin for Business account, or on paper. Rechecked 2026-11-03.",
       "Corporation formation fee is a $10 nonrefundable filing fee plus an organization fee based on authorized shares; $60 total is the minimum (1 to 60,000 shares). 60,001 to 1,000,000 shares raises the organization fee to $100, and so on.",
       "Form 520 has no signature or consent block for the new resident agent; it is signed by an authorized officer or agent (corporation) or a manager, member or authorized agent (LLC), and the resident agent may sign only when just the registered office changes. consentRequired is set to false on that basis; the statute itself was not checked.",
     ],
-    unverified: ["Corporation formation fee rises with authorized shares."],
+    unverified: [],
     stateBlockers: [],
   },
   MN: {
@@ -2824,13 +2832,19 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           publisher: "Montana Secretary of State, Business Services",
           quote:
             "$35.00 plus $50.00 for each series member named in the series LLC",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
+        },
+        {
+          url: "https://help.sosmt.gov/en/article/why-are-paper-forms-not-accepted-laqq09/",
+          publisher: "Montana Secretary of State, Business Services",
+          quote: "The Montana Secretary of State's office has moved to an online-only filing system",
+          checkedAt: "2026-11-03",
         },
         {
           url: "https://sosmt.gov/business/fees/",
           publisher: "Montana Secretary of State, Business Services",
-          quote: "Articles Of Incorporation - Profit Corporation",
-          checkedAt: "2026-10-29",
+          quote: "Articles Of Incorporation – Profit Corporation | $35.00",
+          checkedAt: "2026-11-03",
         },
       ],
     },
@@ -2845,7 +2859,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       "Change of registered office or agent is free for both LLCs and corporations (fee page shows NO FEE).",
       "Montana follows the Model Registered Agents Act: no separate consent document is filed, but naming an agent is the entity's affirmation that the agent has consented to serve (MCA 35-7-105 and 35-7-108). consentRequired is true on that basis.",
       "LLC formation is $35, plus $50 for each series named in a series LLC. Corporation (profit) formation is $35; the fee page row reads Articles Of Incorporation - Profit Corporation | $35.00.",
-      "The fee page lists one fee per filing and does not distinguish online from paper.",
+      "The fee page lists one fee per filing. Filing is online only, in the portal at biz.sosmt.gov (card or e-check). Filewell does not sell series LLCs, so the $50 per series add-on never applies.",
       "Appointment and consent facts come from the Montana Code Annotated on mca.legmt.gov (Montana Legislature); the Secretary of State help pages loaded did not describe how the agent is named at formation.",
     ],
     unverified: [
@@ -4038,7 +4052,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           publisher:
             "Pennsylvania Department of State, Bureau of Corporations and Charitable Organizations",
           quote: "Certificate of Organization | $125",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
         },
         {
           url: "https://www.pa.gov/agencies/dos/programs/business/fees-and-payments",
@@ -4052,8 +4066,15 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           url: "https://www.pa.gov/content/dam/copapwp-pagov/en/dos/programs/business/forms/offsite-forms/15-8821-Cert-of-Org-Dom-LLC.pdf",
           publisher:
             "Pennsylvania Department of State, Bureau of Corporations and Charitable Organizations",
-          quote: "Fee: $125",
-          checkedAt: "2026-10-29",
+          quote: "The nonrefundable filing fee for this form is $125.",
+          checkedAt: "2026-11-03",
+        },
+        {
+          url: "https://www.pa.gov/agencies/dos/programs/business/types-of-filings-and-registrations/pennsylvania-limited-liability-company",
+          publisher:
+            "Pennsylvania Department of State, Bureau of Corporations and Charitable Organizations",
+          quote: "No advertising is required when forming a domestic limited liability company.",
+          checkedAt: "2026-11-03",
         },
         {
           url: "https://www.pa.gov/content/dam/copapwp-pagov/en/dos/programs/business/forms/offsite-forms/15-1306-Art-of-Incorp-For-Profit.pdf",
@@ -4077,10 +4098,11 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       "The CROP page says: 'Listing a Commercial Registered Office Provider (CROP) in lieu of providing a registered office address is an option' and 'Commercial Registered Office Providers may not be used for filings in which a principal place of business is required.'",
       "No CROP consent form is filed; the Department says the entity should contract with the CROP before listing it. For corporations the change form states 'Such change was authorized by the Board of Directors of the corporation.'",
       "The fee schedule shows no online vs paper difference for these filings; expedited service fees are separate.",
+      "LLC formation (checked 2026-11-03): Certificate of Organization DSCB:15-8821 plus the Docketing Statement DSCB:15-134A (no fee), filed online at Business Filing Services (file.dos.pa.gov) by card. Needs the name, a Pennsylvania registered office or a CROP with its county, and each organizer, who all sign.",
     ],
     unverified: [
       "change.consentRequired: no official statement that the CROP must consent in the filing; only that the entity should contract with the CROP first",
-      "Pennsylvania corporations must advertise the incorporation; cost not checked.",
+      "Pennsylvania corporations must advertise the incorporation; cost not checked. 15 Pa.C.S. 1307 requires a notice in two newspapers of general circulation (one a legal journal where possible). Filewell does not arrange that publication, so the corporation fee is left out above and Pennsylvania corporation formation is not sold. LLCs need no advertising.",
     ],
     stateBlockers: [],
   },
@@ -4609,6 +4631,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
+      "Formation rechecked 2026-11-03: $150 online in Business Services Online ($165 on paper) for both LLCs and corporations.",
       "Formation fees are the online fees: $150 online, $165 on paper for both Domestic Articles of Organization and Domestic Articles of Incorporation.",
       "Statement of Change is $10 per the fee schedule (online filing at sosenterprise.sd.gov). The paper PDF form states $25, which matches $10 plus the $15 'Paper Filing Fee for documents able to be filed online'.",
       "The change form and the formation forms have no agent consent statement or agent signature line; only an authorized officer or organizer signs.",
@@ -4821,14 +4844,21 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           publisher:
             "Texas Secretary of State, Business & Public Filings Division",
           quote: "Filing Fee: $300",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
         },
         {
-          url: "https://www.sos.state.tx.us/corp/forms/201_boc.pdf",
+          url: "https://www.sos.state.tx.us/corp/instructions/205.shtml",
           publisher:
             "Texas Secretary of State, Business & Public Filings Division",
-          quote: "Filing Fee: $300",
-          checkedAt: "2026-10-29",
+          quote: "The filing fee for a certificate of formation for an LLC is $300.",
+          checkedAt: "2026-11-03",
+        },
+        {
+          url: "https://www.sos.state.tx.us/corp/instructions/201.shtml",
+          publisher:
+            "Texas Secretary of State, Business & Public Filings Division",
+          quote: "The filing fee for a Certificate of Formation for a for-profit corporation is $300.",
+          checkedAt: "2026-11-03",
         },
       ],
     },
@@ -4842,7 +4872,9 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     notes: [
       "Form 401 is used when the only change is to the registered agent or registered office. The new agent's written or electronic consent must exist, but a copy need not be submitted with the statement of change.",
       "The SOSDirect fee schedule says LLC fees are the same as for-profit corporation fees, so the $15 change fee and $300 formation fee apply to both.",
-      "Online filing through SOSDirect may add a convenience fee; not checked.",
+      "SOSPortal replaced SOSDirect and SOSUpload on September 29, 2026 (news release 2026-09-23). Forms 205 and 201 are Revised 09/26. Rechecked 2026-11-03: formation is still $300 for both.",
+      "SOSPortal card payments add a convenience fee of $0.25 plus 2.25% of total fees; ACH has none. It is a payment charge, not a state filing fee, so it is not passed to the customer.",
+      "Formation needs: name with designator, registered agent and Texas registered office, initial mailing address, organizer, and for an LLC whether it is member- or manager-managed with each governing person's name and address (for a corporation, each initial director's name and address and the authorized shares).",
     ],
     unverified: [],
     stateBlockers: [],
