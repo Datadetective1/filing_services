@@ -12,10 +12,31 @@ const ctx = (dueDate: string, filingDate: string) => ({ isNonprofit: false, dueD
 describe("South Dakota annual report", () => {
   const llc = findRule("SD", "llc")!;
 
-  it("costs $55, plus $55 when filed after the end of the anniversary month", () => {
-    expect(evaluateFees(llc, ctx("2027-03-31", "2027-03-31")).totalCents).toBe(5500);
-    expect(evaluateFees(llc, ctx("2027-03-31", "2027-04-01")).totalCents).toBe(11000);
-    expect(currentFilingPeriod(llc, { today: "2027-03-10", formationDate: "2021-03-04" }).dueDate).toBe("2027-03-31");
+  it("is due on the 1st of the anniversary month, as Business Services said, for LLCs and corporations", () => {
+    for (const rule of [llc, findRule("SD", "corporation")!]) {
+      expect(rule.dueRule).toEqual({ kind: "anniversary_month_start" });
+      expect(currentFilingPeriod(rule, { today: "2027-01-10", formationDate: "2021-03-24" }).dueDate).toBe("2027-03-01");
+    }
+    // Formed in December: due December 1, and nothing is due in the formation year.
+    expect(currentFilingPeriod(llc, { today: "2026-11-03", formationDate: "2026-12-15" }).periodYear).toBe(2027);
+    expect(currentFilingPeriod(llc, { today: "2027-11-03", formationDate: "2026-12-15" }).dueDate).toBe("2027-12-01");
+  });
+
+  it("costs $55, plus $55 when filed after the 1st of the anniversary month", () => {
+    expect(evaluateFees(llc, ctx("2027-03-01", "2027-03-01")).totalCents).toBe(5500);
+    expect(evaluateFees(llc, ctx("2027-03-01", "2027-03-02")).totalCents).toBe(11000);
+  });
+
+  it("opens 60 days before the due date, everywhere the page and app show it", () => {
+    expect(llc.filingWindowDaysBefore).toBe(60);
+    expect(isFilingWindowOpen(llc, 2027, "2027-03-01", "2026-12-30")).toBe(false);
+    expect(isFilingWindowOpen(llc, 2027, "2027-03-01", "2026-12-31")).toBe(true);
+    expect(filingWindowOpensOn(llc, 2027, "2027-03-01")).toBe("2026-12-31");
+    expect(filingWindowText(llc)).toBe("Opens 60 days before the due date");
+    expect(stateWindowSentence([llc])).toBe("It can be filed up to 60 days before the due date.");
+    const faq = stateFaq([llc], "South Dakota", "Secretary of State").map((f) => f.a).join(" ");
+    expect(faq).toContain("60 days");
+    expect(faq).not.toContain("last day of");
   });
 
   it("blocks the January 31 filing date and agricultural land", () => {

@@ -19,7 +19,7 @@ guide pages, footer links, admin acquisition and owner-check screens are not add
 | --- | --- | --- | --- | --- | --- | --- |
 | Florida | LLC, profit corporation | $138.75 LLC, $150 corp | May 1 | $400 after May 1, not waivable; non-profits exempt | Document number, no login | None (customer signs) |
 | Colorado | LLC, corporation | $25 | Last day of 2nd month after the report month | $50 after the due date | No login unless Secure Business Filing | None (customer signs) |
-| South Dakota | LLC, corporation | $55 online | End of anniversary month | $55 when late | Business ID, no login | `sd_2027_filing_date` |
+| South Dakota | LLC, corporation | $55 online | 1st of anniversary month (opens 60 days before) | $55 when late | Business ID, no login | `sd_2027_filing_date` |
 | Montana | LLC, domestic corporation | Waived on time in 2026 and 2027 | April 15 | $35 after April 15 | No login for no-change reports | None (customer signs) |
 | Michigan | Corporation only | $25 | May 15 | $10 a month or part, up to $50 | MiLogin for Business + entity access | `mi_milogin_access` |
 
@@ -66,9 +66,9 @@ The signature is stored with the packet, its hash, the time, and the exact text 
   and the dissolution date were not re-read.
 - Colorado: that the Periodic Report Month is the formation month (the operator checks the
   summary page); the 60 days from Noncompliant to Delinquent.
-- South Dakota: how early a report can be filed (Filewell opens the anniversary month); the
-  anniversary month in current Secretary wording (only a 2017 pamphlet); the 2025 session
-  law itself. The Secretary's instructions page still says $50 late; statute and fee page
+- South Dakota: the 2025 session law itself. (Business Services confirmed by email on
+  2026-11-03 that the report is due on the 1st of the anniversary month and can be filed up
+  to 60 days before.) The Secretary's instructions page still says $50 late; statute and fee page
   say $55.
 - Montana: the on-time fee after the waiver ends. The declaration wording comes from Business
   Services' emailed screenshot, not a public page.

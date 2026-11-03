@@ -68,7 +68,7 @@ export const OPEN_QUESTIONS: OpenQuestion[] = [
     ...ORDERS_OPEN_FILING_BLOCKED,
     stateCode: "SD",
     summary:
-      "From January 1, 2027, SDCL 59-11-25 lets a business file in its anniversary month or by January 31, and choose on its formation document or a change-of-filing-date form. How the Secretary records each business's choice, how existing businesses are assigned a date, and how early a report can be filed are not confirmed. Filewell blocks businesses on the January 31 date and does not sell or file South Dakota reports until this is answered.",
+      "From January 1, 2027, SDCL 59-11-25 lets a business file in its anniversary month or by January 31, and choose on its formation document or a change-of-filing-date form. How the Secretary records each business's choice and how existing businesses are assigned a date are not confirmed. (The current due date, the 1st of the anniversary month, and the 60-day early filing window were confirmed by Business Services on 2026-11-03.) Filewell blocks businesses on the January 31 date and does not sell or file South Dakota reports until this is answered.",
     answeredBy: "South Dakota Secretary of State (Business Services)",
   },
   {
