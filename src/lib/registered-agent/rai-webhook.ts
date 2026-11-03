@@ -4,11 +4,18 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * Registered Agents Inc. new-document alerts: pull the signed token out of the request,
  * check its signature with our API secret, and read the document and company out of it.
  *
- * What the partner told us (account manager, by email): each alert is an HTTP POST whose
- * content is a JWT signed with our API credentials, carrying the Document ID, Company ID
- * and Company Name. We have not seen their published docs or a real alert, so this is
- * deliberately strict about the signature (HMAC only, "none" and key-pair algorithms are
- * refused) and tolerant about where the token sits and how the fields are spelled.
+ * What the partner told us (account managers, by email, Oct 30 and Nov 3 2026): each alert
+ * is an HTTP POST carrying the Document ID, Company ID and Company Name, signed with our
+ * Secret Key using HS256, with an X-CT-Signature header we can verify it with. We have not
+ * seen their published docs or a real alert, so this is strict about the signature (HS256
+ * only; "none", other HMACs and key-pair algorithms are refused) and tolerant about where
+ * the signed token sits and how the fields are spelled.
+ *
+ * X-CT-Signature is read two ways, because the emails don't say which it is:
+ *   - a JWT (HS256, signed with the Secret Key) whose claims are the event, or
+ *   - an HMAC-SHA256 of the raw body with the Secret Key (hex or base64, optional "sha256=").
+ * When the header is present it must verify; a request with no header falls back to a JWT
+ * in the body or a Bearer header.
  */
 
 export class RaiWebhookError extends Error {}
@@ -16,7 +23,11 @@ export class RaiWebhookError extends Error {}
 /** Env var holding the API secret the partner signs alerts with. Never logged. */
 export const RAI_WEBHOOK_SECRET_ENV = "RAI_API_SECRET";
 
-const HMAC_ALGS = { HS256: "sha256", HS384: "sha384", HS512: "sha512" } as const;
+/** The partner confirmed HS256; anything else is refused. */
+const HMAC_ALGS = { HS256: "sha256" } as const;
+
+/** Header the partner puts its signature in. */
+export const RAI_SIGNATURE_HEADER = "x-ct-signature";
 type HmacAlg = keyof typeof HMAC_ALGS;
 
 /** Clock slack for exp / nbf, in seconds. */
@@ -154,7 +165,49 @@ export function readRaiDocumentEvent(claims: Record<string, unknown>): RaiDocume
   };
 }
 
-/** Everything the route needs: find the token, verify it, read the event. */
+/** The bytes of a body signature: hex or base64(url), with an optional "sha256=" prefix. */
+function decodeBodySignature(sig: string): Buffer | null {
+  const v = sig.trim().replace(/^sha256=/i, "");
+  if (/^[0-9a-f]{64}$/i.test(v)) return Buffer.from(v, "hex");
+  if (/^[A-Za-z0-9+/_-]{43}={0,1}$/.test(v)) return Buffer.from(v.replace(/=+$/, ""), "base64url");
+  return null;
+}
+
+/** Check an HMAC-SHA256 of the exact raw body against the X-CT-Signature value. */
+export function verifyRaiBodySignature(rawBody: string, signature: string, secret: string): void {
+  if (!secret) throw new RaiWebhookError("no secret configured");
+  const given = decodeBodySignature(signature);
+  if (!given) throw new RaiWebhookError("signature header is not a recognised format");
+  const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest();
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) throw new RaiWebhookError("bad signature");
+}
+
+function claimsFromSignedBody(rawBody: string, secret: string, now: Date): Record<string, unknown> {
+  // The body is already authenticated; if it also carries a token, that token must verify too.
+  let token: string | null = null;
+  try {
+    token = extractRaiToken(rawBody, new Headers());
+  } catch {
+    token = null;
+  }
+  if (token) return verifyRaiJwt(token, secret, now);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawBody);
+  } catch {
+    throw new RaiWebhookError("body is not valid JSON");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new RaiWebhookError("body is not an object");
+  return parsed as Record<string, unknown>;
+}
+
+/** Everything the route needs: find the signature, verify it, read the event. */
 export function parseRaiDocumentAlert(rawBody: string, headers: Headers, secret: string, now: Date = new Date()): RaiDocumentEvent {
+  const sigHeader = headers.get(RAI_SIGNATURE_HEADER)?.trim();
+  if (sigHeader) {
+    if (looksLikeJwt(sigHeader)) return readRaiDocumentEvent(verifyRaiJwt(sigHeader, secret, now));
+    verifyRaiBodySignature(rawBody, sigHeader, secret);
+    return readRaiDocumentEvent(claimsFromSignedBody(rawBody, secret, now));
+  }
   return readRaiDocumentEvent(verifyRaiJwt(extractRaiToken(rawBody, headers), secret, now));
 }

@@ -93,11 +93,18 @@ needed, so the whole journey can be tested end to end without real money.
 ## Partner document alerts
 
 Registered Agents Inc. posts an alert to `/api/webhooks/registered-agent` when a document
-arrives for one of our entities. Per their account manager, each alert is a JWT signed with
-our API credentials carrying the Document ID, Company ID and Company Name. We have not yet
-seen their published API docs or a real alert, so the exact signing algorithm and field names
-are **not verified**: the receiver accepts HMAC tokens only (HS256, HS384, HS512, signed with
-`RAI_API_SECRET`), refuses unsigned and key-pair tokens, and reads the fields however they're
+arrives for one of our entities, carrying the Document ID, Company ID and Company Name. Per
+their account managers (Nov 3, 2026), alerts are signed with our Secret Key using HS256 and
+carry an `X-CT-Signature` header. They did not say whether that header holds a JWT or a
+signature of the body, and we have not seen a real alert, so the receiver accepts either:
+
+- `X-CT-Signature` is an HS256 JWT signed with `RAI_API_SECRET`: its claims are the event.
+- `X-CT-Signature` is an HMAC-SHA256 of the raw body with `RAI_API_SECRET` (hex or base64,
+  optional `sha256=`): the JSON body is the event, and any token inside it must verify too.
+- No header: an HS256 JWT in the body, a JSON field or a Bearer header (the Oct 30 description).
+
+When the header is present it must verify; there is no fallback. Only HS256 is accepted;
+unsigned, other HMAC and key-pair tokens are refused. Fields are read however they're
 spelled. Check the first real alert in the logs and the admin page.
 
 What happens to an alert:
@@ -121,9 +128,13 @@ What happens to an alert:
 Saving a company ID on a subscription links any earlier unmatched alerts for that company.
 
 One-time setup (owner): create the API key under API Management on the partner account, set
-`RAI_API_SECRET` in Vercel (Production), redeploy, then register the endpoint with an
-authenticated `POST /callbacks` and `{"url": "https://www.getfilewell.com/api/webhooks/registered-agent"}`.
-`GET /callbacks` lists what is registered.
+`RAI_API_SECRET` (the Secret Key) in Vercel (Production), redeploy, then register the endpoint.
+Registration is self-service: in the partner Client Portal under Account > API Management >
+Documentation > Endpoints > Callbacks, or with an authenticated `POST /callbacks` and
+`{"event": "document.new", "url": "https://www.getfilewell.com/api/webhooks/registered-agent"}`.
+`GET /callbacks` lists what is registered. Requests to the partner API authenticate with a JWT
+made from the Access Key and Secret Key; the API base URL is in the portal documentation
+(their API support could not confirm it by email).
 
 ## Customer terms
 
