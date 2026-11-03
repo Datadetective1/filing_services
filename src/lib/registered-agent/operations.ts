@@ -55,15 +55,21 @@ async function subscriptionNames(subId: string) {
   };
 }
 
-async function formationNames(businessId: string, stateCode: string) {
+/** Names for a one-off filing with no registered agent service (a formation or an annual report). */
+async function oneOffNames(businessId: string, stateCode: string, serviceName: string) {
   const { data: business } = await createAdminClient().from("businesses").select("legal_name").eq("id", businessId).maybeSingle();
   return {
     vars: {
       company_name: (business?.legal_name as string | undefined) ?? "your business",
       state_name: getRaJurisdiction(stateCode)?.name ?? stateCode,
-      service_name: "formation",
+      service_name: serviceName,
     },
   };
+}
+
+/** How a filing reads in a customer email ("the {{service_name}} filing"). */
+function filingName(kind: ProviderOrderKind): string {
+  return kind === "change_of_agent" ? "change of registered agent" : kind === "annual_report" ? "annual report" : "formation";
 }
 
 export interface TransitionInput {
@@ -122,7 +128,14 @@ export async function transitionProviderOrder(staff: StaffUser, input: Transitio
   // Government fee actually paid to the state: keep the economics row in step.
   if (typeof patch.government_fee_remitted_cents === "number") {
     const { data: o } = await db.from("provider_orders").select("order_id").eq("id", po.id).maybeSingle();
-    const code = po.kind === "change_of_agent" ? "change_registered_agent" : po.kind === "formation" ? "formation" : null;
+    const code =
+      po.kind === "change_of_agent"
+        ? "change_registered_agent"
+        : po.kind === "formation"
+          ? "formation"
+          : po.kind === "annual_report"
+            ? "provider_annual_report"
+            : null;
     if (o && code) {
       await db.from("order_economics").update({ government_fees_remitted_cents: patch.government_fee_remitted_cents }).eq("order_id", o.order_id).eq("service_code", code);
     }
@@ -139,10 +152,16 @@ export async function transitionProviderOrder(staff: StaffUser, input: Transitio
   }
 
   const { data: orderRow } = await db.from("provider_orders").select("order_id").eq("id", po.id).maybeSingle();
-  const named = po.ra_subscription_id ? await subscriptionNames(po.ra_subscription_id) : await formationNames(po.business_id, po.state_code);
+  const named = po.ra_subscription_id
+    ? await subscriptionNames(po.ra_subscription_id)
+    : await oneOffNames(po.business_id, po.state_code, filingName(po.kind as ProviderOrderKind));
   if (!named) return;
-  // Formation without registered agent service has no service page: its order page instead.
-  const ctaPath = po.ra_subscription_id ? `/dashboard/services/${po.ra_subscription_id}` : `/dashboard/services/formation/${orderRow?.order_id ?? ""}`;
+  // A one-off filing (formation or annual report) has no service page: its order page instead.
+  const ctaPath = po.ra_subscription_id
+    ? `/dashboard/services/${po.ra_subscription_id}`
+    : po.kind === "annual_report"
+      ? `/dashboard/services/annual-report/${orderRow?.order_id ?? ""}`
+      : `/dashboard/services/formation/${orderRow?.order_id ?? ""}`;
 
   if (po.kind === "registered_agent") {
     const serviceStatus =
@@ -175,7 +194,7 @@ export async function transitionProviderOrder(staff: StaffUser, input: Transitio
       userId: po.user_id,
       templateKey: "service_filing_completed",
       dedupeKey: `service_filing_completed:${po.id}`,
-      vars: { ...named.vars, service_name: po.kind === "change_of_agent" ? "change of registered agent" : "formation" },
+      vars: { ...named.vars, service_name: filingName(po.kind as ProviderOrderKind) },
       ctaPath,
       businessId: po.business_id,
     });

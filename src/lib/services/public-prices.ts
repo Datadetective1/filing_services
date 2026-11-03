@@ -10,7 +10,7 @@ import { SERVICES, STANDARD_PRICE_VARIANT, type ServiceCode } from "./catalog";
 export async function publicServicePrices(): Promise<Partial<Record<ServiceCode, number>>> {
   const prices = await listActivePrices();
   const out: Partial<Record<ServiceCode, number>> = {};
-  for (const code of ["registered_agent", "ra_annual_report_bundle", "formation", "change_registered_agent"] as const) {
+  for (const code of ["registered_agent", "ra_annual_report_bundle", "formation", "change_registered_agent", "provider_annual_report"] as const) {
     const p = resolveServicePrice(prices, { filingTypeCode: SERVICES[code].filingTypeCode, stateCode: null, entityType: null, variant: STANDARD_PRICE_VARIANT });
     if (p) out[code] = p.serviceFeeCents;
   }

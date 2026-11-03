@@ -201,6 +201,9 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         },
       ],
     },
+    formationBlockers: [
+      "A name reservation ($25 by mail, $28 online) is required before filing, so formation is not one fee (checked 2026-11-03).",
+    ],
     provider: {
       url: "https://www.registeredagentsinc.com/alabama/",
       publisher: "Registered Agents Inc.",
@@ -563,6 +566,9 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         },
       ],
     },
+    formationBlockers: [
+      "An initial Statement of Information ($20 LLC, $25 corporation) is due within 90 days of formation, so the articles fee alone is not the whole cost (checked 2026-11-03).",
+    ],
     provider: {
       url: "https://www.registeredagentsinc.com/california/",
       publisher: "Registered Agents Inc.",
@@ -857,9 +863,9 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       ],
     },
     formation: {
+      // Corporations: $99 only up to $100,000 of authorized capital, then $550 to $1,650 (checked 2026-11-03), so no corporation fee.
       governmentFeeCents: {
         llc: 9900,
-        corporation: 9900,
       },
       sources: [
         {

@@ -22,6 +22,7 @@ import { GuideSection, GuideText } from "@/components/marketing/guide-section";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { OnThisPageAside, OnThisPageDisclosure } from "@/components/marketing/on-this-page";
 import { PhotoHero } from "@/components/marketing/photo-hero";
+import { ProviderReportBand } from "@/components/marketing/provider-report-band";
 import { RaStateBand } from "@/components/marketing/ra-state-band";
 import { RequiredInfoSheet } from "@/components/marketing/required-info-sheet";
 import { SourceList } from "@/components/marketing/source-list";
@@ -105,6 +106,7 @@ export default async function StateAnnualReportPage({ params }: PageProps<"/annu
   return (
     <>
       {rules.length ? <VerifiedState j={j} rules={rules} /> : <UnverifiedState j={j} />}
+      <ProviderReportBand stateCode={j.code} />
       <RaStateBand stateCode={j.code} />
     </>
   );

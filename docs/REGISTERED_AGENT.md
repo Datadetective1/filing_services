@@ -21,6 +21,7 @@ explicit approval.
 | Switching agents | State fee only | Filewell absorbs the provider's $25 change charge, tracked as acquisition cost (`CHANGE_OF_AGENT_ABSORBED_CENTS`) |
 | Registered agent + annual report bundle | $169 per year, plus the state's report fee | Only in PA, CO, FL, SD, MT, MI; not advertised until `RA_BUNDLE_SALES=true` |
 | Formation | $99 plus the state fee | Registered agent is an optional add-on ($119), never included automatically |
+| Annual report in a state we don't file (Registered Agents Inc. files it) | $99 plus the state's report fee | Filing type `provider_annual_report`, seeded unapproved; RAI charges $75 plus the state fee, so about $24 before card fees |
 | Annual report | $49 in production; $79 configured as variant `proposed_79` | Charged only when `ANNUAL_REPORT_PRICE_VARIANT=proposed_79` and the $79 rows are approved |
 | Additional regular mail | $15 per item | Beyond the included items; built as a catalog entry, charging not built |
 
@@ -84,6 +85,8 @@ needed, so the whole journey can be tested end to end without real money.
 | `RA_BUNDLE_SALES` | Allows the bundle (bundle states only) |
 | `FORMATION_SALES_ALL` | Opens formation in every state with a verified fee |
 | `FORMATION_SALES_<CODE>` | Opens formation in one state |
+| `RAI_REPORT_SALES_ALL` | Opens provider-filed annual reports in every state with a verified fixed report fee |
+| `RAI_REPORT_SALES_<CODE>` | Opens provider-filed annual reports in one state |
 | `BUSINESS_SERVICES_PAGES` | Shows public pages on production and lets search engines index them |
 | `RA_ALERTS_MAILBOX` | Filewell's alerts mailbox registered on the provider account (an address, not "true") |
 | `RAI_API_SECRET` | The partner API secret that signs new-document alerts (a secret, not "true") |
@@ -291,6 +294,25 @@ add-on, from the service page; without it, from `/admin/registered-agent/formati
 Marking the formation **Completed** with the state's approval date makes the business an
 existing business dated that day. The customer follows it at
 `/dashboard/services/formation/<order>`.
+
+### Annual reports in states we don't file (send to RAI)
+
+Filewell files annual reports itself in PA, CO, FL, SD, MT and MI. Everywhere else, Registered
+Agents Inc. files them. A state opens only when its report fee is one verified fixed amount for
+that entity type, with no tax, license or revenue-based amount owed with the report (facts in
+`src/lib/registered-agent/provider-report-facts.ts`, each with its official source). Late
+reports are not sold online: the customer is asked to email support for a quote.
+
+`/dashboard/services/annual-report` (linked from each open state's annual report guide): pick
+the state and type, then the legal name, file number (optional), principal address, the people
+the report lists, any changes and a contact. On payment the customer gets "Order received",
+staff get "Send to RAI", and the order shows in `/admin/registered-agent` with a **Send to RAI**
+badge. From `/admin/registered-agent/annual-report/<id>`: check the entry sheet, mark ready,
+place it in the partner dashboard, record RAI's order number, then mark **Completed** with the
+date the state accepted it. The customer follows it at `/dashboard/services/annual-report/<order>`.
+
+Going live needs migration `20261103000017_provider_annual_report.sql`, the $99 row approved
+in `/admin/pricing`, the nationwide gates, and `RAI_REPORT_SALES_<CODE>=true` per state.
 
 ### Wyoming
 

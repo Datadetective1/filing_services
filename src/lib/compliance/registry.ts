@@ -61,6 +61,9 @@ export const FILING_TYPES = [
   { code: "additional_mail", name: "Additional regular mail item", description: null, category: "registered_agent", launchEnabled: false, sortOrder: 14 },
   { code: "reinstatement", name: "Reinstatement", description: null, category: "other", launchEnabled: false, sortOrder: 15 },
   { code: "ein_assistance", name: "EIN assistance", description: null, category: "other", launchEnabled: false, sortOrder: 16 },
+  // Annual reports in states Filewell doesn't file itself, filed by Registered Agents Inc.
+  // (lib/registered-agent/provider-report.ts). Off until each state's switch is on.
+  { code: "provider_annual_report", name: "Annual report (filed by our provider)", description: null, category: "periodic", launchEnabled: false, sortOrder: 17 },
 ] as const;
 
 export function getJurisdiction(code: string): JurisdictionDef | undefined {

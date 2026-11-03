@@ -235,6 +235,19 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
     description: "Sent when a business formation checkout is paid.",
   },
   {
+    key: "service_report_confirmed",
+    category: "transactional",
+    subject: "Order received: {{state_name}} {{report_name}} for {{company_name}}",
+    body:
+      "Thanks. We received your order to file {{company_name}}'s {{state_name}} {{report_name}}.\n\n" +
+      "Paid to the state: {{government_fee}}\n" +
+      "Filewell service: {{service_fee}}\n" +
+      "Total paid today: {{amount}}\n\n" +
+      "Next, we check your details and file the report with the state through our filing partner. When the state accepts it, we email you and the confirmation goes in your dashboard. If we need anything from you, we'll ask in your dashboard.",
+    ctaLabel: "See your order",
+    description: "Sent when an annual report filed by our provider is paid.",
+  },
+  {
     key: "service_active",
     category: "transactional",
     subject: "Active: registered agent service for {{company_name}} in {{state_name}}",
@@ -331,6 +344,23 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
       "Work it in the admin console (Registered agent). Nothing is active until you record the provider's confirmation.",
     ctaLabel: "Open the queue",
     description: "Staff alert: a business services payment succeeded.",
+  },
+  {
+    key: "staff_new_provider_report",
+    category: "transactional",
+    subject: "Send to RAI: {{state_name}} {{report_name}} for {{company_name}}",
+    body:
+      "A customer paid for an annual report in a state we don't file ourselves. Send it to Registered Agents Inc.\n\n" +
+      "Business: {{company_name}}\n" +
+      "State: {{state_name}}\n" +
+      "Order: {{order_ref}}\n" +
+      "Paid to the state: {{government_fee}}\n" +
+      "Filewell service: {{service_fee}}\n" +
+      "Total paid: {{amount}}\n" +
+      "Payment mode: {{payment_mode}}\n\n" +
+      "Open the order for the entry sheet, place it in the partner dashboard and record RAI's order number.",
+    ctaLabel: "Open the order",
+    description: "Staff alert: a provider-filed annual report was paid and must be sent to RAI.",
   },
   {
     key: "staff_ra_billing_review",

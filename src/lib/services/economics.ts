@@ -165,6 +165,12 @@ export function proposedPriceEstimates(): ContributionEstimate[] {
     }),
     estimateContribution({ serviceCode: "formation", label: "Formation alone ($99, provider files it)", serviceFeeCents: 9900 }),
     estimateContribution({
+      serviceCode: "provider_annual_report",
+      label: "Annual report in a state we don't file ($99, provider files it)",
+      serviceFeeCents: 9900,
+      wholesaleCents: 7500,
+    }),
+    estimateContribution({
       serviceCode: "annual_report",
       label: "Annual report today ($49, self-filed)",
       serviceFeeCents: 4900,
@@ -218,6 +224,8 @@ function wholesaleFor(code: ServiceCode): number {
       return WHOLESALE.registeredAgentPerYear;
     case "formation":
       return WHOLESALE.formation;
+    case "provider_annual_report":
+      return WHOLESALE.annualReport;
     default:
       return 0;
   }

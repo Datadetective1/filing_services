@@ -44,7 +44,7 @@ export interface ProviderEntrySheet {
  * missing called out before the order is placed.
  */
 export function providerEntrySheet(input: {
-  kind: "registered_agent" | "change_of_agent" | "formation";
+  kind: "registered_agent" | "change_of_agent" | "formation" | "annual_report";
   legalName: string;
   stateName: string;
   entityTypeLabel: string;
@@ -80,10 +80,19 @@ export function providerEntrySheet(input: {
           ...(typeof d.authorized_shares === "number" ? [{ label: "Authorized shares", value: d.authorized_shares.toLocaleString("en-US") }] : []),
         ]
       : []),
+    ...(input.kind === "annual_report"
+      ? [
+          { label: "Report", value: text("report_name") },
+          { label: "Principal address", value: text("principal_address") },
+          { label: input.entityTypeLabel === "LLC" ? "Members or managers to list" : "Officers and directors to list", value: text("people") },
+          { label: "Changes since the last report", value: text("changes") || "None" },
+        ]
+      : []),
     ...(text("beneficial_owners") ? [{ label: "Beneficial owners", value: text("beneficial_owners") }] : []),
   ];
   const required = ["Business legal name", "Jurisdiction", "Communications contact", "Contact phone", "Contact physical address"];
   if (input.kind === "formation") required.push("Principal address", input.entityTypeLabel === "LLC" ? "Members" : "Directors");
+  if (input.kind === "annual_report") required.push("Report", "Principal address", input.entityTypeLabel === "LLC" ? "Members or managers to list" : "Officers and directors to list");
   // The current agent is on the state record, so the customer isn't asked for it.
   if (input.kind === "change_of_agent") required.push("State entity number");
   const missing = rows.filter((r) => required.includes(r.label) && !r.value.trim()).map((r) => r.label);

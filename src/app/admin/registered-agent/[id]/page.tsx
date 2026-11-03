@@ -43,6 +43,7 @@ const KIND_LABEL: Record<ProviderOrderKind, string> = {
   registered_agent: "Registered agent appointment",
   change_of_agent: "Change of agent filing",
   formation: "Formation filing",
+  annual_report: "Annual report filing",
 };
 
 export default async function RegisteredAgentDetailPage(props: PageProps<"/admin/registered-agent/[id]">) {

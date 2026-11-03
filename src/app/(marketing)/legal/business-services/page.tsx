@@ -11,12 +11,12 @@ import { pageMetadata } from "@/lib/seo/metadata";
 export const revalidate = 3600;
 
 /** Bump whenever the text below changes. */
-const BUSINESS_SERVICES_TERMS_UPDATED = "2026-11-01";
+const BUSINESS_SERVICES_TERMS_UPDATED = "2026-11-03";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: "Business services terms",
-    description: `Terms for ${site.name}'s registered agent, change of agent, formation and registered agent plus annual report services.`,
+    description: `Terms for ${site.name}'s registered agent, change of agent, formation, annual report and registered agent plus annual report services.`,
     path: "/legal/business-services",
     noindex: !businessServicesIndexable(),
   });
@@ -40,8 +40,8 @@ export default function BusinessServicesTermsPage() {
       lastUpdated={BUSINESS_SERVICES_TERMS_UPDATED}
       summary={
         <p>
-          These terms cover registered agent service, changing your registered agent, business formation and the registered agent
-          plus annual report plan. They add to our <Link href="/legal/terms">terms of service</Link>, which also apply.
+          These terms cover registered agent service, changing your registered agent, business formation, annual report filing
+          in states we file through our provider, and the registered agent plus annual report plan. They add to our <Link href="/legal/terms">terms of service</Link>, which also apply.
         </p>
       }
     >
@@ -106,10 +106,10 @@ export default function BusinessServicesTermsPage() {
         <li>Make sure you are authorized to act for the business you order for.</li>
       </ul>
 
-      <h2>7. Change of agent and formation filings</h2>
+      <h2>7. Change of agent, formation and annual report filings</h2>
       <p>
-        We prepare and submit change of agent and formation filings from the answers you give and confirm, and pay the state&apos;s
-        fee for you. The state decides whether and when to accept a filing. We do not guarantee approval or timing, and we do
+        We prepare and submit change of agent, formation and annual report filings from the answers you give and confirm, and pay
+        the state&apos;s fee for you. In some states our provider files the annual report for us. The state decides whether and when to accept a filing. We do not guarantee approval or timing, and we do
         not advise on entity choice, tax treatment or legal structure. Registered agent service starts only when the appointment is
         confirmed and, for a switch, when the state&apos;s record shows the change.
       </p>

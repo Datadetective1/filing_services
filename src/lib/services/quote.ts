@@ -218,6 +218,43 @@ export function formationQuote(input: {
   });
 }
 
+/**
+ * An annual report in a state Filewell doesn't file itself (the provider files it): one service
+ * fee plus the state's verified report fee. Nothing recurs.
+ */
+export function providerAnnualReportQuote(input: {
+  stateName: string;
+  reportName: string;
+  reportPrice: PriceInput;
+  reportGovernmentFeeCents: number | null;
+}): ServiceQuote {
+  assertCents(input.reportPrice.serviceFeeCents, "annual report price");
+  if (input.reportGovernmentFeeCents === null) throw new QuoteError(`The ${input.stateName} report fee is not verified`);
+  assertCents(input.reportGovernmentFeeCents, "report fee");
+  const lines: ServiceQuoteLine[] = [
+    {
+      kind: "service_fee",
+      serviceCode: "provider_annual_report",
+      billing: "one_time",
+      description: `Filewell filing service for your ${input.stateName} ${input.reportName.toLowerCase()}`,
+      amountCents: input.reportPrice.serviceFeeCents,
+      addOn: false,
+    },
+  ];
+  // Some states charge nothing for the report; a $0 line would only confuse the summary.
+  if (input.reportGovernmentFeeCents > 0) {
+    lines.push({
+      kind: "government_fee",
+      serviceCode: "provider_annual_report",
+      billing: "one_time",
+      description: `${input.stateName} ${input.reportName.toLowerCase()} fee, paid to the state`,
+      amountCents: input.reportGovernmentFeeCents,
+      addOn: false,
+    });
+  }
+  return finish(lines, [input.reportPrice], { renewal: null, disclosures: [] });
+}
+
 function finish(
   lines: ServiceQuoteLine[],
   prices: PriceInput[],

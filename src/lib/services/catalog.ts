@@ -16,6 +16,7 @@ export const SERVICE_CODES = [
   "registered_agent",
   "ra_annual_report_bundle",
   "formation",
+  "provider_annual_report",
   "change_registered_agent",
   "additional_mail",
   "amendment",
@@ -130,6 +131,18 @@ export const SERVICES: Record<ServiceCode, ServiceDef> = {
     launchStatus: "built_not_launched",
     note: "Registered agent service is a separate, optional add-on. Sold only where the state's formation fee is verified and nothing else is owed at formation.",
   },
+  provider_annual_report: {
+    code: "provider_annual_report",
+    name: "Annual report filing",
+    filingTypeCode: "provider_annual_report",
+    billing: "one_time",
+    // $99 plus the state fee; the provider charges $75 plus the state fee, so $24 an order.
+    proposedServiceFeeCents: 9900,
+    wholesaleCents: WHOLESALE.annualReport,
+    governmentFee: "pass_through",
+    launchStatus: "built_not_launched",
+    note: "States Filewell doesn't file itself: Registered Agents Inc. files it, ordered by hand in the partner dashboard. Sold only where the state's report fee is one verified amount.",
+  },
   change_registered_agent: {
     code: "change_registered_agent",
     name: "Switch registered agent",
@@ -220,5 +233,6 @@ export const CROSS_SELL: Partial<Record<ServiceCode, ServiceCode[]>> = {
   annual_report: ["registered_agent"],
   registered_agent: ["annual_report"],
   formation: ["registered_agent"],
+  provider_annual_report: ["registered_agent"],
   change_registered_agent: ["annual_report"],
 };
