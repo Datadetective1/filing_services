@@ -94,6 +94,7 @@ describe("seed-sql SERVICES", () => {
       { filing_type_code: "additional_mail", service_fee_cents: 1500, approved: false },
       { filing_type_code: "change_registered_agent", service_fee_cents: 0, approved: false },
       { filing_type_code: "formation", service_fee_cents: 9900, approved: false },
+      { filing_type_code: "provider_annual_report", service_fee_cents: 9900, approved: false },
       { filing_type_code: "ra_annual_report_bundle", service_fee_cents: 16900, approved: false },
       { filing_type_code: "registered_agent", service_fee_cents: 11900, approved: false },
     ]);
@@ -103,7 +104,7 @@ describe("seed-sql SERVICES", () => {
     await fresh.exec("update public.filing_types set name = 'Kept' where code = 'annual_report'");
     await fresh.exec(servicesSql());
     const n = await fresh.query<{ n: number }>("select count(*)::int as n from public.service_prices where state_code is null and active");
-    expect(n.rows[0].n).toBe(5);
+    expect(n.rows[0].n).toBe(6);
     const kept = await fresh.query<{ name: string }>("select name from public.filing_types where code = 'annual_report'");
     expect(kept.rows[0].name).toBe("Kept");
   });

@@ -3,22 +3,40 @@ import Link from "next/link";
 import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { formatCents } from "@/lib/domain/money";
-import { providerReportOpenState } from "@/lib/registered-agent/provider-report";
+import { providerReportOpenState, type ProviderReportOpenState } from "@/lib/registered-agent/provider-report";
 import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import { publicServicePrices } from "@/lib/services/public-prices";
+
+export interface ProviderReportOffer {
+  open: ProviderReportOpenState;
+  /** Filewell's service fee, from the approved public price. */
+  serviceCents: number;
+  /** Entity types open here, LLC first. */
+  types: ("llc" | "corporation")[];
+  /** Where "File it for me" goes: the order page for this state and the first open type. */
+  orderHref: string;
+}
+
+/** The provider-filed annual report this state sells right now, or null when it sells none. */
+export async function providerReportOffer(stateCode: string): Promise<ProviderReportOffer | null> {
+  if (!businessServicesPagesEnabled()) return null;
+  const open = providerReportOpenState(stateCode);
+  if (!open) return null;
+  const serviceCents = (await publicServicePrices()).provider_annual_report;
+  if (serviceCents === undefined) return null;
+  const types = (["llc", "corporation"] as const).filter((t) => open.feeCents[t] !== undefined);
+  if (types.length === 0) return null;
+  return { open, serviceCents, types, orderHref: `/dashboard/services/annual-report?state=${open.code}&type=${types[0]}` };
+}
 
 /**
  * "We file it for you" on a state's guide, only where a provider-filed annual report can be
  * ordered right now: one line, the all-in price per entity type, one button.
  */
 export async function ProviderReportBand({ stateCode }: { stateCode: string }) {
-  if (!businessServicesPagesEnabled()) return null;
-  const open = providerReportOpenState(stateCode);
-  if (!open) return null;
-  const service = (await publicServicePrices()).provider_annual_report;
-  if (service === undefined) return null;
-  const types = (["llc", "corporation"] as const).filter((t) => open.feeCents[t] !== undefined);
-  const first = types[0];
+  const offer = await providerReportOffer(stateCode);
+  if (!offer) return null;
+  const { open, serviceCents, types, orderHref } = offer;
   return (
     <section aria-labelledby="report-band-title" className="pb-6 sm:pb-8">
       <Container>
@@ -34,20 +52,18 @@ export async function ProviderReportBand({ stateCode }: { stateCode: string }) {
               {types.map((t) => (
                 <li key={t} className="rounded-full border border-border bg-bg px-3 py-1.5 text-sm">
                   <span className="text-muted">{t === "llc" ? "LLC" : "Corporation"} </span>
-                  <span className="tnum font-semibold text-fg">{formatCents(service + (open.feeCents[t] ?? 0), { trimZeros: true })}</span>
+                  <span className="tnum font-semibold text-fg">{formatCents(serviceCents + (open.feeCents[t] ?? 0), { trimZeros: true })}</span>
                 </li>
               ))}
             </ul>
             <p className="text-sm text-muted">
-              {formatCents(service, { trimZeros: true })} service plus the state fee. Nothing renews.
+              {formatCents(serviceCents, { trimZeros: true })} service plus the state fee. Nothing renews.
             </p>
           </div>
-          {first ? (
-            <Link href={`/dashboard/services/annual-report?state=${open.code}&type=${first}`} className={buttonClasses("primary", "md", "gap-1.5")}>
-              File it for me
-              <ArrowRight size={16} weight="bold" aria-hidden />
-            </Link>
-          ) : null}
+          <Link href={orderHref} className={buttonClasses("primary", "md", "gap-1.5")}>
+            File it for me
+            <ArrowRight size={16} weight="bold" aria-hidden />
+          </Link>
         </div>
       </Container>
     </section>

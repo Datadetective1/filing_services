@@ -163,6 +163,11 @@ function businessServicePriceRows() {
       "Launch promotion: customer pays only the state fee; Filewell absorbs the provider's $25 charge. Raise this to end the promotion. Not approved.",
     ),
     row("additional_mail", 1500, "Pass-through of the provider's $15 per extra regular mail item, subject to the final agreement. Not approved."),
+    row(
+      "provider_annual_report",
+      9900,
+      "Annual report in a state Filewell does not file itself: $99 plus the state report fee. Registered Agents Inc. files it at $75 plus the state fee. Not approved.",
+    ),
     ...["PA", "FL", "CO", "SD", "MT", "MI"].map((state) =>
       row(
         "annual_report",
