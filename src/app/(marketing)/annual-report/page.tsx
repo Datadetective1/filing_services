@@ -21,7 +21,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = pageMetadata({
   title: "Annual Reports by State: What They Are and When They're Due",
   description:
-    "What a business annual report is, and which states we support. Pennsylvania due dates and fees are verified against official sources; other states are listed as not yet verified.",
+    "What a business annual report is, the states where we file it for you, and each state's due dates and fees, checked against official sources.",
   path: "/annual-report",
 });
 

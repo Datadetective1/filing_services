@@ -1231,12 +1231,12 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           checkedAt: "2026-10-29",
         },
         {
-          url: "https://cca.hawaii.gov/breg/files/2021/03/Form-Fee-Schedule-03-2021.pdf",
+          url: "https://cca.hawaii.gov/wp-content/uploads/2025/12/Form-Fee-Schedule-12-2022.pdf",
           publisher:
             "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
           quote:
             "Statement of Change/Resignation: 200 or less simultaneous filings $25.00 each",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
         },
       ],
     },
@@ -1284,12 +1284,12 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           checkedAt: "2026-10-29",
         },
         {
-          url: "https://cca.hawaii.gov/breg/files/2021/03/Form-Fee-Schedule-03-2021.pdf",
+          url: "https://cca.hawaii.gov/wp-content/uploads/2025/12/Form-Fee-Schedule-12-2022.pdf",
           publisher:
             "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
           quote:
             "there is an additional $1.00 fee imposed by State Archives on permanent records",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
         },
       ],
     },
@@ -5028,11 +5028,11 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           checkedAt: "2026-10-29",
         },
         {
-          url: "https://scc.virginia.gov/pages/New-Virginia-Entity-Fees",
+          url: "https://www.scc.virginia.gov/businesses/new-business-resources/business-types/",
           publisher: "Virginia State Corporation Commission, Clerk's Office",
           quote:
-            "Stock Corporation | File Online or complete Articles of Incorporation (Form SCC 619) | See Corporation Charter Fee Schedule | $25",
-          checkedAt: "2026-10-29",
+            "Stock Corporation | File Online or complete Articles of Incorporation (Form SCC619-DOC) | See Corporation Charter Fee/Entrance Fee Schedule | $25",
+          checkedAt: "2026-11-03",
         },
         {
           url: "https://law.lis.virginia.gov/vacode/title13.1/chapter9/section13.1-615.1/",
@@ -5210,27 +5210,27 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       newAgentConsentRequired: true,
       sources: [
         {
-          url: "https://www.sos.wa.gov/_assets/corps/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
+          url: "https://www.sos.wa.gov/sites/default/files/2025-12/6.2025%20-%20Statement%20of%20Change%20or%20Designation%20of%20Agent%20-%20Non-Commercial%20Registered%20Agent%20%28Fillable%20Form%29.pdf",
           publisher:
             "Washington Secretary of State, Corporations and Charities Division",
           quote: "STATEMENT OF CHANGE/ DESIGNATION OF REGISTERED AGENT",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
         },
         {
-          url: "https://www.sos.wa.gov/_assets/corps/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
+          url: "https://www.sos.wa.gov/sites/default/files/2025-12/6.2025%20-%20Statement%20of%20Change%20or%20Designation%20of%20Agent%20-%20Non-Commercial%20Registered%20Agent%20%28Fillable%20Form%29.pdf",
           publisher:
             "Washington Secretary of State, Corporations and Charities Division",
           quote:
             "There is no filing fee to update or change the Registered Agent.",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
         },
         {
-          url: "https://www.sos.wa.gov/_assets/corps/12.10.2020---statement-of-change-designation-of-registered-agent.pdf",
+          url: "https://www.sos.wa.gov/sites/default/files/2025-12/6.2025%20-%20Statement%20of%20Change%20or%20Designation%20of%20Agent%20-%20Non-Commercial%20Registered%20Agent%20%28Fillable%20Form%29.pdf",
           publisher:
             "Washington Secretary of State, Corporations and Charities Division",
           quote:
             "The Consent of the Registered Agent must be signed, regardless of the type of Registered Agent.",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-03",
         },
         {
           url: "https://www.sos.wa.gov/corporations-charities/frequently-asked-questions-faqs/fee-schedules-priority-services",

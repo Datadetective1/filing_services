@@ -11,14 +11,14 @@ import { Container } from "@/components/ui/surface";
 import { CalendarDate } from "@/components/visual/calendar-date";
 import { UsTileMap, UsTileMapLegend } from "@/components/visual/us-tile-map";
 import { isStateVerified, listJurisdictions, rulesForState, stateSupportLabel } from "@/lib/compliance/registry";
-import { dueGroups, feeSummary } from "@/lib/seo/content";
+import { dueAndFeeSentence, dueGroups, feeSummary } from "@/lib/seo/content";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
   title: "Business Filings by State",
   description:
-    "All 50 states and DC, with an honest status for each. Pennsylvania is supported. Other states are listed as not yet verified, with a link to the official agency.",
+    "All 50 states and DC. Supported states show due dates and fees checked against official sources, and every state links to its official filing agency.",
   path: "/states",
 });
 
@@ -66,8 +66,7 @@ export default function StatesPage() {
                     </div>
                   </div>
                   <p className="text-[14px] leading-6 text-muted">
-                    Annual reports, due {groups.map((g) => g.day).join(", ").replace(/, ([^,]*)$/, " or $1")} depending on the
-                    entity type. State fee {feeSummary(rules).split(",")[0]}.
+                    {dueAndFeeSentence(groups.map((g) => g.day), feeSummary(rules).split(",")[0])}
                   </p>
                   <div className="-my-1 flex flex-wrap gap-x-6">
                     <Link href={`/states/${j.slug}`} className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5`}>

@@ -59,6 +59,18 @@ export function stateFeeSentence(rule: Pick<ComplianceRuleDef, "stateFeeCents" |
   return rule.stateFeeCents === 0 ? "No state filing fee." : `State fee: ${stateFeeText(rule)}.`;
 }
 
+/**
+ * The summary line on a state card: "Annual reports, due May 1. State fee $25." with
+ * "depending on the entity type" only when the due dates differ, and "No state fee."
+ * when there is none.
+ */
+export function dueAndFeeSentence(days: string[], fee: string): string {
+  const due = days.length > 1 ? `${days.slice(0, -1).join(", ")} or ${days[days.length - 1]}` : (days[0] ?? "");
+  const dueText = days.length > 1 ? `Annual reports, due ${due} depending on the entity type.` : `Annual reports, due ${due}.`;
+  const feeText = fee === "no state fee" ? "No state fee." : `State fee ${fee}.`;
+  return `${dueText} ${feeText}`;
+}
+
 /** "September 30" for fixed annual deadlines, else the generic due text. */
 export function dueDayText(rule: ComplianceRuleDef): string {
   if (rule.dueRule.kind === "fixed_annual") return formatMonthDay(rule.dueRule.month, rule.dueRule.day);
