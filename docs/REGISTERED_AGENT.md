@@ -132,12 +132,18 @@ Saving a company ID on a subscription links any earlier unmatched alerts for tha
 
 One-time setup (owner): create the API key under API Management on the partner account, set
 `RAI_API_SECRET` (the Secret Key) in Vercel (Production), redeploy, then register the endpoint.
-Registration is self-service: in the partner Client Portal under Account > API Management >
-Documentation > Endpoints > Callbacks, or with an authenticated `POST /callbacks` and
-`{"event": "document.new", "url": "https://www.getfilewell.com/api/webhooks/registered-agent"}`.
-`GET /callbacks` lists what is registered. Requests to the partner API authenticate with a JWT
-made from the Access Key and Secret Key; the API base URL is in the portal documentation
-(their API support could not confirm it by email).
+The portal's Callbacks page is documentation only; registering is an API call. Run
+`python3 scripts/rai_register_callback.py` (standard library only): it asks for the Access Key
+and Secret Key without echoing them, lists the callbacks (`GET /callbacks`), adds
+`{"url": "https://www.getfilewell.com/api/webhooks/registered-agent"}` with `POST /callbacks`
+if it is missing, and lists them again. If the partner refuses with 401 or 403, check
+API Management > Permitted IPs. The API is at `https://api.corporatetools.com`; each request
+carries a Bearer JWT, HS256 with the Secret Key, `access_key` in its header and `path` plus the
+SHA-256 of the body as claims (per the partner's public examples repo).
+
+A callback URL receives every event on the account: `new-invoice`, `paid-invoice` and
+`new-document`. The receiver records only documents; a correctly signed invoice event is
+answered 200 with `ignored` so the partner does not retry it.
 
 ## Customer terms
 

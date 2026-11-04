@@ -98,4 +98,16 @@ describe("registered agent alert route", () => {
     const res = await post(sign({ document_id: "D1" }));
     expect(res.status).toBe(500);
   });
+
+  it("answers 200 and records nothing for signed invoice events sent to the same URL", async () => {
+    process.env.RAI_API_SECRET = SECRET;
+    for (const event of ["new-invoice", "paid-invoice"]) {
+      const res = await post(sign({ event, invoice_id: "I1", company_id: "C9" }));
+      expect(res.status, event).toBe(200);
+      expect(await res.json()).toEqual({ received: true, ignored: event });
+    }
+    expect(record).not.toHaveBeenCalled();
+    // An invoice event that isn't signed with our secret is still refused.
+    expect((await post(sign({ event: "new-invoice" }, "wrong"))).status).toBe(401);
+  });
 });

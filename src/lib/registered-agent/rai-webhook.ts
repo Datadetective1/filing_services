@@ -20,6 +20,20 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 export class RaiWebhookError extends Error {}
 
+/**
+ * A correctly signed callback for an event we don't act on. A callback URL receives every
+ * event on the account (new-invoice, paid-invoice and new-document, per the partner's API
+ * docs), so these are answered 200 and dropped rather than refused.
+ */
+export class RaiIgnoredEvent extends Error {
+  constructor(readonly eventName: string) {
+    super(`ignored ${eventName} event`);
+  }
+}
+
+/** Event names that mean a new document arrived. The docs call it "new-document". */
+const DOCUMENT_EVENT_NAMES = new Set(["new-document", "new_document", "document.new", "document-new", "newdocument"]);
+
 /** Env var holding the API secret the partner signs alerts with. Never logged. */
 export const RAI_WEBHOOK_SECRET_ENV = "RAI_API_SECRET";
 
@@ -139,15 +153,37 @@ function nameString(v: unknown): string | null {
   return t ? t.slice(0, 300) : null;
 }
 
+/** An object, or a JSON string holding one (some senders put the event in a string claim). */
+function asObject(v: unknown): Record<string, unknown> | null {
+  if (v && typeof v === "object" && !Array.isArray(v)) return v as Record<string, unknown>;
+  if (typeof v === "string" && v.length <= MAX_TOKEN_LENGTH && v.trim().startsWith("{")) {
+    try {
+      const parsed: unknown = JSON.parse(v);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** A plain event name like "new-invoice", lower-cased; anything else is not an event name. */
+function readEventName(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim().toLowerCase();
+  return /^[a-z]+([-_.][a-z]+)+$/.test(t) && t.length <= 60 ? t : null;
+}
+
 /**
  * The document and company from the verified claims, looking at the top level and one
- * level down (data, document, payload, event, content). A missing document ID is refused.
+ * level down (data, document, payload, event, content). With no document ID, a named
+ * non-document event (like "new-invoice") throws RaiIgnoredEvent; anything else is refused.
  */
 export function readRaiDocumentEvent(claims: Record<string, unknown>): RaiDocumentEvent {
   const layers: Record<string, unknown>[] = [claims];
   for (const key of ["data", "document", "payload", "event", "content"]) {
-    const v = pick(claims, [key]);
-    if (v && typeof v === "object" && !Array.isArray(v)) layers.push(v as Record<string, unknown>);
+    const v = asObject(pick(claims, [key]));
+    if (v) layers.push(v);
   }
   const find = (names: string[]) => {
     for (const layer of layers) {
@@ -157,7 +193,12 @@ export function readRaiDocumentEvent(claims: Record<string, unknown>): RaiDocume
     return undefined;
   };
   const documentId = idString(find(["document_id", "documentId"]), 200);
-  if (!documentId) throw new RaiWebhookError("no document ID in the alert");
+  if (!documentId) {
+    // Only a named, non-document event is dropped; a document ID always wins.
+    const eventName = readEventName(find(["event", "event_name", "eventName", "event_type", "eventType", "type"]));
+    if (eventName && !DOCUMENT_EVENT_NAMES.has(eventName)) throw new RaiIgnoredEvent(eventName);
+    throw new RaiWebhookError("no document ID in the alert");
+  }
   return {
     documentId,
     companyId: idString(find(["company_id", "companyId", "entity_id"]), 100),
