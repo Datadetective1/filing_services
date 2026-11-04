@@ -320,8 +320,8 @@ describe("billing never ends the appointment", () => {
   it("sends each renewal reminder once, closest first, and none after cancelling", () => {
     const base = { periodEnd: "2027-11-01", cancelAtPeriodEnd: false, billingStatus: "active" as const, sent: [] as string[] };
     expect(status.renewalReminderDue({ ...base, today: "2027-09-15" })).toBeNull();
-    expect(status.renewalReminderDue({ ...base, today: "2027-10-02" })).toEqual({ days: 30, key: "2027-11-01:30" });
-    expect(status.renewalReminderDue({ ...base, today: "2027-10-02", sent: ["2027-11-01:30"] })).toBeNull();
+    expect(status.renewalReminderDue({ ...base, today: "2027-09-17" })).toEqual({ days: 45, key: "2027-11-01:45" });
+    expect(status.renewalReminderDue({ ...base, today: "2027-10-02", sent: ["2027-11-01:45"] })).toBeNull();
     expect(status.renewalReminderDue({ ...base, today: "2027-10-26" })).toEqual({ days: 7, key: "2027-11-01:7" });
     expect(status.renewalReminderDue({ ...base, today: "2027-10-26", cancelAtPeriodEnd: true })).toBeNull();
     expect(status.renewalReminderDue({ ...base, today: "2027-10-26", billingStatus: "past_due" })).toBeNull();
@@ -330,11 +330,42 @@ describe("billing never ends the appointment", () => {
   it("flags unpaid entities for cancellation with the provider 40 days out, late under 30", () => {
     const base = { providerRenewalDate: "2027-03-01", providerCancelledAt: null, today: "2027-01-01" };
     expect(status.providerCancellationDue({ ...base, billingStatus: "active" }).due).toBe(false);
-    expect(status.providerCancellationDue({ ...base, billingStatus: "unpaid" })).toEqual({ due: false, daysLeft: 59, late: false });
-    expect(status.providerCancellationDue({ ...base, billingStatus: "canceled", today: "2027-01-25" })).toEqual({ due: true, daysLeft: 35, late: false });
-    expect(status.providerCancellationDue({ ...base, billingStatus: "past_due", today: "2027-02-05" })).toEqual({ due: true, daysLeft: 24, late: true });
+    expect(status.providerCancellationDue({ ...base, billingStatus: "unpaid" })).toMatchObject({ due: false, daysLeft: 59, late: false, reason: "unpaid" });
+    expect(status.providerCancellationDue({ ...base, billingStatus: "canceled", today: "2027-01-25" })).toMatchObject({ due: true, daysLeft: 35, late: false, estimated: false });
+    expect(status.providerCancellationDue({ ...base, billingStatus: "past_due", today: "2027-02-05" })).toMatchObject({ due: true, daysLeft: 24, late: true });
     expect(status.providerCancellationDue({ ...base, billingStatus: "unpaid", providerCancelledAt: "2027-01-20" }).due).toBe(false);
     expect(status.providerCancellationDue({ ...base, billingStatus: "unpaid", providerRenewalDate: null }).due).toBe(false);
+  });
+
+  it("flags a customer who turned renewal off, while billing still reads active", () => {
+    const base = { providerRenewalDate: "2027-03-01", providerCancelledAt: null, billingStatus: "active" as const };
+    expect(status.providerCancellationDue({ ...base, today: "2027-01-25" }).due).toBe(false);
+    expect(status.providerCancellationDue({ ...base, today: "2027-01-25", cancelAtPeriodEnd: true })).toMatchObject({ due: true, daysLeft: 35, late: false, reason: "renewal_off" });
+    expect(status.providerCancellationDue({ ...base, today: "2027-01-01", cancelAtPeriodEnd: true }).due).toBe(false);
+    expect(status.providerCancellationDue({ ...base, today: "2027-02-20", cancelAtPeriodEnd: true })).toMatchObject({ due: true, late: true, reason: "renewal_off" });
+    expect(status.providerCancellationDue({ ...base, today: "2027-01-25", cancelAtPeriodEnd: true, providerCancelledAt: "2027-01-24" }).due).toBe(false);
+  });
+
+  it("uses the billing period end when no provider renewal date was recorded", () => {
+    const base = { providerRenewalDate: null, providerCancelledAt: null, currentPeriodEnd: "2027-03-01T00:00:00Z" };
+    expect(status.providerCancellationDue({ ...base, billingStatus: "unpaid", today: "2027-01-25" })).toMatchObject({
+      due: true,
+      daysLeft: 35,
+      estimated: true,
+      renewalDate: "2027-03-01",
+    });
+    expect(status.providerCancellationDue({ ...base, billingStatus: "active", today: "2027-01-25", cancelAtPeriodEnd: true })).toMatchObject({ due: true, estimated: true });
+    expect(status.providerCancellationDue({ ...base, billingStatus: "unpaid", today: "2027-01-25", currentPeriodEnd: null }).due).toBe(false);
+    // A recorded date wins over the estimate.
+    expect(status.providerCancellationDue({ ...base, providerRenewalDate: "2027-03-05", billingStatus: "unpaid", today: "2027-01-25" })).toMatchObject({ daysLeft: 39, estimated: false });
+  });
+
+  it("words the staff alert for each reason", () => {
+    expect(status.providerCancelMessage({ daysLeft: 35, late: false, reason: "renewal_off", estimated: false })).toContain("not to renew it");
+    expect(status.providerCancelMessage({ daysLeft: 24, late: true, reason: "unpaid", estimated: true })).toMatch(/hasn't paid.*estimated.*now \(inside the 30-day notice window\)/);
+    for (const reason of ["renewal_off", "unpaid"] as const) {
+      expect(status.providerCancelMessage({ daysLeft: 10, late: true, reason, estimated: true })).not.toContain("--");
+    }
   });
 });
 
