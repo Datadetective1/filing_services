@@ -1,25 +1,16 @@
-import { ArrowRight, Check, Minus, SealCheck } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowsClockwise, Check, Receipt, UserCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
-import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
+import { PlanCards } from "@/components/marketing/plan-cards";
+import { PriceFinder } from "@/components/marketing/price-finder";
 import { textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
-import { Receipt } from "@/components/visual/receipt";
-import { publicQuote } from "@/lib/compliance/public-quote";
-import { ServiceChoice } from "@/components/marketing/service-choice";
-import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
-import { publicServicePrices } from "@/lib/services/public-prices";
-import { isRuleSellable, isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import type { FaqItem } from "@/lib/compliance/types";
-import { formatCents } from "@/lib/domain/money";
-import { ENTITY_TYPE_LABELS, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
-import { sortByDue } from "@/lib/seo/content";
-import { ENTITY_COPY, joinList } from "@/lib/seo/entities";
+import { annualReportPrices, planOffers } from "@/lib/services/plan-offers";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
@@ -38,45 +29,25 @@ const CRUMBS = [
 ];
 
 const INCLUDED = [
-  "A check of your answers against the state's requirements before anything is filed",
-  "Preparing the report from the information you provide and confirm",
-  "Submitting it to the state and paying the state fee on your behalf",
-  "Email updates when it's submitted and when the state accepts it",
+  "A check of your answers before anything is filed",
+  "We submit it and pay the state fee for you",
+  "Email updates until the state accepts it",
   "The state's confirmation, kept in your dashboard",
-  "If the state sends it back, we fix what we can and ask you for anything else",
-  "Reminders ahead of next year's deadline",
+  "Fixes if the state sends it back",
+  "Reminders before next year's deadline",
 ];
 
-const NOT_INCLUDED = ["Legal or tax advice", "Registered agent service, unless you add it", "Filings other than the one you order"];
+const PROMISES = [
+  { icon: Receipt, title: "State fee at cost", body: "Always its own line." },
+  { icon: ArrowsClockwise, title: "Same price at renewal", body: "No first-year teaser." },
+  { icon: UserCheck, title: "A person checks it", body: "Before anything is filed." },
+];
 
 const REFUND_TEXT =
   "Cancel before we submit to the state and you get a full refund. Once it's submitted, the state keeps its fee, so that part can't be refunded. We refund our service fee if we made an error or can't complete the filing.";
 
 export default async function PricingPage() {
-  // Only states where Filewell actually sells filing (approved price + live switch decide checkout).
-  const states = listJurisdictions().filter((j) => isStateVerified(j.code) && rulesForState(j.code).some((r) => isRuleSellable(r)));
-  const tables = await Promise.all(
-    states.map(async (j) => {
-      const rules = sortByDue(rulesForState(j.code).filter((r) => r.verificationStatus === "verified"));
-      const quotes = await Promise.all(rules.map((r) => publicQuote(r)));
-      return { j, rules, quotes };
-    }),
-  );
-
-  // The side-by-side example: an LLC in the first supported state (or its first rule).
-  const featured = tables[0] ?? null;
-  const exampleIndex = featured ? Math.max(0, featured.rules.findIndex((r) => r.entityType === "llc")) : -1;
-  const exampleRule = featured && exampleIndex >= 0 ? featured.rules[exampleIndex] : null;
-  const exampleQuote = featured && exampleIndex >= 0 ? featured.quotes[exampleIndex] : null;
-  const exampleState = featured?.j ?? null;
-
-  const servicePrices = businessServicesPagesEnabled() ? await publicServicePrices() : {};
-  const raPrice = servicePrices.registered_agent;
-  // Listed only while checkout takes it, as on the homepage.
-  const bundlePrice = raPrice !== undefined && bundleSalesOpen() ? servicePrices.ra_annual_report_bundle : undefined;
-  const formationStates = raPrice !== undefined ? formationOpenStates() : [];
-  const formationPrice = formationStates.length > 0 ? servicePrices.formation : undefined;
-  const serviceCount = 2 + (bundlePrice !== undefined ? 1 : 0) + (formationPrice !== undefined ? 1 : 0);
+  const [offers, statePrices] = await Promise.all([planOffers(), annualReportPrices()]);
 
   const faq: FaqItem[] = [
     {
@@ -86,10 +57,6 @@ export default async function PricingPage() {
     {
       q: "Can I file it myself instead?",
       a: "Yes, you can file directly with the state. If you'd rather not deal with it, we prepare and submit it, pay the state fee for you and keep the records.",
-    },
-    {
-      q: "What if the state sends the filing back?",
-      a: "We fix what we can and ask you for anything else. That's part of what the service fee covers.",
     },
     { q: "Can I get a refund?", a: REFUND_TEXT },
     {
@@ -102,273 +69,95 @@ export default async function PricingPage() {
     <>
       <JsonLd data={graph(breadcrumbJsonLd(CRUMBS))} />
 
-      {/* Hero: the two ways to file, as two receipts */}
+      {/* Hero: one promise, then the plans */}
       <section aria-labelledby="pricing-title" className="grain overflow-hidden bg-surface-2">
-        <Container className="grid gap-10 pb-16 pt-6 sm:pt-10 lg:pb-24 lg:pt-12">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end lg:gap-16">
-            <div className="grid content-start gap-5">
-              <Breadcrumbs items={CRUMBS} />
-              <h1
-                id="pricing-title"
-                className="max-w-[12ch] text-[40px] font-semibold leading-[1.03] tracking-[-0.03em] text-fg sm:text-[56px] lg:text-[64px]"
-              >
-                Pricing, <span className="mark-highlight">line by line</span>
-              </h1>
-            </div>
-            <p className="max-w-[46ch] text-[17px] leading-relaxed text-muted sm:text-lg lg:pb-2">
-              Two parts, always on separate lines: the state&apos;s filing fee, passed through at cost, and our service fee for
-              preparing and submitting the filing. You see both before you pay.
+        <Container className="grid gap-12 pb-16 pt-6 sm:pt-10 lg:pb-24 lg:pt-12">
+          <div className="grid justify-items-center gap-5 text-center">
+            <Breadcrumbs items={CRUMBS} />
+            <h1
+              id="pricing-title"
+              className="max-w-[16ch] text-[40px] font-semibold leading-[1.03] tracking-[-0.03em] text-fg sm:text-[56px] lg:text-[64px]"
+            >
+              Clear prices. <span className="mark-highlight">No surprises.</span>
+            </h1>
+            <p className="max-w-[44ch] text-[17px] leading-relaxed text-muted sm:text-lg">
+              The state&apos;s fee is passed through at cost. You see the full total before you pay.
             </p>
           </div>
 
-          {raPrice !== undefined ? (
-            <ul className={`grid gap-3 sm:grid-cols-2 ${serviceCount === 3 ? "lg:grid-cols-3" : serviceCount === 4 ? "lg:grid-cols-4" : ""}`} aria-label="Our services">
-              <ServiceChoice
-                title="Registered agent"
-                price={`${formatCents(raPrice, { trimZeros: true })} a year`}
-                body="Every state. Legal mail scanned to you."
-                href="/registered-agent"
-                cta="Get an agent"
-              />
-              {bundlePrice !== undefined ? (
-                <ServiceChoice
-                  title="Agent + annual report"
-                  price={`${formatCents(bundlePrice, { trimZeros: true })} a year`}
-                  body={`Plus the state fee. In ${BUNDLE_STATES.length} states.`}
-                  href="/registered-agent"
-                  cta="See the bundle"
-                  featured
-                />
-              ) : null}
-              <ServiceChoice
-                title="Annual report"
-                price={exampleQuote ? `${formatCents(exampleQuote.serviceFeeCents, { trimZeros: true })} plus state fee` : "Plus the state fee"}
-                body="We file it when you ask."
-                href="/find"
-                cta="Check my deadline"
-              />
-              {formationPrice !== undefined ? (
-                <ServiceChoice
-                  title="Start a business"
-                  price={`${formatCents(formationPrice, { trimZeros: true })} plus state fee`}
-                  body={`LLC or corporation. In ${formationStates.length} states.`}
-                  href="/business-formation"
-                  cta="See prices"
-                />
-              ) : null}
-            </ul>
-          ) : null}
+          <PlanCards offers={offers} className="pt-3" />
 
-          {exampleRule && exampleState ? (
-            <div className="mx-auto grid w-full max-w-md">
-              <div className="grid content-start gap-3">
-                <Receipt
-                  title="We file it for you"
-                  meta={`${exampleState.name} ${ENTITY_TYPE_LABELS[exampleRule.entityType]} annual report`}
-                  footer={
-                    <span className="flex items-start gap-2">
-                      <SealCheck size={16} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
-                      The state fee is passed through at cost. Our fee is its own line.
-                    </span>
-                  }
-                >
-                  {exampleQuote ? (
-                    <PriceBreakdown quote={exampleQuote} stateName={exampleState.name} totalLabel="Total if we file it" />
-                  ) : (
-                    <p className="text-[15px] leading-6 text-muted">
-                      State fee {formatCents(exampleRule.stateFeeCents)}. Our service fee is shown as its own line before
-                      checkout.
-                    </p>
-                  )}
-                  <div className="mt-5">
-                    <FilingCtaLink
-                      href={`/find?state=${exampleState.code}&entity=${exampleRule.entityType}`}
-                      stateCode={exampleState.code}
-                      entityType={exampleRule.entityType}
-                      className="w-full"
-                    >
-                      Have us file it
-                    </FilingCtaLink>
-                  </div>
-                </Receipt>
-              </div>
-            </div>
-          ) : null}
+          <ul className="mx-auto grid w-full max-w-4xl gap-3 sm:grid-cols-3" aria-label="Our pricing promises">
+            {PROMISES.map(({ icon: Icon, title, body }) => (
+              <li key={title} className="flex items-center gap-3 rounded-full border border-border bg-surface/70 px-4 py-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-highlight-soft text-highlight-fg">
+                  <Icon size={18} weight="fill" aria-hidden />
+                </span>
+                <span className="grid leading-tight">
+                  <span className="text-[15px] font-semibold text-fg">{title}</span>
+                  <span className="text-sm text-muted">{body}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </Container>
       </section>
 
-      {/* Every entity type, per state */}
-      {tables.map(({ j, rules, quotes }) => {
-        const anyQuote = quotes.some(Boolean);
-        const npFree = rules
-          .filter((r) => r.stateFeeCents > 0 && r.nonprofitStateFeeCents === 0)
-          .map((r) => ENTITY_COPY[r.entityType].plural);
-        return (
-          <section key={j.code} aria-labelledby={`pricing-${j.code}`} className="py-16 sm:py-24">
-            <Container className="grid gap-8">
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                <div className="grid max-w-2xl gap-3">
-                  <h2 id={`pricing-${j.code}`} className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
-                    {j.name} annual report
-                  </h2>
-                  <p className="text-[17px] leading-relaxed text-muted">
-                    {anyQuote
-                      ? "Prices per filing. The state fee comes from the state's published fee schedule."
-                      : "The state fee comes from the state's published fee schedule. Our service fee is shown before checkout."}
-                  </p>
-                </div>
-                <Link href={`/annual-report/${j.slug}`} className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5`}>
-                  {j.name} due dates and requirements
-                  <ArrowRight size={16} weight="bold" aria-hidden />
-                </Link>
-              </div>
-
-              {/* Wide: a real table */}
-              <div className="overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface shadow-card max-md:hidden">
-                <table className="w-full border-collapse text-left text-[15px]">
-                  <thead className="bg-surface-2/70 text-[13px] text-muted">
-                    <tr>
-                      <th scope="col" className="px-5 py-3 font-semibold">Entity type</th>
-                      <th scope="col" className="px-5 py-3 text-right font-semibold">State fee</th>
-                      <th scope="col" className="px-5 py-3 text-right font-semibold">Our service fee</th>
-                      <th scope="col" className="px-5 py-3 text-right font-semibold">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rules.map((r, i) => {
-                      const q = quotes[i];
-                      return (
-                        <tr key={r.ruleKey} className="border-t border-border">
-                          <th scope="row" className="px-5 py-3.5 font-normal">
-                            <Link
-                              href={`/annual-report/${j.slug}/${ENTITY_TYPE_SLUGS[r.entityType]}`}
-                              className="font-semibold text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
-                            >
-                              {ENTITY_TYPE_LABELS[r.entityType]}
-                            </Link>
-                          </th>
-                          <td className="tnum whitespace-nowrap px-5 py-3.5 text-right text-fg">
-                            {formatCents(q?.governmentFeeCents ?? r.stateFeeCents)}
-                          </td>
-                          <td className="tnum whitespace-nowrap px-5 py-3.5 text-right text-fg">
-                            {q ? formatCents(q.serviceFeeCents) : <span className="text-muted">Shown before checkout</span>}
-                          </td>
-                          <td className="tnum whitespace-nowrap px-5 py-3.5 text-right font-display text-[17px] font-semibold text-fg">
-                            {q ? formatCents(q.totalCents) : <span className="font-sans text-[15px] font-normal text-muted">State fee + service fee</span>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Narrow: one line item per entity type */}
-              <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface md:hidden">
-                {rules.map((r, i) => {
-                  const q = quotes[i];
-                  return (
-                    <li key={r.ruleKey} className="grid gap-2 p-4">
-                      <div className="flex items-baseline justify-between gap-3">
-                        <Link
-                          href={`/annual-report/${j.slug}/${ENTITY_TYPE_SLUGS[r.entityType]}`}
-                          className="font-semibold text-fg underline decoration-border-strong underline-offset-4"
-                        >
-                          {ENTITY_TYPE_LABELS[r.entityType]}
-                        </Link>
-                        <span className="tnum shrink-0 font-display text-lg font-semibold text-fg">
-                          {q ? formatCents(q.totalCents) : null}
-                        </span>
-                      </div>
-                      <p className="tnum text-[14px] text-muted">
-                        State fee {formatCents(q?.governmentFeeCents ?? r.stateFeeCents)} +{" "}
-                        {q ? `our service fee ${formatCents(q.serviceFeeCents)}` : "our service fee, shown before checkout"}
-                      </p>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <div className="grid max-w-[72ch] gap-2 text-[15px] leading-7 text-muted">
-                {npFree.length ? (
-                  <p>
-                    {joinList(npFree).replace(/^./, (c) => c.toUpperCase())} with a not-for-profit purpose pay no state fee, so
-                    their total is lower by the state fee.
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code}>
-                  Have us file it
-                </FilingCtaLink>
-              </div>
-            </Container>
-          </section>
-        );
-      })}
+      {/* Annual report: the all-in price for the visitor's state */}
+      {statePrices.length > 0 ? (
+        <section id="cost" aria-labelledby="cost-title" className="scroll-mt-24 py-16 sm:py-24">
+          <Container className="grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start lg:gap-16">
+            <div className="grid content-start gap-4">
+              <h2 id="cost-title" className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
+                What will my annual report cost?
+              </h2>
+              <p className="text-[17px] leading-relaxed text-muted">
+                Pick your state. The total includes the state fee.
+              </p>
+              <Link href="/annual-report" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-start`}>
+                Due dates by state
+                <ArrowRight size={16} weight="bold" aria-hidden />
+              </Link>
+            </div>
+            <PriceFinder states={statePrices} initialCode="PA" />
+          </Container>
+        </section>
+      ) : null}
 
       {/* What the fee covers */}
       <section aria-labelledby="included-title" className="grain bg-surface-2 py-16 sm:py-24">
-        <Container className="grid gap-10 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-16">
-          <div className="grid content-start gap-6">
-            <h2 id="included-title" className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
-              What the service fee covers
-            </h2>
-            <ul className="grid gap-0 overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface">
-              {INCLUDED.map((item) => (
-                <li key={item} className="flex gap-3 border-b border-dashed border-border px-5 py-3.5 text-[15px] leading-6 text-fg last:border-b-0">
-                  <span aria-hidden className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent text-accent-fg">
-                    <Check size={12} weight="bold" />
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="grid content-start gap-8 md:pt-[4.5rem]">
-            <div className="grid content-start gap-4">
-              <h2 className="text-xl font-semibold tracking-tight text-fg">Not included</h2>
-              <ul className="grid gap-3">
-                {NOT_INCLUDED.map((item) => (
-                  <li key={item} className="flex gap-3 text-[15px] leading-6 text-muted">
-                    <span aria-hidden className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-surface-3 text-muted">
-                      <Minus size={12} weight="bold" />
-                    </span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              {businessServicesPagesEnabled() ? (
-                <p className="text-[15px] leading-6 text-muted">
-                  Need a registered agent?{" "}
-                  <Link href="/registered-agent" className={textLinkClasses}>
-                    See registered agent service and its price
-                  </Link>
-                  .
-                </p>
-              ) : null}
-            </div>
-            <div className="grid content-start gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
-              <h2 className="text-xl font-semibold tracking-tight text-fg">Refunds</h2>
-              <p className="text-[15px] leading-7 text-muted">{REFUND_TEXT}</p>
-              <Link href="/legal/refunds" className={`${textLinkClasses} inline-flex min-h-11 items-center justify-self-start`}>
-                Read the refund policy
-              </Link>
-            </div>
-          </div>
+        <Container className="grid gap-8">
+          <h2 id="included-title" className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
+            Every filing includes
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {INCLUDED.map((item) => (
+              <li key={item} className="flex items-center gap-3 rounded-[var(--radius-surface)] border border-border bg-surface px-5 py-4 text-[15px] leading-6 text-fg">
+                <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-accent text-accent-fg">
+                  <Check size={13} weight="bold" />
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
         </Container>
       </section>
 
       {/* Questions */}
       <section aria-labelledby="pricing-faq-title" className="py-16 sm:py-24">
         <Container className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
-          <h2 id="pricing-faq-title" className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
-            Pricing questions
-          </h2>
+          <div className="grid content-start gap-4">
+            <h2 id="pricing-faq-title" className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
+              Pricing questions
+            </h2>
+            <Link href="/legal/refunds" className={`${textLinkClasses} inline-flex min-h-11 items-center justify-self-start`}>
+              Refund policy
+            </Link>
+          </div>
           <FaqList items={faq} />
         </Container>
         <Container className="mt-14">
-          <DisclaimerNote stateName={tables[0]?.j.name} />
+          <DisclaimerNote />
         </Container>
       </section>
     </>
