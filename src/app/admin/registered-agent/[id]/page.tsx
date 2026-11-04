@@ -81,6 +81,8 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
     providerRenewalDate: sub.provider_renewal_date,
     providerCancelledAt: sub.provider_cancelled_at,
     today: opsToday(),
+    cancelAtPeriodEnd: sub.cancel_at_period_end,
+    currentPeriodEnd: sub.current_period_end,
   });
 
   return (
@@ -100,7 +102,10 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
       {cancel.due ? (
         <Notice tone={cancel.late ? "danger" : "warning"} title="Cancel with the provider">
           <p>
-            The customer hasn&apos;t paid and the provider renews this entity on {formatDate(sub.provider_renewal_date)} ({cancel.daysLeft} days). Cancel it in the partner dashboard
+            {cancel.reason === "renewal_off" ? "The customer turned renewal off" : "The customer hasn't paid"} and the provider renews this entity on{" "}
+            {formatDate(cancel.renewalDate)}
+            {cancel.estimated ? " (estimated from the billing period; record the real date below)" : ""} ({cancel.daysLeft} days).{" "}
+            {cancel.reason === "renewal_off" ? "Tell the provider not to renew it, with service running to the end of the paid year" : "Cancel it in the partner dashboard"}
             {cancel.late ? " now: the 30-day notice window has started" : ""}, then record it below.
           </p>
         </Notice>
@@ -342,7 +347,7 @@ export default async function RegisteredAgentDetailPage(props: PageProps<"/admin
       </Panel>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Panel title="Provider renewal date" description="From the partner dashboard. Unpaid entities must be cancelled 30 days before it.">
+        <Panel title="Provider renewal date" description="From the partner dashboard. Unpaid or non-renewing entities must be cancelled 30 days before it.">
           <ActionForm action={providerRenewalDateAction} submitLabel="Save date" resetOnSuccess={false}>
             <input type="hidden" name="subscriptionId" value={sub.id} />
             <Input name="date" type="date" aria-label="Provider renewal date" defaultValue={sub.provider_renewal_date ?? ""} required />

@@ -20,6 +20,7 @@ import {
 import { linkUploadToOpenAlert, remindOpenAlerts } from "./document-events";
 import { getRaJurisdiction } from "./jurisdictions";
 import {
+  providerCancelMessage,
   providerCancellationDue,
   renewalReminderDue,
   transitionProblem,
@@ -407,8 +408,8 @@ export interface ServiceCycleSummary {
 }
 
 /**
- * Renewal reminders (30 and 7 days ahead), escalation of urgent documents that have not
- * reached the customer, reminders for partner document alerts still open, and unpaid entities to cancel with the provider before its
+ * Renewal reminders (45 and 7 days ahead), escalation of urgent documents that have not
+ * reached the customer, reminders for partner document alerts still open, and unpaid or non-renewing entities to cancel with the provider before its
  * renewal. Never throws: one failure doesn't stop the others.
  */
 export async function runServiceCycle(now = new Date()): Promise<ServiceCycleSummary> {
@@ -457,6 +458,8 @@ export async function runServiceCycle(now = new Date()): Promise<ServiceCycleSum
           providerRenewalDate: s.provider_renewal_date,
           providerCancelledAt: s.provider_cancelled_at,
           today,
+          cancelAtPeriodEnd: s.cancel_at_period_end,
+          currentPeriodEnd: s.current_period_end,
         });
         if (cancel.due) {
           const named = await subscriptionNames(s.id);
@@ -464,9 +467,9 @@ export async function runServiceCycle(now = new Date()): Promise<ServiceCycleSum
             templateKey: "staff_ra_billing_review",
             vars: {
               ...(named?.vars ?? {}),
-              message: `the customer hasn't paid and the provider renews this entity in ${cancel.daysLeft} days; cancel it in the partner dashboard${cancel.late ? " now (inside the 30-day notice window)" : ""} unless the customer pays`,
+              message: providerCancelMessage(cancel),
             },
-            dedupeKey: `ra_provider_cancel:${s.id}:${s.provider_renewal_date}`,
+            dedupeKey: `ra_provider_cancel:${s.id}:${cancel.renewalDate}:${cancel.reason}`,
             ctaPath: `/admin/registered-agent/${s.id}`,
             businessId: s.business_id,
           });

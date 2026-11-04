@@ -308,7 +308,7 @@ export const DEFAULT_TEMPLATES: TemplateDef[] = [
       "Your {{service_name}} for {{company_name}} in {{state_name}} renews on {{renewal_date}} for {{renewal_amount}}, charged to the card on file.\n\n" +
       "If you no longer need it, you can turn off renewal in your dashboard before that date. Turning off renewal doesn't change the state's record: if you stop using us as your registered agent, you need to name a new agent with the state.",
     ctaLabel: "Manage your service",
-    description: "Sent 30 and 7 days before a registered agent subscription renews.",
+    description: "Sent 45 and 7 days before a registered agent subscription renews.",
   },
   {
     key: "ra_payment_failed",

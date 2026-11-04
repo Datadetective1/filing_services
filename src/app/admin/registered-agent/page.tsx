@@ -58,9 +58,9 @@ export default async function RegisteredAgentQueuePage() {
       .order("available_to_filewell_at"),
     db
       .from("ra_subscriptions")
-      .select("id, state_code, billing_status, service_status, failed_payment_count, provider_renewal_date, provider_cancelled_at, current_period_end, businesses(legal_name)")
+      .select("id, state_code, billing_status, service_status, failed_payment_count, provider_renewal_date, provider_cancelled_at, cancel_at_period_end, current_period_end, businesses(legal_name)")
       .neq("service_status", "ended")
-      .in("billing_status", ["past_due", "unpaid", "canceled"]),
+      .or("billing_status.in.(past_due,unpaid,canceled),cancel_at_period_end.eq.true"),
     db
       .from("provider_document_events")
       .select("id, provider_document_id, provider_company_id, provider_company_name, match_status, received_at, ra_subscription_id, businesses(legal_name)")
@@ -241,7 +241,7 @@ export default async function RegisteredAgentQueuePage() {
 
       <Panel
         title="Billing to review"
-        description="A failed or ended subscription never ends service by itself. Confirm the customer's next agent before asking the provider to end service, and cancel unpaid entities with the provider at least 30 days before its renewal."
+        description="A failed or ended subscription never ends service by itself. Confirm the customer's next agent before asking the provider to end service. Cancel unpaid or non-renewing entities with the provider at least 30 days before its renewal."
         bodyClassName="p-0"
       >
         {(subs ?? []).length === 0 ? (
@@ -266,6 +266,8 @@ export default async function RegisteredAgentQueuePage() {
                     providerRenewalDate: s.provider_renewal_date,
                     providerCancelledAt: s.provider_cancelled_at,
                     today,
+                    cancelAtPeriodEnd: s.cancel_at_period_end,
+                    currentPeriodEnd: s.current_period_end,
                   });
                   return (
                     <TR key={s.id}>
@@ -275,14 +277,16 @@ export default async function RegisteredAgentQueuePage() {
                         </Link>{" "}
                         · {s.state_code}
                       </TD>
-                      <TD>{s.billing_status}</TD>
+                      <TD>{s.cancel_at_period_end && s.billing_status === "active" ? "renewal off" : s.billing_status}</TD>
                       <TD className="tnum">{s.failed_payment_count}</TD>
                       <TD>
                         {s.provider_cancelled_at
                           ? `Cancelled with provider ${formatDate(s.provider_cancelled_at)}`
-                          : s.provider_renewal_date
-                            ? `${formatDate(s.provider_renewal_date)}${cancel.due ? (cancel.late ? " · cancel now (late)" : " · cancel with provider") : ""}`
-                            : "Not recorded"}
+                          : cancel.renewalDate
+                            ? `${formatDate(cancel.renewalDate)}${cancel.estimated ? " (estimated)" : ""}${cancel.due ? (cancel.late ? " · cancel now (late)" : " · cancel with provider") : ""}`
+                            : s.provider_renewal_date
+                              ? formatDate(s.provider_renewal_date)
+                              : "Not recorded"}
                       </TD>
                     </TR>
                   );

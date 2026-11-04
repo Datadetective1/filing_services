@@ -171,8 +171,11 @@ export function billingAction(input: { previous: BillingStatus; next: BillingSta
   return { kind: "none" };
 }
 
-/** Days before the renewal date that a reminder goes out. */
-export const RENEWAL_REMINDER_DAYS = [30, 7] as const;
+/**
+ * Days before the renewal date that a reminder goes out. The first one comes 45 days ahead
+ * so a customer who turns renewal off does it before the provider's 30-day notice window.
+ */
+export const RENEWAL_REMINDER_DAYS = [45, 7] as const;
 
 /**
  * Renewal reminder due today, if any. `sent` holds keys already sent for this period
@@ -211,24 +214,64 @@ export function renewalReminderDue(input: {
 export const PROVIDER_CANCEL_NOTICE_DAYS = 30;
 export const PROVIDER_CANCEL_FLAG_DAYS = 40;
 
+/** Why an entity needs cancelling with the provider: the customer stopped paying, or turned renewal off. */
+export type ProviderCancelReason = "unpaid" | "renewal_off";
+
+export interface ProviderCancellationCheck {
+  due: boolean;
+  daysLeft: number | null;
+  late: boolean;
+  reason: ProviderCancelReason | null;
+  /** The provider's renewal date used (recorded, or estimated from the billing period). */
+  renewalDate: string | null;
+  /** True when no provider renewal date was recorded and the billing period end stood in. */
+  estimated: boolean;
+}
+
 /**
  * Whether an operator must cancel this entity with the provider now, so Filewell is not
- * invoiced for a year the customer won't pay for. Only when billing has failed or ended;
- * never for a customer who is paid up, and never automatically.
+ * invoiced for a year the customer won't pay for. Due when billing has failed or ended, or
+ * when the customer turned renewal off (billing stays "active" until the period ends, which
+ * is too late for the provider's notice). Never for a customer who is paid up and renewing,
+ * and never automatically.
+ *
+ * With no recorded provider renewal date, the billing period end stands in. The provider's
+ * order is placed after the customer pays, so its renewal falls on or after that date: the
+ * estimate flags early, never late.
  */
 export function providerCancellationDue(input: {
   billingStatus: BillingStatus;
   providerRenewalDate: string | null;
   providerCancelledAt: string | null;
   today: string;
-}): { due: boolean; daysLeft: number | null; late: boolean } {
-  if (input.providerCancelledAt || !input.providerRenewalDate) return { due: false, daysLeft: null, late: false };
-  if (!(input.billingStatus === "unpaid" || input.billingStatus === "canceled" || input.billingStatus === "past_due")) {
-    return { due: false, daysLeft: null, late: false };
-  }
-  const days = Math.round(
-    (Date.parse(`${input.providerRenewalDate.slice(0, 10)}T00:00:00Z`) - Date.parse(`${input.today}T00:00:00Z`)) / 86_400_000,
-  );
-  if (Number.isNaN(days)) return { due: false, daysLeft: null, late: false };
-  return { due: days <= PROVIDER_CANCEL_FLAG_DAYS, daysLeft: days, late: days < PROVIDER_CANCEL_NOTICE_DAYS };
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string | null;
+}): ProviderCancellationCheck {
+  const none: ProviderCancellationCheck = { due: false, daysLeft: null, late: false, reason: null, renewalDate: null, estimated: false };
+  if (input.providerCancelledAt) return none;
+  const unpaid = input.billingStatus === "unpaid" || input.billingStatus === "canceled" || input.billingStatus === "past_due";
+  const renewalOff = !unpaid && !!input.cancelAtPeriodEnd && input.billingStatus === "active";
+  if (!unpaid && !renewalOff) return none;
+  const recorded = input.providerRenewalDate?.slice(0, 10) ?? null;
+  const renewalDate = recorded ?? input.currentPeriodEnd?.slice(0, 10) ?? null;
+  if (!renewalDate) return none;
+  const days = Math.round((Date.parse(`${renewalDate}T00:00:00Z`) - Date.parse(`${input.today}T00:00:00Z`)) / 86_400_000);
+  if (Number.isNaN(days)) return none;
+  return {
+    due: days <= PROVIDER_CANCEL_FLAG_DAYS,
+    daysLeft: days,
+    late: days < PROVIDER_CANCEL_NOTICE_DAYS,
+    reason: unpaid ? "unpaid" : "renewal_off",
+    renewalDate,
+    estimated: !recorded,
+  };
+}
+
+/** The staff alert line for an entity to cancel with the provider. */
+export function providerCancelMessage(cancel: Pick<ProviderCancellationCheck, "daysLeft" | "late" | "reason" | "estimated">): string {
+  const when = `the provider renews this entity in ${cancel.daysLeft} days${cancel.estimated ? " (estimated from the billing period; record the real date)" : ""}`;
+  const urgency = cancel.late ? " now (inside the 30-day notice window)" : "";
+  return cancel.reason === "renewal_off"
+    ? `the customer turned renewal off and ${when}; tell the provider${urgency} not to renew it, with service running to the end of the paid year`
+    : `the customer hasn't paid and ${when}; cancel it in the partner dashboard${urgency} unless the customer pays`;
 }
