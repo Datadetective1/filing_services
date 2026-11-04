@@ -22,7 +22,8 @@ import { GuideSection, GuideText } from "@/components/marketing/guide-section";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { OnThisPageAside, OnThisPageDisclosure } from "@/components/marketing/on-this-page";
 import { PhotoHero } from "@/components/marketing/photo-hero";
-import { ProviderReportBand } from "@/components/marketing/provider-report-band";
+import { ProviderReportBand, providerReportOffer, type ProviderReportOffer } from "@/components/marketing/provider-report-band";
+import { ProviderReportPanel } from "@/components/marketing/provider-report-panel";
 import { RaStateBand } from "@/components/marketing/ra-state-band";
 import { RequiredInfoSheet } from "@/components/marketing/required-info-sheet";
 import { SourceList } from "@/components/marketing/source-list";
@@ -103,10 +104,12 @@ export default async function StateAnnualReportPage({ params }: PageProps<"/annu
   const j = getJurisdictionBySlug(state);
   if (!j) notFound();
   const rules = verifiedRules(j);
+  // A state we don't guide yet but do file through our provider leads with that offer.
+  const offer = rules.length ? null : await providerReportOffer(j.code);
   return (
     <>
-      {rules.length ? <VerifiedState j={j} rules={rules} /> : <UnverifiedState j={j} />}
-      <ProviderReportBand stateCode={j.code} />
+      {rules.length ? <VerifiedState j={j} rules={rules} /> : <UnverifiedState j={j} offer={offer} />}
+      {offer ? null : <ProviderReportBand stateCode={j.code} />}
       <RaStateBand stateCode={j.code} />
     </>
   );
@@ -619,7 +622,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
 // Unverified state: honest directory page + waitlist
 // ---------------------------------------------------------------------------
 
-function UnverifiedState({ j }: { j: JurisdictionDef }) {
+function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderReportOffer | null }) {
   const path = `/annual-report/${j.slug}`;
   const crumbs = [
     { name: "Home", path: "/" },
@@ -633,31 +636,53 @@ function UnverifiedState({ j }: { j: JurisdictionDef }) {
         breadcrumbs={<Breadcrumbs items={crumbs} />}
         title={`${j.name} annual report`}
         lede={
-          <p>
-            We haven&apos;t verified {j.name}&apos;s annual report requirements yet, so we don&apos;t show due dates or fees.
-            For accurate information, go to the state&apos;s official business filing agency.
-          </p>
+          offer ? (
+            <p>
+              We file your {j.name} {offer.open.reportName.toLowerCase()} for you. One price, paid once, and you get the
+              state&apos;s confirmation when it&apos;s done.
+            </p>
+          ) : (
+            <p>
+              We haven&apos;t verified {j.name}&apos;s annual report requirements yet, so we don&apos;t show due dates or fees.
+              For accurate information, go to the state&apos;s official business filing agency.
+            </p>
+          )
         }
         actions={
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <a href={j.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("primary", "lg")}>
-              Visit the official agency
-              <ArrowSquareOut size={18} aria-hidden />
-              <span className="sr-only">(opens the official website in a new tab)</span>
-            </a>
-            <a href="#waitlist" className={buttonClasses("secondary", "lg")}>
-              Get an email when it&apos;s ready
-            </a>
-          </div>
+          offer ? (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link href={offer.orderHref} className={buttonClasses("primary", "lg")}>
+                File it for me
+                <ArrowRight size={18} weight="bold" aria-hidden />
+              </Link>
+              <a href={j.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
+                Visit the official agency
+                <ArrowSquareOut size={18} aria-hidden />
+                <span className="sr-only">(opens the official website in a new tab)</span>
+              </a>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <a href={j.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("primary", "lg")}>
+                Visit the official agency
+                <ArrowSquareOut size={18} aria-hidden />
+                <span className="sr-only">(opens the official website in a new tab)</span>
+              </a>
+              <a href="#waitlist" className={buttonClasses("secondary", "lg")}>
+                Get an email when it&apos;s ready
+              </a>
+            </div>
+          )
         }
         photo="potterWorkshop"
         focus="55% 35%"
         focusWide="30% 40%"
-        panel={<UnverifiedStatePanel j={j} />}
+        panel={offer ? <ProviderReportPanel offer={offer} /> : <UnverifiedStatePanel j={j} />}
       />
 
       <UnverifiedStateSections
         j={j}
+        waitlist={!offer}
         waitlistLede={`We add a state only after checking its requirements against official sources. Leave your email and we'll let you know when ${j.name} is ready.`}
         links={[
           { href: "/annual-report", label: "All states" },

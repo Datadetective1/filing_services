@@ -110,14 +110,28 @@ async function seedReference(db: Db) {
   const sha = (s: string) => createHash("sha256").update(s).digest("hex");
   await insertRows(db, "states", stateRows());
   await insertRows(db, "state_agencies", agencyRows());
-  await insertRows(db, "filing_types", filingTypeRows());
+  // A migration may seed a filing type itself (provider_annual_report does); seed only the rest.
+  const seededTypes = new Set((await db.query<{ code: string }>("select code from public.filing_types")).rows.map((r) => r.code));
+  await insertRows(db, "filing_types", filingTypeRows().filter((ft) => !seededTypes.has(ft.code)));
   for (const rule of RULES) {
     const [r] = await insertRows(db, "compliance_rules", [ruleRow(rule)], "id");
     const [v] = await insertRows(db, "state_rule_versions", [{ ...versionRow(rule, contentHashOf(rule, sha)), rule_id: r.id }], "id");
     await insertRows(db, "state_rule_sources", sourceRows(rule).map((s) => ({ ...s, rule_version_id: v.id })));
     await db.query("update public.compliance_rules set current_version_id = $1 where id = $2", [v.id, r.id]);
   }
-  await insertRows(db, "service_prices", defaultPriceRows());
+  // Likewise a price a migration already seeded (same active scope) is not seeded twice.
+  const seededPrices = new Set(
+    (
+      await db.query<{ k: string }>(
+        "select filing_type_code || '|' || coalesce(state_code, '') || '|' || coalesce(entity_type, '') || '|' || price_variant as k from public.service_prices where active",
+      )
+    ).rows.map((r) => r.k),
+  );
+  await insertRows(
+    db,
+    "service_prices",
+    defaultPriceRows().filter((p) => !seededPrices.has(`${p.filing_type_code}|${p.state_code ?? ""}|${p.entity_type ?? ""}|${p.price_variant}`)),
+  );
   await insertRows(db, "reminder_schedules", reminderScheduleRows());
   await insertRows(db, "notification_templates", templateRows());
 }

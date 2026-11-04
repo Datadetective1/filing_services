@@ -15,29 +15,34 @@ export function UnverifiedStateSections({
   j,
   waitlistLede,
   links,
+  waitlist = true,
 }: {
   j: JurisdictionDef;
   waitlistLede: string;
   links: { href: string; label: string }[];
+  /** False where we already sell something here, so the page doesn't ask for an email instead. */
+  waitlist?: boolean;
 }) {
   return (
     <>
-      <section aria-labelledby="waitlist-title" className="grain bg-surface-2 py-14 sm:py-20">
+      <section aria-labelledby={waitlist ? "waitlist-title" : undefined} aria-label={waitlist ? undefined : `${j.name} official agency`} className="grain bg-surface-2 py-14 sm:py-20">
         <Container className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
           <DirectoryListing j={j} />
-          <div
-            id="waitlist"
-            className="grid scroll-mt-24 content-start gap-6 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-7"
-          >
-            <div className="grid gap-3">
-              <span aria-hidden className="h-1.5 w-12 rounded-full bg-highlight" />
-              <h2 id="waitlist-title" className="text-[26px] font-semibold leading-tight text-fg sm:text-[30px]">
-                Get an email when we support {j.name}
-              </h2>
-              <p className="text-[16px] leading-7 text-muted">{waitlistLede}</p>
+          {waitlist ? (
+            <div
+              id="waitlist"
+              className="grid scroll-mt-24 content-start gap-6 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-7"
+            >
+              <div className="grid gap-3">
+                <span aria-hidden className="h-1.5 w-12 rounded-full bg-highlight" />
+                <h2 id="waitlist-title" className="text-[26px] font-semibold leading-tight text-fg sm:text-[30px]">
+                  Get an email when we support {j.name}
+                </h2>
+                <p className="text-[16px] leading-7 text-muted">{waitlistLede}</p>
+              </div>
+              <WaitlistForm stateCode={j.code} stateName={j.name} />
             </div>
-            <WaitlistForm stateCode={j.code} stateName={j.name} />
-          </div>
+          ) : null}
         </Container>
       </section>
 
