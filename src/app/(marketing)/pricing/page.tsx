@@ -87,9 +87,9 @@ export default async function PricingPage() {
 
           <PlanCards offers={offers} className="pt-3" />
 
-          <ul className="mx-auto grid w-full max-w-4xl gap-3 sm:grid-cols-3" aria-label="Our pricing promises">
+          <ul className="mx-auto grid w-full max-w-4xl gap-3 md:grid-cols-3" aria-label="Our pricing promises">
             {PROMISES.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="flex items-center gap-3 rounded-full border border-border bg-surface/70 px-4 py-3">
+              <li key={title} className="flex items-center gap-3 rounded-[var(--radius-surface)] border border-border bg-surface/70 px-4 py-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-full bg-highlight-soft text-highlight-fg">
                   <Icon size={18} weight="fill" aria-hidden />
                 </span>

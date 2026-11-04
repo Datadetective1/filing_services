@@ -43,7 +43,7 @@ export function PriceFinder({ states, initialCode }: { states: StatePrice[]; ini
           {state.rows.map((r) => (
             <li key={r.label} className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-bg p-4 sm:p-5">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="font-semibold text-fg">{r.label}</span>
+                <span className="min-w-0 font-semibold text-fg">{r.label}</span>
                 <span className="tnum font-display text-[32px] font-semibold leading-none text-fg">{money(r.totalCents)}</span>
               </div>
               <p className="tnum text-sm text-muted">

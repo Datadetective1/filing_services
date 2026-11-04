@@ -79,11 +79,11 @@ export function PlanCards({ offers, className = "" }: { offers: PlanOffers; clas
   if (plans.length === 0) return null;
   const cols = plans.length >= 4 ? "lg:grid-cols-4" : plans.length === 3 ? "lg:grid-cols-3" : "";
   return (
-    <ul className={`grid gap-4 sm:grid-cols-2 ${cols} ${className}`} aria-label="Our services">
+    <ul className={`grid gap-x-4 gap-y-6 sm:grid-cols-2 ${cols} ${className}`} aria-label="Our services">
       {plans.map((p) => (
         <li key={p.title} className="grid">
           <div
-            className={`relative grid content-start gap-5 rounded-[var(--radius-surface)] border p-6 ${
+            className={`relative flex flex-col gap-5 rounded-[var(--radius-surface)] border p-6 ${
               p.featured ? "border-ink bg-ink text-ink-fg shadow-lift" : "border-border bg-surface text-fg shadow-card"
             }`}
           >
@@ -98,7 +98,7 @@ export function PlanCards({ offers, className = "" }: { offers: PlanOffers; clas
               <span className="tnum font-display text-[44px] font-semibold leading-none tracking-tight">{p.price}</span>
               <span className={`text-sm ${p.featured ? "text-ink-muted" : "text-muted"}`}>{p.unit}</span>
             </p>
-            <ul className="grid gap-2.5">
+            <ul className="grid flex-1 content-start gap-2.5">
               {p.points.map((pt) => (
                 <li key={pt} className="flex items-start gap-2.5 text-[15px] leading-6">
                   <span
