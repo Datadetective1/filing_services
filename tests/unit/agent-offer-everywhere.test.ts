@@ -43,12 +43,15 @@ describe("the agent lookup", () => {
 
 describe("pricing", () => {
   const pricing = read("src/app/(marketing)/pricing/page.tsx");
+  const cards = read("src/components/marketing/plan-cards.tsx");
+  const offers = read("src/lib/services/plan-offers.ts");
 
   it("lists registered agent and the bundle beside annual reports", () => {
-    expect(pricing).toContain('title="Registered agent"');
-    expect(pricing).toContain('title="Agent + annual report"');
-    expect(pricing).toContain('title="Annual report"');
-    expect(pricing).toContain("bundleSalesOpen()");
+    expect(pricing).toContain("<PlanCards offers={offers}");
+    expect(cards).toContain('title: "Registered agent"');
+    expect(cards).toContain('title: "Agent + annual report"');
+    expect(cards).toContain('title: "Annual report"');
+    expect(offers).toContain("bundleSalesOpen()");
   });
 });
 
@@ -59,6 +62,9 @@ describe("copy", () => {
       "src/components/funnel/lookup-form.tsx",
       "src/app/(marketing)/pricing/page.tsx",
       "src/components/marketing/service-choice.tsx",
+      "src/components/marketing/plan-cards.tsx",
+      "src/components/marketing/price-finder.tsx",
+      "src/app/(marketing)/page.tsx",
       "src/components/services/ra-lookup-result.tsx",
     ]) {
       expect(read(p), p).not.toMatch(/[–—]/);

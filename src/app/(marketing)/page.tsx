@@ -5,9 +5,8 @@ import { site } from "@/config/site";
 import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Photo } from "@/components/media/photo";
-import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
-import { publicServicePrices } from "@/lib/services/public-prices";
-import { ServiceChoice } from "@/components/marketing/service-choice";
+import { planOffers } from "@/lib/services/plan-offers";
+import { PlanCards } from "@/components/marketing/plan-cards";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
@@ -61,13 +60,8 @@ export default async function HomePage() {
   const marketing = rule ? marketingPeriod(rule) : null;
   const periodInfo = marketing?.period ? { period: marketing.period, missed: marketing.missed } : null;
   const quote = rule ? await publicQuote(rule) : null;
-  const servicePrices = businessServicesPagesEnabled() ? await publicServicePrices() : {};
-  const raPrice = servicePrices.registered_agent;
-  // Listed only while checkout takes it: a price that checkout refuses would mislead.
-  const bundlePrice = raPrice !== undefined && bundleSalesOpen() ? servicePrices.ra_annual_report_bundle : undefined;
-  const formationStates = raPrice !== undefined ? formationOpenStates() : [];
-  const formationPrice = formationStates.length > 0 ? servicePrices.formation : undefined;
-  const serviceCount = 2 + (bundlePrice !== undefined ? 1 : 0) + (formationPrice !== undefined ? 1 : 0);
+  const offers = await planOffers();
+  const raPrice = offers.raCents;
   const agency = pa ? agencyShortName(pa) : "Pennsylvania Department of State";
   const stateName = pa?.name ?? "Pennsylvania";
   const groups = dueGroups(paRules);
@@ -114,50 +108,19 @@ export default async function HomePage() {
           <div className="grid gap-7">
             {raPrice !== undefined ? (
               <>
+                <p className="inline-flex items-center gap-2 justify-self-start rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm font-medium text-fg shadow-card">
+                  <span aria-hidden className="size-2 rounded-full bg-highlight" />
+                  For LLCs and corporations in every state
+                </p>
                 <h1
                   id="hero-title"
-                  className="max-w-[15ch] text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] text-fg sm:text-[56px] lg:text-[64px]"
+                  className="max-w-[13ch] text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] text-fg sm:text-[60px] lg:text-[72px]"
                 >
-                  Registered agent and annual reports, <span className="mark-highlight">handled</span>.
+                  Your state filings, <span className="mark-highlight">handled</span>.
                 </h1>
-                <p className="max-w-[38ch] text-lg leading-relaxed text-muted sm:text-xl">
-                  For LLCs and corporations in every state. Prices stay the same at renewal.
+                <p className="max-w-[36ch] text-lg leading-relaxed text-muted sm:text-xl">
+                  Registered agent, annual reports and new businesses. Flat prices, with the state fee at cost.
                 </p>
-                <ul className={`grid gap-3 sm:grid-cols-2 ${serviceCount === 3 ? "lg:grid-cols-3" : serviceCount === 4 ? "lg:grid-cols-4" : ""}`} aria-label="Our services">
-                  <ServiceChoice
-                    title="Registered agent"
-                    price={`${formatCents(raPrice, { trimZeros: true })} a year`}
-                    body="Every state. Legal mail scanned to you."
-                    href="/registered-agent"
-                    cta="Get an agent"
-                  />
-                  {bundlePrice !== undefined ? (
-                    <ServiceChoice
-                      title="Agent + annual report"
-                      price={`${formatCents(bundlePrice, { trimZeros: true })} a year`}
-                      body={`Plus the state fee. In ${BUNDLE_STATES.length} states.`}
-                      href="/registered-agent"
-                      cta="See the bundle"
-                      featured
-                    />
-                  ) : null}
-                  <ServiceChoice
-                    title="Annual report"
-                    price={quote ? `${formatCents(quote.serviceFeeCents, { trimZeros: true })} plus state fee` : "Plus the state fee"}
-                    body="We file it when you ask."
-                    href="/find"
-                    cta="Check my deadline"
-                  />
-                  {formationPrice !== undefined ? (
-                    <ServiceChoice
-                      title="Start a business"
-                      price={`${formatCents(formationPrice, { trimZeros: true })} plus state fee`}
-                      body={`LLC or corporation. In ${formationStates.length} states.`}
-                      href="/business-formation"
-                      cta="See prices"
-                    />
-                  ) : null}
-                </ul>
               </>
             ) : (
               <>
@@ -197,6 +160,16 @@ export default async function HomePage() {
               </Link>
               .
             </p>
+            {raPrice !== undefined ? (
+              <ul className="flex flex-wrap gap-x-5 gap-y-2" aria-label="Why Filewell">
+                {["State fee at cost", "Same price at renewal", "A person checks every filing"].map((t) => (
+                  <li key={t} className="inline-flex items-center gap-1.5 text-[15px] font-medium text-fg">
+                    <CheckCircle size={18} weight="fill" aria-hidden className="text-accent" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <p className="flex max-w-[46ch] items-start gap-2 text-sm leading-6 text-muted">
               <ShieldCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
               <span>{site.disclaimer}</span>
@@ -236,6 +209,25 @@ export default async function HomePage() {
           </Container>
         ) : null}
       </section>
+
+      {/* Plans: what we sell, priced up front */}
+      {raPrice !== undefined ? (
+        <section aria-labelledby="plans-title" className="pb-16 sm:pb-24">
+          <Container className="grid gap-10">
+            <div className="grid justify-items-center gap-3 text-center">
+              <h2 id="plans-title" className="text-[32px] font-semibold leading-[1.08] tracking-[-0.02em] text-fg sm:text-[44px]">
+                Pick what you need
+              </h2>
+              <p className="max-w-[40ch] text-[17px] leading-relaxed text-muted">One flat fee each. The state&apos;s fee is passed through at cost.</p>
+            </div>
+            <PlanCards offers={offers} />
+            <Link href="/pricing#cost" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-center`}>
+              See the total for your state
+              <ArrowRight size={16} weight="bold" aria-hidden />
+            </Link>
+          </Container>
+        </section>
+      ) : null}
 
       {/* 2. The problem */}
       <Section labelledBy="problem-title" band>
@@ -420,20 +412,6 @@ export default async function HomePage() {
               See all pricing
               <ArrowRight size={16} weight="bold" aria-hidden />
             </Link>
-            {raPrice !== undefined ? (
-              <div className="grid gap-2 rounded-[var(--radius-surface)] border border-border bg-surface p-5">
-                <p className="font-display text-lg font-semibold text-fg">
-                  Need a registered agent? {formatCents(raPrice, { trimZeros: true })} a year.
-                </p>
-                <p className="text-[15px] leading-6 text-muted">
-                  The same price at renewal. Switching from another agent? We file the change, and you pay only the state&apos;s fee.
-                </p>
-                <Link href="/registered-agent" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-start`}>
-                  See registered agent service
-                  <ArrowRight size={16} weight="bold" aria-hidden />
-                </Link>
-              </div>
-            ) : null}
           </div>
 
           <Receipt
