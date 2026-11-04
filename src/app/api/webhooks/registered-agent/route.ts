@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { recordProviderDocumentAlert } from "@/lib/registered-agent/document-events";
-import { parseRaiDocumentAlert, RaiWebhookError, raiWebhookSecret } from "@/lib/registered-agent/rai-webhook";
+import { parseRaiDocumentAlert, RaiIgnoredEvent, RaiWebhookError, raiWebhookSecret } from "@/lib/registered-agent/rai-webhook";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Registered Agents Inc. new-document alerts. The signed token is verified with our API
- * secret before anything in it is read. Recording is idempotent on the partner's document
+ * Registered Agents Inc. callbacks. The signed token is verified with our API secret before
+ * anything in it is read. Only new-document events are recorded; other signed events
+ * (invoices) are acknowledged and dropped. Recording is idempotent on the partner's document
  * ID, so retries and replays are safe; a 5xx asks the partner to try again later.
  */
 export async function POST(request: NextRequest) {
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest) {
   try {
     event = parseRaiDocumentAlert(raw, request.headers, secret);
   } catch (e) {
+    if (e instanceof RaiIgnoredEvent) {
+      // Signed and valid, just not a document (the same URL gets invoice events too).
+      return NextResponse.json({ received: true, ignored: e.eventName });
+    }
     if (e instanceof RaiWebhookError) {
       console.warn("[ra alerts] rejected alert:", e.message);
       return NextResponse.json({ error: "invalid alert" }, { status: 401 });

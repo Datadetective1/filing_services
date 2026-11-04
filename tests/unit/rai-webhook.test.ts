@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { extractRaiToken, parseRaiDocumentAlert, RaiWebhookError, raiWebhookSecret, readRaiDocumentEvent, verifyRaiBodySignature, verifyRaiJwt } from "@/lib/registered-agent/rai-webhook";
+import { extractRaiToken, parseRaiDocumentAlert, RaiIgnoredEvent, RaiWebhookError, raiWebhookSecret, readRaiDocumentEvent, verifyRaiBodySignature, verifyRaiJwt } from "@/lib/registered-agent/rai-webhook";
 
 /**
  * Registered Agents Inc. alerts: only an HMAC token signed with our API secret is read,
@@ -179,5 +179,34 @@ describe("X-CT-Signature", () => {
 
   it("refuses everything when no secret is configured", () => {
     expect(() => verifyRaiBodySignature(body, mac(body).toString("hex"), "")).toThrow("no secret configured");
+  });
+});
+
+describe("callback event names", () => {
+  it("drops named non-document events", () => {
+    for (const event of ["new-invoice", "paid-invoice", "Paid-Invoice"]) {
+      expect(() => readRaiDocumentEvent({ event, invoice_id: "I1" }), event).toThrow(RaiIgnoredEvent);
+    }
+    expect(() => readRaiDocumentEvent({ type: "new-invoice" })).toThrow(RaiIgnoredEvent);
+  });
+
+  it("reads new-document events, and a document ID always wins over the name", () => {
+    expect(readRaiDocumentEvent({ event: "new-document", document_id: "D1", company_name: "Acme LLC" })).toEqual({ documentId: "D1", companyId: null, companyName: "Acme LLC" });
+    expect(readRaiDocumentEvent({ event: "new-invoice", document_id: "D1" }).documentId).toBe("D1");
+    expect(readRaiDocumentEvent({ type: "document", data: { document_id: "D3" } }).documentId).toBe("D3");
+  });
+
+  it("refuses a document event, or an unnamed one, with no document ID", () => {
+    for (const claims of [{ event: "new-document" }, { type: "document" }, {}]) {
+      const fn = () => readRaiDocumentEvent(claims);
+      expect(fn).toThrow(RaiWebhookError);
+      expect(fn).not.toThrow(RaiIgnoredEvent);
+    }
+  });
+
+  it("reads the event from a JSON string claim", () => {
+    const content = JSON.stringify({ event: "new-document", document_id: "D4", company_id: "C1" });
+    expect(readRaiDocumentEvent({ content })).toEqual({ documentId: "D4", companyId: "C1", companyName: null });
+    expect(() => readRaiDocumentEvent({ content: JSON.stringify({ event: "new-invoice" }) })).toThrow(RaiIgnoredEvent);
   });
 });
