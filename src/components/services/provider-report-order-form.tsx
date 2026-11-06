@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 import type { ActionMessageState } from "@/components/funnel/types";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useSubmitAction } from "@/components/ui/use-submit-action";
 
 /**
  * Annual report details for a state Filewell doesn't file itself: only what the report asks
@@ -26,10 +26,10 @@ export function ProviderReportOrderForm({
   totalLabel: string;
   prefill: { businessId: string | null; businessName: string; entityNumber: string; contactName: string; contactPhone: string };
 }) {
-  const [state, formAction] = useActionState(action, {});
+  const [state, onSubmit, pending] = useSubmitAction(action);
   const isLlc = entityType === "llc";
   return (
-    <form action={formAction} className="grid gap-5">
+    <form onSubmit={onSubmit} className="grid gap-5">
       <input type="hidden" name="stateCode" value={stateCode} />
       <input type="hidden" name="entityType" value={entityType} />
       {prefill.businessId ? <input type="hidden" name="businessId" value={prefill.businessId} /> : null}
@@ -106,7 +106,7 @@ export function ProviderReportOrderForm({
           <p>{state.error}</p>
         </Notice>
       ) : null}
-      <SubmitButton size="lg" pendingLabel="Opening secure checkout…" className="w-full">
+      <SubmitButton pending={pending} size="lg" pendingLabel="Opening secure checkout…" className="w-full">
         Pay {totalLabel} securely
       </SubmitButton>
     </form>

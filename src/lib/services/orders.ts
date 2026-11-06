@@ -438,6 +438,9 @@ export async function startServiceCheckout(u: SessionUser, input: ServiceCheckou
       ra_subscription_id: sub.id,
       kind: "registered_agent",
       state_code: business.state_code,
+      // Every row in a multi-row insert must name the same columns: PostgREST sends a column
+      // another row leaves out as null, which the not-null fee column rejects.
+      government_fee_cents: 0,
       wholesale_cost_cents: WHOLESALE.registeredAgentPerYear,
       details: {
         situation: preview.situation,

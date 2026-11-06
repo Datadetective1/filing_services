@@ -13,7 +13,7 @@ import { rankFocus } from "@/components/dashboard/requirement-state";
 import { DashboardSection, QuietEmpty, quietLinkClass } from "@/components/dashboard/section";
 import { SupportCard } from "@/components/dashboard/support-card";
 import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
-import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
 import { readServiceIntent } from "@/lib/services/intent";
 import { loadDashboard } from "./_lib/data";
 
@@ -48,6 +48,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const ranked = rankFocus(businesses, openRequirements);
   const needCount = (ranked.focus ? 1 : 0) + ranked.others.length;
   const states = [...new Set(businesses.map((b) => b.stateName))];
+  const canForm = businessServicesPagesEnabled() && formationOpenStates().length > 0;
   const summary = `${businesses.length} ${businesses.length === 1 ? "business" : "businesses"} in ${joinNames(states)}`;
 
   return (
@@ -69,10 +70,17 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
             )}
           </p>
         </div>
-        <ButtonLink href="/find" variant="secondary" className="max-sm:hidden">
-          <Plus size={16} weight="bold" aria-hidden />
-          Add a business
-        </ButtonLink>
+        <div className="flex items-center gap-2 max-sm:hidden">
+          {canForm ? (
+            <ButtonLink href="/dashboard/services/formation" variant="secondary">
+              Start a new business
+            </ButtonLink>
+          ) : null}
+          <ButtonLink href="/find" variant="secondary">
+            <Plus size={16} weight="bold" aria-hidden />
+            Add a business
+          </ButtonLink>
+        </div>
       </header>
 
       <DashboardNotices searchParams={searchParams} className="mt-6" />
@@ -86,10 +94,17 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
               <h2 id="businesses-title" className="text-xl font-semibold text-fg sm:text-[22px]">
                 All businesses
               </h2>
-              <Link href="/find" className={`${quietLinkClass} text-sm sm:hidden`}>
-                <Plus size={14} weight="bold" aria-hidden />
-                Add a business
-              </Link>
+              <div className="flex items-center gap-4 sm:hidden">
+                {canForm ? (
+                  <Link href="/dashboard/services/formation" className={`${quietLinkClass} text-sm`}>
+                    Start a new one
+                  </Link>
+                ) : null}
+                <Link href="/find" className={`${quietLinkClass} text-sm`}>
+                  <Plus size={14} weight="bold" aria-hidden />
+                  Add a business
+                </Link>
+              </div>
             </div>
             <div className="grid gap-4">
               {businesses.map((business) => (

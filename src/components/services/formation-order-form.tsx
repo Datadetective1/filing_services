@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import type { ActionMessageState } from "@/components/funnel/types";
 import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useSubmitAction } from "@/components/ui/use-submit-action";
 
 /**
  * Formation order details: only what the provider needs to file, plus one contact. The state
@@ -35,11 +36,11 @@ export function FormationOrderForm({
   agentRenewalLabel: string | null;
   prefill: { contactName: string; contactPhone: string };
 }) {
-  const [state, formAction] = useActionState(action, {});
+  const [state, onSubmit, pending] = useSubmitAction(action);
   const [withAgent, setWithAgent] = useState(false);
   const isLlc = entityType === "llc";
   return (
-    <form action={formAction} className="grid gap-5">
+    <form onSubmit={onSubmit} className="grid gap-5">
       <input type="hidden" name="stateCode" value={stateCode} />
       <input type="hidden" name="entityType" value={entityType} />
       <fieldset className="grid gap-4">
@@ -200,7 +201,7 @@ export function FormationOrderForm({
           <p>{state.error}</p>
         </Notice>
       ) : null}
-      <SubmitButton
+      <SubmitButton pending={pending}
         size="lg"
         pendingLabel="Opening secure checkout…"
         className="w-full"
