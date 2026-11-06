@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
 import type { ActionMessageState } from "@/components/funnel/types";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useSubmitAction } from "@/components/ui/use-submit-action";
 
 /** Three answers for a business not formed yet; the agent order page comes next. */
 export function NewBusinessForm({
@@ -19,9 +19,9 @@ export function NewBusinessForm({
   states: { code: string; name: string }[];
   defaultState: string;
 }) {
-  const [state, formAction] = useActionState(action, {});
+  const [state, onSubmit, pending] = useSubmitAction(action);
   return (
-    <form action={formAction} className="grid gap-5">
+    <form onSubmit={onSubmit} className="grid gap-5">
       <Field label="State you're forming in" htmlFor="stateCode">
         <Select
           id="stateCode"
@@ -81,7 +81,7 @@ export function NewBusinessForm({
           <p>{state.error}</p>
         </Notice>
       ) : null}
-      <SubmitButton size="lg" pendingLabel="Saving…" className="w-full">
+      <SubmitButton pending={pending} size="lg" pendingLabel="Saving…" className="w-full">
         Continue
       </SubmitButton>
     </form>

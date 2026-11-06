@@ -420,6 +420,9 @@ export async function startFormationCheckout(
       ra_subscription_id: subscriptionId,
       kind: "registered_agent",
       state_code: j.code,
+      // Every row in a multi-row insert must name the same columns: PostgREST sends a column
+      // another row leaves out as null, which the not-null fee column rejects.
+      government_fee_cents: 0,
       wholesale_cost_cents: WHOLESALE.registeredAgentPerYear,
       details: {
         situation: "formation_add_on",

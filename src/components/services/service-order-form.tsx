@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 import type { ActionMessageState } from "@/components/funnel/types";
 import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { useSubmitAction } from "@/components/ui/use-submit-action";
 
 /**
  * Registered agent order details. Only what the provider can ask for at short notice (a real
@@ -35,11 +35,11 @@ export function ServiceOrderForm({
   /** The jurisdiction's provider needs the owners' names and home addresses (Wyoming). */
   askOwners?: boolean;
 }) {
-  const [state, formAction] = useActionState(action, {});
+  const [state, onSubmit, pending] = useSubmitAction(action);
   // The renewal is in the consent line; only order-specific notes (the bundle's report fee) stay.
   const notes = renewalTerms.filter((t) => !t.startsWith("Renews every year"));
   return (
-    <form action={formAction} className="grid gap-5">
+    <form onSubmit={onSubmit} className="grid gap-5">
       <input type="hidden" name="businessId" value={businessId} />
       <input type="hidden" name="service" value={service} />
       <fieldset className="grid gap-4">
@@ -90,7 +90,7 @@ export function ServiceOrderForm({
           <p>{state.error}</p>
         </Notice>
       ) : null}
-      <SubmitButton size="lg" pendingLabel="Opening secure checkout…" className="w-full">
+      <SubmitButton pending={pending} size="lg" pendingLabel="Opening secure checkout…" className="w-full">
         Pay {dueTodayLabel} securely
       </SubmitButton>
     </form>
@@ -109,9 +109,9 @@ export function RenewalForm({
   renew: boolean;
   label: string;
 }) {
-  const [state, formAction] = useActionState(action, {});
+  const [state, onSubmit, pending] = useSubmitAction(action);
   return (
-    <form action={formAction} className="grid gap-3">
+    <form onSubmit={onSubmit} className="grid gap-3">
       <input type="hidden" name="subscriptionId" value={subscriptionId} />
       <input type="hidden" name="renew" value={String(renew)} />
       {state.error ? (
@@ -119,7 +119,7 @@ export function RenewalForm({
           <p>{state.error}</p>
         </Notice>
       ) : null}
-      <SubmitButton variant={renew ? "primary" : "secondary"} pendingLabel="Saving…">
+      <SubmitButton pending={pending} variant={renew ? "primary" : "secondary"} pendingLabel="Saving…">
         {label}
       </SubmitButton>
     </form>
