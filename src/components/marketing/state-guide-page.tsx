@@ -1,4 +1,4 @@
-import { ArrowSquareOut, Info, MagnifyingGlass, SealCheck } from "@phosphor-icons/react/dist/ssr";
+import { Info, MagnifyingGlass, SealCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -18,11 +18,9 @@ import { Container } from "@/components/ui/surface";
 import { stateLookupEnabled } from "@/lib/compliance/launch";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { findRule, getJurisdiction, isRuleSellable, rulesForState } from "@/lib/compliance/registry";
-import { PA_URLS, PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import { verifiedText } from "@/lib/compliance/view";
 import { daysBetween, formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
 import { dueDateForYear } from "@/lib/domain/deadlines";
-import { formatCents } from "@/lib/domain/money";
 import { articleJsonLd, breadcrumbJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { GuideBlock } from "@/lib/seo/pa-guides";
@@ -111,20 +109,14 @@ function AlreadyFiled() {
         <div className="grid gap-1">
           <p className="font-display text-lg font-semibold text-fg">Not sure if it was already filed?</p>
           <p className="text-sm leading-6 text-muted">
-            The Department of State&apos;s own records are the place to check. Look your business up there before filing again.
+            Check with whoever handles your filings before filing again. If it&apos;s still open, find your business and we
+            can file it for you.
           </p>
         </div>
       </div>
-      <a
-        href={PA_URLS.businessSearch}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={buttonClasses("secondary", "md", "shrink-0")}
-      >
-        Check on file.dos.pa.gov
-        <ArrowSquareOut size={16} aria-hidden />
-        <span className="sr-only">(opens in a new tab)</span>
-      </a>
+      <Link href="/find" className={buttonClasses("secondary", "md", "shrink-0")}>
+        Find my business
+      </Link>
     </div>
   );
 }
@@ -146,9 +138,7 @@ function Block({ block, id }: { block: GuideBlock; id: string }) {
           <figure className="rounded-[var(--radius-surface)] border-l-4 border-accent bg-surface-2 px-5 py-4">
             <blockquote className="text-[15px] leading-7 text-fg">&ldquo;{block.quote.text}&rdquo;</blockquote>
             <figcaption className="mt-2 text-sm text-muted">
-              <a href={block.quote.source.url} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
-                {block.quote.source.publisher}, {block.quote.source.title}
-              </a>
+              {block.quote.source.publisher}, {block.quote.source.title}
             </figcaption>
           </figure>
         ) : null}
@@ -178,22 +168,6 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
     { name: isPa ? "Pennsylvania annual report" : hubName.replace(/^\w/, (c) => c.toUpperCase()), path: `/annual-report/${set.slug}` },
     { name: shortTitle(g.h1, stateName), path },
   ];
-  const filingUrl = rule?.officialFilingUrl ?? j?.agency.websiteUrl ?? "";
-  const filingHost = (() => {
-    try {
-      return new URL(filingUrl).host;
-    } catch {
-      return filingUrl;
-    }
-  })();
-  const stateFeeText = isPa
-    ? PENNSYLVANIA_FACTS.directFilingFeeText
-    : rule?.feeComponents?.length
-      ? `${rule.feeComponents.map((c) => `${formatCents(c.cents, { trimZeros: true })} ${c.label}`).join(" + ")} for an LLC`
-      : rule
-        ? `${formatCents(rule.stateFeeCents, { trimZeros: true })} for an LLC`
-        : "";
-
   const search = isPa ? (
     <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
       <p className="font-display text-lg font-semibold text-fg">Get a free reminder before your due date</p>
@@ -268,15 +242,6 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
 
             <GuideSection id="options" title="Your options">
               <GuideText>
-                {sellable ? null : (
-                  <p>
-                    <strong className="text-fg">File it yourself.</strong> File online at{" "}
-                    <a href={filingUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
-                      {filingHost}
-                    </a>{" "}
-                    for the state {rule?.feeComponents?.length ? "fees" : "fee"}: {stateFeeText}. You don&apos;t need a filing service.
-                  </p>
-                )}
                 {isPa || lookupOn ? (
                   <p>
                     <strong className="text-fg">Get free reminders.</strong> Find your business and we&apos;ll email you before its
@@ -310,11 +275,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
               <ul className="grid gap-2 text-[15px]">
                 {g.sources.map((s) => (
                   <li key={s.url + s.title}>
-                    <a href={s.url} target="_blank" rel="noopener noreferrer" className={`${textLinkClasses} inline-flex items-center gap-1.5`}>
-                      {s.publisher}: {s.title}
-                      <ArrowSquareOut size={14} aria-hidden />
-                      <span className="sr-only">(opens in a new tab)</span>
-                    </a>
+                    {s.publisher}: {s.title}
                   </li>
                 ))}
               </ul>
@@ -366,7 +327,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
             )}
             <p className="flex gap-2 text-sm leading-6 text-muted">
               <Info size={18} aria-hidden className="mt-0.5 shrink-0" />
-              {site.disclaimer} You can also file directly with {stateName}.
+              {site.disclaimer}
             </p>
           </aside>
         </div>

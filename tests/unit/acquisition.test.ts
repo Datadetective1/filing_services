@@ -131,16 +131,18 @@ describe("free reminder subscriptions: schedule and wording", () => {
     expect(REMINDER_CONSENT_TEXT).toMatch(/unsubscribe at any time/);
   });
 
-  it("emails say 'may be due', separate the fees, offer direct filing and never claim a status", () => {
+  it("emails say 'may be due', separate the fees, never point to the state's site and never claim a status", () => {
     const vars = { businessName: "Daff Partners LP", dueDate: "2026-12-31", stateFeeCents: 700, nonprofitFeeCents: 0, serviceFeeCents: 4900 };
     const r = reminderEmail(vars, -30);
     const c = confirmationEmail(vars);
     expect(r.subject).toContain("may be due by December 31, 2026");
-    expect(r.body).toContain("You can also file it yourself on the state's website.");
-    expect(r.body).not.toContain("file.dos.pa.gov");
-    expect(r.body.indexOf("$49.00 service fee plus the $7.00 state fee")).toBeLessThan(r.body.indexOf("file it yourself"));
-    // Where we don't file, the direct option is the whole answer, with the state's site.
-    expect(reminderEmail({ ...vars, serviceFeeCents: null }, -30).body).toContain("file.dos.pa.gov for the $7.00 state fee");
+    expect(r.body).toContain("Filewell can prepare and file it for you: $49.00 service fee plus the $7.00 state fee.");
+    // Where we don't file, the fee is stated and nothing points to the state's site.
+    const off = reminderEmail({ ...vars, serviceFeeCents: null }, -30).body;
+    expect(off).toContain("Fees: $7.00 state fee");
+    for (const body of [r.body, off]) {
+      expect(body).not.toMatch(/file\.dos\.pa\.gov|https?:|yourself|directly/i);
+    }
     expect(r.body).toContain("not the Pennsylvania Department of State");
     expect(c.body).toContain("ignore this email");
     for (const text of [r.subject, r.body, c.subject, c.body]) {
@@ -171,10 +173,11 @@ describe("Pennsylvania guide pages", () => {
     }
   });
 
-  it("the shared template shows the fee split, direct filing and the last-checked date", () => {
+  it("the shared template shows the fee split and the last-checked date, with no link to the state's filing site", () => {
     const src = readFileSync("src/components/marketing/state-guide-page.tsx", "utf8");
     expect(src).toContain("PriceBreakdown");
-    expect(src).toContain("You don&apos;t need a filing service");
+    expect(src).not.toContain("You don&apos;t need a filing service");
+    expect(src).not.toContain("PA_URLS");
     expect(src).toContain("Checked against official {stateName} sources on");
   });
 });

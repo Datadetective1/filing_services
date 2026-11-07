@@ -177,7 +177,7 @@ const PROFILES: MtProfile[] = [
           { value: "yes", label: "Yes" },
         ],
         blocked: [
-          { value: "yes", message: "Filewell can't file share changes on a Montana report yet. You can file this report yourself on Montana's site." },
+          { value: "yes", message: "Filewell can't file share changes on a Montana report yet." },
         ],
       },
     ],
@@ -220,7 +220,7 @@ function intakeFor(p: MtProfile): IntakeSchema {
               { value: "new", label: "Yes, we're appointing a new registered agent" },
             ],
             blocked: [
-              { value: "new", message: "Filewell can't file a registered agent change with a Montana report yet. You can file this report yourself on Montana's site." },
+              { value: "new", message: "Filewell can't file a registered agent change with a Montana report yet." },
             ],
           },
           { key: "registered_agent_name", type: "text", label: "Registered agent name", required: true, maxLength: 200 },
@@ -312,13 +312,12 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
     officialFilingUrl: MT_URLS.portal,
     officialInfoUrl: MT_URLS.help,
     filingMethodSummary:
-      "Filed online at biz.sosmt.gov: search the business, choose File Annual Report, check each declaration box and sign. A report with changes needs a Montana business services account.",
+      "Filed online on the Secretary of State's business site: search the business, choose File Annual Report, check each declaration box and sign. A report with changes needs a Montana business services account.",
     processingSummary: "Montana files online annual reports when they're submitted.",
     customerSummary: `Montana ${p.pluralNoun} file an annual report between January 1 and April 15. The state fee is waived through 2027 if you file on time; after April 15 it's $35.`,
     faq: [
       { q: `When is a Montana ${p.noun}'s annual report due?`, a: "Between January 1 and April 15 every year, starting the year after the business was formed." },
       { q: "How much is the state fee?", a: "Nothing in 2026 and 2027 if you file by April 15. After April 15 it's $35. Our service fee, if you use us, is shown separately." },
-      { q: "Can I file it myself?", a: "Yes. You can file directly on Montana's business services site." },
     ],
     operatorRunbook: {
       portalName: "Montana Business Services (biz.sosmt.gov)",

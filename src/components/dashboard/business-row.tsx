@@ -7,7 +7,7 @@ import type { BusinessView, FilingSummary, RequirementView } from "@/app/(app)/d
 import { BusinessMark } from "./business-mark";
 import { DateChip, DaysRemaining, DueDate, isHandledByUs } from "./due-info";
 import { FilingTracker } from "./filing-tracker";
-import { FileDirectlyNote, RequirementActions } from "./requirement-actions";
+import { RequirementActions } from "./requirement-actions";
 import { businessStanding, requirementAction } from "./requirement-state";
 import { quietLinkClass } from "./section";
 import { businessHref, filingHref } from "./steps";
@@ -51,13 +51,6 @@ export function BusinessRow({
   const standing = businessStanding(nextRequirement, action, latestFiling);
   const pastFiling = latestFiling && latestFiling.id !== active?.id ? latestFiling : null;
   const late = nextRequirement ? nextRequirement.daysRemaining < 0 && !isHandledByUs(nextRequirement) : false;
-  // Shown where we offer to file now; the business page always carries it.
-  const offerFileDirect =
-    nextRequirement &&
-    nextRequirement.status === "open" &&
-    (!active || active.status === "draft") &&
-    (action?.kind === "start" || action?.kind === "continue") &&
-    business.rule;
 
   return (
     <article
@@ -158,11 +151,6 @@ export function BusinessRow({
         ) : null}
       </div>
 
-      {offerFileDirect ? (
-        <footer className="border-t border-border bg-surface-2/60 px-5 py-3 sm:px-6">
-          <FileDirectlyNote business={business} />
-        </footer>
-      ) : null}
     </article>
   );
 }

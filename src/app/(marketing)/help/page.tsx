@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, ChatCircleText, EnvelopeSimple, Warning } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ChatCircleText, EnvelopeSimple, Warning } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
@@ -8,7 +8,6 @@ import { JsonLd } from "@/components/marketing/json-ld";
 import { Section } from "@/components/marketing/section";
 import { textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
-import { PA_URLS } from "@/lib/compliance/states/pennsylvania";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
@@ -83,21 +82,6 @@ export default function HelpPage() {
               {site.supportEmail}
             </a>
           </li>
-          <li className={rowClass}>
-            <p className={rowTitle}>
-              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-2 text-fg">
-                <ArrowUpRight size={20} weight="bold" aria-hidden />
-              </span>
-              Filing directly with the state
-            </p>
-            <p className="max-w-[56ch] text-base leading-7 text-muted">
-              You can always file yourself. Pennsylvania&apos;s online filing system is run by the Department of State.
-            </p>
-            <a href={PA_URLS.onlineFiling} target="_blank" rel="noopener noreferrer" className={rowLink}>
-              file.dos.pa.gov
-              <span className="sr-only"> (opens the government website in a new tab)</span>
-            </a>
-          </li>
         </ul>
 
         <div className="mt-14 grid gap-10 lg:grid-cols-2 lg:gap-16">
@@ -134,16 +118,6 @@ export default function HelpPage() {
                 {site.disclaimer} We never ask for your password to the state&apos;s filing system. The Department of State
                 publishes warnings about misleading filing offers.
               </p>
-              <a
-                href={PA_URLS.dosScamAlerts}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-start`}
-              >
-                Read the state&apos;s scam alerts
-                <ArrowUpRight size={14} weight="bold" aria-hidden />
-                <span className="sr-only"> (opens the government website in a new tab)</span>
-              </a>
             </div>
           </div>
         </div>

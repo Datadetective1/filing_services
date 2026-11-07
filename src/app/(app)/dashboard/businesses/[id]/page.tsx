@@ -181,7 +181,7 @@ export default async function BusinessPage(props: PageProps<"/dashboard/business
               <p>
                 Based on the {agency}&apos;s published requirements: {business.rule.customerSummary}
               </p>
-              <OfficialSource href={business.rule.officialInfoUrl} agency={agency} lastVerifiedAt={business.rule.lastVerifiedAt} />
+              <OfficialSource agency={agency} lastVerifiedAt={business.rule.lastVerifiedAt} />
             </div>
           ) : null}
         </DashboardSection>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ArrowSquareOut, Info } from "@phosphor-icons/react";
+import { ArrowRight, Info } from "@phosphor-icons/react";
 import { useActionState, useRef, useState } from "react";
 import { track } from "@/lib/analytics/client";
 import { Checkbox, Field, Select } from "@/components/ui/field";
@@ -158,24 +158,7 @@ export function LookupForm({
       <div className="flex gap-3 rounded-[var(--radius-control)] bg-surface-2 px-4 py-3.5 text-sm leading-6 text-muted">
         <Info size={18} className="mt-0.5 shrink-0 text-fg" aria-hidden />
         <p>
-          {selected ? (
-            <>
-              Copy your details from the{" "}
-              <a
-                href={selected.searchUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-fg underline decoration-border-strong underline-offset-4 hover:decoration-fg"
-              >
-                {selected.isBusinessSearch ? `official ${selected.name} business search` : `official ${selected.name} business agency site`}
-                <ArrowSquareOut size={14} weight="bold" aria-hidden className="ml-1 inline align-[-2px]" />
-                <span className="sr-only">(opens a government website in a new tab)</span>
-              </a>
-              .
-            </>
-          ) : (
-            "Copy your details as they appear on your state record."
-          )}
+          Copy your details as they appear on your state record.
         </p>
       </div>
 

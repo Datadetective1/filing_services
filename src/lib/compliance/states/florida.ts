@@ -184,7 +184,7 @@ function intakeFor(p: FlProfile): IntakeSchema {
             blocked: [
               {
                 value: "change",
-                message: "Filewell can't add or change a FEIN on a Florida report yet. You can file this report yourself on Sunbiz.",
+                message: "Filewell can't add or change a FEIN on a Florida report yet.",
               },
             ],
           },
@@ -216,7 +216,7 @@ function intakeFor(p: FlProfile): IntakeSchema {
               {
                 value: "new",
                 message:
-                  "Florida needs the new registered agent to sign the annual report themselves, so Filewell can't file a registered agent change yet. You can file this report yourself on Sunbiz.",
+                  "Florida needs the new registered agent to sign the annual report themselves, so Filewell can't file a registered agent change yet.",
               },
             ],
           },
@@ -329,7 +329,6 @@ function buildRule(p: FlProfile): ComplianceRuleDef {
         q: "Who signs the report?",
         a: "One of the business's own principals (for example a manager or an officer). If we file for you, you sign the report yourself in Filewell and we enter your signature on Sunbiz exactly as you typed it.",
       },
-      { q: "Can I file it myself?", a: "Yes. You can file directly on Sunbiz with your document number." },
     ],
     operatorRunbook: {
       portalName: "Sunbiz e-file (Florida Division of Corporations)",

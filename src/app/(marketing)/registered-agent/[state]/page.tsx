@@ -157,16 +157,14 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
               <ul className="grid gap-2 text-sm text-muted">
                 {change.sources.filter((s, k, all) => all.findIndex((x) => x.url === s.url) === k).map((s) => (
                   <li key={s.url}>
-                    <a href={s.url} className={textLinkClasses} rel="noopener noreferrer" target="_blank">
-                      {s.publisher}
-                    </a>
+                    {s.publisher}
                   </li>
                 ))}
               </ul>
             </div>
             <Notice tone="neutral">
               <p>
-                You can also change your agent yourself on the {j.name} filing site for the state fee alone. Filewell is not affiliated with the state.
+                Filewell is a private company and is not affiliated with the state.
               </p>
             </Notice>
           </div>

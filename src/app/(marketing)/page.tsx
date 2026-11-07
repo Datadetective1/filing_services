@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, BellSlash, Buildings, CalendarCheck, CalendarX, ChatCircleText, CheckCircle, Envelope, SealCheck, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, BellSlash, Buildings, CalendarCheck, CalendarX, ChatCircleText, CheckCircle, Envelope, SealCheck, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
@@ -77,11 +77,7 @@ export default async function HomePage() {
   const faq: FaqItem[] = [
     {
       q: `Is ${site.name} a government agency?`,
-      a: `No. ${site.name} is a private company that prepares and submits filings for businesses. We are not affiliated with or endorsed by any government agency, and you can always file directly with your state.`,
-    },
-    {
-      q: "Do I have to use a filing service?",
-      a: "No. You can file directly with your state. If you'd rather not, we prepare and submit it for you and send you the state's confirmation.",
+      a: `No. ${site.name} is a private company that prepares and submits filings for businesses. We are not affiliated with or endorsed by any government agency.`,
     },
     {
       q: "What does it cost to have you file?",
@@ -308,11 +304,7 @@ export default async function HomePage() {
               <p className="text-[15px] leading-7 text-fg">
                 Starting with reports due in {PENNSYLVANIA_FACTS.enforcementStartsWithReportsDueIn}, a business that
                 doesn&apos;t file can be administratively dissolved six months after its due date.{" "}
-                <a href={PENNSYLVANIA_FACTS.officialInfoUrl} target="_blank" rel="noopener noreferrer" className={textLinkClasses}>
-                  {agency}
-                  <ArrowUpRight size={14} weight="bold" aria-hidden className="ml-0.5 inline align-[-1px]" />
-                  <span className="sr-only"> (opens the government website in a new tab)</span>
-                </a>
+                <span className="text-muted">Source: {agency}.</span>
               </p>
             </div>
           </div>
@@ -392,7 +384,7 @@ export default async function HomePage() {
                 <BellSlash size={20} weight="fill" aria-hidden />
               </span>
               <div className="grid gap-1">
-                <p className="font-display text-lg font-semibold text-fg">Already filed it yourself?</p>
+                <p className="font-display text-lg font-semibold text-fg">Already filed it?</p>
                 <p className="text-[15px] leading-6 text-fg/80">Tell us and the reminders stop. No need to explain.</p>
               </div>
             </div>

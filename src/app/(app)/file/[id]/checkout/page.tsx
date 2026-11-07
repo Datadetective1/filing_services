@@ -238,7 +238,7 @@ export default async function FilingCheckoutPage({ params, searchParams }: PageP
       </div>
 
       <p className="mt-10 max-w-[70ch] text-sm leading-6 text-subtle">
-        {site.disclaimer} You can also file directly with the {summary.agencyName}.
+        {site.disclaimer}
       </p>
     </Container>
   );

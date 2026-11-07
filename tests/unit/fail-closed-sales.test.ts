@@ -101,7 +101,7 @@ describe("public pages and reminders never offer paid filing where sales are off
     expect(tpl.body).not.toContain("prepare and submit");
     expect(tpl.body).toContain("{{filing_options}}");
     expect(filingOptionsSentence(true, "Filewell")).toMatch(/^Filewell can prepare and submit it for you\./);
-    expect(filingOptionsSentence(false, "Filewell")).toBe("You can file it yourself on the state's website.");
+    expect(filingOptionsSentence(false, "Filewell")).toBe("If you've already filed it, you can mark it as filed and we'll stop reminding you.");
   });
 });
 

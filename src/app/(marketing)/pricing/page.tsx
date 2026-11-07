@@ -54,10 +54,6 @@ export default async function PricingPage() {
       q: "Is the state fee marked up?",
       a: "No. We pass the state fee through at cost and pay it to the state on your behalf. It is always its own line, separate from our service fee.",
     },
-    {
-      q: "Can I file it myself instead?",
-      a: "Yes, you can file directly with the state. If you'd rather not deal with it, we prepare and submit it, pay the state fee for you and keep the records.",
-    },
     { q: "Can I get a refund?", a: REFUND_TEXT },
     {
       q: "Can the price change after I order?",

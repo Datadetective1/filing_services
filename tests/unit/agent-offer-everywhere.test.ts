@@ -20,8 +20,9 @@ describe("a state we don't file reports in", () => {
     expect(result).toContain("We can be your registered agent in ${stateName}");
   });
 
-  it("still points to the state's own deadline", () => {
-    expect(result).toContain("Check your deadline with the state");
+  it("never sends the visitor to the state's own site", () => {
+    expect(result).not.toContain("Check your deadline with the state");
+    expect(result).not.toMatch(/searchUrl|target="_blank"|File it yourself/);
   });
 });
 
