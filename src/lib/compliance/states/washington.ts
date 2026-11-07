@@ -461,7 +461,7 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
     officialFilingUrl: WA_URLS.ccfs,
     officialInfoUrl: WA_URLS.forms,
     filingMethodSummary:
-      "Filed online in the Corporations and Charities Filing System (CCFS). Businesses with a previous annual report on record can use the Express Annual Report option; the regular annual report is filed from a CCFS account. Paid by card.",
+      "Filed online with the Secretary of State and paid by card. Businesses with a previous annual report on record can use a shorter express report.",
     processingSummary:
       "Online filing gives immediate submission confirmation; without an upload the information shows on the record right away and the expiration date moves to next year.",
     customerSummary: `Washington ${p.pluralNoun} file an annual report by their expiration date (the last day of the month they were formed or registered), with a $70 state fee. A $25 delinquency fee is added only if the state lists the business as Delinquent.`,

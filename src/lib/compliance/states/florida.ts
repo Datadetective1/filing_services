@@ -315,7 +315,7 @@ function buildRule(p: FlProfile): ComplianceRuleDef {
     officialFilingUrl: FL_URLS.annualReport,
     officialInfoUrl: FL_URLS.instructions,
     filingMethodSummary:
-      "Filed online on Sunbiz with the business's document number (no account needed), signed by one of the business's principals typing their name, and paid by card.",
+      "Filed online with the Division of Corporations, signed by one of the business's principals typing their name, and paid by card.",
     processingSummary: "Sunbiz processes and posts annual reports filed online immediately.",
     customerSummary: `Florida ${p.pluralNoun} file an annual report between January 1 and May 1, with a $${(p.stateFeeCents / 100).toFixed(2)} state fee. Filing after May 1 adds a $400 late fee.`,
     faq: [

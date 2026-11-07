@@ -593,9 +593,9 @@ function buildRule(p: EntityProfile): ComplianceRuleDef {
     officialFilingUrl: URL.onlineFiling,
     officialInfoUrl: URL.dosAnnualReports,
     filingMethodSummary:
-      "Filed online through the Department of State's Business Filing Services: log in, find the business with Business Search, choose “File Annual Report”, confirm or update the information, e-sign and pay. A paper form (DSCB:15-146) may also be mailed.",
+      "Filed with the Department of State, online or on paper form DSCB:15-146. The business's details are confirmed or updated, the report is signed and the state fee is paid.",
     processingSummary:
-      "Online filings are approved automatically, usually within minutes. The filed report is available in the state portal for 60 days after processing.",
+      "Online filings are usually approved within minutes.",
     customerSummary: `Pennsylvania ${p.pluralNoun} must file an annual report with the Department of State by ${p.dueText} each year, with ${fee}.${nonprofitClause}`,
     faq,
     sources: [dueSource(p.entityType), ...feeSources(p.entityType), ...COMMON_SOURCES],
