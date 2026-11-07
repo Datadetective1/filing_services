@@ -3,7 +3,7 @@ import type { BusinessView, RequirementView } from "@/app/(app)/dashboard/_lib/d
 import { StatusPair } from "./business-row";
 import { DateChip, DaysRemaining, deadlineRingLabel, DueDate, isHandledByUs } from "./due-info";
 import { FilingTracker } from "./filing-tracker";
-import { FileDirectlyNote, RequirementActions } from "./requirement-actions";
+import { RequirementActions } from "./requirement-actions";
 
 /**
  * An open filing period on the business page: the countdown to its deadline, where
@@ -20,7 +20,6 @@ export function OpenRequirement({
 }) {
   const active = requirement.activeFiling;
   const handled = isHandledByUs(requirement);
-  const offerFileDirect = business.rule && (!active || active.status === "draft");
 
   return (
     <article
@@ -59,11 +58,6 @@ export function OpenRequirement({
         <div className="border-t border-border px-4 py-5 sm:px-7 sm:py-6">
           <FilingTracker filing={active} />
         </div>
-      ) : null}
-      {offerFileDirect ? (
-        <footer className="border-t border-border bg-surface-2/60 px-5 py-3 sm:px-7">
-          <FileDirectlyNote business={business} />
-        </footer>
       ) : null}
     </article>
   );

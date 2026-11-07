@@ -1,6 +1,5 @@
-import { ArrowUpRight, CalendarCheck, CalendarPlus, Warning } from "@phosphor-icons/react/dist/ssr";
+import { CalendarCheck, CalendarPlus, Warning } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/components/ui/cn";
-import { PA_URLS } from "@/lib/compliance/states/pennsylvania";
 
 const STEPS = [
   {
@@ -65,13 +64,7 @@ export function Pa2027Timeline({ className }: { className?: string }) {
         ))}
       </ol>
       <p className="relative mt-7 text-sm text-ink-muted">
-        Source:{" "}
-        <a href={PA_URLS.dosAnnualReports} target="_blank" rel="noopener noreferrer" className="font-semibold text-ink-fg underline decoration-highlight/50 decoration-2 underline-offset-4 hover:decoration-highlight">
-          Pennsylvania Department of State, Annual Reports
-          <ArrowUpRight size={14} weight="bold" aria-hidden className="ml-0.5 inline align-[-1px]" />
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
-        . Reports due in 2025 and 2026 aren&apos;t covered by this rule.
+        Source: <span className="font-semibold text-ink-fg">Pennsylvania Department of State, Annual Reports</span>. Reports due in 2025 and 2026 aren&apos;t covered by this rule.
       </p>
     </section>
   );

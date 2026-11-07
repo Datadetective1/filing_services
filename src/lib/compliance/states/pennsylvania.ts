@@ -537,10 +537,6 @@ function buildRule(p: EntityProfile): ComplianceRuleDef {
           : `The Department of State charges $7.${nonprofitClause} If you have us file it, our service fee is shown separately before you pay.`,
     },
     {
-      q: "Can I file it myself?",
-      a: "Yes. You can file directly with the Pennsylvania Department of State at file.dos.pa.gov. Online filings are approved automatically, usually within minutes. Using a filing service is optional.",
-    },
-    {
       q: "Is there a late fee?",
       a: "The Department of State says there is no state late fee for filing after the deadline. Beginning with reports due in 2027, entities that don't file become subject to administrative dissolution, cancellation or termination six months after the due date.",
     },
@@ -597,7 +593,7 @@ function buildRule(p: EntityProfile): ComplianceRuleDef {
     officialFilingUrl: URL.onlineFiling,
     officialInfoUrl: URL.dosAnnualReports,
     filingMethodSummary:
-      "Filed online through the Department of State's Business Filing Services (file.dos.pa.gov): log in, find the business with Business Search, choose “File Annual Report”, confirm or update the information, e-sign and pay. A paper form (DSCB:15-146) may also be mailed.",
+      "Filed online through the Department of State's Business Filing Services: log in, find the business with Business Search, choose “File Annual Report”, confirm or update the information, e-sign and pay. A paper form (DSCB:15-146) may also be mailed.",
     processingSummary:
       "Online filings are approved automatically, usually within minutes. The filed report is available in the state portal for 60 days after processing.",
     customerSummary: `Pennsylvania ${p.pluralNoun} must file an annual report with the Department of State by ${p.dueText} each year, with ${fee}.${nonprofitClause}`,

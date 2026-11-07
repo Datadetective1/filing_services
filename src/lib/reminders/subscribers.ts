@@ -88,19 +88,12 @@ async function copyVars(row: SubscriberRow, dueDate: string): Promise<Subscriber
   // Our service is only mentioned where Filewell actually sells this filing.
   const quote = isRuleSellable(rule) ? await publicQuote(rule, { isNonprofit: row.is_nonprofit }).catch(() => null) : null;
   const j = getJurisdiction(row.state_code);
-  let host: string | undefined;
-  try {
-    host = new URL(rule.officialFilingUrl).host;
-  } catch {
-    host = undefined;
-  }
   return {
     businessName: row.legal_name,
     dueDate,
     stateName: j?.name,
     filingName: rule.filingName,
     agencyName: j?.agency.name.split(" - ")[0],
-    directFilingHost: host,
     stateFeeCents: rule.stateFeeCents,
     nonprofitFeeCents: rule.nonprofitStateFeeCents ?? null,
     feeComponents: rule.feeComponents?.map((c) => ({ label: c.label, cents: c.cents })),

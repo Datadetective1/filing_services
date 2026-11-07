@@ -280,7 +280,7 @@ function buildRule(p: UtProfile): ComplianceRuleDef {
     officialFilingUrl: UT_URLS.registration,
     officialInfoUrl: UT_URLS.renewalProcess,
     filingMethodSummary:
-      "Filed online in Utah's Business Registration System (businessregistration.utah.gov) with a UtahID: Renewals, Annual Report/Renewal with or without changes, sign, then pay by card. Entities with Filing Authority turned on can only be renewed by their administrator or designated users.",
+      "Filed online in Utah's Business Registration System with a UtahID: Renewals, Annual Report/Renewal with or without changes, sign, then pay by card. Entities with Filing Authority turned on can only be renewed by their administrator or designated users.",
     processingSummary: "The Division processes renewals in about 7 to 10 business days and delivers an acknowledgment of the filing.",
     customerSummary: `Utah ${p.pluralNoun} file an annual report by the last day of their anniversary month, with an $18 state fee.${p.lateFee ? " A $10 late renewal fee can apply when the renewal is overdue." : ""}`,
     faq: [
@@ -293,7 +293,6 @@ function buildRule(p: UtProfile): ComplianceRuleDef {
         q: "Is there a late fee?",
         a: p.lateFee ? "Utah lists a $10 late renewal fee for overdue renewals." : "Utah's renewal coupon lists no late fee for business trusts.",
       },
-      { q: "Can I file it myself?", a: "Yes. You can renew directly with the Utah Division of Corporations online using a UtahID." },
     ],
     operatorRunbook: {
       portalName: "Utah Business Registration System",

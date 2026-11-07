@@ -73,7 +73,7 @@ export async function selectRegistryEntity(_prev: RegistrySelectState, formData:
   if (stateCode === "PA") {
     if (!record.entityType || !findRule("PA", record.entityType, "annual_report", Boolean(record.isForeign))) {
       return {
-        error: `We don't handle annual reports for "${record.typeRaw || "this registration type"}" yet. You can file directly at file.dos.pa.gov.`,
+        error: `We don't handle annual reports for "${record.typeRaw || "this registration type"}" yet.`,
       };
     }
   } else if (!record.entityType) {

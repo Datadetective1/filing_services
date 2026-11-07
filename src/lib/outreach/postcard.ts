@@ -8,7 +8,7 @@ import { formatCents } from "@/lib/domain/money";
  *  - the most prominent element on the front: a private solicitation, not a bill, not a
  *    government document, not sent by the Pennsylvania Department of State
  *  - "may be due" (the open dataset has no filing history; never a status claim)
- *  - the business can file directly with Pennsylvania for the state fee instead of using us
+ *  - the state fee stated plainly, with no pointer to the state's own filing site
  *  - Filewell's fee shown separately from the state fee, with the total
  *  - operator identity, return address, how to stop mail
  *
@@ -18,7 +18,7 @@ import { formatCents } from "@/lib/domain/money";
  * rule, are questions for counsel; nothing in the code or docs should claim otherwise.
  */
 
-export const POSTCARD_TEMPLATE_VERSION = "pa_dec31_postcard@2026-10-01b";
+export const POSTCARD_TEMPLATE_VERSION = "pa_dec31_postcard@2026-11-07";
 
 export const SOLICITATION_STATEMENT =
   "This is a solicitation for the order of goods or services, or both, and not a bill, invoice, or statement of account due. You are under no obligation to make any payments on account of this offer unless you accept this offer.";
@@ -40,7 +40,7 @@ export interface PostcardCopy {
   brandLine: string;
   headline: string;
   forLine: string;
-  directOption: string;
+  stateFeeLine: string;
   filewellOption: string;
   options: string[];
   ignore: string;
@@ -58,8 +58,8 @@ export function postcardCopy(i: PostcardInput): PostcardCopy {
     i.nonprofitStateFeeCents != null && i.nonprofitStateFeeCents !== i.stateFeeCents
       ? ` (${formatCents(i.nonprofitStateFeeCents)} for not-for-profit associations)`
       : "";
-  const directOption = `You can file directly with the Pennsylvania Department of State at file.dos.pa.gov for the ${state} state fee${nonprofit} instead of using Filewell.`;
-  const filewellOption = `Or have Filewell prepare and file it: ${ours} service fee + ${state} state fee = ${total}.`;
+  const stateFeeLine = `The Pennsylvania state fee is ${state}${nonprofit}, paid to the Department of State.`;
+  const filewellOption = `Have Filewell prepare and file it: ${ours} service fee + ${state} state fee = ${total}.`;
   const shortUrl = i.landingUrl.replace(/^https?:\/\//, "");
   return {
     banner: "THIS IS A SOLICITATION. NOT A BILL. NOT A GOVERNMENT DOCUMENT.",
@@ -67,9 +67,9 @@ export function postcardCopy(i: PostcardInput): PostcardCopy {
     brandLine: "Filewell · Private filing service · Advertisement",
     headline: `Your ${i.periodYear} Pennsylvania annual report may be due by December 31.`,
     forLine: `For ${i.businessName}`,
-    directOption,
+    stateFeeLine,
     filewellOption,
-    options: [directOption, filewellOption],
+    options: [filewellOption, stateFeeLine],
     ignore: "Already filed? Please ignore this card.",
     cta: `Start here: ${shortUrl}`,
     shortUrl,
@@ -113,8 +113,8 @@ h1{margin:0;font-size:17pt;line-height:1.13}
 <h1>${esc(c.headline)}</h1>
 <div class="for">${esc(c.forLine)}</div>
 <div class="opts">
-<div class="opt"><strong>File it yourself</strong>${esc(c.directOption)}</div>
-<div class="opt"><strong>Or let Filewell file it</strong>${esc(c.filewellOption.replace(/^Or have Filewell prepare and file it: /, "We prepare and file it: "))}</div>
+<div class="opt"><strong>Let Filewell file it</strong>${esc(c.filewellOption.replace(/^Have Filewell prepare and file it: /, "We prepare and file it: "))}</div>
+<div class="opt"><strong>State fee</strong>${esc(c.stateFeeLine)}</div>
 </div>
 <div class="foot"><span class="brand">Filewell</span><span>${esc(c.ignore)}</span></div>
 </div>
@@ -139,7 +139,7 @@ export function postcardBackHtml(c: PostcardCopy, qrSrc: string): string {
 </style></head><body>
 <div class="col">
 <div class="disc">${esc(c.banner)} Not sent by the Pennsylvania Department of State.</div>
-<div class="lead">${esc(c.directOption)}</div>
+<div class="lead">${esc(c.filewellOption)}</div>
 <div class="qr"><img src="${esc(qrSrc)}" alt=""><div>Scan, or visit<b>${esc(c.shortUrl)}</b>${esc(c.ignore)}</div></div>
 <div class="fine">${c.finePrint.map((f) => `<p>${esc(f)}</p>`).join("")}<p>${esc(c.returnAddress)}</p></div>
 </div>

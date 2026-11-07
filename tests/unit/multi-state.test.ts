@@ -245,7 +245,6 @@ describe("free reminders adapt to each state", () => {
         stateName: "Nevada",
         filingName: "Annual List and State Business License renewal",
         agencyName: "Nevada Secretary of State",
-        directFilingHost: "orion.nv.gov",
         stateFeeCents: 35000,
         nonprofitFeeCents: null,
         feeComponents: [
@@ -256,7 +255,8 @@ describe("free reminders adapt to each state", () => {
       },
       -30,
     );
-    expect(nv.body).toContain("orion.nv.gov for the $350.00 in state fees ($150.00 Annual List fee + $200.00 State Business License fee)");
+    expect(nv.body).toContain("Fees: $350.00 in state fees ($150.00 Annual List fee + $200.00 State Business License fee).");
+    expect(nv.body).not.toMatch(/\.gov|https?:/);
     expect(nv.body).not.toContain("Filewell can prepare");
     expect(nv.body).toContain("not the Nevada Secretary of State");
     expect(confirmationEmail({ businessName: "X", dueDate: "2026-12-31", stateFeeCents: 700, nonprofitFeeCents: 0, serviceFeeCents: 4900 }).subject).toBe(

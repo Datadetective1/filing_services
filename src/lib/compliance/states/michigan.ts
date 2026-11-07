@@ -79,7 +79,7 @@ function intakeFor(): IntakeSchema {
               { value: "new", label: "Yes" },
             ],
             blocked: [
-              { value: "new", message: "Filewell can't file a resident agent change with a Michigan report yet. You can file this report yourself on MiBusiness Registry." },
+              { value: "new", message: "Filewell can't file a resident agent change with a Michigan report yet." },
             ],
           },
           { key: "registered_agent_name", type: "text", label: "Resident agent name", required: true, maxLength: 200 },
@@ -170,7 +170,6 @@ function buildRule(): ComplianceRuleDef {
       { q: "When is a Michigan corporation's annual report due?", a: "By May 15 every year after the corporation was formed or qualified. Online filing opens January 15." },
       { q: "How much is the state fee?", a: "$25, paid to LARA. Our service fee, if you use us, is shown separately." },
       { q: "Is there a late penalty?", a: "Yes. $10 for each month or part of a month late, starting May 16, up to $50." },
-      { q: "Can I file it myself?", a: "Yes, in MiBusiness Registry with a MiLogin for Business account." },
     ],
     operatorRunbook: {
       portalName: "MiBusiness Registry",

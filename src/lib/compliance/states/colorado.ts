@@ -169,7 +169,7 @@ function intakeFor(): IntakeSchema {
             blocked: [
               {
                 value: "new",
-                message: "Filewell can't file a registered agent change with a Colorado report yet. You can file this report yourself on the Secretary of State's site.",
+                message: "Filewell can't file a registered agent change with a Colorado report yet.",
               },
             ],
           },
@@ -253,7 +253,6 @@ function buildRule(p: CoProfile): ComplianceRuleDef {
       },
       { q: "How much is the state fee?", a: "$25, paid to the Colorado Secretary of State. Our service fee, if you use us, is shown separately." },
       { q: "Is there a late fee?", a: "Yes. Colorado adds a $50 penalty to a report filed after its due date." },
-      { q: "Can I file it myself?", a: "Yes. You can file directly on the Colorado Secretary of State's site." },
     ],
     operatorRunbook: {
       portalName: "Colorado Secretary of State business filing",

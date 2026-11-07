@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Info, UsersThree } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Info, UsersThree } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -160,12 +160,6 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
     { term: "Form", value: rule.formNumber ? `${rule.filingName} (${rule.formNumber})` : rule.filingName },
   ];
 
-  const officialLinks = [
-    { href: rule.officialFilingUrl, label: "Official online filing" },
-    { href: j.agency.businessSearchUrl, label: "Official business search" },
-    { href: rule.officialInfoUrl, label: `${agency}: annual reports` },
-  ].filter((l): l is { href: string; label: string } => Boolean(l.href));
-
   return (
     <>
       <TrackView event="state_page_viewed" stateCode={j.code} entityType={rule.entityType} />
@@ -317,28 +311,12 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
             </div>
           </Row>
 
-          {/* How to file directly */}
-          <Row id="direct" title="Filing it yourself">
+          {/* How official filing works */}
+          <Row id="direct" title="How official filing works">
             <div className={bodyText}>
               <p>{rule.filingMethodSummary}</p>
               <p>{rule.processingSummary}</p>
             </div>
-            <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-              {officialLinks.map((l) => (
-                <li key={l.href}>
-                  <a
-                    href={l.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border-strong bg-surface px-4 py-2 text-[15px] font-semibold leading-snug text-fg transition-colors hover:border-fg/40 hover:bg-surface-2"
-                  >
-                    {l.label}
-                    <ArrowUpRight size={15} weight="bold" aria-hidden className="shrink-0" />
-                    <span className="sr-only">(opens the official website in a new tab)</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
           </Row>
 
           {/* FAQ */}
@@ -387,7 +365,7 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
             </Link>
           </nav>
 
-          <DisclaimerNote stateName={j.name} />
+          <DisclaimerNote />
         </div>
       </Container>
     </>

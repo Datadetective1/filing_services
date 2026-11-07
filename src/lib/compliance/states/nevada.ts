@@ -305,7 +305,7 @@ function intakeFor(p: NvProfile): IntakeSchema {
               { value: "no", label: "No, it pays the business license fee" },
               { value: "yes", label: "Yes, it is exempt" },
             ],
-            blocked: [{ value: "yes", message: "We can't file for business-license-exempt entities yet. You can file directly with the Nevada Secretary of State." }],
+            blocked: [{ value: "yes", message: "We can't file for business-license-exempt entities yet." }],
           },
           ...(p.corporation
             ? [
@@ -400,7 +400,7 @@ function intakeFor(p: NvProfile): IntakeSchema {
                       value: "yes",
                       when: [{ key: "nv_trade_investigations", in: ["yes"] }],
                       message:
-                        "When both answers are Yes, Nevada requires detailed investigation disclosures and a $100,000 fee. We can't file that online; you can file directly with the Nevada Secretary of State.",
+                        "When both answers are Yes, Nevada requires detailed investigation disclosures and a $100,000 fee. We can't file that online.",
                     },
                   ],
                 },
@@ -501,10 +501,6 @@ function buildRule(p: NvProfile): ComplianceRuleDef {
       {
         q: "Is there a late fee?",
         a: "Yes. Filed after the due date, Nevada adds a $75 annual list penalty and a $100 business license penalty.",
-      },
-      {
-        q: "Can I file it myself?",
-        a: "Yes. You can file directly with the Nevada Secretary of State online. Using a filing service is optional.",
       },
     ],
     operatorRunbook: {

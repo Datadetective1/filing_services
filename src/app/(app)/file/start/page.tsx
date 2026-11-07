@@ -37,7 +37,6 @@ export default async function FileStartPage({ searchParams }: PageProps<"/file/s
   const homeJurisdiction = lookup.isForeign ? await readLookupHomeJurisdiction() : null;
   const jurisdiction = getJurisdiction(lookup.stateCode);
   const stateName = jurisdiction?.name ?? lookup.stateCode;
-  const agencyName = jurisdiction?.agency.name.split(" - ")[0] ?? `${stateName} state agency`;
   const rule = findRule(lookup.stateCode, lookup.entityType, "annual_report", lookup.isForeign);
   const supported = Boolean(rule && rule.verificationStatus === "verified" && isSellableForBusiness(rule, { isNonprofit: lookup.isNonprofit }));
 
@@ -170,9 +169,6 @@ export default async function FileStartPage({ searchParams }: PageProps<"/file/s
         </div>
       )}
 
-      <p className="mt-6 max-w-[64ch] text-sm leading-6 text-subtle">
-        You can also file directly with the {agencyName}.
-      </p>
 
       {!supported ? (
         <div className="mt-6">

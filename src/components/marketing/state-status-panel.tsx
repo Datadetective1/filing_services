@@ -1,4 +1,4 @@
-import { ArrowSquareOut, Info, SealCheck } from "@phosphor-icons/react/dist/ssr";
+import { Info, SealCheck } from "@phosphor-icons/react/dist/ssr";
 import { site } from "@/config/site";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
@@ -98,23 +98,13 @@ export function StateStatusPanel({
         </div>
       </dl>
 
-      <a
-        href={first.officialInfoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group mt-4 flex items-start gap-2 text-[13px] leading-5 text-muted"
-      >
+      <p className="mt-4 flex items-start gap-2 text-[13px] leading-5 text-muted">
         <SealCheck size={16} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
         <span>
-          Source:{" "}
-          <span className="font-semibold text-fg underline decoration-border-strong underline-offset-2 group-hover:decoration-fg">
-            {agency}
-          </span>
-          <ArrowSquareOut size={12} weight="bold" aria-hidden className="ml-0.5 inline align-[-1px]" />
-          <span className="sr-only"> (opens the government website in a new tab)</span>
+          Source: <span className="font-semibold text-fg">{agency}</span>
           {reviewed ? <span className="tnum block">Last verified {verifiedText(reviewed)}</span> : null}
         </span>
-      </a>
+      </p>
 
       <p className="mt-4 flex items-start gap-2 border-t border-border pt-4 text-[13px] leading-5 text-muted">
         <Info size={16} aria-hidden className="mt-0.5 shrink-0 text-accent" />

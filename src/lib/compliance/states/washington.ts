@@ -475,7 +475,6 @@ function buildRule(p: WaProfile): ComplianceRuleDef {
         q: "Is there a late fee?",
         a: "Washington adds a $25 delinquency fee if the business's status is listed as Delinquent, which happens when the report isn't filed by the expiration date.",
       },
-      { q: "Can I file it myself?", a: "Yes. You can file directly with the Washington Secretary of State online through CCFS. Using a filing service is optional." },
     ],
     operatorRunbook: {
       portalName: "Washington CCFS (Corporations and Charities Filing System)",

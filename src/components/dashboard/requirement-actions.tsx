@@ -123,12 +123,3 @@ export function MarkFiledDisclosure({ requirement, returnTo }: { requirement: Re
     </details>
   );
 }
-
-/**
- * Small "file directly with the state" note wherever we offer to file. A plain line with no
- * link or price, so "Have us file it" stays the one action.
- */
-export function FileDirectlyNote({ business, className }: { business: BusinessView; className?: string }) {
-  if (!business.rule) return null;
-  return <p className={cn("text-[13px] leading-5 text-muted", className)}>You can also file directly with the state.</p>;
-}

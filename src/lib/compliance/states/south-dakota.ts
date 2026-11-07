@@ -198,7 +198,7 @@ function intakeFor(p: SdProfile): IntakeSchema {
               { value: "unsure", label: "Not sure" },
             ],
             blocked: [
-              { value: "jan31", message: "Filewell can't track the January 31 date yet. You can file this report yourself on South Dakota's site." },
+              { value: "jan31", message: "Filewell can't track the January 31 date yet." },
             ],
           },
         ],
@@ -250,7 +250,7 @@ function intakeFor(p: SdProfile): IntakeSchema {
             blocked: [
               {
                 value: "yes",
-                message: "Filewell can't file reports that list agricultural land yet. You can file this report yourself on South Dakota's site.",
+                message: "Filewell can't file reports that list agricultural land yet.",
               },
             ],
           },
@@ -327,7 +327,6 @@ function buildRule(p: SdProfile): ComplianceRuleDef {
       },
       { q: "How much is the state fee?", a: "$55 online, paid to the South Dakota Secretary of State. Our service fee, if you use us, is shown separately." },
       { q: "Is there a late fee?", a: "Yes. South Dakota adds $55 to a report that isn't filed on time." },
-      { q: "Can I file it myself?", a: "Yes. You can file directly on South Dakota's site with your Business ID." },
     ],
     operatorRunbook: {
       portalName: "South Dakota Secretary of State business services",

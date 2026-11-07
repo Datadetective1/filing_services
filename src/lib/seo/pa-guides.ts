@@ -5,8 +5,8 @@ import type { FaqItem } from "@/lib/compliance/types";
  * High-intent Pennsylvania guide pages. Every factual statement comes from an official
  * Commonwealth source listed with the page (re-checked on PA_GUIDES_CHECKED). Rules:
  * no invented penalties or late fees, no urgency, no filing-status claims about anyone,
- * the state fee is always kept apart from Filewell's service fee, and every page says
- * readers can file directly with Pennsylvania.
+ * the state fee is always kept apart from Filewell's service fee, and no page links to or
+ * points readers at the state's own filing site.
  *
  * Quotes are copied verbatim from the cited page.
  */
@@ -54,8 +54,6 @@ export const SRC = {
   statute146: { title: "15 Pa.C.S. § 146. Annual report", publisher: LEG, url: PA_URLS.statute146 },
   statute153: { title: "15 Pa.C.S. § 153. Fee schedule", publisher: LEG, url: PA_URLS.statute153 },
   statute381: { title: "15 Pa.C.S. § 381. Grounds for administrative dissolution or cancellation", publisher: LEG, url: PA_URLS.statute381 },
-  onlineFiling: { title: "Business Filing Services (file.dos.pa.gov)", publisher: DOS, url: PA_URLS.onlineFiling },
-  businessSearch: { title: "Business Search", publisher: DOS, url: PA_URLS.businessSearch },
   openData: {
     title: "Registered Businesses in PA - Current by County",
     publisher: "Commonwealth of Pennsylvania (data.pa.gov)",
@@ -119,7 +117,7 @@ export const PA_GUIDES: PaGuide[] = [
       },
       {
         q: "How do I know whether my business already filed this year?",
-        a: "Look the business up on the Department of State's site at file.dos.pa.gov, or ask whoever handles your filings. Filewell can't see filing status: the public register we use doesn't include it.",
+        a: "Ask whoever handles your filings. Filewell can't see filing status: the public register we use doesn't include it.",
       },
     ],
     sources: [SRC.annualReports, SRC.statute146, SRC.scamAlerts],
@@ -141,7 +139,7 @@ export const PA_GUIDES: PaGuide[] = [
           text: "The fee for the new Annual Report is $7 for business corporations, limited liability companies (LLCs), limited partnerships (LPs) and limited liability general partnerships (LLPs), with a $0 fee for nonprofit corporations and any LPs or LLCs with a not-for-profit purpose.",
           source: SRC.annualReports,
         },
-        paragraphs: ["The fee is paid by credit card when you file online at file.dos.pa.gov."],
+        paragraphs: ["The fee is paid by credit card when the report is filed online."],
       },
       {
         heading: "Late filing",
@@ -153,8 +151,8 @@ export const PA_GUIDES: PaGuide[] = [
       {
         heading: "Filing-service fees are extra",
         paragraphs: [
-          "You never have to use a filing service. If you do, the service's fee is in addition to the $7 state fee, so compare the total. The Department of State has warned about third-party companies that charge large markups and send mail that looks official.",
-          "Filewell is one of those private services, and we'd rather be upfront about it: we charge a $49.00 service fee plus the $7.00 state fee ($56.00 total for most businesses), shown as separate lines before you pay. Filing yourself costs only the state fee.",
+          "A filing service's fee is in addition to the $7 state fee, so compare the total. The Department of State has warned about third-party companies that charge large markups and send mail that looks official.",
+          "Filewell is one of those private services, and we'd rather be upfront about it: we charge a $49.00 service fee plus the $7.00 state fee ($56.00 total for most businesses), shown as separate lines before you pay.",
         ],
       },
     ],
@@ -169,7 +167,7 @@ export const PA_GUIDES: PaGuide[] = [
       },
       {
         q: "Why do some companies charge $100 or more?",
-        a: "Those are private service fees on top of the $7 state fee. You can always file directly with the Department of State for the state fee alone.",
+        a: "Those are private service fees on top of the $7 state fee. Filewell charges a $49 service fee plus the $7 state fee, shown as separate lines before you pay.",
       },
     ],
     sources: [SRC.annualReports, SRC.scamAlerts, SRC.statute153],
@@ -178,21 +176,21 @@ export const PA_GUIDES: PaGuide[] = [
     slug: "how-to-file-annual-report",
     title: "How to File a Pennsylvania Annual Report Online (Step by Step)",
     description:
-      "How to file a Pennsylvania annual report at file.dos.pa.gov: the steps, the information you need, the $7 fee, and what you get back. Based on Department of State guidance.",
+      "How a Pennsylvania annual report is filed: what's involved, the information you need, the $7 fee, and what you get back. Based on Department of State guidance.",
     h1: "How to file a Pennsylvania annual report",
     answer: [
-      "You file the annual report (form DSCB:15-146) online at file.dos.pa.gov. Search for your business, open the annual report, confirm or update the details, and pay the $7 fee by credit card ($0 for nonprofits). Online filings are approved automatically, and the approved report is ready to download within minutes.",
+      "The annual report (form DSCB:15-146) is filed online with the Department of State. The business is looked up, the details are confirmed or updated, and the $7 fee is paid by credit card ($0 for nonprofits). Online filings are approved automatically, and the approved report is ready within minutes.",
+      "Filewell can file it for you: we fill in what Pennsylvania's public register shows, you check and authorize it, and we send you the state's acknowledgement.",
     ],
     blocks: [
       {
-        heading: "Steps on the Department of State's site",
+        heading: "What filing involves",
         ordered: true,
         list: [
-          "Register a Business Filing Services account if you don't have one.",
-          "Log in at file.dos.pa.gov and search for your company name.",
-          "Click the Annual Report icon. No PIN is required.",
-          "Complete the form online and pay by credit card.",
-          "Download the form and acknowledgement letter once it's processed.",
+          "A Business Filing Services account with the Department of State.",
+          "Finding the business and opening its annual report. No PIN is required.",
+          "Completing the form online and paying by credit card.",
+          "Downloading the approved report and acknowledgement letter.",
         ],
         quote: {
           text: "Annual Reports submitted online will be automatically approved. Online filers see statuses in real time and will be able to access the approved Annual Report within minutes.",
@@ -212,16 +210,16 @@ export const PA_GUIDES: PaGuide[] = [
         ],
       },
       {
-        heading: "If you'd rather not do it yourself",
+        heading: "Have Filewell file it",
         paragraphs: [
-          "Filewell is a private filing service. Search for your business and we fill in what Pennsylvania's public register shows, so you check details instead of typing them. You confirm everything and authorize the filing, we submit it, and we send you the state's acknowledgement. It costs our $49.00 service fee plus the $7.00 state fee. Filing yourself costs only the state fee.",
+          "Filewell is a private filing service. Search for your business and we fill in what Pennsylvania's public register shows, so you check details instead of typing them. You confirm everything and authorize the filing, we submit it, and we send you the state's acknowledgement. It costs our $49.00 service fee plus the $7.00 state fee.",
         ],
       },
     ],
     faq: [
       {
         q: "Can I file the Pennsylvania annual report on paper?",
-        a: "The Department of State says the annual report should be filed online at file.dos.pa.gov, where filings are approved automatically.",
+        a: "The Department of State says the annual report should be filed online, where filings are approved automatically.",
       },
       {
         q: "Do I need a PIN to file?",
@@ -232,7 +230,7 @@ export const PA_GUIDES: PaGuide[] = [
         a: "Online filings are approved automatically, and the approved report is available within minutes, according to the Department of State.",
       },
     ],
-    sources: [SRC.annualReports, SRC.statute146, SRC.onlineFiling],
+    sources: [SRC.annualReports, SRC.statute146],
   },
   {
     slug: "annual-report-after-deadline",
@@ -241,7 +239,7 @@ export const PA_GUIDES: PaGuide[] = [
       "A late Pennsylvania annual report is filed online for the same $7 ($0 for nonprofits), with no state late fee. From 2027, a business that doesn't file can be dissolved six months later.",
     h1: "Filing a Pennsylvania annual report after the deadline",
     answer: [
-      "If a Pennsylvania annual report deadline has passed, the report can still be filed online at file.dos.pa.gov in the usual way. The Department of State says there is no state late fee for filing past the deadline.",
+      "If a Pennsylvania annual report deadline has passed, the report can still be filed online in the usual way. The Department of State says there is no state late fee for filing past the deadline.",
       "The Department says administrative dissolution applies beginning with annual reports due in 2027, six months after the due date. Its published guidance doesn't describe dissolution for reports due in 2025 or 2026.",
     ],
     blocks: [
@@ -263,7 +261,7 @@ export const PA_GUIDES: PaGuide[] = [
       {
         heading: "Check before you file",
         paragraphs: [
-          "Someone at the business may already have filed. Look the business up on the Department of State's site at file.dos.pa.gov, or ask whoever handles your filings, before filing again. Filewell can't see whether a report was filed: the public register we use doesn't include filing status, so we only ever say a report may be due.",
+          "Someone at the business may already have filed. Ask whoever handles your filings before filing again. Filewell can't see whether a report was filed: the public register we use doesn't include filing status, so we only ever say a report may be due.",
         ],
       },
       {
@@ -276,7 +274,7 @@ export const PA_GUIDES: PaGuide[] = [
     faq: [
       {
         q: "Can I still file my 2026 Pennsylvania annual report after the deadline?",
-        a: "Yes. Late reports are filed online at file.dos.pa.gov the same way, and the Department of State says there is no state late fee.",
+        a: "Yes. Late reports are filed online the same way, and the Department of State says there is no state late fee.",
       },
       {
         q: "Will my business be dissolved for a late 2026 report?",
@@ -297,7 +295,7 @@ export const PA_GUIDES: PaGuide[] = [
     h1: "Pennsylvania business search",
     answer: [
       "Search Pennsylvania's business register below by business name or entity number. We use the Department of State's register as published on data.pa.gov (updated monthly), and show the entity type, formation date, registered office county and when its annual report may be due.",
-      "The official search is the Department of State's business search at file.dos.pa.gov. The Department's own records are the authoritative source for any business.",
+      "Filewell is a private service. The Department of State's own records are the authoritative source for any business.",
     ],
     embedSearch: true,
     blocks: [
@@ -311,32 +309,31 @@ export const PA_GUIDES: PaGuide[] = [
         heading: "Ways to search",
         list: [
           "On this page: search by name or entity number and pick the business to see its filing requirement.",
-          "Department of State business search (file.dos.pa.gov): the official, current record.",
           "data.pa.gov: the Commonwealth's open dataset of registered businesses, updated monthly.",
         ],
       },
       {
         heading: "After you find your business",
         paragraphs: [
-          "You'll see when its annual report may be due and what it costs. You can file directly with the Department of State for the state fee, get free reminders before the next due date, or have Filewell file it for you.",
+          "You'll see when its annual report may be due and what it costs. Get free reminders before the next due date, or have Filewell file it for you.",
         ],
       },
     ],
     faq: [
       {
         q: "Is this the official Pennsylvania business search?",
-        a: "No. Filewell is a private service. The official search is the Department of State's business search at file.dos.pa.gov. We search the Department's register as published on data.pa.gov.",
+        a: "No. Filewell is a private service, not the Department of State. We search the Department's register as published on data.pa.gov.",
       },
       {
         q: "Why can't I find a new business?",
-        a: "The open dataset is updated monthly, so a business registered in the last few weeks may not appear yet. The Department of State's own search is current.",
+        a: "The open dataset is updated monthly, so a business registered in the last few weeks may not appear yet. You can still enter its details by hand.",
       },
       {
         q: "Does the search show whether a business filed its annual report?",
-        a: "No. The open register doesn't include filing history. The Department of State's own records at file.dos.pa.gov are the authoritative source.",
+        a: "No. The open register doesn't include filing history.",
       },
     ],
-    sources: [SRC.businessSearch, SRC.openData, SRC.annualReports],
+    sources: [SRC.openData, SRC.annualReports],
   },
 ];
 

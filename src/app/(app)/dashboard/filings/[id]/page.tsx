@@ -18,7 +18,6 @@ import { MessageThread } from "@/components/dashboard/message-thread";
 import { NextStepCard } from "@/components/dashboard/next-step-card";
 import { PaymentSummary } from "@/components/dashboard/payment-summary";
 import { ReplyForm } from "@/components/dashboard/reply-form";
-import { FileDirectlyNote } from "@/components/dashboard/requirement-actions";
 import { backLinkClass, DashboardSection, QuietEmpty, quietLinkClass } from "@/components/dashboard/section";
 import { StatusTimeline } from "@/components/dashboard/status-timeline";
 import { businessHref, FILE_STEPS, isCustomerEditable } from "@/components/dashboard/steps";
@@ -209,7 +208,6 @@ export default async function FilingPage(props: PageProps<"/dashboard/filings/[i
                 <p className="text-sm leading-6 text-muted">
                   Before you pay, you&apos;ll see the government filing fee and our service fee listed separately.
                 </p>
-                {business ? <FileDirectlyNote business={business} /> : null}
               </div>
             )}
           </section>
@@ -240,7 +238,7 @@ export default async function FilingPage(props: PageProps<"/dashboard/filings/[i
                 {formatLongDate(filing.dueDate)}.
               </p>
             ) : null}
-            {officialInfoUrl ? <OfficialSource href={officialInfoUrl} agency={agency} lastVerifiedAt={lastVerifiedAt} /> : null}
+            {officialInfoUrl ? <OfficialSource agency={agency} lastVerifiedAt={lastVerifiedAt} /> : null}
           </section>
 
           <section aria-labelledby="history-title" className="grid gap-4">

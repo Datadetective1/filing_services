@@ -11,7 +11,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid: "Something went wrong with that request. Please try again.",
   not_found: "We couldn't find that business in your account.",
   start_not_found: "We couldn't find that business in your account.",
-  start_unavailable: "We can't file this one for you yet. You can still file directly with the state.",
+  start_unavailable: "We can't file this one for you yet.",
   start_not_allowed: "There's no open filing for this business right now.",
   start_invalid: "We couldn't start the filing. Please try again.",
   start_error: "We couldn't start the filing. Please try again.",

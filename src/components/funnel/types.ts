@@ -22,10 +22,6 @@ export interface LookupFormState {
 export interface LookupJurisdictionOption {
   code: string;
   name: string;
-  /** Official business search (or agency site when no search page is listed). */
-  searchUrl: string;
-  /** True when searchUrl is a business search page rather than the agency home page. */
-  isBusinessSearch: boolean;
   /** The state's due date is set from the formation/registration month, so it's required. */
   formationRequired?: boolean;
 }

@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowSquareOut, SealCheck } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, SealCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -87,17 +87,12 @@ export default async function StatePage({ params }: PageProps<"/states/[state]">
           lede={
             <p>
               We haven&apos;t verified {j.name}&apos;s filing requirements yet, so we don&apos;t show due dates or fees here.
-              The state&apos;s official agency is the place to check.
+              Leave your email and we&apos;ll let you know when {j.name} is ready.
             </p>
           }
           actions={
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a href={j.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("primary", "lg")}>
-                Visit the official agency
-                <ArrowSquareOut size={18} aria-hidden />
-                <span className="sr-only">(opens the official website in a new tab)</span>
-              </a>
-              <a href="#waitlist" className={buttonClasses("secondary", "lg")}>
+              <a href="#waitlist" className={buttonClasses("primary", "lg")}>
                 Get an email when it&apos;s ready
               </a>
             </div>
@@ -236,7 +231,7 @@ export default async function StatePage({ params }: PageProps<"/states/[state]">
       <RaStateBand stateCode={j.code} />
 
       <Container className="py-12">
-        <DisclaimerNote stateName={j.name} />
+        <DisclaimerNote />
       </Container>
     </>
   );

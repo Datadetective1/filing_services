@@ -53,7 +53,6 @@ export interface SubscriberCopyVars {
   stateName?: string;
   filingName?: string;
   agencyName?: string;
-  directFilingHost?: string;
   stateFeeCents: number;
   nonprofitFeeCents: number | null;
   /** Itemized state fees (e.g. Nevada's list + license fees); omit for a single fee. */
@@ -72,11 +71,9 @@ const d = (v: SubscriberCopyVars) => ({
   state: v.stateName ?? "Pennsylvania",
   filing: (v.filingName ?? "Annual Report").toLowerCase(),
   agency: v.agencyName ?? "Pennsylvania Department of State",
-  host: v.directFilingHost ?? "file.dos.pa.gov",
 });
 
 function feeLine(v: SubscriberCopyVars): string {
-  const { host } = d(v);
   const multi = (v.feeComponents?.length ?? 0) > 1;
   const total = multi ? v.feeComponents!.reduce((n, c) => n + c.cents, 0) : v.stateFeeCents;
   const nonprofit = !multi && v.nonprofitFeeCents === 0 ? " ($0.00 for not-for-profit associations)" : "";
@@ -84,11 +81,11 @@ function feeLine(v: SubscriberCopyVars): string {
     ? `${formatCents(total)} in state fees (${v.feeComponents!.map((c) => `${formatCents(c.cents)} ${c.label}`).join(" + ")})`
     : `${formatCents(total)} state fee${nonprofit}`;
   const govShort = multi ? `${formatCents(total)} in state fees` : `${formatCents(total)} state fee`;
-  // Where we file it, our service leads and filing direct is one plain sentence with no link.
+  // Where we file it, our service leads. Reminders never point to the state's own filing site.
   if (v.serviceFeeCents !== null) {
-    return `Filewell can prepare and file it for you: ${formatCents(v.serviceFeeCents)} service fee plus the ${govShort}. You can also file it yourself on the state's website.`;
+    return `Filewell can prepare and file it for you: ${formatCents(v.serviceFeeCents)} service fee plus the ${govShort}.`;
   }
-  return `You can file it yourself at ${host} for the ${gov}.`;
+  return `Fees: ${gov}.`;
 }
 
 export function confirmationEmail(v: SubscriberCopyVars): SubscriberEmail {

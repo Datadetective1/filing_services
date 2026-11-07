@@ -4,7 +4,6 @@ import Link from "next/link";
 import { site } from "@/config/site";
 import { findRule, getJurisdiction, listJurisdictions } from "@/lib/compliance/registry";
 import { formationDateRequired } from "@/lib/compliance/state-meta";
-import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import { verifiedText } from "@/lib/compliance/view";
 import { todayInTimeZone } from "@/lib/domain/dates";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPES, isEntityType } from "@/lib/domain/types";
@@ -41,16 +40,11 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
 
   const options: LookupJurisdictionOption[] = [...jurisdictions]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((j) => {
-      const searchUrl = j.code === "PA" ? PENNSYLVANIA_FACTS.businessSearchUrl : (j.agency.businessSearchUrl ?? j.agency.websiteUrl);
-      return {
-        code: j.code,
-        name: j.name,
-        searchUrl,
-        isBusinessSearch: j.code === "PA" || Boolean(j.agency.businessSearchUrl),
-        formationRequired: !forAgent && formationDateRequired(j.code),
-      };
-    });
+    .map((j) => ({
+      code: j.code,
+      name: j.name,
+      formationRequired: !forAgent && formationDateRequired(j.code),
+    }));
 
   // Start from what the visitor entered earlier (the "Edit details" path), then let
   // ?state= and ?entity= from a state page take precedence.
@@ -146,7 +140,7 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
           </div>
 
           <p className="max-w-[62ch] text-sm leading-6 text-subtle">
-            {site.disclaimer} You can also file directly with your state.
+            {site.disclaimer}
           </p>
         </div>
 

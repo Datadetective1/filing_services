@@ -20,7 +20,7 @@ export function SiteFooter() {
           <Logo />
           <p className="max-w-md text-[15px] leading-7 text-muted">
             <strong className="font-semibold text-fg">{site.disclaimer}</strong> We are a private company that prepares
-            and submits filings when you ask us to. You can always file directly with your state.
+            and submits filings when you ask us to.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
@@ -76,7 +76,7 @@ export function SiteFooter() {
             <Link className={linkClass} href="/florida/annual-report-deadline">Annual report deadline</Link>
             <Link className={linkClass} href="/florida/annual-report-late-fee">$400 late fee</Link>
             <Link className={linkClass} href="/florida/annual-report-fee">Annual report fee</Link>
-            <Link className={linkClass} href="/florida/how-to-file-annual-report">How to file on Sunbiz</Link>
+            <Link className={linkClass} href="/florida/how-to-file-annual-report">How to file</Link>
           </nav>
           <nav aria-label="Legal" className="grid content-start gap-3">
             <p className="text-sm font-semibold text-fg">Legal</p>

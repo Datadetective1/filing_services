@@ -144,7 +144,7 @@ const FLORIDA: StateGuide[] = [
     ],
     faq: [
       { q: "Can the $400 late fee be waived?", a: "Florida's instructions say there's no provision to abate or waive it." },
-      { q: "Can I still file after May 1?", a: "Yes. File on Sunbiz as usual and pay the report fee plus the $400 late fee." },
+      { q: "Can I still file after May 1?", a: "Yes. The report fee plus the $400 late fee applies." },
       { q: "Do nonprofits pay it?", a: "No. Florida says not for profit corporations aren't subject to the $400 late fee." },
     ],
     sources: [FL.instructions, FL.annualReport],
@@ -171,7 +171,7 @@ const FLORIDA: StateGuide[] = [
       {
         heading: "Filing-service fees are extra",
         paragraphs: [
-          "You never have to use a filing service. You can file directly on Sunbiz for the state fee. If you use a service, compare the total: its fee is in addition to Florida's.",
+          "If you use a filing service, compare the total: its fee is in addition to Florida's.",
         ],
       },
     ],
@@ -183,13 +183,13 @@ const FLORIDA: StateGuide[] = [
   },
   {
     slug: "how-to-file-annual-report",
-    title: "How to File a Florida Annual Report on Sunbiz",
+    title: "How to File a Florida Annual Report",
     description:
-      "How to file a Florida annual report on Sunbiz: your document number, what to check, who signs, the fee and what you get back. From official sources.",
+      "What filing a Florida annual report involves: your document number, what to check, who signs and the fee. From official sources.",
     h1: "How to file a Florida annual report",
     answer: [
-      "You file online on Sunbiz using your business's document number. You check the information on record, list at least one principal, have one of the business's own principals sign by typing their name, and pay by card.",
-      "Sunbiz says online reports are processed and posted immediately.",
+      "A Florida annual report is filed online with the business's document number. The information on record is checked, at least one principal is listed, one of the business's own principals signs by typing their name, and the fee is paid by card.",
+      "Filewell can file it for you: you check the details and sign, and we submit it.",
     ],
     blocks: [
       {
@@ -217,7 +217,6 @@ const FLORIDA: StateGuide[] = [
       },
     ],
     faq: [
-      { q: "Do I need a Sunbiz account?", a: "No account is needed to file an annual report. You need the business's document number." },
       { q: "How fast is it?", a: "Sunbiz says reports filed online are processed and posted immediately." },
       { q: "Can a filing service sign for me?", a: "Not in your name without your permission. With Filewell, you sign the report yourself and we enter your signature exactly as you typed it." },
     ],
@@ -265,30 +264,14 @@ const MONTANA: StateGuide[] = [
   },
   {
     slug: "how-to-file-annual-report",
-    title: "How to File a Montana Annual Report Online",
+    title: "How to File a Montana Annual Report",
     description:
-      "How to file a Montana annual report at biz.sosmt.gov: search your business, review, check the declarations and file. No login needed if nothing changed.",
+      "What filing a Montana annual report involves: reviewing the report, the declarations, who signs and the fee. From official sources.",
     h1: "How to file a Montana annual report",
     answer: [
-      "You file on Montana's business services site, biz.sosmt.gov. If nothing has changed, you don't need to log in: find your business, review the report, check each declaration and file. To change information, log in first.",
+      "A Montana annual report is filed online with the Secretary of State. The information on record is reviewed and updated if anything changed, each declaration is checked, and the report is signed and filed.",
     ],
     blocks: [
-      {
-        heading: "Steps (no changes)",
-        ordered: true,
-        list: [
-          "Go to biz.sosmt.gov and search for your business.",
-          "Open your business from the results.",
-          "Click File Annual Report on the right.",
-          "Review the information on the report.",
-          "Read and check each declaration box, and fill in the required fields.",
-          "Click File Online.",
-        ],
-      },
-      {
-        heading: "If something changed",
-        paragraphs: ["Log in to biz.sosmt.gov first, then follow the same steps and update the report as you go."],
-      },
       {
         heading: "Signing",
         quote: { text: "To sign, read, and check each declaration box, and fill in all fields marked with a red asterisk.", source: MT.help },
@@ -370,7 +353,7 @@ const WASHINGTON: StateGuide[] = [
       {
         heading: "Filing-service fees are extra",
         paragraphs: [
-          "You never have to use a filing service. You can file directly with the Washington Secretary of State online. If you use a service, compare the total: its fee is in addition to the state's.",
+          "If you use a filing service, compare the total: its fee is in addition to the state's.",
         ],
       },
     ],
@@ -459,7 +442,6 @@ const NEVADA: StateGuide[] = [
     faq: [
       { q: "Why are there two fees?", a: "The annual list and the State Business License are separate Nevada requirements, paid together when the list is filed." },
       { q: "Are nonprofits charged the business license fee?", a: "Nevada nonprofit corporations (NRS 82) are exempt from the business license and pay a $50 list fee. Filewell doesn't cover nonprofits yet." },
-      { q: "Can I file it myself?", a: "Yes, directly with the Nevada Secretary of State online." },
     ],
     sources: [NV.nrs76, NV.nrs86, NV.nrs78],
   },
@@ -510,7 +492,7 @@ const UTAH: StateGuide[] = [
     h1: "Utah annual renewal fee",
     answer: [
       "Utah's annual report/renewal costs $18 for domestic and foreign LLCs, corporations, limited partnerships and LLPs. Utah's fee schedule lists a $10 late renewal fee for overdue renewals of those types; its renewal coupon lists no late fee for business trusts.",
-      "A filing service's fee is separate from, and on top of, the state fee. You can renew directly with Utah online.",
+      "A filing service's fee is separate from, and on top of, the state fee.",
     ],
     blocks: [
       {

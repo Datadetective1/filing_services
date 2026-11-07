@@ -1,4 +1,4 @@
-import { CheckCircle, Info } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import type { ComplianceRuleDef } from "@/lib/compliance/types";
@@ -124,7 +124,6 @@ export function RequirementCard({
         </dl>
 
         <OfficialSource
-          href={rule.officialInfoUrl}
           agency={state?.agency.name.split(" - ")[0] ?? `${stateName} state agency`}
           lastVerifiedAt={rule.lastVerifiedAt}
         />
@@ -143,10 +142,6 @@ export function RequirementCard({
           <p className="text-sm text-muted">Our service fee is shown before you pay.</p>
         )}
         {actions ? <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">{actions}</div> : null}
-        <p className="flex gap-2 text-[13px] leading-5 text-muted">
-          <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
-          <span>You can also file directly with the state.</span>
-        </p>
       </div>
     </div>
   );

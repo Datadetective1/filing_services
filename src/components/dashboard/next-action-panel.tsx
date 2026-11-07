@@ -5,7 +5,7 @@ import { deadlineCopy } from "@/lib/domain/deadline-copy";
 import { FILED_STATUSES } from "@/lib/domain/filing-status";
 import { CountdownRing } from "@/components/visual/countdown-ring";
 import { DaysRemaining, deadlineRingLabel, DueDate } from "./due-info";
-import { FileDirectlyNote, RequirementActions } from "./requirement-actions";
+import { RequirementActions } from "./requirement-actions";
 import type { FocusItem } from "./requirement-state";
 import { businessHref } from "./steps";
 
@@ -34,8 +34,8 @@ function copyFor(item: FocusItem): { title: string; body: string } {
       : { title: `File the ${filing} by ${byMonthDay(requirement.dueDate)}`, body };
   }
   return {
-    title: `File the ${filing} with the state`,
-    body: "We can't file this one for you yet. You can file it directly with the state, then tell us here so the reminders stop.",
+    title: `We can't file the ${filing} for you yet`,
+    body: "Once it's filed, tell us here so the reminders stop.",
   };
 }
 
@@ -107,9 +107,6 @@ export function NextActionPanel({
         size="panel"
         className="mt-5 border-t border-highlight/50 pt-5"
       />
-      {business.rule && (!requirement.activeFiling || requirement.activeFiling.status === "draft") ? (
-        <FileDirectlyNote business={business} className="mt-2" />
-      ) : null}
 
       {others.length > 0 ? (
         <p className="mt-3 text-sm text-muted">

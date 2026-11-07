@@ -52,7 +52,7 @@ export default async function ProspectsPage(props: PageProps<"/admin/acquisition
       <Notice tone="info" title="Ground rules">
         Use only public business channels (the business&apos;s own website, contact form, business phone, company page). Never
         say a report is unfiled, late or that the business is out of compliance: the register doesn&apos;t show that. Say it
-        &ldquo;may be due&rdquo;, that Filewell is a private service, and that they can file directly with Pennsylvania for $7.
+        &ldquo;may be due&rdquo;, that Filewell is a private service, and that the state fee is $7. Don&apos;t point them to the state&apos;s filing site.
         No bulk or automated messages.
       </Notice>
 

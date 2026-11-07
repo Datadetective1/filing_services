@@ -1,4 +1,4 @@
-import { ArrowSquareOut, SealCheck } from "@phosphor-icons/react/dist/ssr";
+import { SealCheck } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/components/ui/cn";
 import { CountdownRing } from "@/components/visual/countdown-ring";
 import { getJurisdiction } from "@/lib/compliance/registry";
@@ -85,20 +85,13 @@ export function HeroStatusCard({
         </div>
       </dl>
 
-      <a
-        href={rule.officialInfoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-4 flex items-start gap-2 border-t border-border pt-3 text-[13px] leading-5 text-muted hover:text-fg"
-      >
+      <p className="mt-4 flex items-start gap-2 border-t border-border pt-3 text-[13px] leading-5 text-muted">
         <SealCheck size={16} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
         <span>
-          Source: <span className="font-semibold text-fg underline decoration-border-strong underline-offset-2">{agency}</span>
-          <ArrowSquareOut size={12} weight="bold" aria-hidden className="ml-0.5 inline align-[-1px]" />
-          <span className="sr-only"> (opens the government website in a new tab)</span>
+          Source: <span className="font-semibold text-fg">{agency}</span>
           <span className="block">Verified {verifiedText(rule.lastVerifiedAt)}</span>
         </span>
-      </a>
+      </p>
     </div>
   );
 }

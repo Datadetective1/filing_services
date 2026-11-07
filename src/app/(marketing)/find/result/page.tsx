@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowSquareOut, CaretDown, Info } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, CaretDown, Info } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -177,7 +177,7 @@ function DeadlineCard({
       </details>
 
       <div className="border-t border-border bg-surface-2/60 px-5 py-3.5 sm:px-7">
-        <OfficialSource href={rule.officialInfoUrl} agency={agencyName} lastVerifiedAt={rule.lastVerifiedAt} />
+        <OfficialSource agency={agencyName} lastVerifiedAt={rule.lastVerifiedAt} />
       </div>
     </div>
   );
@@ -202,7 +202,7 @@ export default async function FindResultPage() {
   const rule = findRule(lookup.stateCode, lookup.entityType, "annual_report", lookup.isForeign);
   // Known: verified rules and the state's public lookup is switched on. Sellable: also open
   // for "Have us file it" (Pennsylvania today). Known-but-not-sellable states get the
-  // deadline, itemized state fees, direct filing and free reminders, without checkout.
+  // deadline, itemized state fees and free reminders, without checkout or a link to the state's site.
   const supported = Boolean(rule && rule.verificationStatus === "verified" && stateLookupEnabled(lookup.stateCode));
   const sellable = Boolean(supported && rule && isSellableForBusiness(rule, { isNonprofit: lookup.isNonprofit }));
 
@@ -282,7 +282,6 @@ export default async function FindResultPage() {
   }
 
   if (!rule || !supported) {
-    const searchUrl = lookup.stateCode === "PA" ? PENNSYLVANIA_FACTS.businessSearchUrl : jurisdiction?.agency.businessSearchUrl;
     const paExempt =
       lookup.stateCode === "PA" ? (
         <div className="flex gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
@@ -294,31 +293,12 @@ export default async function FindResultPage() {
               Based on the Pennsylvania Department of State&apos;s published requirements: {PENNSYLVANIA_FACTS.exemptTypes}
             </p>
             <OfficialSource
-              href={PENNSYLVANIA_FACTS.exemptSource.url}
               agency="Pennsylvania Department of State"
               lastVerifiedAt={PENNSYLVANIA_FACTS.exemptSource.lastVerifiedAt}
             />
           </div>
         </div>
       ) : null;
-    const officialLinks = (primary: boolean) => (
-      <div className="flex flex-col gap-3 sm:flex-row">
-        {jurisdiction ? (
-          <a href={jurisdiction.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses(primary ? "primary" : "secondary", "lg")}>
-            Visit the official agency site
-            <ArrowSquareOut size={18} aria-hidden />
-            <span className="sr-only">(opens a government website in a new tab)</span>
-          </a>
-        ) : null}
-        {searchUrl ? (
-          <a href={searchUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
-            Official business search
-            <ArrowSquareOut size={18} aria-hidden />
-            <span className="sr-only">(opens a government website in a new tab)</span>
-          </a>
-        ) : null}
-      </div>
-    );
 
     // We don't file this one, but the registered agent is sold in every state: offer it
     // rather than end the visit at a dead end.
@@ -340,15 +320,9 @@ export default async function FindResultPage() {
             intro={
               lookup.stateCode === "PA"
                 ? "We don't file a report for this type of business. The state's notes are below."
-                : `We don't file annual reports in ${stateName} yet. The state's own site has your deadline.`
+                : `We don't file annual reports in ${stateName} yet.`
             }
-            after={
-              <div className="grid gap-4">
-                {paExempt}
-                <p className="text-sm font-semibold text-fg">Check your deadline with the state</p>
-                {officialLinks(false)}
-              </div>
-            }
+            after={paExempt}
           />
         </>
       );
@@ -365,13 +339,17 @@ export default async function FindResultPage() {
           </h1>
           <p className="max-w-[58ch] text-[17px] leading-relaxed text-muted">
             We don&apos;t have verified filing rules for {entityPhrase(stateName, lookup.entityType)} yet, so we can&apos;t show a
-            deadline or file it for you. The official agency is the best place to check what&apos;s required.
+            deadline or file it for you.
           </p>
         </div>
 
         {paExempt ? <div className="mt-8">{paExempt}</div> : null}
 
-        <div className="mt-8">{officialLinks(true)}</div>
+        <div className="mt-8">
+          <Link href="/states" className={buttonClasses("primary", "lg")}>
+            See the states we cover
+          </Link>
+        </div>
 
         <div className="mt-12">{entered}</div>
         <p className="mt-8 text-sm leading-6 text-subtle">{site.disclaimer}</p>
@@ -395,7 +373,6 @@ export default async function FindResultPage() {
   const startPath = reminderMode ? "/file/start?mode=track" : "/file/start";
   const signupHref = `/signup?next=${encodeURIComponent(startPath)}`;
   const stateFeeCents = quote?.governmentFeeCents ?? (lookup.isNonprofit && rule.nonprofitStateFeeCents === 0 ? 0 : rule.stateFeeCents);
-  const filingHost = new URL(rule.officialFilingUrl).host;
   const filingLabel = period ? `${period.periodYear} ${rule.filingName.toLowerCase()}` : rule.filingName;
   const fees = evaluateFees(rule, {
     isNonprofit: lookup.isNonprofit,
@@ -404,7 +381,6 @@ export default async function FindResultPage() {
     status: null,
     filingThisPeriod: false,
   });
-  const diyFeeCents = rule.feeComponents?.length ? fees.totalCents : stateFeeCents;
   const consentText = reminderConsentText(stateName, rule.filingName);
 
   // Every lookup is also a registered agent prospect: offer it where it can be sold.
@@ -481,30 +457,8 @@ export default async function FindResultPage() {
           <p className="font-display text-lg font-semibold text-fg">{stateName} state fees</p>
           <GovernmentFeeList evaluation={fees} stateName={stateName} />
           <p className="text-sm leading-6 text-muted">
-            {site.name} filing for {stateName} isn&apos;t open yet. You can file directly with the state today, or get a free
-            reminder before the next due date.
+            {site.name} filing for {stateName} isn&apos;t open yet. Get a free reminder before the next due date.
           </p>
-        </div>
-      )}
-
-      {/* Where we file, "Have us file it" is the one action; the footer line says filing direct is possible. */}
-      {sellable ? null : (
-        <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 sm:p-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <p className="font-display text-lg font-semibold text-fg">File it yourself</p>
-            <p className="tnum font-display text-2xl font-semibold text-fg">
-              {diyFeeCents === 0 ? "No fee" : formatCents(diyFeeCents, { trimZeros: true })}
-            </p>
-          </div>
-          <p className="text-sm leading-6 text-muted">
-            File online at {filingHost} and pay only the state {rule.feeComponents?.length ? "fees" : "fee"}.
-            {lookup.stateCode === "PA" ? " Online filings there are approved automatically." : ""}
-          </p>
-          <a href={rule.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "md", "mt-1 w-full")}>
-            File it yourself
-            <ArrowSquareOut size={18} aria-hidden />
-            <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
-          </a>
         </div>
       )}
 
@@ -561,7 +515,7 @@ export default async function FindResultPage() {
               <p className="text-[15px] text-muted">
                 State fee {stateFeeCents === 0 ? "none" : formatCents(stateFeeCents, { trimZeros: true })}.
               </p>
-              <OfficialSource href={rule.officialInfoUrl} agency={agencyName} lastVerifiedAt={rule.lastVerifiedAt} />
+              <OfficialSource agency={agencyName} lastVerifiedAt={rule.lastVerifiedAt} />
             </div>
           )}
         </div>
@@ -577,7 +531,7 @@ export default async function FindResultPage() {
       </div>
 
       <p className="mt-12 max-w-[70ch] text-sm leading-6 text-subtle">
-        {site.disclaimer} We don&apos;t provide legal advice. You can also file directly with the state.
+        {site.disclaimer} We don&apos;t provide legal advice.
       </p>
     </Container>
   );

@@ -120,9 +120,7 @@ export default async function ChangeAgentPage(props: PageProps<"/registered-agen
               <ul className="grid gap-2 text-sm text-muted">
                 {sources.map((s) => (
                   <li key={s.url}>
-                    <a href={s.url} className={textLinkClasses} rel="noopener noreferrer" target="_blank">
-                      {s.publisher}
-                    </a>
+                    {s.publisher}
                   </li>
                 ))}
               </ul>

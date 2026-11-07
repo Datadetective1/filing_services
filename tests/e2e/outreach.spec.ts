@@ -46,7 +46,8 @@ test("admin previews a dry-run campaign; every sending gate is closed", async ({
 
     await expect(main).toContainText("Nothing is sent from this page");
     await expect(main).toContainText("Filewell is a private filing service. It is not the Pennsylvania Department of State");
-    await expect(main).toContainText("file.dos.pa.gov for the $7.00 state fee");
+    await expect(main).toContainText("The state fee is $7.00");
+    await expect(main).not.toContainText("file.dos.pa.gov");
     await expect(main).toContainText("This is an advertisement from Filewell.");
     // Which segment the imported LLCs fall in depends on today's date; either way nobody would receive it.
     await expect(main).toContainText(/No business email on file|No imported business is in this segment today/);

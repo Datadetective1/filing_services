@@ -1,7 +1,5 @@
 import {
   ArrowRight,
-  ArrowSquareOut,
-  ArrowUpRight,
   CaretDown,
   Info,
   ProhibitInset,
@@ -149,7 +147,6 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
   const feeText = facts?.directFilingFeeText ?? feeSummary(rules);
   const feeAmount = /^\$\d+(?:\.\d+)?/.exec(feeText)?.[0] ?? feeText;
   const feeNote = /\((.+)\)$/.exec(feeText)?.[1] ?? null;
-  const filingHost = new URL(first.officialFilingUrl).host;
   const groups = dueGroups(rules);
   const sellable = rules.some((r) => isRuleSellable(r));
   const today = todayInTimeZone(j.timezone);
@@ -173,7 +170,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
     ...stateFaq(rules, j.name, agency),
     {
       q: `Is ${site.name} part of the ${j.name} government?`,
-      a: `No. ${site.name} is a private filing service. We are not affiliated with or endorsed by the ${agency} or any other government agency. You can file directly with the state and pay only the state fee.`,
+      a: `No. ${site.name} is a private filing service. We are not affiliated with or endorsed by the ${agency} or any other government agency.`,
     },
   ];
 
@@ -195,12 +192,6 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
       ? [{ name: `${j.name} ${ENTITY_COPY[r.entityType].title} ${r.filingName} filing`, path: `${path}/${ENTITY_TYPE_SLUGS[r.entityType]}`, quote: q }]
       : [];
   });
-
-  const officialLinks = [
-    { href: first.officialFilingUrl, label: "Official online filing" },
-    { href: facts?.businessSearchUrl ?? j.agency.businessSearchUrl, label: "Official business search" },
-    { href: first.officialInfoUrl, label: `${agency}: annual reports` },
-  ].filter((l): l is { href: string; label: string } => Boolean(l.href));
 
   return (
     <>
@@ -244,13 +235,6 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
               {sellable ? "Have us file it" : "Check my business"}
               <ArrowRight size={18} weight="bold" aria-hidden />
             </FilingCtaLink>
-            {sellable ? null : (
-              <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
-                File it yourself
-                <ArrowSquareOut size={18} aria-hidden />
-                <span className="sr-only">(opens the state&apos;s filing website in a new tab)</span>
-              </a>
-            )}
           </div>
         }
         note={
@@ -259,7 +243,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
             <span>
               {sellable
                 ? `State fee: ${feeText}, passed through at cost. Our service fee is its own line.`
-                : `Filing it yourself at ${filingHost} costs only the state fee: ${feeText}.`}
+                : `State fee: ${feeText}. Check your business for its due date and a free reminder.`}
             </span>
           </p>
         }
@@ -484,13 +468,12 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 </p>
               ) : (
                 <p className="text-sm leading-6 text-muted">
-                  The state fee is {feeSummary(rules)}, paid to the {agency}. We don&apos;t file in {j.name} yet; you can file directly
-                  with the state.
+                  The state fee is {feeSummary(rules)}, paid to the {agency}. We don&apos;t file in {j.name} yet.
                 </p>
               )}
             </Receipt>
           </section>
-          <DisclaimerNote className="-mt-14 sm:-mt-16" stateName={j.name} />
+          <DisclaimerNote className="-mt-14 sm:-mt-16" />
 
           {/* Required information */}
           <GuideSection
@@ -511,22 +494,6 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
               <p>{first.filingMethodSummary}</p>
               <p>{first.processingSummary}</p>
             </GuideText>
-            <ul className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-              {officialLinks.map((l) => (
-                <li key={l.href}>
-                  <a
-                    href={l.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border-strong bg-surface px-4 py-2 text-[15px] font-semibold leading-snug text-fg transition-colors hover:border-fg/40 hover:bg-surface-2"
-                  >
-                    {l.label}
-                    <ArrowUpRight size={15} weight="bold" aria-hidden />
-                    <span className="sr-only">(opens the official website in a new tab)</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
           </GuideSection>
 
           {/* Entity guides */}
@@ -594,7 +561,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 Last reviewed {verifiedText(reviewed)}. This page summarizes published requirements and is not legal advice.
               </p>
             ) : null}
-            <DisclaimerNote stateName={j.name} />
+            <DisclaimerNote />
           </div>
         </div>
 
@@ -602,16 +569,6 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
           <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code} size="md" className="w-full">
             {sellable ? "Have us file it" : "Check my business"}
           </FilingCtaLink>
-          {sellable ? null : (
-            <p className="text-[13px] leading-5 text-muted">
-              Or file it yourself at{" "}
-              <a href={first.officialFilingUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent">
-                {filingHost}
-                <span className="sr-only"> (opens in a new tab)</span>
-              </a>{" "}
-              for the state fee.
-            </p>
-          )}
         </OnThisPageAside>
       </Container>
     </>
@@ -644,7 +601,7 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
           ) : (
             <p>
               We haven&apos;t verified {j.name}&apos;s annual report requirements yet, so we don&apos;t show due dates or fees.
-              For accurate information, go to the state&apos;s official business filing agency.
+              Leave your email and we&apos;ll let you know when {j.name} is ready.
             </p>
           )
         }
@@ -655,20 +612,10 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
                 File it for me
                 <ArrowRight size={18} weight="bold" aria-hidden />
               </Link>
-              <a href={j.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "lg")}>
-                Visit the official agency
-                <ArrowSquareOut size={18} aria-hidden />
-                <span className="sr-only">(opens the official website in a new tab)</span>
-              </a>
             </div>
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a href={j.agency.websiteUrl} target="_blank" rel="noopener noreferrer" className={buttonClasses("primary", "lg")}>
-                Visit the official agency
-                <ArrowSquareOut size={18} aria-hidden />
-                <span className="sr-only">(opens the official website in a new tab)</span>
-              </a>
-              <a href="#waitlist" className={buttonClasses("secondary", "lg")}>
+              <a href="#waitlist" className={buttonClasses("primary", "lg")}>
                 Get an email when it&apos;s ready
               </a>
             </div>

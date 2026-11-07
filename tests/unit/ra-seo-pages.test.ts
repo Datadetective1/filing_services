@@ -45,7 +45,7 @@ describe("state registered agent page copy", () => {
     expect(change).toContain("not a government agency");
     expect(change).toContain("be your own registered agent");
     const state = readFileSync("src/app/(marketing)/registered-agent/[state]/page.tsx", "utf8");
-    expect(state).toContain("Filewell is not affiliated with the state");
+    expect(state).toContain("Filewell is a private company and is not affiliated with the state.");
   });
 });
 
