@@ -486,7 +486,7 @@ function buildRule(p: NvProfile): ComplianceRuleDef {
     officialFilingUrl: NV_URLS.portal,
     officialInfoUrl: NV_URLS.sosInfo,
     filingMethodSummary:
-      "Filed online with the Nevada Secretary of State through its business portal (ORION, which replaced SilverFlume in September 2026): find the entity, file the annual list, renew the State Business License and pay both fees together.",
+      "Filed online with the Nevada Secretary of State. The annual list and the State Business License renewal are filed together and both fees are paid at once.",
     processingSummary: "The Secretary of State processes the list and renews the license; the confirmation comes from the state portal.",
     customerSummary: `Nevada ${p.pluralNoun} file an annual list and renew the State Business License by the last day of their anniversary month: ${money(listFee)} list fee + ${money(p.licenseFeeCents)} license fee = ${money(total)} in state fees.`,
     faq: [

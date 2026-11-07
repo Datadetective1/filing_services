@@ -163,7 +163,7 @@ function buildRule(): ComplianceRuleDef {
     officialFilingUrl: MI_URLS.registry,
     officialInfoUrl: MI_URLS.roadmap,
     filingMethodSummary:
-      "Filed online in MiBusiness Registry from a MiLogin for Business account that has the corporation in its My Records, then paid by card. Paper is no longer accepted.",
+      "Filed online with LARA from an account linked to the corporation, then paid by card. Paper is no longer accepted.",
     processingSummary: "LARA files online annual reports in MiBusiness Registry.",
     customerSummary: "Michigan corporations file an annual report by May 15 each year, with a $25 state fee. Filing late adds $10 a month, up to $50.",
     faq: [

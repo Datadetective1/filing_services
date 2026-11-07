@@ -312,7 +312,7 @@ function buildRule(p: MtProfile): ComplianceRuleDef {
     officialFilingUrl: MT_URLS.portal,
     officialInfoUrl: MT_URLS.help,
     filingMethodSummary:
-      "Filed online on the Secretary of State's business site: search the business, choose File Annual Report, check each declaration box and sign. A report with changes needs a Montana business services account.",
+      "Filed online with the Secretary of State. The report is reviewed, each declaration is confirmed and the report is signed.",
     processingSummary: "Montana files online annual reports when they're submitted.",
     customerSummary: `Montana ${p.pluralNoun} file an annual report between January 1 and April 15. The state fee is waived through 2027 if you file on time; after April 15 it's $35.`,
     faq: [

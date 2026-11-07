@@ -174,7 +174,7 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "how-to-file-annual-report",
-    title: "How to File a Pennsylvania Annual Report Online (Step by Step)",
+    title: "How to File a Pennsylvania Annual Report",
     description:
       "How a Pennsylvania annual report is filed: what's involved, the information you need, the $7 fee, and what you get back. Based on Department of State guidance.",
     h1: "How to file a Pennsylvania annual report",
@@ -187,8 +187,7 @@ export const PA_GUIDES: PaGuide[] = [
         heading: "What filing involves",
         ordered: true,
         list: [
-          "A Business Filing Services account with the Department of State.",
-          "Finding the business and opening its annual report. No PIN is required.",
+          "Opening the business's annual report with the Department of State.",
           "Completing the form online and paying by credit card.",
           "Downloading the approved report and acknowledgement letter.",
         ],
@@ -220,10 +219,6 @@ export const PA_GUIDES: PaGuide[] = [
       {
         q: "Can I file the Pennsylvania annual report on paper?",
         a: "The Department of State says the annual report should be filed online, where filings are approved automatically.",
-      },
-      {
-        q: "Do I need a PIN to file?",
-        a: "No. The Department of State says no PIN access is required to file the annual report.",
       },
       {
         q: "How long does it take to be approved?",

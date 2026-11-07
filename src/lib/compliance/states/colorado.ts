@@ -243,7 +243,7 @@ function buildRule(p: CoProfile): ComplianceRuleDef {
     officialFilingUrl: CO_URLS.search,
     officialInfoUrl: CO_URLS.reportsFaq,
     filingMethodSummary:
-      "Filed online from the business's record on the Colorado Secretary of State's site, naming the individual who causes it to be delivered, and paid by card. A business with Secure Business Filing needs its password or an authorized user.",
+      "Filed online with the Colorado Secretary of State, naming the individual who causes it to be delivered, and paid by card. A business with Secure Business Filing needs an authorized user.",
     processingSummary: "Colorado files online Periodic Reports right away.",
     customerSummary: `Colorado ${p.pluralNoun} file a Periodic Report each year by the last day of the second month after their Periodic Report Month, with a $25 state fee. Filing late adds a $50 penalty.`,
     faq: [

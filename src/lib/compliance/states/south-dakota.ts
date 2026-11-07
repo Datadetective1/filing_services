@@ -317,7 +317,7 @@ function buildRule(p: SdProfile): ComplianceRuleDef {
     officialFilingUrl: SD_URLS.annualReport,
     officialInfoUrl: SD_URLS.instructions,
     filingMethodSummary:
-      "Filed online on South Dakota's annual report tool with the Business ID (no account needed), signed by any authorized person, and paid by card.",
+      "Filed online with the Secretary of State, signed by an authorized person, and paid by card.",
     processingSummary: "South Dakota files online annual reports when they're submitted.",
     customerSummary: `South Dakota ${p.pluralNoun} file an annual report by the 1st of their anniversary month each year, with a $55 state fee. Filing late adds $55.`,
     faq: [
