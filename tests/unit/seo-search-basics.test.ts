@@ -42,6 +42,12 @@ describe("supported states answer", () => {
     expect(supportedStatesAnswer(["Pennsylvania", "Florida", "Colorado"])).toMatch(/^We file annual reports in Colorado, Florida and Pennsylvania today\./);
   });
 
+  it("names the states that only have deadlines and reminders, so the picker and the answer agree", () => {
+    const a = supportedStatesAnswer(["Pennsylvania"], ["Michigan", "Montana"]);
+    expect(a).toMatch(/^We file annual reports in Pennsylvania today\. In Michigan and Montana, you can look up your due date and get free reminders/);
+    expect(supportedStatesAnswer(["Pennsylvania"])).not.toMatch(/free reminders/);
+  });
+
   it("never claims a state when none is open", () => {
     expect(supportedStatesAnswer([])).not.toMatch(/We file annual reports in/);
   });

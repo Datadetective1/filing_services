@@ -18,7 +18,8 @@ export function HeroFinder({
   select,
   chooseFirst = false,
 }: {
-  states: { code: string; name: string }[];
+  /** `filing: false` marks a state where we show deadlines and reminders but don't file yet. */
+  states: { code: string; name: string; filing?: boolean }[];
   /** Start on "Choose your state" instead of the first state in the list. */
   chooseFirst?: boolean;
   search: (q: string, stateCode: string) => Promise<RegistrySearchResult>;
@@ -43,7 +44,7 @@ export function HeroFinder({
             ) : null}
             {states.map((s) => (
               <option key={s.code} value={s.code}>
-                {s.name}
+                {s.filing === false ? `${s.name} (deadlines and reminders)` : s.name}
               </option>
             ))}
           </Select>

@@ -27,8 +27,14 @@ export function listNames(names: string[]): string {
 }
 
 /** The home FAQ answer to "Which states do you support?", from the states actually open for filing. */
-export function supportedStatesAnswer(stateNames: string[]): string {
+export function supportedStatesAnswer(stateNames: string[], reminderOnlyNames: string[] = []): string {
   const names = [...stateNames].sort((a, b) => a.localeCompare(b));
   const lead = names.length ? `We file annual reports in ${listNames(names)} today.` : "We're adding states now.";
-  return `${lead} We add a state only after checking its requirements against official government sources. Until then, we list it as not yet verified and link to the state's own website.`;
+  // States a visitor can pick in the search but where we don't file yet, so the picker and
+  // this answer never seem to disagree.
+  const reminders = [...reminderOnlyNames].sort((a, b) => a.localeCompare(b));
+  const also = reminders.length
+    ? ` In ${listNames(reminders)}, you can look up your due date and get free reminders, and file directly with the state.`
+    : "";
+  return `${lead}${also} We add a state only after checking its requirements against official government sources. Until then, we list it as not yet verified and link to the state's own website.`;
 }
