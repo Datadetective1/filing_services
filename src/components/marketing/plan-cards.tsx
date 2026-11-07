@@ -47,10 +47,15 @@ export function plansFrom(o: PlanOffers): Plan[] {
     });
   }
   if (o.reportFromCents !== undefined) {
-    const points =
+    const example = o.reportExample
+      ? [`${o.reportExample.stateName}: ${formatCents(o.reportExample.totalCents, { trimZeros: true })} total, state fee included`]
+      : [];
+    const base =
       o.providerReportCents !== undefined && o.providerReportCents !== o.reportFromCents
         ? ["Pay once per filing", `${formatCents(o.providerReportCents, { trimZeros: true })} in some states`, `In ${o.reportStateCount} states`]
         : ["Pay once per filing", "The state's confirmation, kept for you", `In ${o.reportStateCount} states`];
+    // With a real total to show, it replaces the first point so the card stays three lines.
+    const points = example.length ? [...example, ...base.slice(1)] : base;
     plans.push({
       title: "Annual report",
       lead: "From",

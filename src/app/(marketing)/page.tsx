@@ -89,7 +89,12 @@ export default async function HomePage() {
     },
     {
       q: "Which states do you support?",
-      a: supportedStatesAnswer(listJurisdictions().filter((j) => stateSalesEnabled(j.code)).map((j) => j.name)),
+      a: supportedStatesAnswer(
+        listJurisdictions().filter((j) => stateSalesEnabled(j.code)).map((j) => j.name),
+        lookupStates()
+          .filter((code) => !stateSalesEnabled(code))
+          .map((code) => getJurisdiction(code)?.name ?? code),
+      ),
     },
     {
       q: "Do you give legal advice?",
@@ -142,13 +147,23 @@ export default async function HomePage() {
             <div id="find" className="grid scroll-mt-24 gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5">
               <HeroFinder
                 states={lookupStates()
-                  .map((code) => ({ code, name: getJurisdiction(code)?.name ?? code }))
+                  .map((code) => ({ code, name: getJurisdiction(code)?.name ?? code, filing: stateSalesEnabled(code) }))
                   .sort((a, b) => a.name.localeCompare(b.name))}
                 chooseFirst={raPrice !== undefined}
                 search={searchRegistry}
                 select={selectRegistryEntity}
               />
             </div>
+            {quote ? (
+              <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 justify-self-start rounded-[var(--radius-control)] border border-highlight/40 bg-highlight-soft px-4 py-2.5 text-[15px] text-highlight-fg">
+                <span>{stateName} annual report:</span>
+                <strong className="tnum font-display text-lg">{formatCents(quote.totalCents, { trimZeros: true })} total</strong>
+                <span className="tnum text-sm">
+                  ({formatCents(quote.serviceFeeCents, { trimZeros: true })} our fee + {formatCents(quote.governmentFeeCents, { trimZeros: true })} state
+                  fee)
+                </span>
+              </p>
+            ) : null}
             <p className="text-sm text-muted">
               Another state?{" "}
               <Link href="/find" className={textLinkClasses}>

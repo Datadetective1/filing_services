@@ -1,4 +1,4 @@
-import { ArrowSquareOut, Info, SealCheck } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, Info, MagnifyingGlass, SealCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,12 +12,13 @@ import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FaqList } from "@/components/marketing/faq";
 import { GuideSection, GuideText } from "@/components/marketing/guide-section";
 import { JsonLd } from "@/components/marketing/json-ld";
+import { Pa2027Timeline } from "@/components/marketing/pa-2027-timeline";
 import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { stateLookupEnabled } from "@/lib/compliance/launch";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { findRule, getJurisdiction, isRuleSellable, rulesForState } from "@/lib/compliance/registry";
-import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
+import { PA_URLS, PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import { verifiedText } from "@/lib/compliance/view";
 import { daysBetween, formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
 import { dueDateForYear } from "@/lib/domain/deadlines";
@@ -45,7 +46,10 @@ export function guideMetadata(stateCode: string, topic: string): Metadata {
 
 const shortTitle = (h1: string, stateName: string) => h1.replace(new RegExp(`^${stateName} `), "").replace(/^\w/, (c) => c.toUpperCase());
 
-/** Pennsylvania's three due-date groups for this year, with a neutral "passed / days away" note. */
+/**
+ * Pennsylvania's three due-date groups. Each row shows the next due date (this year's, or
+ * next year's once this year's has passed), with a neutral note on this year's date.
+ */
 function PaDeadlineTable() {
   const today = todayInTimeZone("America/New_York");
   const year = Number(today.slice(0, 4));
@@ -57,16 +61,18 @@ function PaDeadlineTable() {
   return (
     <div className="overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface">
       <table className="w-full text-left text-[15px]">
-        <caption className="sr-only">Pennsylvania annual report due dates for {year}</caption>
+        <caption className="sr-only">Pennsylvania annual report due dates</caption>
         <thead className="bg-surface-2 text-sm text-muted">
           <tr>
             <th scope="col" className="px-4 py-3 font-semibold sm:px-5">Entity type</th>
-            <th scope="col" className="px-4 py-3 font-semibold sm:px-5">{year} due date</th>
+            <th scope="col" className="px-4 py-3 font-semibold sm:px-5">Next due date</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {groups.map(({ label, rule }) => {
-            const due = rule ? dueDateForYear(rule.dueRule, year) : null;
+            const thisYear = rule ? dueDateForYear(rule.dueRule, year) : null;
+            const passed = thisYear ? daysBetween(today, thisYear) < 0 : false;
+            const due = rule ? (passed ? dueDateForYear(rule.dueRule, year + 1) : thisYear) : null;
             const days = due ? daysBetween(today, due) : null;
             return (
               <tr key={label}>
@@ -75,7 +81,8 @@ function PaDeadlineTable() {
                   <span className="font-semibold text-fg">{due ? formatLongDate(due) : "—"}</span>
                   {days !== null ? (
                     <span className="block text-sm text-muted">
-                      {days < 0 ? "Date has passed (it can still be filed)" : days === 0 ? "Today" : `${days} days away`}
+                      {days === 0 ? "Today" : `${days} days away`}
+                      {passed ? ` · the ${year} date has passed, and that report can still be filed` : ""}
                     </span>
                   ) : null}
                 </td>
@@ -84,6 +91,40 @@ function PaDeadlineTable() {
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Pennsylvania guides that carry the 2027 enforcement timeline. */
+const PA_2027_TOPICS = new Set(["annual-report-deadline", "annual-report-after-deadline", "annual-report-fee", "business-search"]);
+/** Pennsylvania guides where a reader may wonder whether the report was already filed. */
+const PA_STATUS_TOPICS = new Set(["annual-report-deadline", "annual-report-after-deadline", "business-search"]);
+
+/** "Did we already file?" answered with the one place that knows: the Department's own search. */
+function AlreadyFiled() {
+  return (
+    <div className="flex max-w-[48rem] flex-col gap-4 rounded-[var(--radius-surface)] border border-border bg-surface-2 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-accent">
+          <MagnifyingGlass size={20} weight="bold" aria-hidden />
+        </span>
+        <div className="grid gap-1">
+          <p className="font-display text-lg font-semibold text-fg">Not sure if it was already filed?</p>
+          <p className="text-sm leading-6 text-muted">
+            The Department of State&apos;s own records are the place to check. Look your business up there before filing again.
+          </p>
+        </div>
+      </div>
+      <a
+        href={PA_URLS.businessSearch}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={buttonClasses("secondary", "md", "shrink-0")}
+      >
+        Check on file.dos.pa.gov
+        <ArrowSquareOut size={16} aria-hidden />
+        <span className="sr-only">(opens in a new tab)</span>
+      </a>
     </div>
   );
 }
@@ -128,6 +169,9 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
   const sellable = Boolean(rule && isRuleSellable(rule));
   const quote = rule && sellable ? await publicQuote(rule) : null;
   const lookupOn = stateLookupEnabled(stateCode);
+  // Pennsylvania pages put the free reminder search right under the answer, so it isn't
+  // pushed below the article on a phone.
+  const searchFirst = isPa && !g.embedSearch;
   const hubName = j?.agency.periodicReportName ? `${stateName} ${j.agency.periodicReportName.toLowerCase()}` : `${stateName} annual report`;
   const crumbs = [
     { name: "Home", path: "/" },
@@ -152,10 +196,10 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
 
   const search = isPa ? (
     <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
-      <p className="font-display text-lg font-semibold text-fg">Find your Pennsylvania business</p>
+      <p className="font-display text-lg font-semibold text-fg">Get a free reminder before your due date</p>
       <p className="text-sm leading-6 text-muted">
-        See when its annual report may be due and what it costs. No account needed, and we fill in what the public register
-        shows.
+        Find your Pennsylvania business to see when its annual report may be due and what it costs, then get an email before
+        the date. No account needed.
       </p>
       <RegistrySearch search={searchRegistry} select={selectRegistryEntity} compact />
     </div>
@@ -207,12 +251,14 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
           </p>
         </header>
 
-        {g.embedSearch && search ? <div className="max-w-[48rem]">{search}</div> : null}
+        {(g.embedSearch || searchFirst) && search ? <div className="max-w-[48rem]">{search}</div> : null}
         {isPa && g.slug === "annual-report-deadline" ? (
           <div className="max-w-[48rem]">
             <PaDeadlineTable />
           </div>
         ) : null}
+        {isPa && PA_2027_TOPICS.has(g.slug) ? <Pa2027Timeline className="max-w-[60rem]" /> : null}
+        {isPa && PA_STATUS_TOPICS.has(g.slug) ? <AlreadyFiled /> : null}
 
         <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-14">
           <div className="grid min-w-0 gap-12">
@@ -311,7 +357,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
           </div>
 
           <aside className="grid gap-5 lg:sticky lg:top-[92px]">
-            {g.embedSearch ? (
+            {g.embedSearch || searchFirst ? (
               <Link href={isPa ? "/find" : `/find?state=${stateCode}`} className={buttonClasses("primary", "lg", "w-full")}>
                 Find my business
               </Link>

@@ -23,6 +23,8 @@ export interface PlanOffers {
   providerReportCents?: number;
   /** States where an annual report can be ordered (self-filed and partner-filed). */
   reportStateCount: number;
+  /** A real all-in total to show beside "From": Pennsylvania's LLC report, state fee included. */
+  reportExample?: { stateName: string; totalCents: number };
   formationCents?: number;
   /** Names of the states where formation is open, A to Z. */
   formationStates: string[];
@@ -55,6 +57,13 @@ export async function planOffers(): Promise<PlanOffers> {
       if (q && (reportFromCents === undefined || q.serviceFeeCents < reportFromCents)) reportFromCents = q.serviceFeeCents;
     }
   }
+  // Pennsylvania is where most visitors come from, so its total is the example shown.
+  let reportExample: PlanOffers["reportExample"];
+  const paLlc = self.some((j) => j.code === "PA") ? rulesForState("PA").find((r) => r.entityType === "llc" && isRuleSellable(r)) : undefined;
+  if (paLlc) {
+    const q = await publicQuote(paLlc);
+    if (q) reportExample = { stateName: "Pennsylvania", totalCents: q.totalCents };
+  }
   const providerReportCents = prices.provider_annual_report;
   const codes = new Set(self.map((j) => j.code));
   if (providerReportCents !== undefined) for (const s of providerReportOpenStates()) codes.add(s.code);
@@ -66,6 +75,7 @@ export async function planOffers(): Promise<PlanOffers> {
     reportFromCents: reportFromCents ?? providerReportCents,
     providerReportCents,
     reportStateCount: codes.size,
+    reportExample,
     formationCents,
     formationStates: formationStates.map((s) => s.name),
   };
