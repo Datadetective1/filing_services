@@ -47,7 +47,7 @@ export function Pa2027Timeline({ className }: { className?: string }) {
       <ol className="relative mt-7 grid gap-6 md:grid-cols-3 md:gap-4">
         <span aria-hidden className="absolute left-[19px] top-10 bottom-10 w-px bg-gradient-to-b from-highlight/70 via-ink-muted/40 to-highlight/70 md:left-10 md:right-10 md:top-[19px] md:bottom-auto md:h-px md:w-auto md:bg-gradient-to-r" />
         {STEPS.map(({ icon: Icon, when, title, body }, i) => (
-          <li key={title} className="relative grid grid-cols-[40px_1fr] gap-4 md:grid-cols-1 md:gap-3">
+          <li key={title} className="relative grid grid-cols-[40px_1fr] content-start gap-4 md:grid-cols-1 md:gap-3">
             <span
               className={cn(
                 "relative z-10 grid size-10 place-items-center rounded-full ring-4 ring-ink",
