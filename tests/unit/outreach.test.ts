@@ -145,9 +145,10 @@ describe("outreach email", () => {
 
   const email = renderOutreachEmail(sample);
 
-  it("leads with the private-company disclaimer and says the business can file directly for $7", () => {
+  it("leads with the private-company disclaimer, states the $7 fee and never points to the state's filing site", () => {
     expect(email.text.startsWith("Filewell is a private filing service. It is not the Pennsylvania Department of State")).toBe(true);
-    expect(email.text).toContain("file directly with the Department of State at file.dos.pa.gov for the $7.00 state fee");
+    expect(email.text).toContain("The state fee is $7.00");
+    expect(email.text + email.html).not.toMatch(/file\.dos\.pa\.gov|yourself|file directly/i);
     expect(email.text).toContain("($0.00 with a not-for-profit purpose)");
     expect(email.text).toContain("$49.00 plus the $7.00 state fee ($56.00 total)");
   });

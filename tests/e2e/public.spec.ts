@@ -59,9 +59,9 @@ test.describe("public pages", () => {
       const main = page.locator("main");
       await expect(main).toContainText("Checked against official Pennsylvania sources on");
       await expect(main).toContainText("private filing service");
-      await expect(main).toContainText("You don't need a filing service");
+      await expect(main).not.toContainText("You don't need a filing service");
       await expect(main).toContainText("Our service fee");
-      await expect(page.locator('main a[href^="https://www.pa.gov/"]').first()).toBeAttached();
+      await expect(page.locator('main a[href*=".gov"]')).toHaveCount(0);
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", new RegExp(`/pennsylvania/${slug}$`));
       await expect(page.getByRole("textbox", { name: "Business name or Pennsylvania entity number" }).first()).toBeVisible();
       const jsonLd = (await page.locator('script[type="application/ld+json"]').allTextContents()).join(" ");
@@ -142,7 +142,7 @@ test.describe("public pages", () => {
     await expect(body).toContainText("June 30");
     await expect(body).toContainText("December 31");
     await expect(body).toContainText("$7");
-    await expect(page.locator('a[href*="pa.gov"]').first()).toBeVisible();
+    await expect(page.locator('a[href*=".gov"]')).toHaveCount(0);
     await expect(page.getByText(DISCLAIMER).first()).toBeVisible();
     // Structured data present and never claims to be a government service.
     const jsonLd = await page.locator('script[type="application/ld+json"]').allTextContents();

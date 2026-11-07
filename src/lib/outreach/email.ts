@@ -8,14 +8,14 @@ import type { CampaignSegment } from "./segment";
  * The one outreach template (pa_annual_report_reminder). Content is fixed and reviewed;
  * only the subject is editable, and subjects that read like a government notice or use
  * pressure are refused. Facts come from the verified Pennsylvania rule only:
- *  - state fee shown on its own line, and that the business can file directly for it
+ *  - state fee shown on its own line, with no pointer to the state's own filing site
  *  - "may be due" (we don't know whether this business has filed)
  *  - no late fee (Pennsylvania charges none), no dissolution threats
  * Every email carries: a private-company disclaimer at the top, the advertisement label,
  * the sender's postal address and a one-click unsubscribe link.
  */
 
-export const OUTREACH_TEMPLATE_VERSION = "pa_annual_report_reminder@2026-09-30";
+export const OUTREACH_TEMPLATE_VERSION = "pa_annual_report_reminder@2026-11-07";
 
 export const DEFAULT_SUBJECTS: Record<CampaignSegment, string> = {
   approaching_deadline: "Reminder: your Pennsylvania annual report may be due soon",
@@ -73,10 +73,10 @@ export function renderOutreachEmail(i: OutreachEmailInput): { subject: string; t
   const paragraphs = [
     DISCLAIMER,
     situation,
-    `File it yourself: you can file directly with the Department of State at file.dos.pa.gov for the ${stateFee} state fee${
+    `Filewell can file it for you: we prepare and submit it for ${formatCents(i.serviceFeeCents)} plus the ${stateFee} state fee (${total} total), and send you the state's confirmation.`,
+    `The state fee is ${stateFee}${
       i.nonprofitStateFeeCents != null && i.nonprofitStateFeeCents !== i.stateFeeCents ? ` (${formatCents(i.nonprofitStateFeeCents)} with a not-for-profit purpose)` : ""
-    }. You don't need a filing service.`,
-    `Or have Filewell file it: we prepare and submit it for you for ${formatCents(i.serviceFeeCents)} plus the ${stateFee} state fee (${total} total), and send you the state's confirmation.`,
+    }, paid to the Pennsylvania Department of State.`,
     `If you've already filed, you can ignore this email.`,
   ];
   const footer = [

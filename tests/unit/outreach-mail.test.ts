@@ -100,13 +100,10 @@ describe("postcard copy", () => {
     expect(back.indexOf('<div class="disc">')).toBeLessThan(back.indexOf('<div class="lead">'));
   });
 
-  it("says 'may be due' and that the business can file directly with Pennsylvania for $7 instead of using Filewell", () => {
+  it("says 'may be due', states the $7 fee and never points to the state's filing site", () => {
     expect(c.headline).toBe("Your 2026 Pennsylvania annual report may be due by December 31.");
-    expect(c.directOption).toBe(
-      "You can file directly with the Pennsylvania Department of State at file.dos.pa.gov for the $7.00 state fee ($0.00 for not-for-profit associations) instead of using Filewell.",
-    );
-    expect(front).toContain("instead of using Filewell");
-    expect(back).toContain("instead of using Filewell");
+    expect(c.stateFeeLine).toBe("The Pennsylvania state fee is $7.00 ($0.00 for not-for-profit associations), paid to the Department of State.");
+    for (const side of [front, back, text]) expect(side).not.toMatch(/file\.dos\.pa\.gov|yourself|file directly/i);
     expect(text).toContain("$49.00 service fee + $7.00 state fee = $56.00");
     expect(text).toContain("Already filed? Please ignore this card.");
   });
