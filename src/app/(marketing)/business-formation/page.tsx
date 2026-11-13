@@ -8,6 +8,7 @@ import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Notice } from "@/components/ui/surface";
 import { formatCents } from "@/lib/domain/money";
 import { businessServicesIndexable, businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
+import { placesText } from "@/lib/registered-agent/public-copy";
 import { publicServicePrices } from "@/lib/services/public-prices";
 import { breadcrumbJsonLd, businessServiceJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -59,7 +60,12 @@ export default async function BusinessFormationPage() {
       <PageIntro
         breadcrumbs={<Breadcrumbs items={CRUMBS} />}
         title="Start your business"
-        lede={<p>We file your LLC or corporation with the state{fee !== undefined ? ` for ${money(fee)}` : ""} plus the state&apos;s own fee.</p>}
+        lede={
+          <p>
+            We file your LLC or corporation with the state{fee !== undefined ? ` for ${money(fee)}` : ""} plus the state&apos;s own fee
+            {open.length > 0 && fee !== undefined ? `, in ${placesText(open)}` : ""}.
+          </p>
+        }
       />
       <Section>
         <div className="grid gap-8">

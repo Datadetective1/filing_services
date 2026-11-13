@@ -34,3 +34,20 @@ export function formationLlcFeeText(j: RaJurisdiction): string | null {
 export function changeCheckedAt(j: RaJurisdiction): string | null {
   return [...new Set((j.changeOfAgent?.sources ?? []).map((s) => s.checkedAt))].sort().pop() ?? null;
 }
+
+/** Places that are not states: shown by name after the state count. */
+const NOT_STATES: Record<string, string> = { DC: "DC", PR: "Puerto Rico" };
+
+/** How many of the 50 states are in a list of jurisdiction codes. */
+export function stateCount(codes: string[]): number {
+  return codes.filter((c) => !(c.toUpperCase() in NOT_STATES)).length;
+}
+
+/** "all 50 states and DC", "42 states, DC and Puerto Rico", "Texas" (one place, by name). */
+export function placesText(places: { code: string; name: string }[]): string {
+  if (places.length === 1) return places[0].name;
+  const n = stateCount(places.map((p) => p.code));
+  const extras = places.map((p) => NOT_STATES[p.code.toUpperCase()]).filter((x): x is string => Boolean(x));
+  const parts = [n === 50 ? "all 50 states" : `${n} ${n === 1 ? "state" : "states"}`, ...extras];
+  return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}

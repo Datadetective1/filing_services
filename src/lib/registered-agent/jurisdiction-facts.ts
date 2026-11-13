@@ -11,9 +11,12 @@ import type {
  * statutes. Every fact carries its source URL, a verbatim quote and the date checked. A fact
  * that could not be confirmed is absent and explained in `unverified`. Corporation formation
  * fees that rise with authorized shares, or that need extra filings or publication, are left
- * out on purpose so a formation quote is never a guess. The one exception is Michigan, whose
- * minimum applies because checkout caps authorized shares (MAX_AUTHORIZED_SHARES). Formation
- * facts for TX, PA, CO, FL, SD, MT and MI were rechecked on November 3, 2026.
+ * out on purpose so a formation quote is never a guess. Michigan and Massachusetts are the
+ * exceptions: their fee is flat for every share count checkout allows (MAX_AUTHORIZED_SHARES).
+ * Formation facts for TX, PA, CO, FL, SD, MT and MI were rechecked on November 3, 2026, and
+ * every other jurisdiction's on November 13, 2026. Formation fees are the online filing fee,
+ * including any flat fee every online filing pays (Washington, Rhode Island, New Hampshire,
+ * Hawaii's archives fee); a surcharge for paying by card is left out, as in Texas.
  *
  * Provider coverage: the jurisdiction's page on Registered Agents Inc.'s own website.
  */
@@ -87,17 +90,27 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://www.commerce.alaska.gov/web/Portals/5/pub/corp0484.pdf",
-          publisher:
-            "State of Alaska, Division of Corporations, Business and Professional Licensing, Corporations Section",
-          quote: "Nonrefundable Filing Fee $250.00",
-          checkedAt: "2026-10-29",
+          publisher: "State of Alaska, Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing, Corporations Section",
+          quote: "Required Fees: Nonrefundable Filing Fee $250.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.commerce.alaska.gov/web/cbpl/Corporations/CorporationFormsFees",
+          publisher: "State of Alaska, Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing, Corporations Section",
+          quote: "| 08-0484 | $250.00 |",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.commerce.alaska.gov/web/Portals/5/pub/corp0400.pdf",
-          publisher:
-            "State of Alaska, Division of Corporations, Business and Professional Licensing, Corporations Section",
+          publisher: "State of Alaska, Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing, Corporations Section",
           quote: "Required Fees: Nonrefundable Filing Fee $250.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.commerce.alaska.gov/web/cbpl/Corporations/CorporationFormsFees",
+          publisher: "State of Alaska, Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing, Corporations Section",
+          quote: "| 08-0400 | $250.00 |",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -292,18 +305,15 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://www.sos.arkansas.gov/business-commercial-services-bcs/forms-fees/llc/",
-          publisher:
-            "Arkansas Secretary of State, Business and Commercial Services",
-          quote:
-            "Certificate of Organization for a Dom. Limited Liability Co. | LL-01 | $45.00 | $50.00",
-          checkedAt: "2026-10-29",
+          publisher: "Arkansas Secretary of State, Business and Commercial Services",
+          quote: "Certificate of Organization for a Dom. Limited Liability Co. | LL-01 | $45.00 | $50.00",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sos.arkansas.gov/business-commercial-services-bcs/forms-fees/corporations",
-          publisher:
-            "Arkansas Secretary of State, Business and Commercial Services",
+          publisher: "Arkansas Secretary of State, Business and Commercial Services",
           quote: "Articles of Incorporation | DN-01 | $45.00 | $50.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -758,25 +768,16 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
-          url: "https://portal.ct.gov/-/media/sots/business-services/bsd-forms/limited-liability-company/domestic/cert-of-organization-llc-domestic-2020-final-version.pdf",
-          publisher:
-            "Secretary of the State of Connecticut, Business Services Division",
-          quote: "FILING FEE: $120",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://business.ct.gov/-/media/BusinessOneStop/BRS-Forms/Corporation-Forms/Cert-of-Incorporation-Stock-Corp-2020r11aFILLABLE-430.pdf",
-          publisher:
-            "Secretary of the State of Connecticut, Business Services Division",
-          quote: "Includes franchise tax up to 20,000 shares.",
-          checkedAt: "2026-10-29",
+          url: "https://business.ct.gov/-/media/BusinessOneStop/BSD_Forms/LLC---20211221/CERTIFICATE_OF_ORGANIZATION-fillable.pdf",
+          publisher: "State of Connecticut, CT Business One Stop (Secretary of the State)",
+          quote: "Filing Fee: $120",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://portal.ct.gov/-/media/sots/business-services/bsd-forms/fee-schedule-revised-712020.pdf",
-          publisher:
-            "Secretary of the State of Connecticut, Business Services Division",
-          quote: "D. Certificate of Incorporation 250",
-          checkedAt: "2026-10-29",
+          publisher: "Secretary of the State of Connecticut, Business Services Division",
+          quote: "C. Certificate of Organization (Including Appointment of Statutory Agent) 120",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -863,26 +864,15 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       ],
     },
     formation: {
-      // Corporations: $99 only up to $100,000 of authorized capital, then $550 to $1,650 (checked 2026-11-03), so no corporation fee.
       governmentFeeCents: {
         llc: 9900,
       },
       sources: [
         {
           url: "https://dlcp.dc.gov/node/1621921",
-          publisher:
-            "District of Columbia Department of Licensing and Consumer Protection, Corporations Division",
-          quote:
-            "Domestic Limited Liability Company | Certificate of organization | $99.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://dlcp.dc.gov/node/1621906",
-          publisher:
-            "District of Columbia Department of Licensing and Consumer Protection, Corporations Division",
-          quote:
-            "Filing articles of incorporation for a corporation with authorized capital up to one hundred thousand dollars ($100,000) | $99.00",
-          checkedAt: "2026-10-29",
+          publisher: "District of Columbia Department of Licensing and Consumer Protection, Corporations Division",
+          quote: "Domestic Limited Liability Company | Certificate of organization | $99.00",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -980,15 +970,14 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://corpfiles.delaware.gov/Fee_Schedule/AugustFee2026.pdf",
           publisher: "Delaware Department of State, Division of Corporations",
-          quote: "Formation - domestic $110.00 $50.00 $100.00 $50.00",
-          checkedAt: "2026-10-29",
+          quote: "Formation – domestic $110.00 $50.00 $100.00 $50.00",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://corpfiles.delaware.gov/Fee_Schedule/AugustFee2026.pdf",
           publisher: "Delaware Department of State, Division of Corporations",
-          quote:
-            "Incorporation (including Public Benefit Corporations) *$109.00 $50.00 $100.00 $50.00",
-          checkedAt: "2026-10-29",
+          quote: "The fee in column one for domestic LLC's equals filing fee plus municipality fee.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1184,15 +1173,14 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://sos.ga.gov/index.php/node/1925",
           publisher: "Georgia Secretary of State, Corporations Division",
-          quote:
-            "Articles of Incorporation $100.00 +$10.00 $110.00 $100.00 +$10.00 $110.00 ... Articles of Organization (LLC) $100.00 +$10.00 $110.00 $100.00 +$10.00 $110.00",
-          checkedAt: "2026-10-29",
+          quote: "Articles of Organization (LLC) $100.00 +$10.00 $110.00 $100.00 +$10.00 $110.00",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://sos.ga.gov/how-to-guide/how-guide-register-domestic-entity",
           publisher: "Georgia Secretary of State, Corporations Division",
-          quote: "Pay the $110 fee ($100 filing fee + $10 service charge).",
-          checkedAt: "2026-10-29",
+          quote: "Pay the $110 fee ($100 filing fee + $10 service charge) by approved credit card",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1273,33 +1261,39 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     },
     formation: {
       governmentFeeCents: {
-        llc: 5000,
-        corporation: 5000,
+        llc: 5100,
+        corporation: 5100,
       },
       sources: [
         {
+          url: "https://cca.hawaii.gov/breg/registration/dllc/",
+          publisher: "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
+          quote: "$50.00, with an additional fee of $25.00 for expedited service.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://cca.hawaii.gov/breg/registration/dllc/",
+          publisher: "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
+          quote: "There is an additional State Archives fee of $1.00.",
+          checkedAt: "2026-11-13",
+        },
+        {
           url: "https://files.hawaii.gov/dcca/breg/registration/forms/llc-1-instr.pdf",
-          publisher:
-            "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
-          quote:
-            "The fee for filing Articles of Organization is $50.00 and is not refundable.",
-          checkedAt: "2026-10-29",
+          publisher: "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
+          quote: "The fee for filing Articles of Organization is $50.00 and is not refundable.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://cca.hawaii.gov/breg/registration/dpc/",
+          publisher: "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
+          quote: "There is an additional State Archives fee of $1.00.",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://cca.hawaii.gov/breg/files/2023/09/DC-1-Instr.pdf",
-          publisher:
-            "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
-          quote:
-            "The fee for filing Articles of Incorporation is $50.00 and is not refundable.",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://cca.hawaii.gov/wp-content/uploads/2025/12/Form-Fee-Schedule-12-2022.pdf",
-          publisher:
-            "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
-          quote:
-            "there is an additional $1.00 fee imposed by State Archives on permanent records",
-          checkedAt: "2026-11-03",
+          publisher: "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
+          quote: "The fee for filing Articles of Incorporation is $50.00 and is not refundable.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1310,7 +1304,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
-      "Hawaii's fee schedule says an additional $1.00 State Archives preservation fee applies to permanent records, so formation may total $51 in practice; the LLC-1 and DC-1 forms themselves show only the $50 filing fee.",
+      "Formation is $51: the $50 filing fee plus the $1.00 State Archives preservation fee the DCCA pages list for both entity types (rechecked 2026-11-13).",
       "The X-7 change fee is $25 for 200 or fewer affected entities ($1 each for 201 or more, a bulk option for agents).",
       "X-7 states the filing entity affirms the new agent has consented; no separate agent signature is shown.",
       "BREG is moving to a new online portal starting July 6, 2026, and expedited handling is currently unavailable; recheck fees on the new portal.",
@@ -1379,22 +1373,22 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
+          url: "https://www.legis.iowa.gov/docs/code/489.122.pdf",
+          publisher: "Iowa Legislature, Iowa Code 489.122",
+          quote: "c. Certificate of organization ... $ 50",
+          checkedAt: "2026-11-13",
+        },
+        {
           url: "https://help.sos.iowa.gov/how-do-i-form-corporation",
           publisher: "Iowa Secretary of State",
           quote: "The cost to form a profit corporation is $50.",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.legis.iowa.gov/docs/code/489.122.pdf",
-          publisher: "Iowa Legislature, Iowa Code 489.122",
-          quote: "Certificate of organization $ 50",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.legis.iowa.gov/docs/code/490.122.pdf",
-          publisher: "Iowa Legislature, Iowa Code 490.122",
-          quote: "Articles of incorporation ... $ 50",
-          checkedAt: "2026-10-29",
+          publisher: "Iowa Legislature, Iowa Code 489.122",
+          quote: "Articles of incorporation ............................................. $ 50",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1471,28 +1465,34 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
-          url: "https://archive.sos.idaho.gov/CORP/forms/LLC/LLC%20Cert%20Org.pdf",
-          publisher:
-            "Idaho Secretary of State, Business and Commercial Services",
-          quote:
-            "Base Filing fee: $100.00 + $20.00 for manual processing (form must be typed).",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://archive.sos.idaho.gov/CORP/forms/CORP/Art%20of%20Incorp%20General.pdf",
-          publisher:
-            "Idaho Secretary of State, Business and Commercial Services",
-          quote:
-            "Base Filing fee: $100.00 + $20.00 for manual processing (form must be typed).",
-          checkedAt: "2026-10-29",
+          url: "https://legislature.idaho.gov/wp-content/uploads/statutesrules/idstat/Title30/T30CH21.pdf",
+          publisher: "Idaho Legislature, Idaho Code",
+          quote: "(16) Certificate of organization of a limited liability company ... $100.00",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://sos.idaho.gov/business-forms/",
-          publisher:
-            "Idaho Secretary of State, Business and Commercial Services",
-          quote:
-            "Most business filings can be completed online at sosbiz.idaho.gov",
-          checkedAt: "2026-10-29",
+          publisher: "Idaho Secretary of State, Business and Commercial Services",
+          quote: "Filing online is the fastest option and avoids the additional $20 manual processing fee required for paper submissions.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://archive.sos.idaho.gov/CORP/forms/LLC/LLC%20Cert%20Org.pdf",
+          publisher: "Idaho Secretary of State, Business and Commercial Services",
+          quote: "Base Filing fee: $100.00 + $20.00 for manual processing (form must be typed).",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://legislature.idaho.gov/wp-content/uploads/statutesrules/idstat/Title30/T30CH21.pdf",
+          publisher: "Idaho Legislature, Idaho Code",
+          quote: "(8) Articles of incorporation of a business corporation ... $100.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://archive.sos.idaho.gov/CORP/forms/CORP/Art%20of%20Incorp%20General.pdf",
+          publisher: "Idaho Secretary of State, Business and Commercial Services",
+          quote: "Base Filing fee: $100.00 + $20.00 for manual processing (form must be typed).",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1566,27 +1566,22 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
+          url: "https://www.ilsos.gov/departments/business-services/organization/llc-instructions.html",
+          publisher: "Illinois Secretary of State, Department of Business Services",
+          quote: "$150 (10 business days); $250 (24-hour service)",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.ilsos.gov/departments/business-services/organization/llc-instructions.html",
+          publisher: "Illinois Secretary of State, Department of Business Services",
+          quote: "A payment processor fee will be assessed for all transactions.",
+          checkedAt: "2026-11-13",
+        },
+        {
           url: "https://ilga.gov/Documents/legislation/ilcs/documents/080501800K50-10.htm",
-          publisher:
-            "Illinois General Assembly, Illinois Compiled Statutes (805 ILCS 180/50-10)",
-          quote:
-            "Filing articles of organization (domestic), application for admission (foreign), and restated articles of organization (domestic), $150.",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.ilga.gov/legislation/ilcs/documents/080500050K15.10.htm",
-          publisher:
-            "Illinois General Assembly, Illinois Compiled Statutes (805 ILCS 5/15.10)",
-          quote: "(a) Filing articles of incorporation, $150.",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://ilga.gov/legislation/ilcs/documents/080500050K15.45.htm",
-          publisher:
-            "Illinois General Assembly, Illinois Compiled Statutes (805 ILCS 5/15.45)",
-          quote:
-            "in no event shall the initial franchise tax be less than $25.",
-          checkedAt: "2026-10-29",
+          publisher: "Illinois General Assembly, Illinois Compiled Statutes (805 ILCS 180/50-10, Limited Liability Company Act)",
+          quote: "Filing articles of organization (domestic), application for admission (foreign), and restated articles of organization (domestic), $150.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1678,29 +1673,27 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://iga.in.gov/ic/2026/Title_23/Article_0.5/Chapter_9.pdf",
-          publisher: "Indiana General Assembly, Indiana Code 23-0.5-9",
-          quote:
-            "Seventy-five dollars ($75) for an electronic filing. ... One hundred dollars ($100) for filing in a manner other than electronically.",
-          checkedAt: "2026-10-29",
+          publisher: "Indiana General Assembly, Indiana Code 23-0.5-9-32",
+          quote: "Seventy-five dollars ($75) for an electronic filing.",
+          checkedAt: "2026-11-13",
         },
         {
-          url: "https://www.in.gov/sos/business/files/Regulatory-Analysis-Business-Entity-LSA-25-155-OMB-2024-73R.pdf",
+          url: "https://www.in.gov/sos/business/files/20250326-IR-075250155FNA.pdf",
           publisher: "Indiana Secretary of State, Business Services Division",
-          quote:
-            "2. Articles of Incorporation $20.00 ... 5. Domestic LLC Articles of Organization $20.00",
-          checkedAt: "2026-10-29",
+          quote: "For the electronic filing of articles of organization, the secretary of state shall collect twenty dollars ($20)",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://forms.in.gov/Download.aspx?id=16989",
           publisher: "Indiana Secretary of State, Business Services Division",
           quote: "FILING FEE: $100.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
-          url: "https://forms.in.gov/Download.aspx?id=16996",
+          url: "https://www.in.gov/sos/business/files/20250326-IR-075250155FNA.pdf",
           publisher: "Indiana Secretary of State, Business Services Division",
-          quote: "FILING FEE: $100.00",
-          checkedAt: "2026-10-29",
+          quote: "For the electronic filing of articles of incorporation, the secretary of state shall collect twenty dollars ($20)",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1769,16 +1762,26 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://www.sos.ks.gov/forms/business_services/dl.pdf",
           publisher: "Kansas Secretary of State, Business Services Division",
-          quote:
-            "Online Articles of Organization:..................... $85 ... Paper Articles of Organization:...................... $90",
-          checkedAt: "2026-10-29",
+          quote: "Online Articles of Organization:..................... $85",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.ks.gov/forms/business_services/dl.pdf",
+          publisher: "Kansas Secretary of State, Business Services Division",
+          quote: "Paper Articles of Organization:...................... $90",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://sos.ks.gov/forms/business_services/AI.pdf",
           publisher: "Kansas Secretary of State, Business Services Division",
-          quote:
-            "For-profit Corporation paper filing:................. $90 ... For-profit Corporation online filing: ................ $85",
-          checkedAt: "2026-10-29",
+          quote: "For-profit Corporation online filing: ................ $85",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://sos.ks.gov/forms/business_services/AI.pdf",
+          publisher: "Kansas Secretary of State, Business Services Division",
+          quote: "For-profit Corporation paper filing:................. $90",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1855,20 +1858,13 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           url: "https://www.sos.ky.gov/bus/business-filings/Pages/Fees.aspx",
           publisher: "Kentucky Secretary of State, Business Filings",
           quote: "Articles of Organization: $40.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://web.sos.ky.gov/forms/corp/BAI-Articles%20of%20Incorporation-Profit%20Corporation.pdf",
-          publisher: "Kentucky Secretary of State, Business Filings",
-          quote:
-            "1. Articles of Incorporation $40.00 ... 2. Organization Tax Fee for 1,000 shares or less +$10.00 ... Total Filing Fee $50.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://web.sos.ky.gov/forms/corp/KLC-Articles%20of%20Organization-Profit%20Limited%20Liability%20Company.pdf",
           publisher: "Kentucky Secretary of State, Business Filings",
           quote: "The filing fee for the document is $40.00.",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -1964,15 +1960,32 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://static.sos.la.gov/shared/fee_changes_2026.pdf",
           publisher: "Louisiana Secretary of State, Commercial Division",
-          quote:
-            "Articles of Organization-Louisiana Limited Liability Company $125",
-          checkedAt: "2026-10-29",
+          quote: "Articles of Organization-Louisiana Limited Liability Company $125",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://static.sos.la.gov/shared/fee_changes_2026.pdf",
+          publisher: "Louisiana Secretary of State, Commercial Division",
+          quote: "Credit card payments are subject to an additional statutory convenience fee. $5",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.la.gov/business-services/file-business-documents",
+          publisher: "Louisiana Secretary of State",
+          quote: "Effective October 1, 2026, the fees for the Commercial Division of the Secretary of State increased in accordance with Act 921 of the 2026 Regular Legislative Session.",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://static.sos.la.gov/shared/fee_changes_2026.pdf",
           publisher: "Louisiana Secretary of State, Commercial Division",
           quote: "Articles of Incorporation Louisiana Business $95",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.la.gov/business-services/file-business-documents",
+          publisher: "Louisiana Secretary of State",
+          quote: "*Credit card payments are subject to an additional statutory convenience fee of $5",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -2078,30 +2091,44 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     formation: {
       governmentFeeCents: {
         llc: 50000,
+        corporation: 27500,
       },
       sources: [
         {
           url: "https://www.sec.state.ma.us/divisions/corporations/download/c156c512dllccert.pdf",
-          publisher:
-            "Secretary of the Commonwealth of Massachusetts, Corporations Division",
+          publisher: "Secretary of the Commonwealth of Massachusetts, Corporations Division",
           quote: "Filing fee: $500",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sec.state.ma.us/divisions/corporations/general-information/corporations-filing-fees.htm",
-          publisher:
-            "Secretary of the Commonwealth of Massachusetts, Corporations Division",
-          quote:
-            "$275.00 min. for up to 275,000 shares; ($100 for each additional 100,000 shares)",
-          checkedAt: "2026-10-29",
+          publisher: "Secretary of the Commonwealth of Massachusetts, Corporations Division",
+          quote: "Certificate of Registration $500.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sec.state.ma.us/divisions/corporations/general-information/corporations-filing-fees.htm",
+          publisher: "Secretary of the Commonwealth of Massachusetts, Corporations Division",
+          quote: "$500.00 $20.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sec.state.ma.us/divisions/corporations/general-information/corporations-filing-fees.htm",
+          publisher: "Secretary of the Commonwealth of Massachusetts, Corporations Division",
+          quote: "$275.00 min. for up to 275,000 shares; ($100 for each additional 100,000 shares)",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sec.state.ma.us/divisions/corporations/download/c156ds202950c11316.pdf",
-          publisher:
-            "Secretary of the Commonwealth of Massachusetts, Corporations Division",
-          quote:
-            "Filing fee: $275 for up to 275,000 shares plus $100 for each additional 100,000 shares or any fraction thereof.",
-          checkedAt: "2026-10-29",
+          publisher: "Secretary of the Commonwealth of Massachusetts, Corporations Division",
+          quote: "Filing fee: $275 for up to 275,000 shares plus $100 for each additional 100,000 shares or any fraction thereof.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sec.state.ma.us/divisions/corporations/general-information/corporations-filing-fees.htm",
+          publisher: "Secretary of the Commonwealth of Massachusetts, Corporations Division",
+          quote: "$150.00 – $499.00 $15.00",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -2113,13 +2140,14 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
+      "Corporation formation is $275 for up to 275,000 authorized shares and rises above that; checkout caps authorized shares at 60,000, so $275 always applies (rechecked 2026-11-13).",
       "Change of agent fee: $0 if filed electronically (reported here as the online fee); $25 if filed on paper or by fax, for both LLCs and corporations.",
       "Massachusetts LLCs have a resident agent; corporations have a registered agent. The change forms carry a consent of the new agent (G.L. c. 156C sections 5A and 51 for LLCs; G.L. c. 156D section 5.02 for corporations).",
       "Corporation formation fee of $275 covers up to 275,000 authorized shares; each additional 100,000 shares or fraction adds $100.",
       "A separate form, Statement of Change of Registered Office Address by Registered Agent, is filed by the agent itself when only its address changes; it is not the form for replacing the agent.",
       "The corporation Articles of Organization PDF loaded shows no agent consent block; the source for consent at formation for corporations was not confirmed.",
     ],
-    unverified: ["Corporation formation fee rises with authorized shares."],
+    unverified: [],
     stateBlockers: [],
   },
   MD: {
@@ -2192,23 +2220,22 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
-          url: "https://dat.maryland.gov/Documents/Accessible%20Documents/Charter%20-%20Create%20or%20Start%20a%20Business/Articles%20of%20Organization%20for%20a%20Limited%20Liability%20Company_0526-A.pdf",
-          publisher: "Maryland State Department of Assessments and Taxation",
-          quote: "Fee: $100",
-          checkedAt: "2026-10-29",
+          url: "https://egov.maryland.gov/BusinessExpress/Payment/FeesSchedule",
+          publisher: "Maryland Business Express (State of Maryland)",
+          quote: "Limited Liability Company Articles of Organization $100.00 $325.00 $50.00 $0.00 Credit Card or PayPal: 3%",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://egov.maryland.gov/BusinessExpress/Payment/FeesSchedule",
+          publisher: "Maryland Business Express (State of Maryland)",
+          quote: "This electronic government service includes a 3% technology fee for filings with payment processed through Maryland Business Express.",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://dat.maryland.gov/businesses/documents/fees.pdf",
           publisher: "Maryland State Department of Assessments and Taxation",
           quote: "Articles of Organization $100 (domestic)",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://dat.maryland.gov/SDAT%20Forms/stock.pdf",
-          publisher: "Maryland State Department of Assessments and Taxation",
-          quote:
-            "The fee to file Articles of Incorporation is $100.00 plus a $20.00 organization and capitalization fee for a total of $120.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -2311,18 +2338,28 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
+          url: "https://legislature.maine.gov/statutes/31/title31sec1680.html",
+          publisher: "Maine Legislature, Maine Revised Statutes",
+          quote: "For filing of a certificate of formation under section 1531, a fee of $175.",
+          checkedAt: "2026-11-13",
+        },
+        {
           url: "https://www.maine.gov/sos/sites/maine.gov.sos/files/inline-files/mllc6.pdf",
-          publisher:
-            "Maine Secretary of State, Bureau of Corporations, Elections and Commissions",
+          publisher: "Maine Secretary of State, Bureau of Corporations, Elections and Commissions",
           quote: "Filing Fee $175.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://legislature.maine.gov/statutes/13-c/title13-Csec123.html",
+          publisher: "Maine Legislature, Maine Revised Statutes",
+          quote: "For articles of incorporation, the fee is $145.",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www1.maine.gov/sos/sites/maine.gov.sos/files/inline-files/mbca6.pdf",
-          publisher:
-            "Maine Secretary of State, Bureau of Corporations, Elections and Commissions",
+          publisher: "Maine Secretary of State, Bureau of Corporations, Elections and Commissions",
           quote: "Filing Fee $145.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -2518,30 +2555,21 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     },
     formation: {
       governmentFeeCents: {
-        llc: 13500,
-        corporation: 13500,
+        llc: 15500,
+        corporation: 15500,
       },
       sources: [
         {
-          url: "https://www.sos.mn.gov/media/1824/llcarticlesoforganization.pdf",
+          url: "https://www.sos.mn.gov/business-liens/business-forms-fees/business-filing-and-certification-fee-schedule/",
           publisher: "Minnesota Secretary of State, Business Services",
-          quote:
-            "Filing Fee: $155 for expedited service in-person and online filings, $135 if by mail",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.sos.mn.gov/media/1388/domesticbusinesscorparticlesofinc.pdf",
-          publisher: "Minnesota Secretary of State, Business Services",
-          quote:
-            "Filing Fee: $155 for expedited service in-person and online filings, $135 if submitted by mail",
-          checkedAt: "2026-10-29",
+          quote: "Articles of Organization - Original Filing | $135.00 | $155.00 | $155.00 (columns: By Mail | Online | In Person)",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sos.mn.gov/business-liens/business-forms-fees/business-filing-and-certification-fee-schedule/",
           publisher: "Minnesota Secretary of State, Business Services",
-          quote:
-            "Articles of Organization - Original Filing | $135.00 | $155.00 | $155.00",
-          checkedAt: "2026-10-29",
+          quote: "Articles of Incorporation - Original Filing | $135.00 | $155.00 | $155.00 (columns: By Mail | Online | In Person)",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -2553,7 +2581,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       checkedAt: "2026-10-29",
     },
     notes: [
-      "Online and in person filings are always expedited in Minnesota and cost more: formation $155 (LLC and corporation) and change of agent $55. The fees reported here are the standard non expedited mail fees ($135 formation, $35 change), because the online fee includes expedited service. Use $155 / $55 if the operator wants the online price.",
+      "Online and in person filings are always expedited in Minnesota and cost more: formation $155 (LLC and corporation) and change of agent $55. Formation uses the $155 online fee (rechecked 2026-11-13); the change of agent fee shown is the $35 mail fee. Use $55 if the operator files the change online.",
       "A registered agent is optional in Minnesota; the registered office address is mandatory. The change form can add, change or remove an agent.",
       "The change form is signed by the entity's authorized person; it has no signature or consent block for the new agent, so consentRequired is false based on the form.",
       "The same Notice of Change form covers Minnesota business corporations, LLCs, cooperatives and nonprofits (not limited partnerships or LLPs).",
@@ -2625,34 +2653,20 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://www.sos.mo.gov/CMSImages/Business/fees.pdf?v=2025",
           publisher: "Missouri Secretary of State, Corporations Division",
-          quote: "Certificates of Limited Liability Company (domestic)(online)",
-          checkedAt: "2026-10-29",
+          quote: "Certificates of Limited Liability Company (domestic)(online) $50.00 [dot leaders omitted]",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sos.mo.gov/CMSImages/Business/fees.pdf?v=2025",
           publisher: "Missouri Secretary of State, Corporations Division",
-          quote:
-            "Certificates of Limited Liability Company (domestic/foreign)(paper)",
-          checkedAt: "2026-10-29",
+          quote: "Certificates of Limited Liability Company (domestic/foreign)(paper) $105.00 [dot leaders omitted]",
+          checkedAt: "2026-11-13",
         },
         {
-          url: "https://www.sos.mo.gov/CMSImages/Business/llc1.pdf?v=2025",
+          url: "https://www.sos.mo.gov/business/corporations/e_payment_fees",
           publisher: "Missouri Secretary of State, Corporations Division",
-          quote: "(Submit with filing fee of $105.00)",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.sos.mo.gov/CMSImages/Business/fees.pdf?v=2025",
-          publisher: "Missouri Secretary of State, Corporations Division",
-          quote:
-            "Missouri Domestic fees are based on dollar amount of authorized capital.",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.sos.mo.gov/CMSImages/Business/fees.pdf?v=2025",
-          publisher: "Missouri Secretary of State, Corporations Division",
-          quote: "$30,000 or less",
-          checkedAt: "2026-10-29",
+          quote: "There is no additional fee for cash, check or ACH payments.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -2740,16 +2754,26 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://www.sos.ms.gov/content/documents/Business/Services%20&%20Fees%20Document.pdf",
           publisher: "Mississippi Secretary of State, Business Services",
-          quote:
-            "Certificate of Formation of MS LLC.................................... $50",
-          checkedAt: "2026-10-29",
+          quote: "Certificate of Formation of MS LLC.................................... $50",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.ms.gov/content/documents/Business/FeeSchedule.pdf",
+          publisher: "Mississippi Secretary of State, Business Services",
+          quote: "F0100 MS LLC Certificate of Formation $50",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sos.ms.gov/content/documents/Business/Services%20&%20Fees%20Document.pdf",
           publisher: "Mississippi Secretary of State, Business Services",
-          quote:
-            "Articles of Incorporation.................................................... $50",
-          checkedAt: "2026-10-29",
+          quote: "Articles of Incorporation.................................................... $50",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.ms.gov/content/documents/Business/FeeSchedule.pdf",
+          publisher: "Mississippi Secretary of State, Business Services",
+          quote: "F0001 Articles of Incorporation $50",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -2942,19 +2966,34 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
-          url: "https://www.sosnc.gov/webfiles/documents/forms/Business_Registration/limited_liability_companies/articles_of_organization.pdf",
-          publisher:
-            "North Carolina Department of the Secretary of State, Business Registration Division",
-          quote: "Filing fee is $125.",
-          checkedAt: "2026-10-29",
+          url: "https://www.sosnc.gov/fees/by_title/_Business_Registration",
+          publisher: "North Carolina Department of the Secretary of State, Business Registration Division",
+          quote: "Articles of Organization $125.00",
+          checkedAt: "2026-11-13",
         },
         {
-          url: "https://www.sosnc.gov/webfiles/documents/forms/Business_Registration/business_Corporations/articles_of_incorporation_for_business.pdf",
-          publisher:
-            "North Carolina Department of the Secretary of State, Business Registration Division",
-          quote:
-            "Filing fee is $125. This document must be filed with the Secretary of State.",
-          checkedAt: "2026-10-29",
+          url: "https://www.sosnc.gov/fees/by_title/_Business_Registration",
+          publisher: "North Carolina Department of the Secretary of State, Business Registration Division",
+          quote: "The $3.00 electronic filing fee for credit cards is non-refundable.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sosnc.gov/fees/by_title/_Business_Registration",
+          publisher: "North Carolina Department of the Secretary of State, Business Registration Division",
+          quote: "The electronic fee for ACH transactions is $2.00 and is also non-refundable.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sosnc.gov/fees/by_title/_Business_Registration",
+          publisher: "North Carolina Department of the Secretary of State, Business Registration Division",
+          quote: "Articles of Incorporation $125.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_55/GS_55-1-22.html",
+          publisher: "North Carolina General Assembly, General Statutes",
+          quote: "Articles of incorporation $125.00",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -3042,13 +3081,13 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           url: "https://www.sos.nd.gov/business/business-services/business-structures/limited-liability-company-llc",
           publisher: "North Dakota Secretary of State, Business Services",
           quote: "Registration (domestic and foreign) - $135",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sos.nd.gov/business/business-services/business-structures/corporation",
           publisher: "North Dakota Secretary of State, Business Services",
           quote: "Registration (domestic) - $100",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -3197,30 +3236,33 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     },
     formation: {
       governmentFeeCents: {
-        llc: 10000,
-        corporation: 10000,
+        llc: 10200,
+        corporation: 10200,
       },
       sources: [
         {
+          url: "https://quickstart.sos.nh.gov/online/Home/FillingFee",
+          publisher: "New Hampshire Secretary of State, QuickStart online filing system",
+          quote: "Business Formation - Domestic Limited Liability Company | $100.00 | $2 | $102.00 | N/A (Filing Fee | Handling Charge | Total | Late Fee)",
+          checkedAt: "2026-11-13",
+        },
+        {
           url: "https://www.sos.nh.gov/sites/g/files/ehbemt561/files/documents/2023-12/form_llc-1_-10-2018.pdf",
           publisher: "New Hampshire Secretary of State, Corporation Division",
-          quote:
-            "The total filing fee to register is $100.00, payable to the State of New Hampshire.",
-          checkedAt: "2026-10-29",
+          quote: "The total filing fee to register is $100.00, payable to the State of New Hampshire.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://quickstart.sos.nh.gov/online/Home/FillingFee",
+          publisher: "New Hampshire Secretary of State, QuickStart online filing system",
+          quote: "Business Formation - Domestic Profit Corporation | $100.00 | $2 | $102.00 | N/A",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sos.nh.gov/sites/g/files/ehbemt561/files/inline-documents/sonh/domestic-form-11.pdf",
           publisher: "New Hampshire Secretary of State, Corporation Division",
           quote: "Filing fee: $100.00 Form 11",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://quickstart.sos.nh.gov/online/Home/FillingFee",
-          publisher:
-            "New Hampshire Secretary of State, QuickStart online filing system",
-          quote:
-            "Business Formation - Domestic Profit Corporation | $100.00 | $2 | $102.00 | N/A",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -3409,32 +3451,8 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://enterprise.sos.nm.gov/forms/business",
           publisher: "New Mexico Secretary of State, Business Services portal",
-          quote:
-            "Use this form to file an Articles of Organization for a Limited Liability Company. Non-Refundable Application Fee: $50.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://enterprise.sos.nm.gov/forms/business",
-          publisher: "New Mexico Secretary of State, Business Services portal",
-          quote:
-            "Use this form to file Articles of Incorporation for a Domestic Profit Corporation. Non-Refundable Application Fee: Based on the number of shares; Minimum $100, Maximum $1,000",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-19-63",
-          publisher:
-            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-19-63",
-          quote:
-            "A. for filing the original articles of organization and issuing a certificate of organization, fifty dollars ($50.00);",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://nmonesource.com/nmos/nmsa/en/item/4400/index.do#!b/53-2-1",
-          publisher:
-            "New Mexico Compilation Commission (NMOneSource, official NMSA 1978), Section 53-2-1",
-          quote:
-            "a fee of one dollar ($1.00) for each one thousand shares of the total amount of authorized shares, but in no case less than one hundred dollars ($100) or more than one thousand dollars ($1,000);",
-          checkedAt: "2026-10-29",
+          quote: "Use this form to file an Articles of Organization for a Limited Liability Company. Non-Refundable Application Fee: $50.00",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -3708,19 +3726,15 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://codes.ohio.gov/ohio-revised-code/section-111.16",
-          publisher:
-            "Ohio Legislative Service Commission, Ohio Revised Code section 111.16 (Secretary of State filing fees)",
-          quote:
-            "(F) For filing and recording articles of organization of a limited liability company,",
-          checkedAt: "2026-10-29",
+          publisher: "Ohio Legislative Service Commission, Ohio Revised Code section 111.16 (Secretary of State filing fees)",
+          quote: "(F) For filing and recording articles of organization of a limited liability company,",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://codes.ohio.gov/ohio-revised-code/section-111.16",
-          publisher:
-            "Ohio Legislative Service Commission, Ohio Revised Code section 111.16 (Secretary of State filing fees)",
-          quote:
-            "provided no fee shall be less than ninety-nine dollars or greater than one hundred thousand dollars.",
-          checkedAt: "2026-10-29",
+          publisher: "Ohio Legislative Service Commission, Ohio Revised Code section 111.16 (Secretary of State filing fees)",
+          quote: "or for filing and recording an application to become a registered foreign limited liability partnership, ninety-nine dollars;",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -3819,31 +3833,28 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
-          url: "https://www.sos.ok.gov/business/fees.aspx",
-          publisher: "Oklahoma Secretary of State, Filing Fees",
-          quote: "Articles of Organization - Oklahoma LLC 18 OS 2055 100.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.sos.ok.gov/business/fees.aspx",
-          publisher: "Oklahoma Secretary of State, Filing Fees",
-          quote:
-            "Certificate of Incorporation - Oklahoma For Profit Corporation 18 OS 1142 Min. 50.00(1/10 of 1%)",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.sos.ok.gov/forms/Fm0074.PDF",
+          url: "https://oklahoma.gov/sos/businesses/business-services/fees.html",
           publisher: "Oklahoma Secretary of State",
-          quote:
-            "Pay to the Secretary of State a filing fee of One Hundred Dollars ($100.00). (Title 18, Section 2055)",
-          checkedAt: "2026-10-29",
+          quote: "Articles of Organization - Oklahoma LLC 18 OS 2055 | $100.00",
+          checkedAt: "2026-11-13",
         },
         {
-          url: "https://www.sos.ok.gov/forms/Fm0001.PDF",
+          url: "https://oklahoma.gov/content/dam/ok/en/sos/documents/businesses/forms/Fm0074.pdf",
           publisher: "Oklahoma Secretary of State",
-          quote:
-            "If the TAC is $50,000.00 or less, the filing fee is $50.00. If the TAC is greater than $50,000.00, the fee is $1.00 per $1,000.00.",
-          checkedAt: "2026-10-29",
+          quote: "Pay to the Secretary of State a filing fee of $100.00.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://oklahoma.gov/content/dam/ok/en/sos/documents/businesses/forms/Fm0074.pdf",
+          publisher: "Oklahoma Secretary of State",
+          quote: "however, there will be a four percent (4%) service charge added for the use of a credit card.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://oklahoma.gov/sos/businesses/business-services/fees.html",
+          publisher: "Oklahoma Secretary of State",
+          quote: "Credit Card Fee | 4%",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -3935,31 +3946,27 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://sos.oregon.gov/business/Documents/business-registry-forms/br-fee-schedule.pdf",
-          publisher:
-            "Oregon Secretary of State, Corporation Division (Business Registry)",
+          publisher: "Oregon Secretary of State, Corporation Division (Business Registry)",
           quote: "Articles of Organization $100.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://sos.oregon.gov/business/Documents/business-registry-forms/br-fee-schedule.pdf",
-          publisher:
-            "Oregon Secretary of State, Corporation Division (Business Registry)",
-          quote: "Articles of Incorporation $100.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://sos.oregon.gov/business/documents/business-registry-forms/llc-articles.pdf",
-          publisher:
-            "Oregon Secretary of State, Corporation Division (Business Registry)",
+          publisher: "Oregon Secretary of State, Corporation Division (Business Registry)",
           quote: "Required Processing Fee $100",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
-          url: "https://sos.oregon.gov/business/Documents/business-registry-forms/dbc-articles.pdf",
-          publisher:
-            "Oregon Secretary of State, Corporation Division (Business Registry)",
+          url: "https://sos.oregon.gov/business/Documents/business-registry-forms/br-fee-schedule.pdf",
+          publisher: "Oregon Secretary of State, Corporation Division (Business Registry)",
+          quote: "Articles of Incorporation $100.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://sos.oregon.gov/business/documents/business-registry-forms/dbc-articles.pdf",
+          publisher: "Oregon Secretary of State, Corporation Division (Business Registry)",
           quote: "Required Processing Fee $100",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -4244,29 +4251,39 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://www.statedepartment.pr.gov/forms-for-corporation",
-          publisher:
-            "Puerto Rico Department of State (Departamento de Estado), Registry of Corporations",
-          quote: "Certificate of Formation | $250.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.statedepartment.pr.gov/forms-for-corporation",
-          publisher:
-            "Puerto Rico Department of State (Departamento de Estado), Registry of Corporations",
-          quote: "Application for Registration: Stock Corporation | $150.00",
-          checkedAt: "2026-10-29",
+          publisher: "Puerto Rico Department of State (Departamento de Estado), Registry of Corporations",
+          quote: "$250.00 | Certificate of Formation",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://docs.pr.gov/files/Estado/Corporaciones/Formularios/34-CORPLLC02.pdf",
           publisher: "Puerto Rico Department of State (Departamento de Estado)",
-          quote: "4391 - $150.00",
-          checkedAt: "2026-10-29",
+          quote: "4391 – $150.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://docs.pr.gov/files/Estado/Corporaciones/Formularios/34-CORPLLC02.pdf",
+          publisher: "Puerto Rico Department of State (Departamento de Estado)",
+          quote: "4392 – $100.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.statedepartment.pr.gov/forms-for-corporation",
+          publisher: "Puerto Rico Department of State (Departamento de Estado), Registry of Corporations",
+          quote: "$150.00 | Stock Corporation",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://docs.pr.gov/files/Estado/Corporaciones/Formularios/1-CORPREG01.pdf",
           publisher: "Puerto Rico Department of State (Departamento de Estado)",
-          quote: "5133 - $60.00",
-          checkedAt: "2026-10-29",
+          quote: "5133 – $60.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://docs.pr.gov/files/Estado/Corporaciones/Formularios/1-CORPREG01.pdf",
+          publisher: "Puerto Rico Department of State (Departamento de Estado)",
+          quote: "5134 – $90.00",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -4363,38 +4380,45 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     },
     formation: {
       governmentFeeCents: {
-        llc: 15000,
+        llc: 15600,
+        corporation: 23800,
       },
       sources: [
         {
           url: "https://docs.sos.ri.gov/documents/BusinessServices/business-forms-fee-schedule.pdf",
-          publisher:
-            "Rhode Island Department of State, Business Services Division",
+          publisher: "Rhode Island Department of State, Business Services Division",
           quote: "400 ARTICLES OF ORGANIZATION YES $150.00 $6.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://docs.sos.ri.gov/documents/BusinessServices/business-forms-fee-schedule.pdf",
-          publisher:
-            "Rhode Island Department of State, Business Services Division",
-          quote:
-            "100 ARTICLES OF INCORPORATION (UNDER 75,000,000 SHARES) YES $230.00 $8.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://docs.sos.ri.gov/documents/BusinessServices/100-articles-of-incorporation.pdf",
-          publisher:
-            "Rhode Island Department of State, Business Services Division",
-          quote:
-            "Corporations formed with less than 75 million authorized shares must pay the minimum filing fee of $230.00.",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://docs.sos.ri.gov/documents/BusinessServices/400-articles-of-organization.pdf",
-          publisher:
-            "Rhode Island Department of State, Business Services Division",
+          publisher: "Rhode Island Department of State, Business Services Division",
           quote: "Filing Fee: $150.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://business.sos.ri.gov/corp/payment/accessfee2.asp",
+          publisher: "Rhode Island Department of State, Business Services",
+          quote: "The enhanced access fee associated with filing corporate documents is not revenue for this office",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://business.sos.ri.gov/corp/payment/accessfee2.asp",
+          publisher: "Rhode Island Department of State, Business Services",
+          quote: "However, if you do not wish to file online, you may file by mail or in person at no additional charge.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://docs.sos.ri.gov/documents/BusinessServices/business-forms-fee-schedule.pdf",
+          publisher: "Rhode Island Department of State, Business Services Division",
+          quote: "100 ARTICLES OF INCORPORATION (UNDER 75,000,000 SHARES) YES $230.00 $8.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://docs.sos.ri.gov/documents/BusinessServices/100-articles-of-incorporation.pdf",
+          publisher: "Rhode Island Department of State, Business Services Division",
+          quote: "Corporations formed with less than 75 million authorized shares must pay the minimum filing fee of $230.00.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -4502,18 +4526,21 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://businessfilings.sc.gov/BusinessFiling/Home/DownloadForms?pdfCategoryId=1&category=Starting+a+Business+in+South+Carolina",
-          publisher:
-            "South Carolina Secretary of State, Business Entities Division",
-          quote:
-            "You must submit a total payment of $135 which includes the $25 fee for the CL-1 Form. $110.00",
-          checkedAt: "2026-10-29",
+          publisher: "South Carolina Secretary of State, Business Entities Division",
+          quote: "$110.00",
+          checkedAt: "2026-11-13",
         },
         {
-          url: "https://businessfilings.sc.gov/BusinessFiling/Entity/DownloadForm?formName=F0001&entityType=1&filingType=Articles+of+Incorporation",
-          publisher:
-            "South Carolina Secretary of State, Business Entities Division",
-          quote: "The $25 CL-1 fee is included in the $135 filing fee.",
-          checkedAt: "2026-10-29",
+          url: "https://businessfilings.sc.gov/BusinessFiling/Home/DownloadForms?pdfCategoryId=1&category=Starting+a+Business+in+South+Carolina",
+          publisher: "South Carolina Secretary of State, Business Entities Division",
+          quote: "You must submit a total payment of $135 which includes the $25 fee for the CL-1 Form.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://businessfilings.sc.gov/BusinessFiling/Entity/DownloadForm?amp=&amp=&entityType=1&filingType=Articles+of+Incorporation&formName=F0001",
+          publisher: "South Carolina Secretary of State, Business Entities Division",
+          quote: "Enclose the fee of $135.00 payable to the Secretary of State.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -4732,34 +4759,10 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       },
       sources: [
         {
-          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4270%20LLC_0.pdf?VersionId=SHQcvmBKLxqwiWe3Ficu3Iv3gOHscm6X",
-          publisher:
-            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
-          quote:
-            "Filing Fee: $50.00 per member (minimum fee = $300/maximum fee = $3,000)",
-          checkedAt: "2026-10-29",
-        },
-        {
           url: "https://sos.tn.gov/businesses/services/business-forms-fees",
-          publisher:
-            "Tennessee Secretary of State, Division of Business and Charitable Organizations (Business Forms & Fees)",
-          quote:
-            "Articles of Organization Limited Liability Company (PDF, 294.3KB) SS-4270 $300*",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-4417%20Charter%20For-Profit_0.pdf?VersionId=7EoQqZ9wQioAfzxr30fLXGI1MD2HhuUh",
-          publisher:
-            "Tennessee Secretary of State, Division of Business and Charitable Organizations",
-          quote: "Filing Fee: $100.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://sos.tn.gov/businesses/services/business-forms-fees",
-          publisher:
-            "Tennessee Secretary of State, Division of Business and Charitable Organizations (Business Forms & Fees)",
+          publisher: "Tennessee Secretary of State, Division of Business and Charitable Organizations (Business Forms & Fees)",
           quote: "Charter For-Profit Corporation (PDF, 285.2KB) SS-4417 $100",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -4954,32 +4957,27 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://commerce.utah.gov/wp-content/uploads/2023/04/currentfees.pdf",
-          publisher:
-            "Utah Department of Commerce, Division of Corporations and Commercial Code (Fiscal Year 2026 Fee Schedule)",
-          quote:
-            "Limited liability company (LLC) - certificate of organization $59",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://commerce.utah.gov/wp-content/uploads/2023/04/currentfees.pdf",
-          publisher:
-            "Utah Department of Commerce, Division of Corporations and Commercial Code (Fiscal Year 2026 Fee Schedule)",
-          quote: "Business corporation - articles of incorporation $59",
-          checkedAt: "2026-10-29",
+          publisher: "Utah Department of Commerce, Division of Corporations and Commercial Code",
+          quote: "Limited liability company (LLC) - certificate of organization $59",
+          checkedAt: "2026-11-13",
         },
         {
           url: "http://commerce.utah.gov/wp-content/uploads/2023/04/llcdomestic-1.pdf",
-          publisher:
-            "Utah Department of Commerce, Division of Corporations and Commercial Code",
+          publisher: "Utah Department of Commerce, Division of Corporations and Commercial Code",
           quote: "Non-Refundable Processing Fee: $59.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://commerce.utah.gov/wp-content/uploads/2023/04/currentfees.pdf",
+          publisher: "Utah Department of Commerce, Division of Corporations and Commercial Code",
+          quote: "Business corporation - articles of incorporation $59",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://commerce.utah.gov/wp-content/uploads/2023/04/incprofit.pdf",
-          publisher:
-            "Utah Department of Commerce, Division of Corporations and Commercial Code",
+          publisher: "Utah Department of Commerce, Division of Corporations and Commercial Code",
           quote: "Non-Refundable Processing Fee: $59.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -5063,28 +5061,7 @@ export const STATE_FACTS: Record<string, StateFacts> = {
           url: "https://scc.virginia.gov/pages/Virginia-Limited-Liability-Companies",
           publisher: "Virginia State Corporation Commission, Clerk's Office",
           quote: "Form a new Virginia LLC (LLC1011) | $100",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://www.scc.virginia.gov/businesses/new-business-resources/business-types/",
-          publisher: "Virginia State Corporation Commission, Clerk's Office",
-          quote:
-            "Stock Corporation | File Online or complete Articles of Incorporation (Form SCC619-DOC) | See Corporation Charter Fee/Entrance Fee Schedule | $25",
-          checkedAt: "2026-11-03",
-        },
-        {
-          url: "https://law.lis.virginia.gov/vacode/title13.1/chapter9/section13.1-615.1/",
-          publisher:
-            "Code of Virginia (Virginia General Assembly, Legislative Information System)",
-          quote: "$50 for each 25,000 shares or fraction thereof;",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://law.lis.virginia.gov/vacode/title13.1/chapter9/section13.1-616/",
-          publisher:
-            "Code of Virginia (Virginia General Assembly, Legislative Information System)",
-          quote: "Articles of incorporation or domestication",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -5198,22 +5175,26 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://sos.vermont.gov/business-services/fees-statutes",
           publisher: "Vermont Secretary of State, Business Services Division",
-          quote:
-            "Articles of Organization | 11 V.S.A. § 4023 | $155.00 | 11 V.S.A. § 4012",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://sos.vermont.gov/business-services/fees-statutes",
-          publisher: "Vermont Secretary of State, Business Services Division",
-          quote:
-            "Articles of Incorporation | 11A V.S.A. § 2.02 | $155.00 | 11A V.S.A. § 1.22",
-          checkedAt: "2026-10-29",
+          quote: "Articles of Organization | $155.00",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://sos.vermont.gov/business-services/business-filings/domestic-formation/llc",
           publisher: "Vermont Secretary of State, Business Services Division",
           quote: "There is no extra fee for online filing.",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://sos.vermont.gov/business-services/fees-statutes",
+          publisher: "Vermont Secretary of State, Business Services Division",
+          quote: "Articles of Incorporation | $155.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://legislature.vermont.gov/statutes/section/11A/001/00001.22",
+          publisher: "Vermont General Assembly (Vermont Statutes Online)",
+          quote: "$155.00",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -5310,23 +5291,63 @@ export const STATE_FACTS: Record<string, StateFacts> = {
     },
     formation: {
       governmentFeeCents: {
-        llc: 18000,
-        corporation: 18000,
+        llc: 20000,
+        corporation: 20000,
       },
       sources: [
         {
-          url: "https://www.sos.wa.gov/corporations-charities/frequently-asked-questions-faqs/fee-schedules-priority-services",
-          publisher:
-            "Washington Secretary of State, Corporations and Charities Division",
-          quote: "Original Filings | $180",
-          checkedAt: "2026-10-29",
+          url: "https://www.sos.wa.gov/sites/default/files/2025-06/6.2025%20-%20LLC%20-%20COF_0.pdf",
+          publisher: "Washington Secretary of State, Corporations and Charities Division",
+          quote: "The filing fee for the Certificate of Formation of a Limited Liability Company is $180.00",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://www.sos.wa.gov/corporations-charities/business-entities/online-filing-instructions/start-domestic-wa-limited-liability-company-llc-online",
-          publisher:
-            "Washington Secretary of State, Corporations and Charities Division",
-          quote: "$180 in addition to an online processing fee.",
-          checkedAt: "2026-10-29",
+          publisher: "Washington Secretary of State, Corporations and Charities Division",
+          quote: "Filing Fee: $180 in addition to an online processing fee.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://app.leg.wa.gov/wac/default.aspx?cite=434-112-075",
+          publisher: "Washington State Legislature (Revised Code of Washington)",
+          quote: "Online filings will be subject to an online processing fee of $20, with the exception of:",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.wa.gov/corporations-charities/frequently-asked-questions-faqs/online-filing-system-tools-resources",
+          publisher: "Washington Secretary of State, Corporations and Charities Division",
+          quote: "The $20.00 online processing fees for filing services and record requests remain required",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.wa.gov/sites/default/files/2025-06/6.2025%20-%20LLC%20-%20COF_0.pdf",
+          publisher: "Washington Secretary of State, Corporations and Charities Division",
+          quote: "The report may be included with this incorporation at no additional fee.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.wa.gov/corporations-charities/frequently-asked-questions-faqs/fee-schedules-priority-services",
+          publisher: "Washington Secretary of State, Corporations and Charities Division",
+          quote: "Original Filings | $180",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.wa.gov/sites/default/files/2025-12/6.2025%20-%20Articles%20of%20Incorporation%20-%20Profit%20Corporation%20(Fillable%20Form).pdf",
+          publisher: "Washington Secretary of State, Corporations and Charities Division",
+          quote: "The filing fee for Articles of Incorporation of a Profit Corporation is $180.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.wa.gov/sites/default/files/2025-12/6.2025%20-%20Articles%20of%20Incorporation%20-%20Profit%20Corporation%20(Fillable%20Form).pdf",
+          publisher: "Washington Secretary of State, Corporations and Charities Division",
+          quote: "There must be at least 1 share authorized in a corporation.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://www.sos.wa.gov/corporations-charities/business-entities/online-filing-instructions/start-domestic-wa-profit-corporation-online",
+          publisher: "Washington Secretary of State, Corporations and Charities Division",
+          quote: "Filing Fee: $180 in addition to an online processing fee.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -5425,32 +5446,33 @@ export const STATE_FACTS: Record<string, StateFacts> = {
       sources: [
         {
           url: "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/Fees.aspx",
-          publisher:
-            "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
-          quote:
-            "Incorporation/Organization via Online Filing | $100.00 | $130.00",
-          checkedAt: "2026-10-29",
+          publisher: "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
+          quote: "Incorporation/Organization via Online Filing | $100.00 | $130.00",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/Fees.aspx",
-          publisher:
-            "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
+          publisher: "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
           quote: "Incorporation/Organization | $100.00 | $170.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP502.pdf",
-          publisher:
-            "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
+          publisher: "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
           quote: "FILING FEE $170.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP2.pdf",
-          publisher:
-            "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
+          publisher: "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
           quote: "FILING FEE $100.00",
-          checkedAt: "2026-10-29",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://docs.legis.wisconsin.gov/statutes/statutes/180.pdf",
+          publisher: "Wisconsin Legislature, Wisconsin Statutes",
+          quote: "Articles of incorporation, $100.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
@@ -5576,6 +5598,9 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         },
       ],
     },
+    formationBlockers: [
+      "Filing online adds a $1 fee, and the state's online system also registers the business with the Tax Division ($30), so the formation total is $101 or $131 depending on how it is filed (checked 2026-11-13).",
+    ],
     provider: {
       url: "https://www.registeredagentsinc.com/west-virginia/",
       publisher: "Registered Agents Inc.",
@@ -5666,22 +5691,32 @@ export const STATE_FACTS: Record<string, StateFacts> = {
         {
           url: "https://sos.wyo.gov/business/docs/businessfees.pdf",
           publisher: "Wyoming Secretary of State, Business Division",
-          quote:
-            "Articles of Organization*/Continuance/Domestication .......................................$100.00",
-          checkedAt: "2026-10-29",
-        },
-        {
-          url: "https://sos.wyo.gov/business/docs/businessfees.pdf",
-          publisher: "Wyoming Secretary of State, Business Division",
-          quote:
-            "Articles of Incorporation*/Continuance/Domestication.......................................$100.00",
-          checkedAt: "2026-10-29",
+          quote: "Articles of Organization*/Continuance/Domestication .......................................$100.00",
+          checkedAt: "2026-11-13",
         },
         {
           url: "https://sos.wyo.gov/forms/business/llc/llc-articlesorganization.pdf",
           publisher: "Wyoming Secretary of State, Business Division",
-          quote: "Filing fee of $100.00.",
-          checkedAt: "2026-10-29",
+          quote: "Filing fee of $100.00. Visa or MasterCard payment available for online filings only.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://wyobiz.wyo.gov/Business/RegistrationInstr.aspx",
+          publisher: "Wyoming Secretary of State, WyoBiz",
+          quote: "Additional fees for online filing include a credit card processing fee of 2.4% (minimum $1) of the filing fee.",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://sos.wyo.gov/business/docs/businessfees.pdf",
+          publisher: "Wyoming Secretary of State, Business Division",
+          quote: "Articles of Incorporation*/Continuance/Domestication.......................................$100.00",
+          checkedAt: "2026-11-13",
+        },
+        {
+          url: "https://sos.wyo.gov/Forms/Business/PROF/P-ArticlesIncorporation.pdf",
+          publisher: "Wyoming Secretary of State, Business Division",
+          quote: "Filing fee of $100.00. Visa or MasterCard payment available for online filings only.",
+          checkedAt: "2026-11-13",
         },
       ],
     },
