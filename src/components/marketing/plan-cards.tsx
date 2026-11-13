@@ -19,7 +19,8 @@ interface Plan {
 }
 
 function inStates(names: string[], count: number) {
-  return names.length === 1 ? `In ${names[0]}` : `In ${count} states`;
+  if (names.length === 1) return `In ${names[0]}`;
+  return count === 50 ? "In all 50 states" : `In ${count} states`;
 }
 
 /** The services we sell today, as plan cards. Shared by the homepage and pricing. */
@@ -71,7 +72,7 @@ export function plansFrom(o: PlanOffers): Plan[] {
       title: "Start a business",
       price: formatCents(o.formationCents, { trimZeros: true }),
       unit: "+ state fee",
-      points: ["LLC or corporation", "State fee at cost", inStates(o.formationStates, o.formationStates.length)],
+      points: ["LLC or corporation", "State fee at cost", inStates(o.formationStates, o.formationStateCount ?? o.formationStates.length)],
       href: "/business-formation",
       cta: "See prices",
     });

@@ -61,7 +61,7 @@ describe("coverage", () => {
       ["DE", "corporation"],
       ["NY", "llc"],
       ["NV", "llc"],
-      ["MA", "corporation"],
+      ["OH", "corporation"],
     ] as const) {
       expect(formationFeeCents(code, type)).toBeNull();
       expect(getRaJurisdiction(code)!.unverified.length).toBeGreaterThan(0);

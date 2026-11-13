@@ -3,6 +3,7 @@ import { publicQuote } from "@/lib/compliance/public-quote";
 import { isRuleSellable, isStateVerified, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
 import { providerReportOpenStates } from "@/lib/registered-agent/provider-report";
+import { stateCount } from "@/lib/registered-agent/public-copy";
 import { BUNDLE_STATES, bundleSalesOpen, businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
 import { sortByDue } from "@/lib/seo/content";
 import { publicServicePrices } from "./public-prices";
@@ -28,6 +29,8 @@ export interface PlanOffers {
   formationCents?: number;
   /** Names of the states where formation is open, A to Z. */
   formationStates: string[];
+  /** How many of the 50 states formation is open in (DC and Puerto Rico not counted). */
+  formationStateCount?: number;
 }
 
 /** One state in the "what will it cost" picker. */
@@ -78,6 +81,7 @@ export async function planOffers(): Promise<PlanOffers> {
     reportExample,
     formationCents,
     formationStates: formationStates.map((s) => s.name),
+    formationStateCount: stateCount(formationStates.map((s) => s.code)),
   };
 }
 
