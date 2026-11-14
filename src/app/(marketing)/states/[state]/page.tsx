@@ -92,7 +92,11 @@ export default async function StatePage({ params }: PageProps<"/states/[state]">
           }
           actions={
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a href="#waitlist" className={buttonClasses("primary", "lg")}>
+              <Link href={`/services/${j.slug}`} className={buttonClasses("primary", "lg")}>
+                What we can do in {j.name}
+                <ArrowRight size={18} weight="bold" aria-hidden />
+              </Link>
+              <a href="#waitlist" className={buttonClasses("secondary", "lg")}>
                 Get an email when it&apos;s ready
               </a>
             </div>
