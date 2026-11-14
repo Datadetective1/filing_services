@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { safeNextPath } from "@/lib/auth/session";
+import { isOrderPath, safeNextPath } from "@/lib/auth/session";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import { textLinkClasses } from "@/components/ui/button";
-import { EmailLinkForm, OrDivider, SignInForm } from "../auth-forms";
+import { EmailLinkForm, GuestStartForm, OrDivider, SignInForm } from "../auth-forms";
 import { authLede, authTitle } from "../styles";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -16,11 +16,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // often confirmed the email already, so the copy says what to do next instead of "expired".
   const failed = sp.error === "link" || sp.error === "link_device";
   const forOrder = next.startsWith("/dashboard/services/");
+  // Ordering: a new customer starts with an email only, and a returning one signs in below.
+  const guest = isOrderPath(next) && sp.guest !== "off" && !failed;
   return (
     <div className="grid gap-7">
       <div className="grid gap-2">
-        <h1 className={authTitle}>Welcome back</h1>
-        <p className={authLede}>Sign in to see your filings, deadlines and documents.</p>
+        <h1 className={authTitle}>{guest ? "Continue your order" : "Welcome back"}</h1>
+        <p className={authLede}>
+          {guest ? "New here? Just your email to begin. Have an account? Sign in below." : "Sign in to see your filings, deadlines and documents."}
+        </p>
       </div>
       {confirmed ? (
         <p role="status" className="flex items-start gap-2 rounded-[var(--radius-control)] border border-accent/25 bg-accent-soft px-4 py-3 text-sm text-accent-soft-fg">
@@ -37,6 +41,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           </Link>
           .
         </p>
+      ) : null}
+      {guest ? (
+        <>
+          <GuestStartForm next={next} />
+          <OrDivider label="or sign in" />
+        </>
       ) : null}
       <SignInForm next={next} />
       <OrDivider />

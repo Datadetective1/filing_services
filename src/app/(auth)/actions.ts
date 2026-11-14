@@ -7,6 +7,7 @@ import { absoluteUrl } from "@/config/site";
 import { safeNextPath } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { clientIpHash } from "@/lib/security/request";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = { error?: string; fieldErrors?: Record<string, string>; message?: string } | undefined;
@@ -123,4 +124,71 @@ export async function updatePassword(_: AuthState, formData: FormData): Promise<
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { error: "We couldn't update your password. Try a different one." };
   redirect("/dashboard?password=updated");
+}
+
+/**
+ * Start an order with just an email, no password and no confirmation first. Signs this
+ * browser in as a guest (a Supabase anonymous user, so every row it creates is owned and
+ * protected exactly like a normal account's), keeps the email as the order contact, and
+ * asks Supabase to attach it to the account: the "confirm your email" message that follows
+ * is how the customer keeps access later, but nothing waits on it.
+ *
+ * An email that already has an account is never attached to a guest: that customer signs
+ * in instead. Where guest sign-in is off in Supabase, it falls back to the normal sign-up.
+ */
+export async function continueAsGuest(_: AuthState, formData: FormData): Promise<AuthState> {
+  const parsed = z.object({ email }).safeParse({ email: formData.get("email") });
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  if (!(await throttle("guest", 5))) return { error: "Too many attempts. Please wait a minute and try again." };
+  const next = safeNextPath(String(formData.get("next") ?? ""), "/dashboard");
+  const supabase = await createClient();
+
+  const { data: current } = await supabase.auth.getUser();
+  if (current.user && !current.user.is_anonymous) redirect(next);
+
+  const db = createAdminClient();
+  // An existing customer gets a sign-in link instead, so their orders stay in one account and
+  // a guest can never take over an email that belongs to someone else.
+  let existing = db.from("profiles").select("id").eq("email", parsed.data.email).limit(1);
+  if (current.user) existing = existing.neq("id", current.user.id);
+  const { data: taken } = await existing;
+  if (taken && taken.length > 0) {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: parsed.data.email,
+      options: { emailRedirectTo: absoluteUrl(`/auth/confirm?next=${encodeURIComponent(next)}`), shouldCreateUser: false },
+    });
+    if (error) return { error: "We couldn't send your sign-in link. Please try again." };
+    await rememberAfterAuth(next);
+    redirect(`/check-email?link=1&next=${encodeURIComponent(next)}`);
+  }
+
+  let userId = current.user?.id;
+  if (!userId) {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error || !data.user) {
+      // Guest sign-in is off (or failing): the normal account path still works.
+      redirect(`/signup?guest=off&next=${encodeURIComponent(next)}`);
+    }
+    userId = data.user.id;
+  }
+
+  // Links the email to the account once the customer confirms it. An email another account
+  // already uses is never attached: that customer gets a sign-in link instead.
+  const { error: emailError } = await supabase.auth.updateUser(
+    { email: parsed.data.email },
+    { emailRedirectTo: absoluteUrl("/auth/confirm?next=/dashboard") },
+  );
+  if (emailError && /already|exists|registered/i.test(emailError.message)) {
+    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signInWithOtp({
+      email: parsed.data.email,
+      options: { emailRedirectTo: absoluteUrl(`/auth/confirm?next=${encodeURIComponent(next)}`), shouldCreateUser: false },
+    });
+    if (error) return { error: "We couldn't send your sign-in link. Please try again." };
+    await rememberAfterAuth(next);
+    redirect(`/check-email?link=1&next=${encodeURIComponent(next)}`);
+  }
+  const { error: profileError } = await db.from("profiles").update({ email: parsed.data.email }).eq("id", userId);
+  if (profileError) return { error: "We couldn't save your email. Please try again." };
+  redirect(next);
 }
