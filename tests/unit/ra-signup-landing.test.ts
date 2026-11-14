@@ -141,8 +141,8 @@ describe("header button", () => {
     const { headerCta } = await import("@/components/layout/header-cta");
     expect(headerCta("/registered-agent", true)).toEqual({ href: "/registered-agent/start", label: "Get a registered agent" });
     expect(headerCta("/registered-agent/texas", true).href).toBe("/registered-agent/start");
-    expect(headerCta("/", true)).toEqual({ href: "/find", label: "Find my business" });
-    expect(headerCta("/registered-agent", false).href).toBe("/find");
+    expect(headerCta("/", true)).toEqual({ href: "/services", label: "Pick your state" });
+    expect(headerCta("/registered-agent", false).href).toBe("/services");
   });
 });
 

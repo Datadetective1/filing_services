@@ -5,6 +5,7 @@ import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
 import { changeCheckedAt } from "@/lib/registered-agent/public-copy";
 import { businessServicesIndexable } from "@/lib/registered-agent/sales";
+import { pickableStates } from "@/lib/services/state-services";
 import { LEGAL_LAST_UPDATED, LEGAL_PAGES } from "@/lib/seo/legal";
 import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
 
@@ -55,6 +56,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entries.push(
       { url: absoluteUrl("/registered-agent"), changeFrequency: "monthly", priority: 0.9 },
       { url: absoluteUrl("/business-formation"), changeFrequency: "monthly", priority: 0.4 },
+      { url: absoluteUrl("/services"), changeFrequency: "monthly", priority: 0.8 },
+      ...pickableStates().map((s) => ({ url: absoluteUrl(`/services/${s.slug}`), changeFrequency: "weekly" as const, priority: 0.7 })),
       ...raJurisdictionsWithPublicFacts().flatMap((j) => {
         const checked = changeCheckedAt(j);
         const lastModified = checked ? new Date(`${checked}T00:00:00Z`) : undefined;

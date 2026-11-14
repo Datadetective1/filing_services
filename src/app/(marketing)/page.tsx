@@ -6,6 +6,7 @@ import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Photo } from "@/components/media/photo";
 import { planOffers } from "@/lib/services/plan-offers";
+import { pickableStates } from "@/lib/services/state-services";
 import { PlanCards } from "@/components/marketing/plan-cards";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
@@ -17,10 +18,9 @@ import { ProductPreview } from "@/components/marketing/product-preview";
 import { Section, SectionHeading } from "@/components/marketing/section";
 import { ButtonLink, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
-import { HeroFinder } from "@/components/funnel/hero-finder";
+import { StatePicker } from "@/components/funnel/state-picker";
 import { lookupStates, stateSalesEnabled } from "@/lib/compliance/launch";
 import { Receipt } from "@/components/visual/receipt";
-import { searchRegistry, selectRegistryEntity } from "./find/registry-actions";
 import { ReminderTimeline } from "@/components/visual/reminder-timeline";
 import { publicQuote } from "@/lib/compliance/public-quote";
 import { findRule, getJurisdiction, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
@@ -136,38 +136,14 @@ export default async function HomePage() {
                 </p>
               </>
             )}
-            {/* The main acquisition path: search the register right here, no account needed. */}
-            {raPrice !== undefined ? (
-              <p className="-mb-4 text-sm font-medium text-fg">Check your annual report deadline</p>
-            ) : null}
+            {/* The main path: pick the state, then see everything we do there. */}
             <div id="find" className="grid scroll-mt-24 gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5">
-              <HeroFinder
-                states={lookupStates()
-                  .map((code) => ({ code, name: getJurisdiction(code)?.name ?? code, filing: stateSalesEnabled(code) }))
-                  .sort((a, b) => a.name.localeCompare(b.name))}
-                chooseFirst={raPrice !== undefined}
-                search={searchRegistry}
-                select={selectRegistryEntity}
-              />
+              <StatePicker states={pickableStates()} />
             </div>
-            {quote ? (
-              <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 justify-self-start rounded-[var(--radius-control)] border border-highlight/40 bg-highlight-soft px-4 py-2.5 text-[15px] text-highlight-fg">
-                <span>{stateName} annual report:</span>
-                <strong className="tnum font-display text-lg">{formatCents(quote.totalCents, { trimZeros: true })} total</strong>
-                <span className="tnum text-sm">
-                  ({formatCents(quote.serviceFeeCents, { trimZeros: true })} our fee + {formatCents(quote.governmentFeeCents, { trimZeros: true })} state
-                  fee)
-                </span>
-              </p>
-            ) : null}
             <p className="text-sm text-muted">
-              Another state?{" "}
+              Already have a business?{" "}
               <Link href="/find" className={textLinkClasses}>
-                Enter your details
-              </Link>{" "}
-              or{" "}
-              <Link href="/states" className={textLinkClasses}>
-                browse filing requirements
+                Check its annual report deadline
               </Link>
               .
             </p>
@@ -232,8 +208,8 @@ export default async function HomePage() {
               <p className="max-w-[40ch] text-[17px] leading-relaxed text-muted">One flat fee each. The state&apos;s fee is passed through at cost.</p>
             </div>
             <PlanCards offers={offers} />
-            <Link href="/pricing#cost" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-center`}>
-              See the total for your state
+            <Link href="/services" className={`${textLinkClasses} inline-flex min-h-11 items-center gap-1.5 justify-self-center`}>
+              See what&apos;s open in your state
               <ArrowRight size={16} weight="bold" aria-hidden />
             </Link>
           </Container>
@@ -478,13 +454,13 @@ export default async function HomePage() {
         <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[28px] bg-accent lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="order-2 grid content-center gap-6 px-6 py-12 sm:px-12 sm:py-16 lg:order-1 lg:px-16 lg:py-20">
             <h2 id="cta-title" className="max-w-[16ch] text-[32px] font-semibold leading-[1.08] text-accent-fg sm:text-[46px]">
-              Find out what your business needs to file.
+              See everything we can do in your state.
             </h2>
             <p className="max-w-[40ch] text-[17px] leading-relaxed text-accent-fg/80 sm:text-lg">
-              It takes about a minute, and you don&apos;t need an account to see the answer.
+              Pick your state and the prices show up right away. No account needed.
             </p>
-            <ButtonLink href="/find" size="lg" variant="inverse" className="justify-self-start">
-              Find my business
+            <ButtonLink href="/services" size="lg" variant="inverse" className="justify-self-start">
+              Pick your state
               <ArrowRight size={18} weight="bold" aria-hidden />
             </ButtonLink>
           </div>
