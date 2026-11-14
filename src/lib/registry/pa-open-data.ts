@@ -47,7 +47,7 @@ function remember<T>(key: string, value: T): T {
   return value;
 }
 
-async function query(dataset: string, params: Record<string, string>): Promise<PaOpenDataRow[]> {
+async function query(dataset: string, params: Record<string, string>, timeoutMs = 6000): Promise<PaOpenDataRow[]> {
   const url = new URL(`${PA_OPEN_DATA.host}/resource/${dataset}.json`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const headers: Record<string, string> = { Accept: "application/json", "User-Agent": "Filewell (support@getfilewell.com)" };
@@ -55,7 +55,7 @@ async function query(dataset: string, params: Record<string, string>): Promise<P
   if (token) headers["X-App-Token"] = token;
   let res: Response;
   try {
-    res = await fetch(url, { headers, signal: AbortSignal.timeout(6000), cache: "no-store" });
+    res = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
   } catch {
     throw new RegistryUnavailableError("Pennsylvania's business register didn't respond.");
   }
@@ -97,6 +97,15 @@ export async function getPaRecord(entityNumber: string): Promise<RegistryDetail 
   const key = `detail:${nq.value}`;
   const hit = cached<RegistryDetail | null>(key);
   if (hit !== undefined) return hit;
-  const rows = await query(PA_OPEN_DATA.detailDataset, { $where: `filing_number = ${soqlString(nq.value)}`, $limit: "200" });
-  return remember(key, toDetail(rows));
+  try {
+    // The people dataset is large and a cold query can take several seconds.
+    const rows = await query(PA_OPEN_DATA.detailDataset, { $where: `filing_number = ${soqlString(nq.value)}`, $limit: "200" }, 10_000);
+    return remember(key, toDetail(rows));
+  } catch (e) {
+    if (!(e instanceof RegistryUnavailableError)) throw e;
+    // Fall back to the one-row-per-business dataset (name, type, address, no people) so a slow
+    // people query never stops a customer. Not cached, so the next read can still get the people.
+    const rows = await query(PA_OPEN_DATA.searchDataset, { $where: `filing_number = ${soqlString(nq.value)}`, $limit: "1" });
+    return toDetail(rows);
+  }
 }

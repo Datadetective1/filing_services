@@ -12,6 +12,8 @@ export interface DirectoryItem {
   verified: boolean;
   /** Public status wording (see stateSupportLabel). */
   label: string;
+  /** Where the row goes, when not the state's guide page. */
+  href?: string;
 }
 
 /**
@@ -70,7 +72,7 @@ export function StateDirectory({
           {shown.map((s) => (
             <li key={s.code}>
               <Link
-                href={`${basePath}/${s.slug}`}
+                href={s.href ?? `${basePath}/${s.slug}`}
                 className={cn(
                   "group flex min-h-12 items-center gap-3 rounded-[var(--radius-control)] border px-3 py-2 transition-colors",
                   s.verified

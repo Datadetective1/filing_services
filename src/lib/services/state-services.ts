@@ -256,3 +256,29 @@ export async function stateServices(code: string): Promise<StateServicesView | n
     .map(([k]) => ({ key: k, title: GAP_COPY[k].title, note: GAP_COPY[k].note(j.name) }));
   return { code: j.code, name: j.name, slug: j.slug, offered, notOffered };
 }
+
+export interface AnnualReportPlace {
+  code: string;
+  name: string;
+  slug: string;
+  /** Lowest full price for one report there, state fee included. */
+  fromCents: number;
+  /** Our part of that lowest price. */
+  serviceCents: number;
+}
+
+/**
+ * Every place where an annual report can be ordered right now, A to Z, from the same offer the
+ * state's services page shows. Empty when nothing is open (preview, or every switch off).
+ */
+export async function annualReportPlaces(): Promise<AnnualReportPlace[]> {
+  const prices: Prices = businessServicesPagesEnabled() ? await publicServicePrices() : {};
+  const out: AnnualReportPlace[] = [];
+  for (const s of pickableStates()) {
+    const offer = await annualReportOffer(s.code, s.name, prices);
+    if (!offer) continue;
+    const cheapest = offer.options.reduce((a, b) => (b.totalCents < a.totalCents ? b : a));
+    out.push({ ...s, fromCents: cheapest.totalCents, serviceCents: Math.min(...offer.options.map((o) => o.serviceCents)) });
+  }
+  return out;
+}

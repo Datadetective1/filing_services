@@ -187,9 +187,9 @@ function ServiceCard({ offer }: { offer: StateServiceOffer }) {
   const rest = offer.options.slice(VISIBLE_OPTIONS);
   const featured = offer.key === "bundle";
   return (
-    <li className="grid">
+    <li id={offer.key.replace("_", "-")} className="group/card grid scroll-mt-24">
       <div
-        className={`relative flex flex-col gap-5 overflow-hidden rounded-[var(--radius-surface)] border p-6 ${
+        className={`relative flex flex-col gap-5 overflow-hidden rounded-[var(--radius-surface)] border p-6 group-target/card:ring-4 group-target/card:ring-highlight/60 ${
           featured ? "border-ink bg-ink text-ink-fg shadow-lift" : "border-border bg-surface text-fg shadow-card"
         }`}
       >
