@@ -50,6 +50,7 @@ import {
   uploadDocumentAction,
 } from "./actions";
 import { loadFilingDetail, type AddressRow, type FilingDetail } from "./load";
+import { countyLabel } from "@/lib/format/county";
 
 export const metadata: Metadata = { title: "Order detail" };
 
@@ -593,7 +594,7 @@ function CustomerPanel({ customer, userId }: { customer: ProfileEntry | null; us
 }
 
 function addressLine(a: AddressRow): string {
-  if (a.crop_name) return `${a.crop_name} (commercial registered office provider)${a.county ? `, ${a.county} County` : ""}`;
+  if (a.crop_name) return `${a.crop_name} (commercial registered office provider)${a.county ? `, ${countyLabel(a.county)}` : ""}`;
   const base = formatAddress({
     line1: a.line1 ?? "",
     line2: a.line2 ?? "",
@@ -601,7 +602,7 @@ function addressLine(a: AddressRow): string {
     region: a.region ?? "",
     postal_code: a.postal_code ?? "",
   });
-  return a.county ? `${base}, ${a.county} County` : base;
+  return a.county ? `${base}, ${countyLabel(a.county)}` : base;
 }
 
 function BusinessPanel({ d }: { d: FilingDetail }) {

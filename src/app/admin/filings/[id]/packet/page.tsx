@@ -21,6 +21,7 @@ import { governmentFeeFor } from "@/lib/domain/pricing";
 import { formatAddress, formatRegisteredOffice, validateAll, type Address, type Person, type RegisteredOffice } from "@/lib/intake/validate";
 import { staffLabel } from "../../../_lib/data";
 import { loadFilingDetail } from "../load";
+import { countyLabel } from "@/lib/format/county";
 
 export const metadata: Metadata = { title: "Filing packet" };
 
@@ -326,14 +327,14 @@ function findField(fields: IntakeField[], key: string): IntakeField | undefined 
 function registeredOfficeText(value: unknown): string {
   if (!value || typeof value !== "object") return "Not provided";
   const r = value as RegisteredOffice;
-  if (r.mode === "crop") return `Commercial registered office provider: ${r.crop_name}, ${r.county} County`;
+  if (r.mode === "crop") return `Commercial registered office provider: ${r.crop_name}, ${countyLabel(r.county)}`;
   return formatRegisteredOffice(r);
 }
 
 function principalOfficeText(value: unknown): string {
   if (!value || typeof value !== "object") return "Not provided";
   const a = value as Address;
-  return a.county ? `${formatAddress(a)} (${a.county} County)` : formatAddress(a);
+  return a.county ? `${formatAddress(a)} (${countyLabel(a.county)})` : formatAddress(a);
 }
 
 function PacketSection({ n, title, hint, children }: { n: number; title: string; hint?: string; children: ReactNode }) {

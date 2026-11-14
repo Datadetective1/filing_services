@@ -23,6 +23,7 @@ import { backLinkClass, DashboardSection, QuietEmpty, quietLinkClass } from "@/c
 import { filingHref } from "@/components/dashboard/steps";
 import { BusinessServicesSection } from "@/components/services/business-services-section";
 import { loadBusinessDetail, type AddressView, type BusinessView, type PersonView } from "../../_lib/data";
+import { countyLabel } from "@/lib/format/county";
 
 export const metadata: Metadata = {
   title: "Business",
@@ -37,7 +38,7 @@ const ADDRESS_LABELS: Record<AddressView["kind"], string> = {
 
 function addressText(a: AddressView): string {
   if (a.kind === "registered_office" && a.cropName) {
-    return `${a.cropName} (commercial registered office provider)${a.county ? `, ${a.county} County` : ""}`;
+    return `${a.cropName} (commercial registered office provider)${a.county ? `, ${countyLabel(a.county)}` : ""}`;
   }
   const base = formatAddress({
     line1: a.line1 ?? "",
@@ -46,7 +47,7 @@ function addressText(a: AddressView): string {
     region: a.region ?? "",
     postal_code: a.postalCode ?? "",
   });
-  return a.county ? `${base} (${a.county} County)` : base;
+  return a.county ? `${base} (${countyLabel(a.county)})` : base;
 }
 
 function publicRulesHref(business: BusinessView): string | null {

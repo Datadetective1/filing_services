@@ -41,6 +41,9 @@ export interface CheckState {
   sections: CheckSection[];
 }
 
+/** Placeholder in the counsel text, replaced with the operator name from the production settings. */
+export const FILING_AGENT_TOKEN = "{{FILING_AGENT}}";
+
 export const OWNER_CHECKS_PREAMBLE = [
   "Everything that doesn't need a person is built and tested. This page is the human part, in the order to do it.",
   "**Never submit, pay, create a filing or accept terms on behalf of a client during these checks.** Stop before payment every time.",
@@ -118,12 +121,12 @@ export const OWNER_CHECKS: CheckState[] = [
         counselText: true,
         intro: [
           "This is exactly what a Washington customer signs. Version `2026-11-01.v2.state1` is generated from the shipped code. `[Business legal name]` is filled in from the customer's confirmed answers.",
-          "**Operator identity:** \"Amary Coulibaly, sole proprietor, doing business as Filewell\", from the production setting `NEXT_PUBLIC_LEGAL_ENTITY`. Production refuses a Washington signature if this isn't set.",
+          "**Operator identity:** \"{{FILING_AGENT}}\", from the production setting `NEXT_PUBLIC_LEGAL_ENTITY`. Production refuses a Washington signature if this isn't set.",
           "**Authorization text (the scrollable box above the checkboxes):**",
         ],
         body: [
           "**Required checkboxes (all three must be ticked; the customer also types their full name and title):**",
-          `1. \"I reviewed every item of the Washington filing information above and it is true and correct. I understand Amary Coulibaly, sole proprietor will certify to the state, relying on my confirmation: “This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.”\"
+          `1. \"I reviewed every item of the Washington filing information above and it is true and correct. I understand {{FILING_AGENT}} will certify to the state, relying on my confirmation: “This document is hereby executed under penalty of law and is to the best of my knowledge, true and correct.”\"
 2. \"I confirm the information above is accurate and complete.\"
 3. \"I authorize Filewell to act for the business as described in the authorization above, and I agree to the Terms of Service and Refund Policy.\"`,
           "**Registered-agent consent.** This only applies when the customer says the agent changes (a new agent, or a new street address). Changes to contact details alone need no consent. The customer must choose one of two options:",
@@ -139,7 +142,7 @@ export const OWNER_CHECKS: CheckState[] = [
         items: [
           {
             key: "wa.counsel.q1",
-            text: "1. Does this authorization let you, as a sole proprietor, act as the \"authorized person\" under RCW 23.95.240, and make the CCFS certification based on the customer's confirmation?",
+            text: "1. Does this authorization let the operator named above act as the \"authorized person\" under RCW 23.95.240, and make the CCFS certification based on the customer's confirmation?",
             noteLabel: "Counsel's answer",
           },
           { key: "wa.counsel.q2", text: "2. Is the consent handling enough under RCW 23.95.415?", noteLabel: "Counsel's answer" },

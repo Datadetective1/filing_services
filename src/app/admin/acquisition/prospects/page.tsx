@@ -9,6 +9,7 @@ import { requireStaff } from "@/lib/auth/session";
 import { formatLongDate } from "@/lib/domain/dates";
 import { ENTITY_TYPE_LABELS, type EntityType } from "@/lib/domain/types";
 import { buildDailyListAction, updateProspectAction } from "../actions";
+import { countyLabel } from "@/lib/format/county";
 
 export const metadata: Metadata = { title: "Founder research list" };
 export const dynamic = "force-dynamic";
@@ -88,7 +89,7 @@ export default async function ProspectsPage(props: PageProps<"/admin/acquisition
                   p.record.entityType ? ENTITY_TYPE_LABELS[p.record.entityType as EntityType] : null,
                   `Entity #${p.record.entityNumber}`,
                   p.record.formationDate ? `Formed ${formatDate(p.record.formationDate)}` : null,
-                  p.record.county ? `${p.record.county} County` : null,
+                  p.record.county ? countyLabel(p.record.county) : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}

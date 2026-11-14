@@ -2,6 +2,7 @@ import { PencilSimple, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { IntakeField, IntakeSection } from "@/lib/compliance/types";
 import { formatAddress, formatRegisteredOffice, type Address, type RegisteredOffice } from "@/lib/intake/validate";
+import { countyLabel } from "@/lib/format/county";
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
@@ -23,7 +24,7 @@ export function FieldValue({ field, value }: { field: IntakeField; value: unknow
       return (
         <>
           {formatAddress(a)}
-          {a.county ? `, ${a.county} County` : ""}
+          {a.county ? `, ${countyLabel(a.county)}` : ""}
         </>
       );
     }

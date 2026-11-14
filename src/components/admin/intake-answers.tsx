@@ -1,5 +1,6 @@
 import type { IntakeField, IntakeSchema } from "@/lib/compliance/types";
 import { conditionMet, formatAddress, formatRegisteredOffice, type Address, type Person, type RegisteredOffice } from "@/lib/intake/validate";
+import { countyLabel } from "@/lib/format/county";
 
 /**
  * Renders a filing's answers using the intake schema frozen in its rule snapshot,
@@ -19,7 +20,7 @@ export function answerText(field: IntakeField, value: unknown): string {
     case "address": {
       const a = value as Address;
       const base = formatAddress(a);
-      return a.county ? `${base} (${a.county} County)` : base;
+      return a.county ? `${base} (${countyLabel(a.county)})` : base;
     }
     case "registered_office":
       return formatRegisteredOffice(value as RegisteredOffice);

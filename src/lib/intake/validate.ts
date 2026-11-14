@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { IntakeField, IntakeSchema, IntakeSection } from "@/lib/compliance/types";
+import { countyLabel } from "@/lib/format/county";
 
 /**
  * Validation built from a rule's data-driven intake schema. The same schema drives
@@ -198,6 +199,6 @@ export function formatAddress(a: Partial<Address> | undefined | null): string {
 
 export function formatRegisteredOffice(r: RegisteredOffice | undefined | null): string {
   if (!r) return "Not provided";
-  if (r.mode === "crop") return `${r.crop_name} (commercial registered office provider), ${r.county} County`;
-  return `${formatAddress(r)}, ${r.county} County`;
+  if (r.mode === "crop") return `${r.crop_name} (commercial registered office provider), ${countyLabel(r.county)}`;
+  return `${formatAddress(r)}, ${countyLabel(r.county)}`;
 }
