@@ -48,6 +48,17 @@ describe("supported states answer", () => {
     expect(supportedStatesAnswer(["Pennsylvania"])).not.toMatch(/free reminders/);
   });
 
+  it("names partner-filed states, registered agent and formation so it agrees with the plan cards", () => {
+    const a = supportedStatesAnswer(["Pennsylvania"], ["Utah"], {
+      partnerReportStates: 27,
+      registeredAgentEverywhere: true,
+      formationPlaces: "42 states, DC and Puerto Rico",
+    });
+    expect(a).toMatch(/^We file annual reports in Pennsylvania today\. In 27 more states, our partner registered agent files it for us\. In Utah, you can look up/);
+    expect(a).toMatch(/Our registered agent service covers every state\. We form LLCs and corporations in 42 states, DC and Puerto Rico\./);
+    expect(supportedStatesAnswer(["Pennsylvania"])).not.toMatch(/partner|registered agent|form LLCs/);
+  });
+
   it("never claims a state when none is open", () => {
     expect(supportedStatesAnswer([])).not.toMatch(/We file annual reports in/);
   });
