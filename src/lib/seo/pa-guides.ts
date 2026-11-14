@@ -66,7 +66,7 @@ export const PA_GUIDES: PaGuide[] = [
     slug: "annual-report-deadline",
     title: "Pennsylvania Annual Report Deadline 2027: June 30, Sept 30 or Dec 31",
     description:
-      "PA annual reports are due June 30 for corporations, September 30 for LLCs and December 31 for other associations. From 2027, a business that doesn't file can be dissolved.",
+      "PA annual reports are due June 30 (corporations), Sept 30 (LLCs) or Dec 31 (others). From 2027, non-filers can be dissolved. Filewell can file yours.",
     h1: "Pennsylvania annual report deadline",
     answer: [
       "Pennsylvania's annual report deadline depends on the type of entity. Corporations (business and nonprofit) file by June 30. Limited liability companies file by September 30. Every other association that files, such as limited partnerships, limited liability partnerships, business trusts and professional associations, files by December 31.",

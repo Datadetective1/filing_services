@@ -34,7 +34,9 @@ import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { agencyShortName, dueGroups } from "@/lib/seo/content";
 import { ENTITY_COPY } from "@/lib/seo/entities";
 import { heroRule } from "@/lib/seo/hero-rule";
-import { businessServicesIndexable } from "@/lib/registered-agent/sales";
+import { businessServicesIndexable, formationOpenStates } from "@/lib/registered-agent/sales";
+import { providerReportOpenStates } from "@/lib/registered-agent/provider-report";
+import { placesText } from "@/lib/registered-agent/public-copy";
 import { faqJsonLd, graph, organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
 import { homeMetadata, supportedStatesAnswer } from "@/lib/seo/home";
 import { marketingPeriod } from "@/lib/seo/period";
@@ -74,6 +76,15 @@ export default async function HomePage() {
     : null;
   const directFee = rule ? formatCents(rule.stateFeeCents, { trimZeros: true }) : "$7";
 
+  // Annual reports our partner agent files, counted only where we don't file ourselves.
+  const partnerReportCodes = new Set(
+    offers.providerReportCents !== undefined
+      ? providerReportOpenStates()
+          .map((s) => s.code)
+          .filter((code) => !stateSalesEnabled(code))
+      : [],
+  );
+
   const faq: FaqItem[] = [
     {
       q: `Is ${site.name} a government agency?`,
@@ -88,8 +99,13 @@ export default async function HomePage() {
       a: supportedStatesAnswer(
         listJurisdictions().filter((j) => stateSalesEnabled(j.code)).map((j) => j.name),
         lookupStates()
-          .filter((code) => !stateSalesEnabled(code))
+          .filter((code) => !stateSalesEnabled(code) && !partnerReportCodes.has(code))
           .map((code) => getJurisdiction(code)?.name ?? code),
+        {
+          partnerReportStates: partnerReportCodes.size,
+          registeredAgentEverywhere: raPrice !== undefined,
+          formationPlaces: offers.formationCents !== undefined ? placesText(formationOpenStates()) : undefined,
+        },
       ),
     },
     {

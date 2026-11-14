@@ -34,6 +34,7 @@ import { CalendarDate } from "@/components/visual/calendar-date";
 import { FilingYearChart } from "@/components/visual/filing-year-chart";
 import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
+import { providerReportOpenState } from "@/lib/registered-agent/provider-report";
 import { getJurisdictionBySlug, isRuleSellable, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef, FaqItem, JurisdictionDef } from "@/lib/compliance/types";
@@ -90,9 +91,13 @@ export async function generateMetadata({ params }: PageProps<"/annual-report/[st
       noindex: true,
     });
   }
+  // Where we can file it, the search snippet says so: that's the reason to click.
+  const weFile = rules.some((r) => isRuleSellable(r)) || providerReportOpenState(j.code) !== null;
   return pageMetadata({
     title: `${j.name} Annual Report: Due Dates, Fees & How to File`,
-    description: `${j.name} annual report due dates by entity type (${dueSummary(rules)}), the state fee (${feeSummary(rules)}), late-filing rules and how to file, from official sources.`,
+    description: weFile
+      ? `${j.name} annual report due dates by entity type (${dueSummary(rules)}) and the state fee (${feeSummary(rules)}), from official sources. Or have Filewell file it for you.`
+      : `${j.name} annual report due dates by entity type (${dueSummary(rules)}), the state fee (${feeSummary(rules)}), late-filing rules and how to file, from official sources.`,
     path,
   });
 }
