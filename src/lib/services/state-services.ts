@@ -250,10 +250,9 @@ export async function stateServices(code: string): Promise<StateServicesView | n
     ["annual_report", report],
   ];
   const offered = all.map(([, o]) => o).filter((o): o is StateServiceOffer => o !== null);
-  // The bundle only exists where we file reports ourselves, so its absence elsewhere isn't news.
+  // The bundle is a way to buy two services together, so its absence is never news on its own.
   const notOffered = all
-    .filter(([k, o]) => o === null && !(k === "bundle" && !(BUNDLE_STATES as readonly string[]).includes(j.code)))
-    .filter(([k]) => !(k === "bundle" && offered.length === 0))
+    .filter(([k, o]) => o === null && k !== "bundle")
     .map(([k]) => ({ key: k, title: GAP_COPY[k].title, note: GAP_COPY[k].note(j.name) }));
   return { code: j.code, name: j.name, slug: j.slug, offered, notOffered };
 }
