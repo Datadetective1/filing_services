@@ -95,11 +95,11 @@ export default async function StateServicesPage(props: PageProps<"/services/[sta
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_10%,rgb(242_178_58/0.16),transparent_60%),radial-gradient(50rem_30rem_at_0%_100%,rgb(31_90_67/0.55),transparent_60%)]"
         />
-        <Container className="relative grid items-center gap-10 pb-14 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-14 lg:pb-20">
+        <Container className="relative grid items-center gap-10 pb-10 pt-6 sm:pb-14 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-14 lg:pb-20">
           <div className="grid content-start gap-6">
-            <Link href="/services" className="inline-flex min-h-8 items-center gap-1.5 justify-self-start text-sm text-ink-muted hover:text-ink-fg">
+            <Link href="/services" className="inline-flex min-h-11 items-center gap-1.5 justify-self-start text-sm font-medium text-ink-muted hover:text-ink-fg">
               <ArrowRight size={14} weight="bold" aria-hidden className="rotate-180" />
-              All states
+              Change state
             </Link>
             <p className="inline-flex items-center gap-2 justify-self-start rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-sm font-medium">
               <span aria-hidden className="size-2 rounded-full bg-highlight shadow-[0_0_12px_rgb(242_178_58/0.9)]" />
@@ -116,11 +116,12 @@ export default async function StateServicesPage(props: PageProps<"/services/[sta
                 ? `Everything we can do for your business in ${view.name}, with the full price up front.`
                 : `We can't take orders in ${view.name} yet.`}
             </p>
-            <div className="max-w-xl rounded-[var(--radius-surface)] border border-white/12 bg-white/[0.05] p-4 backdrop-blur-sm sm:p-5">
+            {/* On a phone the services come first; "All states" above does the switching there. */}
+            <div className="hidden max-w-xl rounded-[var(--radius-surface)] border border-white/12 bg-white/[0.05] p-5 backdrop-blur-sm sm:block">
               <StatePicker states={states} initialSlug={view.slug} label="Another state?" cta="Switch" tone="glass" />
             </div>
           </div>
-          <StateTileMap states={states} active={view.code} tilt className="mx-auto w-full max-w-[34rem] py-4 lg:py-10" />
+          <StateTileMap states={states} active={view.code} tilt className="mx-auto hidden w-full max-w-[34rem] py-4 sm:block lg:py-10" />
         </Container>
       </section>
 
