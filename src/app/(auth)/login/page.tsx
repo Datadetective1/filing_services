@@ -6,7 +6,11 @@ import { textLinkClasses } from "@/components/ui/button";
 import { EmailLinkForm, GuestStartForm, OrDivider, SignInForm } from "../auth-forms";
 import { authLede, authTitle } from "../styles";
 
-export const metadata: Metadata = { title: "Sign in" };
+export async function generateMetadata({ searchParams }: PageProps<"/login">): Promise<Metadata> {
+  const sp = await searchParams;
+  const next = safeNextPath(typeof sp.next === "string" ? sp.next : null, "/dashboard");
+  return { title: isOrderPath(next) && sp.guest !== "off" ? "Continue your order" : "Sign in" };
+}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams;
