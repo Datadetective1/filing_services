@@ -1,4 +1,4 @@
-import { SealCheck } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, SealCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
@@ -73,6 +73,20 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
   const paRule = findRule("PA", "llc");
   const agency = pa?.agency.name.split(" - ")[0] ?? "Pennsylvania Department of State";
 
+  const lookupForm = (
+    <LookupForm
+      action={submitLookup}
+      jurisdictions={options}
+      entityOptions={entityOptions}
+      defaults={defaults}
+      maxDate={todayInTimeZone("America/New_York")}
+      forAgent={forAgent}
+    />
+  );
+  // Where the state's register can be searched, the search is the whole first step and the
+  // typed form waits behind one tap, unless the visitor is coming back to edit what they typed.
+  const searchFirst = !pending && registryStates().some((s) => s.code === defaults.stateCode);
+
   return (
     <section aria-labelledby="find-title" className="overflow-hidden">
       <Container className="grid gap-10 pb-16 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-14 lg:pb-24 lg:pt-14">
@@ -122,22 +136,24 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
             />
           </div>
 
-          <div className="flex items-center gap-3 text-sm text-subtle" aria-hidden>
-            <span className="h-px flex-1 bg-border" />
-            State not listed, or business not found? Enter your details
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">
-            <LookupForm
-              action={submitLookup}
-              jurisdictions={options}
-              entityOptions={entityOptions}
-              defaults={defaults}
-              maxDate={todayInTimeZone("America/New_York")}
-              forAgent={forAgent}
-            />
-          </div>
+          {searchFirst ? (
+            <details className="group rounded-[var(--radius-surface)] border border-border bg-surface shadow-card">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3 text-[15px] font-semibold text-fg transition-colors hover:text-accent sm:px-8 [&::-webkit-details-marker]:hidden">
+                Can&apos;t find your business? Enter its details instead
+                <CaretDown size={16} weight="bold" aria-hidden className="shrink-0 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="border-t border-border p-5 sm:p-8">{lookupForm}</div>
+            </details>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 text-sm text-subtle" aria-hidden>
+                <span className="h-px flex-1 bg-border" />
+                State not listed, or business not found? Enter your details
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-8">{lookupForm}</div>
+            </>
+          )}
 
           <p className="max-w-[62ch] text-sm leading-6 text-subtle">
             {site.disclaimer}

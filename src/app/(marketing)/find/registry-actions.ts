@@ -65,7 +65,7 @@ export async function selectRegistryEntity(_prev: RegistrySelectState, formData:
     record = await getStateRecord(stateCode, entityNumber);
   } catch (e) {
     if (e instanceof RegistryUnavailableError) {
-      return { error: `${source.name}'s business register isn't responding right now. Enter your details below instead.` };
+      return { error: `${source.name}'s business register isn't responding right now. Try again in a moment, or enter its details below.` };
     }
     throw e;
   }

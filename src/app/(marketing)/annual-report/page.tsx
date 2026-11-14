@@ -1,22 +1,21 @@
 import { ArrowRight, CheckCircle, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { site } from "@/config/site";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
+import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { PhotoHero } from "@/components/marketing/photo-hero";
 import { StateGrid } from "@/components/marketing/state-grid";
-import { Badge } from "@/components/ui/badge";
 import { ButtonLink, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
-import { CalendarDate } from "@/components/visual/calendar-date";
-import { UsTileMapLegend } from "@/components/visual/us-tile-map";
-import { isStateVerified, listJurisdictions, rulesForState, stateSupportLabel } from "@/lib/compliance/registry";
-import { stateFeeText } from "@/lib/compliance/view";
-import { ENTITY_TYPE_LABELS, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
-import { dueDayText, dueGroups, sortByDue } from "@/lib/seo/content";
-import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
+import type { FaqItem } from "@/lib/compliance/types";
+import { formatCents } from "@/lib/domain/money";
+import { breadcrumbJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { serviceFeeText } from "@/lib/services/fee-text";
+import { annualReportPlaces } from "@/lib/services/state-services";
 
 export const metadata: Metadata = pageMetadata({
   title: "Annual Reports by State: What They Are and When They're Due",
@@ -25,172 +24,214 @@ export const metadata: Metadata = pageMetadata({
   path: "/annual-report",
 });
 
+// Prices and state switches can change: rebuild at most hourly, like the state pages.
+export const revalidate = 3600;
+
 const CRUMBS = [
   { name: "Home", path: "/" },
   { name: "Annual reports", path: "/annual-report" },
 ];
 
-/** The hub's status object: what an annual report usually confirms, drawn as the paper itself. */
-function WhatItConfirms() {
+const money = (c: number) => formatCents(c, { trimZeros: true });
+
+function buildFaq(fee: string | null): FaqItem[] {
+  return [
+    {
+      q: "What does the price include?",
+      a: `We prepare your report, file it with the state, pay the state's fee for you and keep the state's confirmation in your dashboard. A person on our team checks every filing before it goes in.${
+        fee ? ` Our fee is ${fee}, depending on the state, and you see it before you pay.` : ""
+      }`,
+    },
+    {
+      q: 'What does "plus the state fee" mean?',
+      a: "Each state charges its own fee for the report. We pay it to the state for you at cost, with no markup, and show it as its own line next to our fee before you pay.",
+    },
+    {
+      q: "Do I need to know my state's rules?",
+      a: "No. We check each state's fees and requirements against its official sources before we open it. You pick your state, find your business and answer a few questions.",
+    },
+    {
+      q: "Will you remind me next year?",
+      a: "Yes, in the states where we track the due date. We email you before the next report is due, and you can turn reminders off in your settings.",
+    },
+    {
+      q: "How long does it take?",
+      a: "Your part is short: check your details and sign. Then a person on our team reviews it and files it with the state. Approval time depends on the state, and we email you when it's filed and when it's approved.",
+    },
+    {
+      q: "Do I need to send any paperwork?",
+      a: "No. Everything happens online. Where the state's business register allows it, we fill in your details from it, and you check them before anything is filed.",
+    },
+    {
+      q: "What if I've missed the due date?",
+      a: "Many states still accept a late report, some with a late fee. File it as soon as you can, and ask us if you're not sure what your state charges.",
+    },
+    {
+      q: `Is ${site.name} part of the government?`,
+      a: `No. ${site.name} is a private company that prepares and submits filings for businesses. We are not affiliated with or endorsed by any government agency.`,
+    },
+  ];
+}
+
+/** The hero's object: the offer itself, drawn as a receipt with the one number that matters. */
+function PricePanel({ lowest, count }: { lowest: string | null; count: number }) {
   return (
     <div className="relative overflow-hidden rounded-[10px] border border-border bg-surface px-5 pb-5 pt-6 shadow-lift sm:px-6">
       <span
         aria-hidden
         className="absolute right-0 top-0 size-9 rounded-bl-[8px] bg-[linear-gradient(225deg,var(--bg)_50%,var(--surface-3)_50%)] shadow-[-1px_1px_2px_rgb(23_35_29/0.08)]"
       />
-      <p className="font-mono text-[11px] uppercase tracking-wider text-subtle">Annual report</p>
-      <p className="mt-1 border-b-2 border-fg/80 pb-3 pr-8 font-display text-lg font-semibold leading-snug text-fg">
-        What it usually confirms
-      </p>
+      <p className="font-mono text-[11px] uppercase tracking-wider text-subtle">Annual report, filed for you</p>
+      {lowest ? (
+        <p className="mt-2 flex flex-wrap items-baseline gap-x-2 border-b-2 border-fg/80 pb-3 pr-8">
+          <span className="text-sm text-muted">From</span>
+          <span className="tnum font-display text-[44px] font-semibold leading-none tracking-tight text-fg">{lowest}</span>
+          <span className="text-sm text-muted">+ state fee</span>
+        </p>
+      ) : (
+        <p className="mt-1 border-b-2 border-fg/80 pb-3 pr-8 font-display text-lg font-semibold leading-snug text-fg">
+          What we do for you
+        </p>
+      )}
       <ul className="grid">
-        {["The business's legal name", "Its addresses", "The people who manage it"].map((item) => (
+        {["We prepare and file it", "We pay the state for you, at cost", "You keep the state's confirmation"].map((item) => (
           <li key={item} className="flex items-center gap-3 border-b border-dashed border-border py-3 text-[15px] text-fg last:border-b-0">
             <CheckCircle size={18} weight="fill" aria-hidden className="shrink-0 text-accent" />
             {item}
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-[13px] leading-5 text-muted">The name, schedule, due date and fee differ by state.</p>
+      {count > 0 ? <p className="mt-2 text-[13px] leading-5 text-muted">Open in {count} states today.</p> : null}
     </div>
   );
 }
 
-export default function AnnualReportHubPage() {
-  const verified = listJurisdictions().filter((j) => isStateVerified(j.code));
+export default async function AnnualReportHubPage() {
+  const places = await annualReportPlaces();
+  const fee = serviceFeeText(places);
+  const faq = buildFaq(fee?.all ?? null);
+  const filedCodes = new Set(places.map((p) => p.code));
 
   return (
     <>
-      <JsonLd data={graph(breadcrumbJsonLd(CRUMBS))} />
+      <JsonLd data={graph(breadcrumbJsonLd(CRUMBS), faqJsonLd(faq))} />
 
       <PhotoHero
         id="hub-title"
         breadcrumbs={<Breadcrumbs items={CRUMBS} />}
         title={
           <>
-            Annual <span className="mark-highlight">reports</span>
+            Your annual report, <span className="mark-highlight">filed</span>.
           </>
         }
         lede={
           <p>
-            Many states ask registered businesses to confirm their basic details on a regular schedule. Here is what that
-            filing is, and where we can help today.
+            Pick your state, find your business and sign. We file it with the state and send you the confirmation.
+            {fee ? (
+              <>
+                {" "}
+                <strong className="font-semibold text-fg">From {fee.lowest} plus the state fee.</strong>
+              </>
+            ) : null}
           </p>
         }
         actions={
           <div className="flex flex-col gap-3 sm:flex-row">
-            <ButtonLink href="/find" size="lg">
-              Find my business
+            <ButtonLink href={places.length > 0 ? "#choose-state" : "/find"} size="lg">
+              {places.length > 0 ? "Choose your state" : "Find my business"}
               <ArrowRight size={18} weight="bold" aria-hidden />
             </ButtonLink>
-            <ButtonLink href="#states-title" size="lg" variant="secondary">
-              Browse states
-            </ButtonLink>
+            {places.length > 0 ? (
+              <ButtonLink href="/find" size="lg" variant="secondary">
+                Find my business
+              </ButtonLink>
+            ) : null}
           </div>
         }
         photo="reliefDocument"
         focus="45% 35%"
         focusWide="4% 35%"
-        panel={<WhatItConfirms />}
+        panel={<PricePanel lowest={fee?.lowest ?? null} count={places.length} />}
       />
 
-      <section aria-labelledby="what-title" className="pb-16 sm:pb-24">
-        <Container className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)] lg:gap-16">
-          <div className="grid content-start gap-6">
-            <h2 id="what-title" className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
-              What an annual report is
-            </h2>
-            <div className="grid max-w-[64ch] gap-4 text-[16px] leading-7 text-muted sm:text-[17px] sm:leading-8">
-              <p>
-                An annual report is a short filing that keeps a business entity&apos;s record with a state up to date. It
-                usually confirms details such as the business&apos;s legal name, its addresses and the people who manage
-                it.
-              </p>
-              <p>
-                Each state sets its own rules. The name of the filing, who has to file, how often, the due date and the
-                fee can all differ from state to state and between entity types. Some states use a different name, such
-                as a biennial report.
-              </p>
-            </div>
-            <div className="flex max-w-[64ch] gap-3.5 rounded-[var(--radius-surface)] bg-accent-soft/70 p-5">
-              <ShieldCheck size={22} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
-              <p className="text-[16px] leading-7 text-fg">
-                Because the details vary, we only state due dates and fees for a state after checking them against that
-                state&apos;s official publications. For every other state, we point you to the official agency instead of
-                guessing.
+      {places.length > 0 ? (
+        <section
+          id="choose-state"
+          aria-labelledby="choose-state-title"
+          className="relative scroll-mt-20 overflow-hidden bg-ink py-14 text-ink-fg sm:py-20"
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_0%,rgb(242_178_58/0.16),transparent_60%),radial-gradient(50rem_30rem_at_0%_100%,rgb(31_90_67/0.55),transparent_60%)]"
+          />
+          <Container className="relative grid gap-8">
+            <div className="grid max-w-2xl gap-3">
+              <h2 id="choose-state-title" className="text-[30px] font-semibold leading-[1.08] sm:text-[44px]">
+                Choose your state.
+              </h2>
+              <p className="text-[17px] leading-relaxed text-ink-muted">
+                Each price is the full total for one report, the state&apos;s fee included.
               </p>
             </div>
-          </div>
-
-          <div className="grid content-start gap-4">
-            {verified.map((j) => {
-              const rules = rulesForState(j.code);
-              const groups = dueGroups(rules);
-              return (
-                <div key={j.code} className="overflow-hidden rounded-[var(--radius-surface)] border border-border bg-surface shadow-card">
-                  <div className="grid gap-4 px-5 pb-4 pt-5">
-                    <div className="flex items-center justify-between gap-4">
-                      <h3 className="text-xl font-semibold tracking-tight text-fg">{j.name}</h3>
-                      <Badge tone="success">{stateSupportLabel(j.code)}</Badge>
-                    </div>
-                    <div aria-hidden className="flex gap-2">
-                      {groups.map((g) => (
-                        <CalendarDate key={g.day} month={g.month} day={g.dayOfMonth} size="sm" />
-                      ))}
-                    </div>
-                  </div>
-                  <ul className="divide-y divide-border border-t border-border">
-                    {sortByDue(rules).map((r) => (
-                      <li key={r.ruleKey}>
-                        <Link
-                          href={`/annual-report/${j.slug}/${ENTITY_TYPE_SLUGS[r.entityType]}`}
-                          className="group flex min-h-12 items-center justify-between gap-4 px-5 py-2.5 text-[15px] transition-colors hover:bg-surface-2/70"
-                        >
-                          <span className="font-medium text-fg group-hover:text-accent">{ENTITY_TYPE_LABELS[r.entityType]}</span>
-                          <span className="tnum shrink-0 text-right text-sm text-muted">
-                            {dueDayText(r)}
-                            <span className="block text-xs text-subtle">{stateFeeText({ ...r, nonprofitStateFeeCents: null })}</span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+            <ul className="grid grid-cols-2 gap-3 [perspective:900px] sm:grid-cols-3 lg:grid-cols-4" aria-label="States where we file annual reports">
+              {places.map((p) => (
+                <li key={p.code}>
                   <Link
-                    href={`/annual-report/${j.slug}`}
-                    className="flex min-h-14 items-center justify-between gap-2 border-t border-border bg-accent px-5 text-[15px] font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
+                    href={`/services/${p.slug}#annual-report`}
+                    prefetch={false}
+                    className="group flex min-h-[76px] items-center justify-between gap-3 rounded-[var(--radius-surface)] border border-white/12 bg-white/[0.06] px-4 py-3 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] backdrop-blur-sm transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-highlight/60 hover:bg-white/[0.1] hover:shadow-[0_18px_40px_-18px_rgb(242_178_58/0.55)] motion-safe:hover:[transform:translateY(-4px)_rotateX(8deg)]"
                   >
-                    {j.name} annual report guide
-                    <ArrowRight size={16} weight="bold" aria-hidden />
+                    <span className="grid min-w-0">
+                      <span className="truncate text-[16px] font-semibold sm:text-[17px]">{p.name}</span>
+                      <span className="tnum text-[13px] text-ink-muted">from {money(p.fromCents)}</span>
+                    </span>
+                    <span
+                      aria-hidden
+                      className="grid size-8 shrink-0 place-items-center rounded-full bg-highlight text-highlight-fg transition-transform group-hover:translate-x-0.5"
+                    >
+                      <ArrowRight size={15} weight="bold" />
+                    </span>
                   </Link>
-                </div>
-              );
-            })}
+                </li>
+              ))}
+            </ul>
+            <p className="flex items-start gap-2 text-[15px] text-ink-muted">
+              <ShieldCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-highlight" />
+              A person checks every filing before it goes to the state.
+            </p>
+          </Container>
+        </section>
+      ) : null}
+
+      <section aria-labelledby="faq-title" className="py-14 sm:py-20">
+        <Container className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
+          <div className="grid content-start gap-3">
+            <h2 id="faq-title" className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
+              Questions, answered.
+            </h2>
+            <p className="text-[17px] leading-relaxed text-muted">
+              Still unsure?{" "}
+              <Link href="/help" className={textLinkClasses}>
+                Ask a person
+              </Link>
+            </p>
           </div>
+          <FaqList items={faq} />
         </Container>
       </section>
 
       <section aria-labelledby="states-title" className="grain scroll-mt-20 bg-surface-2 py-14 sm:py-20">
         <Container className="grid gap-8">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <div className="grid max-w-2xl gap-3">
-              <h2 id="states-title" className="scroll-mt-24 text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
-                Annual reports by state
-              </h2>
-              <p className="text-[17px] leading-relaxed text-muted">
-                Filing supported means we have verified the state&apos;s requirements and can file for you. Guide and free reminders
-                means we have verified them but don&apos;t file there yet. Not yet verified means we
-                haven&apos;t, so those pages show only the official agency link.
-              </p>
-            </div>
-            <UsTileMapLegend />
+          <div className="grid max-w-2xl gap-3">
+            <h2 id="states-title" className="scroll-mt-24 text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
+              Due dates and fees by state
+            </h2>
+            <p className="text-[17px] leading-relaxed text-muted">
+              Open a state to see what its annual report needs and when it&apos;s due.
+            </p>
           </div>
-          <StateGrid basePath="/annual-report" />
+          <StateGrid basePath="/annual-report" filedCodes={filedCodes} />
           <DisclaimerNote />
-          <p className="text-[15px] text-muted">
-            Prefer a map?{" "}
-            <Link href="/states" className={textLinkClasses}>
-              Browse states on the map
-            </Link>
-          </p>
         </Container>
       </section>
     </>
