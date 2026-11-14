@@ -8,6 +8,7 @@ import { registrySource } from "@/lib/registry/sources";
 import { Input, Select } from "@/components/ui/field";
 import { buttonClasses } from "@/components/ui/button";
 import type { RegistrySearchResult, RegistrySelectState } from "@/app/(marketing)/find/registry-actions";
+import { countyLabel } from "@/lib/format/county";
 
 /**
  * Search a state's business register and pick the business, instead of typing its
@@ -174,7 +175,7 @@ function ResultButton({ hit, numberLabel, disabled }: { hit: RegistryHit; number
       <span className="grid min-w-0 flex-1 gap-0.5">
         <span className="font-semibold text-fg">{hit.name}</span>
         <span className="text-sm text-muted">
-          {[type, place, hit.county ? `${hit.county} County` : null, number].filter(Boolean).join(" · ")}
+          {[type, place, hit.county ? countyLabel(hit.county) : null, number].filter(Boolean).join(" · ")}
         </span>
       </span>
       <ArrowRight size={18} aria-hidden className="mt-1 shrink-0 text-muted" />

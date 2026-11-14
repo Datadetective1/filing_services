@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { stableStringify } from "@/lib/compliance/hash";
 import type { IntakeField, IntakeSchema, OperatorRunbook, StateAuthorization } from "@/lib/compliance/types";
 import { conditionMet, formatAddress, formatRegisteredOffice, type Address, type IntakeAnswers, type Person, type RegisteredOffice } from "@/lib/intake/validate";
+import { countyLabel } from "@/lib/format/county";
 
 /**
  * The filing packet: every value Filewell will enter in the state's portal, in the
@@ -34,7 +35,7 @@ export function fieldText(field: IntakeField, value: unknown): string {
     case "address": {
       const a = value as Address;
       const base = formatAddress(a);
-      return a.county ? `${base} (${a.county} County)` : base;
+      return a.county ? `${base} (${countyLabel(a.county)})` : base;
     }
     case "registered_office":
       return formatRegisteredOffice(value as RegisteredOffice);

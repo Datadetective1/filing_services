@@ -84,6 +84,45 @@ export function sumEconomics(lines: EconomicsLine[]): EconomicsResult & { lines:
   };
 }
 
+/** Succeeded refunds summed per order (service and government portions kept apart). */
+export function refundTotalsByOrder(
+  refunds: { order_id: string; service_fee_cents: number; government_fee_cents: number }[],
+): Map<string, { serviceCents: number; governmentCents: number }> {
+  const out = new Map<string, { serviceCents: number; governmentCents: number }>();
+  for (const r of refunds) {
+    const t = out.get(r.order_id) ?? { serviceCents: 0, governmentCents: 0 };
+    t.serviceCents += r.service_fee_cents;
+    t.governmentCents += r.government_fee_cents;
+    out.set(r.order_id, t);
+  }
+  return out;
+}
+
+/**
+ * Economics for an annual report order Filewell files itself (these predate per-order rows).
+ * Refunds come off the revenue. A fully refunded order was never filed, so no government fee
+ * was paid to the state; Stripe keeps its card fee on refunds, so the estimated fee stays.
+ */
+export function annualReportEconomicsLine(
+  order: { service_fee_cents: number; government_fee_cents: number; total_cents: number; status: string },
+  refunded?: { serviceCents: number; governmentCents: number },
+): EconomicsLine {
+  return {
+    serviceCode: "annual_report",
+    fulfillmentMethod: "internal_manual",
+    serviceRevenueCents: order.service_fee_cents,
+    governmentFeesCollectedCents: order.government_fee_cents,
+    governmentFeesRemittedCents: order.status === "refunded" ? 0 : order.government_fee_cents,
+    wholesaleCostCents: 0,
+    acquisitionCostCents: 0,
+    processingFeeCents: estimateProcessingFeeCents(order.total_cents),
+    processingFeeSource: "estimated",
+    serviceRefundsCents: refunded?.serviceCents ?? 0,
+    governmentRefundsCents: refunded?.governmentCents ?? 0,
+    taxCollectedCents: 0,
+  };
+}
+
 export interface ContributionEstimate {
   serviceCode: ServiceCode;
   label: string;

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { formatDateTime } from "@/components/admin/format";
 import { cn } from "@/components/ui/cn";
 import { site } from "@/config/site";
-import { OWNER_CHECKS, OWNER_CHECKS_PREAMBLE, type CheckState } from "@/lib/admin/owner-checks";
+import { FILING_AGENT_TOKEN, OWNER_CHECKS, OWNER_CHECKS_PREAMBLE, type CheckState } from "@/lib/admin/owner-checks";
 import { requireAdmin } from "@/lib/auth/session";
 import { stateSalesEnabled } from "@/lib/compliance/launch";
 import { openQuestionsFor } from "@/lib/compliance/open-questions";
@@ -37,12 +37,14 @@ export default async function OwnerChecksPage() {
   const saved = new Map(((rows ?? []) as Saved[]).map((r) => [r.item_key, r]));
   const approved = new Map(((prices ?? []) as { state_code: string; approved: boolean }[]).map((p) => [p.state_code, p.approved]));
 
+  const filingAgent = filingAgentName(site.name, site.legalEntity, site.legalEntityConfigured);
+  const withAgent = (text: string) => text.replaceAll(FILING_AGENT_TOKEN, filingAgent);
   const counselText = authorizationText({
     businessName: "[Business legal name]",
     stateName: "Washington",
     filingName: "Annual Report",
     brand: site.name,
-    state: { filingAgent: filingAgentName(site.name, site.legalEntity, site.legalEntityConfigured), certificationText: WA_CERTIFICATION_TEXT },
+    state: { filingAgent, certificationText: WA_CERTIFICATION_TEXT },
   });
 
   return (
@@ -90,7 +92,7 @@ export default async function OwnerChecksPage() {
             <div key={sec.key} className="grid gap-4">
               <h3 className="text-lg font-semibold leading-snug text-fg">{sec.title}</h3>
               {sec.intro.map((p) => (
-                <Md key={p} text={p} className="grid gap-2 text-[15px] leading-relaxed text-muted" />
+                <Md key={p} text={withAgent(p)} className="grid gap-2 text-[15px] leading-relaxed text-muted" />
               ))}
               {sec.counselText ? (
                 <blockquote className="max-h-80 overflow-y-auto rounded-[var(--radius-control)] border border-border bg-surface px-4 py-3 text-[15px] leading-7 text-fg">
@@ -98,7 +100,7 @@ export default async function OwnerChecksPage() {
                 </blockquote>
               ) : null}
               {sec.body?.map((p) => (
-                <Md key={p} text={p} className="grid gap-2 text-[15px] leading-relaxed text-muted" />
+                <Md key={p} text={withAgent(p)} className="grid gap-2 text-[15px] leading-relaxed text-muted" />
               ))}
               <div className="grid gap-3">
                 {sec.items.map((item) => {

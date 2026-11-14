@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { IntakeField, IntakeSchema } from "@/lib/compliance/types";
 import { formatAddress, formatRegisteredOffice, type Address, type RegisteredOffice } from "@/lib/intake/validate";
+import { countyLabel } from "@/lib/format/county";
 
 const NOT_PROVIDED = <span className="font-normal text-subtle">Not provided</span>;
 
@@ -26,7 +27,7 @@ function renderValue(field: IntakeField, value: unknown): ReactNode {
       if (!isRecord(value) || !text(value.line1)) return NOT_PROVIDED;
       const a = value as unknown as Address;
       const county = text(a.county);
-      return county ? `${formatAddress(a)} (${county} County)` : formatAddress(a);
+      return county ? `${formatAddress(a)} (${countyLabel(county)})` : formatAddress(a);
     }
     case "registered_office": {
       if (!isRecord(value)) return NOT_PROVIDED;

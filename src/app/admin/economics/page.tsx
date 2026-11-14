@@ -5,7 +5,7 @@ import { Table, TableScroll, TD, TH, THead, TR } from "@/components/admin/table"
 import { Notice } from "@/components/ui/surface";
 import { requireAdmin } from "@/lib/auth/session";
 import { SERVICES, isServiceCode, type ServiceCode } from "@/lib/services/catalog";
-import { estimateProcessingFeeCents, proposedPriceEstimates, sumEconomics, type EconomicsLine } from "@/lib/services/economics";
+import { annualReportEconomicsLine, proposedPriceEstimates, refundTotalsByOrder, sumEconomics, type EconomicsLine } from "@/lib/services/economics";
 import { RA_BENCHMARKS } from "@/lib/services/pricing-reference";
 import { createClient } from "@/lib/supabase/server";
 
@@ -46,8 +46,11 @@ export default async function EconomicsPage() {
     db.from("orders").select("id, user_id, service_fee_cents, government_fee_cents, total_cents, status").eq("order_type", "annual_report").in("status", ["paid", "partially_refunded", "refunded"]),
     db.from("ra_subscriptions").select("id, plan, billing_status, service_status, cancel_at_period_end, current_period_end, user_id"),
     db.from("orders").select("id, user_id, order_type, service_fee_cents").in("status", ["paid", "partially_refunded", "refunded"]),
-    db.from("refunds").select("amount_cents, service_fee_cents, government_fee_cents, status").eq("status", "succeeded"),
+    db.from("refunds").select("order_id, amount_cents, service_fee_cents, government_fee_cents, status").eq("status", "succeeded"),
   ]);
+
+  // Succeeded refunds per order, so a refunded order never counts as revenue.
+  const refundsByOrder = refundTotalsByOrder(refunds ?? []);
 
   // Annual report orders predate per-order economics rows: derive them (self-filed, estimated fee).
   const lines: (EconomicsLine & { variant: string })[] = [
@@ -68,21 +71,7 @@ export default async function EconomicsPage() {
         taxCollectedCents: r.tax_collected_cents,
         variant: r.price_variant,
       })),
-    ...(arOrders ?? []).map((o) => ({
-      serviceCode: "annual_report" as const,
-      fulfillmentMethod: "internal_manual" as const,
-      serviceRevenueCents: o.service_fee_cents,
-      governmentFeesCollectedCents: o.government_fee_cents,
-      governmentFeesRemittedCents: o.government_fee_cents,
-      wholesaleCostCents: 0,
-      acquisitionCostCents: 0,
-      processingFeeCents: estimateProcessingFeeCents(o.total_cents),
-      processingFeeSource: "estimated" as const,
-      serviceRefundsCents: 0,
-      governmentRefundsCents: 0,
-      taxCollectedCents: 0,
-      variant: "standard",
-    })),
+    ...(arOrders ?? []).map((o) => ({ ...annualReportEconomicsLine(o, refundsByOrder.get(o.id)), variant: "standard" })),
   ];
   const byService = new Map<string, typeof lines>();
   for (const l of lines) {
@@ -104,7 +93,7 @@ export default async function EconomicsPage() {
   for (const o of orders) {
     const u = byUser.get(o.user_id) ?? { count: 0, revenue: 0, types: new Set<string>() };
     u.count += 1;
-    u.revenue += o.service_fee_cents;
+    u.revenue += o.service_fee_cents - (refundsByOrder.get(o.id)?.serviceCents ?? 0);
     u.types.add(o.order_type);
     byUser.set(o.user_id, u);
   }

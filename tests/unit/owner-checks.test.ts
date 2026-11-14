@@ -49,7 +49,7 @@ describe("owner checks page content", () => {
       stateName: "Washington",
       filingName: "Annual Report",
       brand: "Filewell",
-      state: { filingAgent: "Amary Coulibaly, sole proprietor", certificationText: WA_CERTIFICATION_TEXT },
+      state: { filingAgent: "{{FILING_AGENT}}", certificationText: WA_CERTIFICATION_TEXT },
     });
     expect(doc).toContain(norm(text));
   });

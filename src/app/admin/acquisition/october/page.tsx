@@ -25,7 +25,7 @@ export default async function OctoberCohortPage(props: PageProps<"/admin/acquisi
   await requireStaff();
   const sp = await props.searchParams;
   const state = (COHORT_STATES as readonly string[]).includes(firstParam(sp.state).toUpperCase()) ? firstParam(sp.state).toUpperCase() : "WA";
-  const month = /^\d{4}-\d{2}$/.test(firstParam(sp.month)) ? firstParam(sp.month) : "2026-10";
+  const month = /^\d{4}-\d{2}$/.test(firstParam(sp.month)) ? firstParam(sp.month) : defaultCohortMonth();
   const meta = EXPORT_SOURCES[state];
   const stateName = getJurisdiction(state)?.name ?? state;
   const { entries, loaded } = await cohortFor(state, month);
@@ -157,4 +157,10 @@ export default async function OctoberCohortPage(props: PageProps<"/admin/acquisi
       </Panel>
     </div>
   );
+}
+
+/** The coming month (YYYY-MM, UTC): the cohort due next is the one worth researching now. */
+function defaultCohortMonth(now: Date = new Date()): string {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }

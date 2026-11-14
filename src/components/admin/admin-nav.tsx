@@ -16,6 +16,7 @@ import {
   Plant,
   Scales,
   Storefront,
+  SignOut,
   SunHorizon,
   Tag,
   Tray,
@@ -142,11 +143,17 @@ export function AdminNav({ isAdmin = false }: { isAdmin?: boolean }) {
           </ul>
         </div>
       ))}
-      <div className="flex lg:mt-auto lg:border-t lg:border-white/10 lg:pt-4">
+      <div className="flex lg:mt-auto lg:grid lg:gap-0.5 lg:border-t lg:border-white/10 lg:pt-4">
         <Link href="/dashboard" className={cn(linkBase, "text-ink-muted hover:bg-white/[0.05] hover:text-ink-fg")}>
           <Storefront size={18} aria-hidden />
           Customer view
         </Link>
+        <form action="/auth/signout" method="post" className="flex">
+          <button type="submit" className={cn(linkBase, "text-ink-muted hover:bg-white/[0.05] hover:text-ink-fg")}>
+            <SignOut size={18} aria-hidden />
+            Sign out
+          </button>
+        </form>
       </div>
     </nav>
   );
