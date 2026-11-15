@@ -1,5 +1,5 @@
 import { GuestStartForm } from "@/app/(auth)/auth-forms";
-import { ArrowLeft, CaretDown, Info } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, CalendarPlus, CaretDown, Info } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -21,6 +21,7 @@ import { formatCents } from "@/lib/domain/money";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
 import { periodFor } from "@/lib/filings/customer";
 import { readPendingLookup } from "@/lib/lookup/pending";
+import { calendarLink } from "@/lib/calendar/deadline";
 import { mailAttributionFor, markMailEvent } from "@/lib/outreach/mail-cohort";
 import { TrackView } from "@/components/analytics/track-view";
 import { OfficialSource } from "@/components/compliance/official-source";
@@ -109,6 +110,7 @@ function DeadlineCard({
   stateFeeCents,
   today,
   label,
+  calendarHref,
 }: {
   rule: ComplianceRuleDef;
   period: FilingPeriod;
@@ -117,6 +119,8 @@ function DeadlineCard({
   stateFeeCents: number;
   today: string;
   label: ReactNode;
+  /** "Add to calendar" download for this due date. */
+  calendarHref?: string;
 }) {
   const dueLong = formatLongDate(period.dueDate);
   const open = isFilingWindowOpen(rule, period.periodYear, period.dueDate, today);
@@ -143,6 +147,16 @@ function DeadlineCard({
             <span aria-hidden className={cn("size-2 shrink-0 rounded-full", status.tone)} />
             {status.text}
           </p>
+          {calendarHref && !overdue ? (
+            <a
+              href={calendarHref}
+              download
+              className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[13px] font-semibold text-accent transition-colors hover:border-accent hover:bg-accent-soft"
+            >
+              <CalendarPlus size={16} weight="bold" aria-hidden />
+              Add to my calendar
+            </a>
+          ) : null}
         </div>
       </div>
 
@@ -539,6 +553,13 @@ export default async function FindResultPage() {
               stateFeeCents={stateFeeCents}
               today={today}
               label={reminderMode ? `Next report: ${filingLabel}` : filingLabel}
+              calendarHref={calendarLink({
+                stateCode: lookup.stateCode,
+                entityType: lookup.entityType,
+                isForeign: lookup.isForeign,
+                dueDate: period.dueDate,
+                businessName: lookup.legalName,
+              })}
             />
           ) : (
             <div className="grid gap-3 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-7">
