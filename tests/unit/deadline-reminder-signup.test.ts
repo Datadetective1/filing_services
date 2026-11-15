@@ -10,6 +10,11 @@ vi.mock("@/lib/security/request", () => ({ clientIpHash: async () => "ip" }));
 import { signUpForDeadlineReminder } from "@/app/(marketing)/reminders/signup-actions";
 import { countReminderPages } from "@/lib/acquisition/dashboard";
 import { cleanSignupPage, formationFromMonth, reminderSignupOptions } from "@/lib/reminders/signup-options";
+import { reminderRuleFor } from "@/lib/reminders/rules";
+import { STATE_DUE_RULES } from "@/lib/reminders/state-due-rules";
+import { confirmationEmail, nextReminderDueDate, reminderEmail } from "@/lib/reminders/subscriber-plan";
+import { PROVIDER_REPORT_FACTS } from "@/lib/registered-agent/provider-report-facts";
+import { rulesForState } from "@/lib/compliance/registry";
 
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({}) }));
 
@@ -40,10 +45,20 @@ describe("reminder box options by state", () => {
     expect(reminderSignupOptions("FL")!.entities.every((e) => !e.needsFormation)).toBe(true);
   });
 
-  it("shows nothing where we haven't verified the rule (we can't compute the due date)", () => {
-    expect(reminderSignupOptions("TX")).toBeNull();
-    expect(reminderSignupOptions("NY")).toBeNull();
-    expect(reminderSignupOptions("ZZ")).toBeNull();
+  it("shows nothing where we can't compute the due date", () => {
+    // Texas: a franchise tax. Oregon: due on the exact formation day. Hawaii: by calendar quarter.
+    for (const st of ["TX", "OR", "HI", "AL", "ZZ"]) expect(reminderSignupOptions(st), st).toBeNull();
+  });
+
+  it("covers states we don't file ourselves from the researched due dates, only for types the state requires", () => {
+    const ga = reminderSignupOptions("GA")!;
+    expect(ga.entities.map((e) => e.value).sort()).toEqual(["corporation", "llc"]);
+    expect(ga.entities.every((e) => !e.needsFormation)).toBe(true);
+    const ny = reminderSignupOptions("NY")!;
+    expect(ny.filingName).toBe("Biennial statement");
+    expect(ny.entities.every((e) => e.needsFormation)).toBe(true);
+    // Missouri LLCs file no annual report; corporations do.
+    expect(reminderSignupOptions("MO")!.entities.map((e) => e.value)).toEqual(["corporation"]);
   });
 
   it("narrows to one entity type on an entity page", () => {
@@ -137,5 +152,40 @@ describe("counting sign-ups by page", () => {
       { page: "/find/result", optIns: 1, confirmed: 0 },
       { page: "unknown", optIns: 1, confirmed: 0 },
     ]);
+  });
+});
+
+describe("due dates in states we don't file ourselves", () => {
+  it("each restates the researched due fact and never overrides a verified rule", () => {
+    for (const [code, r] of Object.entries(STATE_DUE_RULES)) {
+      const facts = PROVIDER_REPORT_FACTS[code];
+      expect(facts, code).toBeTruthy();
+      const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3);
+      // The basis carries the research note's own wording.
+      expect(words(r.basis).filter((w) => !words(facts.due).includes(w)).length, code).toBeLessThanOrEqual(2);
+      expect(rulesForState(code).some((x) => x.verificationStatus === "verified"), code).toBe(false);
+    }
+  });
+
+  it("computes the next due date from them", () => {
+    expect(nextReminderDueDate(reminderRuleFor("GA", "llc")!, null, "2026-11-15")).toEqual({ periodYear: 2027, dueDate: "2027-04-01" });
+    expect(nextReminderDueDate(reminderRuleFor("NJ", "llc")!, "2019-03-01", "2026-11-15")).toEqual({ periodYear: 2027, dueDate: "2027-03-31" });
+    // New York: every two years in the formation month.
+    expect(nextReminderDueDate(reminderRuleFor("NY", "llc")!, "2021-05-01", "2026-11-15")).toEqual({ periodYear: 2027, dueDate: "2027-05-31" });
+    expect(nextReminderDueDate(reminderRuleFor("WY", "llc")!, "2020-08-01", "2026-11-15")).toEqual({ periodYear: 2027, dueDate: "2027-08-01" });
+  });
+
+  it("emails name no filing office and leave out a fee we haven't verified", () => {
+    const vars = { businessName: "Peach LLC", dueDate: "2027-04-01", stateName: "Georgia", filingName: "Annual registration", agencyName: null, stateFeeCents: null, nonprofitFeeCents: null, serviceFeeCents: null };
+    const r = reminderEmail(vars, -30).body;
+    const c = confirmationEmail(vars).body;
+    expect(r).toContain("Georgia annual registration may be due by April 1, 2027");
+    expect(r).not.toMatch(/Fees:|\$|null|undefined|Pennsylvania/);
+    expect(c).not.toMatch(/null|undefined|Pennsylvania/);
+    expect(r).toContain("not affiliated with any government agency");
+    const sold = reminderEmail({ ...vars, serviceFeeCents: 9900 }, -30).body;
+    expect(sold).toContain("Filewell can prepare and file it for you: $99.00 service fee plus the state's fee.");
+    const fee = reminderEmail({ ...vars, stateFeeCents: 6000 }, -30).body;
+    expect(fee).toContain("Fees: $60.00 state fee.");
   });
 });

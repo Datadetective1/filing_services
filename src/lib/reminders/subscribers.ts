@@ -4,7 +4,12 @@ import { type Attribution, parseAttribution } from "@/lib/analytics/attribution"
 import { readAttribution } from "@/lib/analytics/attribution-server";
 import { trackServer } from "@/lib/analytics/server";
 import { publicQuote } from "@/lib/compliance/public-quote";
-import { findRule, getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
+import { getJurisdiction, isRuleSellable } from "@/lib/compliance/registry";
+import type { EntityType } from "@/lib/domain/types";
+import { providerReportFeeCents, providerReportOpenState } from "@/lib/registered-agent/provider-report";
+import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { publicServicePrices } from "@/lib/services/public-prices";
+import { reminderRuleFor } from "./rules";
 import { reminderConsentText } from "./consent";
 import { addDays, compareISODate, todayInTimeZone } from "@/lib/domain/dates";
 import { getEmailProvider } from "@/lib/email/provider";
@@ -96,27 +101,45 @@ async function recordEmail(subscriberId: string, kind: "confirmation" | "reminde
 }
 
 async function copyVars(row: SubscriberRow, dueDate: string): Promise<SubscriberCopyVars | null> {
-  const rule = findRule(row.state_code, row.entity_type as never, "annual_report", row.is_foreign);
-  if (!rule) return null;
-  // Our service is only mentioned where Filewell actually sells this filing.
-  const quote = isRuleSellable(rule) ? await publicQuote(rule, { isNonprofit: row.is_nonprofit }).catch(() => null) : null;
+  const r = reminderRuleFor(row.state_code, row.entity_type as EntityType, row.is_foreign);
+  if (!r) return null;
   const j = getJurisdiction(row.state_code);
+  const rule = r.verified;
+  if (rule) {
+    // Our service is only mentioned where Filewell actually sells this filing.
+    const quote = isRuleSellable(rule) ? await publicQuote(rule, { isNonprofit: row.is_nonprofit }).catch(() => null) : null;
+    return {
+      businessName: row.legal_name,
+      dueDate,
+      stateName: j?.name,
+      filingName: rule.filingName,
+      agencyName: j?.agency.name.split(" - ")[0],
+      stateFeeCents: rule.stateFeeCents,
+      nonprofitFeeCents: rule.nonprofitStateFeeCents ?? null,
+      feeComponents: rule.feeComponents?.map((c) => ({ label: c.label, cents: c.cents })),
+      serviceFeeCents: quote?.serviceFeeCents ?? null,
+    };
+  }
+  // A state we don't file ourselves: the verified fee if there is one, and our partner-filed
+  // service only where it can be ordered right now.
+  const type = row.entity_type === "llc" || row.entity_type === "corporation" ? row.entity_type : null;
+  const open = type && businessServicesPagesEnabled() ? providerReportOpenState(row.state_code) : null;
+  const service = open && type && open.feeCents[type] !== undefined ? (await publicServicePrices().catch(() => ({}) as Record<string, number>)).provider_annual_report : undefined;
   return {
     businessName: row.legal_name,
     dueDate,
-    stateName: j?.name,
-    filingName: rule.filingName,
-    agencyName: j?.agency.name.split(" - ")[0],
-    stateFeeCents: rule.stateFeeCents,
-    nonprofitFeeCents: rule.nonprofitStateFeeCents ?? null,
-    feeComponents: rule.feeComponents?.map((c) => ({ label: c.label, cents: c.cents })),
-    serviceFeeCents: quote?.serviceFeeCents ?? null,
+    stateName: j?.name ?? row.state_code,
+    filingName: r.filingName,
+    agencyName: null,
+    stateFeeCents: type ? providerReportFeeCents(row.state_code, type) : null,
+    nonprofitFeeCents: null,
+    serviceFeeCents: service ?? null,
   };
 }
 
 function dueFor(row: SubscriberRow, today: string) {
-  const rule = findRule(row.state_code, row.entity_type as never, "annual_report", row.is_foreign);
-  return rule && rule.verificationStatus === "verified" ? nextReminderDueDate(rule, row.formation_date, today) : null;
+  const rule = reminderRuleFor(row.state_code, row.entity_type as EntityType, row.is_foreign);
+  return rule ? nextReminderDueDate(rule, row.formation_date, today) : null;
 }
 
 export async function isReminderSuppressed(email: string): Promise<boolean> {
@@ -139,8 +162,8 @@ export async function subscribeToReminders(
 ): Promise<SubscribeResult> {
   const email = normalizeEmail(rawEmail);
   if (!email || !consent) return { status: "error" };
-  const rule = findRule(lookup.stateCode, lookup.entityType, "annual_report", lookup.isForeign);
-  if (!rule || rule.verificationStatus !== "verified") return { status: "unsupported" };
+  const rule = reminderRuleFor(lookup.stateCode, lookup.entityType, lookup.isForeign);
+  if (!rule) return { status: "unsupported" };
   const today = todayInTimeZone(TZ);
   const due = nextReminderDueDate(rule, lookup.formationDate ?? null, today);
   if (!due) return { status: "unsupported" };

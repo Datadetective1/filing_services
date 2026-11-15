@@ -52,8 +52,10 @@ export interface SubscriberCopyVars {
   /** Defaults keep the original Pennsylvania wording. */
   stateName?: string;
   filingName?: string;
-  agencyName?: string;
-  stateFeeCents: number;
+  /** Null when we don't hold the filing office's name: the emails then just say we aren't the government. */
+  agencyName?: string | null;
+  /** Null when the state's fee isn't one verified amount (nothing is said about it). */
+  stateFeeCents: number | null;
   nonprofitFeeCents: number | null;
   /** Itemized state fees (e.g. Nevada's list + license fees); omit for a single fee. */
   feeComponents?: { label: string; cents: number }[];
@@ -70,12 +72,20 @@ export interface SubscriberEmail {
 const d = (v: SubscriberCopyVars) => ({
   state: v.stateName ?? "Pennsylvania",
   filing: (v.filingName ?? "Annual Report").toLowerCase(),
-  agency: v.agencyName ?? "Pennsylvania Department of State",
+  // Older subscriptions carry no state and are Pennsylvania's.
+  agency: v.agencyName === undefined && !v.stateName ? "Pennsylvania Department of State" : (v.agencyName ?? null),
 });
 
-function feeLine(v: SubscriberCopyVars): string {
+function feeLine(v: SubscriberCopyVars): string | null {
+  if (v.stateFeeCents === null) {
+    // No verified state fee: name our price where we file it, otherwise say nothing about fees.
+    return v.serviceFeeCents !== null
+      ? `Filewell can prepare and file it for you: ${formatCents(v.serviceFeeCents)} service fee plus the state's fee.`
+      : null;
+  }
+  const stateFeeCents = v.stateFeeCents;
   const multi = (v.feeComponents?.length ?? 0) > 1;
-  const total = multi ? v.feeComponents!.reduce((n, c) => n + c.cents, 0) : v.stateFeeCents;
+  const total = multi ? v.feeComponents!.reduce((n, c) => n + c.cents, 0) : stateFeeCents;
   const nonprofit = !multi && v.nonprofitFeeCents === 0 ? " ($0.00 for not-for-profit associations)" : "";
   const gov = multi
     ? `${formatCents(total)} in state fees (${v.feeComponents!.map((c) => `${formatCents(c.cents)} ${c.label}`).join(" + ")})`
@@ -96,7 +106,7 @@ export function confirmationEmail(v: SubscriberCopyVars): SubscriberEmail {
       `Someone (hopefully you) asked Filewell to send filing reminders for ${v.businessName}.`,
       `Confirm below and we'll email you about 60, 30 and 7 days before its next ${state} ${filing} due date (${formatLongDate(v.dueDate)}). That's all we'll send: no other marketing, and every reminder has a one-click unsubscribe.`,
       "If you didn't ask for this, ignore this email and you won't hear from us.",
-      `Filewell is a private filing service. It is not the ${agency}.`,
+      agency ? `Filewell is a private filing service. It is not the ${agency}.` : "Filewell is a private filing service, not a government agency.",
     ].join("\n\n"),
     ctaLabel: "Confirm reminders",
   };
@@ -111,8 +121,12 @@ export function reminderEmail(v: SubscriberCopyVars, offsetDays: number): Subscr
       `This is the reminder you asked for. ${v.businessName}'s ${state} ${filing} may be due by ${formatLongDate(v.dueDate)}, about ${days} days from now.`,
       "If it's already filed, you can ignore this email.",
       feeLine(v),
-      `Filewell is a private filing service. It is not the ${agency} and is not affiliated with any government agency.`,
-    ].join("\n\n"),
+      agency
+        ? `Filewell is a private filing service. It is not the ${agency} and is not affiliated with any government agency.`
+        : "Filewell is a private filing service and is not affiliated with any government agency.",
+    ]
+      .filter((p): p is string => Boolean(p))
+      .join("\n\n"),
     ctaLabel: "Check this business",
   };
 }

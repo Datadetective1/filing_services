@@ -1,12 +1,11 @@
-import { getJurisdiction, rulesForState } from "@/lib/compliance/registry";
-import type { ComplianceRuleDef } from "@/lib/compliance/types";
+import { getJurisdiction } from "@/lib/compliance/registry";
 import { ENTITY_TYPE_LABELS, type EntityType } from "@/lib/domain/types";
 import { reminderConsentText } from "./consent";
+import { type ReminderRule, reminderRulesForState } from "./rules";
 
 /**
  * What the "remind me before my deadline" box on a state's pages asks for. Only states
- * whose annual report rule we verified can have reminders (we compute the due date
- * ourselves), so the box is not shown anywhere else. Pure (no I/O).
+ * where we can compute the due date ourselves (see ./rules.ts) get the box. Pure (no I/O).
  */
 
 export interface ReminderEntityOption {
@@ -27,11 +26,9 @@ export interface ReminderSignupOptions {
   consentText: string;
 }
 
-/** Rules the box can remind about: verified, domestic, and due on a date we can compute from a month. */
-export function reminderRules(stateCode: string): ComplianceRuleDef[] {
-  return rulesForState(stateCode).filter(
-    (r) => r.verificationStatus === "verified" && r.appliesTo !== "foreign" && r.dueRule.kind !== "anniversary_date",
-  );
+/** Rules the box can remind about: due on a date we can compute from a month. */
+export function reminderRules(stateCode: string): ReminderRule[] {
+  return reminderRulesForState(stateCode).filter((r) => r.dueRule.kind !== "anniversary_date");
 }
 
 export function reminderSignupOptions(stateCode: string, only?: EntityType): ReminderSignupOptions | null {
@@ -39,13 +36,11 @@ export function reminderSignupOptions(stateCode: string, only?: EntityType): Rem
   if (!j) return null;
   const rules = reminderRules(j.code).filter((r) => !only || r.entityType === only);
   if (!rules.length) return null;
-  const seen = new Set<EntityType>();
-  const entities: ReminderEntityOption[] = [];
-  for (const r of rules) {
-    if (seen.has(r.entityType)) continue;
-    seen.add(r.entityType);
-    entities.push({ value: r.entityType, label: ENTITY_TYPE_LABELS[r.entityType], needsFormation: r.dueRule.kind !== "fixed_annual" });
-  }
+  const entities: ReminderEntityOption[] = rules.map((r) => ({
+    value: r.entityType,
+    label: ENTITY_TYPE_LABELS[r.entityType],
+    needsFormation: r.dueRule.kind !== "fixed_annual",
+  }));
   // LLCs are the most common filer, so they come first (the default choice).
   entities.sort((a, b) => Number(b.value === "llc") - Number(a.value === "llc"));
   const filingName = rules[0].filingName;

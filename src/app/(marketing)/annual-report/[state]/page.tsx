@@ -14,7 +14,8 @@ import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
-import { DeadlineReminder } from "@/components/marketing/deadline-reminder";
+import { DeadlineReminder, DeadlineReminderBand } from "@/components/marketing/deadline-reminder";
+import { reminderSignupOptions } from "@/lib/reminders/signup-options";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
 import { GuideSection, GuideText } from "@/components/marketing/guide-section";
@@ -589,6 +590,8 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
 
 function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderReportOffer | null }) {
   const path = `/annual-report/${j.slug}`;
+  // Where we can compute the due date, the free reminder replaces the "tell me when it's ready" list.
+  const reminders = reminderSignupOptions(j.code) !== null;
   const crumbs = [
     { name: "Home", path: "/" },
     { name: "Annual reports", path: "/annual-report" },
@@ -605,6 +608,10 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
             <p>
               We file your {j.name} {offer.open.reportName.toLowerCase()} for you. One price, paid once, and you get the
               state&apos;s confirmation when it&apos;s done.
+            </p>
+          ) : reminders ? (
+            <p>
+              We don&apos;t file {j.name} reports yet, but we can email you before yours is due. Free, no account.
             </p>
           ) : (
             <p>
@@ -623,8 +630,8 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
             </div>
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a href="#waitlist" className={buttonClasses("primary", "lg")}>
-                Get an email when it&apos;s ready
+              <a href={reminders ? "#reminder" : "#waitlist"} className={buttonClasses("primary", "lg")}>
+                {reminders ? "Get a free reminder" : <>Get an email when it&apos;s ready</>}
               </a>
             </div>
           )
@@ -635,9 +642,11 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
         panel={offer ? <ProviderReportPanel offer={offer} /> : <UnverifiedStatePanel j={j} />}
       />
 
+      <DeadlineReminderBand stateCode={j.code} page={path} />
+
       <UnverifiedStateSections
         j={j}
-        waitlist={!offer}
+        waitlist={!offer && !reminders}
         waitlistLede={`We add a state only after checking its requirements against official sources. Leave your email and we'll let you know when ${j.name} is ready.`}
         links={[
           { href: "/annual-report", label: "All states" },
