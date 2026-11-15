@@ -5,6 +5,7 @@ import {
   type PaOpenDataRow,
   type RegistryDetail,
   type RegistryHit,
+  soqlContainsAll,
   soqlPrefix,
   soqlString,
   toDetail,
@@ -29,6 +30,8 @@ export class RegistryUnavailableError extends Error {
 }
 
 const TTL_MS = 10 * 60 * 1000;
+/** The contains-every-word search scans more of the dataset; it took 9 to 14 s in tests. */
+const FALLBACK_TIMEOUT_MS = 15_000;
 const cache = new Map<string, { at: number; value: unknown }>();
 
 function cached<T>(key: string): T | undefined {
@@ -83,7 +86,22 @@ export async function searchPaRegister(q: string): Promise<RegistryHit[]> {
       $order: "business_name",
       $limit: "15",
     });
-    if (rows.length === 0) rows = await query(PA_OPEN_DATA.searchDataset, { $select: select, $q: nq.value, $limit: "15" });
+    if (rows.length === 0) {
+      // No name starts with the query: look for names containing every word. data.pa.gov's
+      // full-text search ($q) never answered in time (over 40 s in every test on Nov 15,
+      // 2026), so it showed "isn't responding" for any name that wasn't an exact prefix.
+      // A slow or failed second query now means "no match", not an outage: the register
+      // did answer the first one.
+      const where = soqlContainsAll("upper(business_name)", nq.value);
+      if (where) {
+        try {
+          rows = await query(PA_OPEN_DATA.searchDataset, { $select: select, $where: where, $limit: "15" }, FALLBACK_TIMEOUT_MS);
+        } catch (e) {
+          if (!(e instanceof RegistryUnavailableError)) throw e;
+          return [];
+        }
+      }
+    }
   }
   const hits = rows.map(toHit).filter((h): h is RegistryHit => h !== null);
   const unique = [...new Map(hits.map((h) => [h.entityNumber, h])).values()];

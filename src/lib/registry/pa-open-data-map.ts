@@ -170,6 +170,27 @@ export function soqlPrefix(value: string): string {
   return `'${value.replace(/[%_]/g, "").replace(/'/g, "''")}%'`;
 }
 
+/**
+ * A SoQL condition matching names that contain every word of the query, in any order.
+ * Words split on spaces and punctuation, so "Joe's Pizza" looks for JOE and PIZZA and finds
+ * both "JOES PIZZA" and "JOE'S PIZZA". One-letter words and LLC/INC/CO/CORP/THE/AND are
+ * skipped, at most four words are used, and only letters and digits reach the query.
+ * Returns null when no usable word is left.
+ */
+const SKIP_WORDS = new Set(["LLC", "INC", "CO", "CORP", "THE", "AND", "LP", "LLP", "PC", "PLLC", "LTD"]);
+export function soqlContainsAll(field: string, value: string): string | null {
+  const words = value
+    .toUpperCase()
+    .split(/[^A-Z0-9]+/)
+    .filter((w) => w.length >= 2 && !SKIP_WORDS.has(w));
+  if (words.length === 0) return null;
+  return [...new Set(words)]
+    .sort((a, b) => b.length - a.length)
+    .slice(0, 4)
+    .map((w) => `${field} like '%${w}%'`)
+    .join(" AND ");
+}
+
 export function toHit(r: PaOpenDataRow): RegistryHit | null {
   if (!r.filing_number || !r.business_name) return null;
   const t = mapRegistrationType(r.typeofbusinessregistration);

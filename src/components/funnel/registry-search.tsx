@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, Buildings, MagnifyingGlass } from "@phosphor-icons/react";
-import { useActionState, useId, useState, useTransition } from "react";
+import { useActionState, useEffect, useId, useState, useTransition } from "react";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
 import type { RegistryHit } from "@/lib/registry/pa-open-data-map";
 import { registrySource } from "@/lib/registry/sources";
@@ -38,6 +38,17 @@ export function RegistrySearch({
   const [result, setResult] = useState<{ state: string; value: RegistrySearchResult } | null>(null);
   const [searching, startSearch] = useTransition();
   const [selectState, selectAction, selecting] = useActionState(select, {});
+  // A partial name falls back to a slower search on the state's side; say so instead of
+  // leaving a spinner with no explanation.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!searching) return;
+    const t = setTimeout(() => setSlow(true), 3000);
+    return () => {
+      clearTimeout(t);
+      setSlow(false);
+    };
+  }, [searching]);
 
   function run(e: React.FormEvent) {
     e.preventDefault();
@@ -113,6 +124,9 @@ export function RegistrySearch({
       ) : null}
 
       <div aria-live="polite" className="grid gap-3">
+        {searching && slow ? (
+          <p className="text-sm text-muted">Still looking. {source.name}&apos;s register takes a few more seconds when the name isn&apos;t exact.</p>
+        ) : null}
         {current?.status === "too_short" ? <p className="text-sm text-muted">Enter at least 3 letters or numbers.</p> : null}
         {current?.status === "limited" ? <p className="text-sm text-muted">Too many searches in a short time. Wait a minute, or {manual}.</p> : null}
         {current?.status === "unavailable" ? (

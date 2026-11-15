@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth/session";
 import { formatCents } from "@/lib/domain/money";
 import { getRaJurisdiction } from "@/lib/registered-agent/jurisdictions";
 import { bundleSaleCheck, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { publicServicePrices } from "@/lib/services/public-prices";
 import { isOrderableService, loadOrderPrefill, previewServiceOrder, ServiceOrderError, type OrderableService } from "@/lib/services/orders";
 import { backLinkClass } from "@/components/dashboard/section";
 import { ServiceOrderForm } from "@/components/services/service-order-form";
@@ -52,6 +53,9 @@ export default async function NewServicePage(props: PageProps<"/dashboard/servic
   const prefill = preview.sale.ok ? await loadOrderPrefill(user.id, business.id) : null;
   const href = (s: OrderableService) => `/dashboard/services/new?business=${business.id}&service=${s}`;
   const quote = preview.sale.ok ? preview.quote : null;
+  // Yearly list price on each plan choice, so the two can be compared before picking.
+  const yearly = bundleOffered ? await publicServicePrices() : {};
+  const perYear = (cents: number | undefined) => (cents === undefined ? null : `${formatCents(cents, { trimZeros: true })} a year`);
 
   return (
     <Container className="max-w-2xl py-6 sm:py-12">
@@ -91,10 +95,14 @@ export default async function NewServicePage(props: PageProps<"/dashboard/servic
             <div className="grid gap-2 sm:grid-cols-2">
               <Link href={href("registered_agent")} className={choiceClass(service === "registered_agent")} aria-current={service === "registered_agent" ? "true" : undefined}>
                 <span className="font-semibold text-fg">Registered agent</span>
+                {perYear(yearly.registered_agent) ? <span className="tnum text-sm font-medium text-fg">{perYear(yearly.registered_agent)}</span> : null}
                 <span className="text-sm text-muted">Agent service only.</span>
               </Link>
               <Link href={href("ra_annual_report_bundle")} className={choiceClass(service === "ra_annual_report_bundle")} aria-current={service === "ra_annual_report_bundle" ? "true" : undefined}>
                 <span className="font-semibold text-fg">Agent + annual report</span>
+                {perYear(yearly.ra_annual_report_bundle) ? (
+                  <span className="tnum text-sm font-medium text-fg">{perYear(yearly.ra_annual_report_bundle)} + state fee</span>
+                ) : null}
                 <span className="text-sm text-muted">We also file your yearly report. The state&apos;s report fee is charged when you approve it.</span>
               </Link>
             </div>
