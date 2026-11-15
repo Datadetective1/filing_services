@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import { track } from "@/lib/analytics/client";
 import type { AnalyticsEvent } from "@/lib/analytics/events";
 import { Field, Input } from "@/components/ui/field";
@@ -148,11 +148,14 @@ export function GuestStartForm({
   /** Record the order click like the old "Have us file it" link did. */
   track?: { event: AnalyticsEvent; stateCode?: string; entityType?: string };
 }) {
-  const [state, action] = useActionState(continueAsGuest, undefined);
-  // A full page load, so the address bar ends on the order page the step redirects to.
-  useEffect(() => {
-    if (state?.go) window.location.assign(state.go);
-  }, [state?.go]);
+  // A full page load, so the address bar ends on the order page the step redirects to. It
+  // starts as soon as the action answers: signing in refreshes this page, which can swap this
+  // form for a plain link before an effect would run, leaving the customer on the result page.
+  const [state, action] = useActionState(async (prev: AuthState, formData: FormData) => {
+    const result = await continueAsGuest(prev, formData);
+    if (result?.go) window.location.assign(result.go);
+    return result;
+  }, undefined);
   return (
     <form
       action={action}
