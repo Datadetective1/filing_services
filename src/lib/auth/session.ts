@@ -7,6 +7,8 @@ export interface SessionUser {
   id: string;
   email: string;
   emailConfirmed: boolean;
+  /** Started an order with an email only (no password yet). The email is the order contact. */
+  isGuest?: boolean;
 }
 
 export type StaffRole = "operator" | "admin";
@@ -24,6 +26,11 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
+  if (data.user.is_anonymous) {
+    // A guest's email lives on the profile until they confirm it (see continueAsGuest).
+    const { data: profile } = await supabase.from("profiles").select("email").eq("id", data.user.id).maybeSingle();
+    return { id: data.user.id, email: (profile?.email as string | undefined) ?? "", emailConfirmed: false, isGuest: true };
+  }
   return {
     id: data.user.id,
     email: data.user.email ?? "",
@@ -34,6 +41,8 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
 export async function requireUser(next?: string): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
+  // A guest always has an order email; without one there is no one to send the receipt to.
+  if (user.isGuest && !user.email) redirect(next ? `/signup?next=${encodeURIComponent(next)}` : "/signup");
   return user;
 }
 
@@ -93,4 +102,9 @@ export function safeNextPath(next: string | null | undefined, fallback = "/dashb
   // URL (another origin), so anything that does not normalize to a single leading "/" is refused.
   if (!url.pathname.startsWith("/") || url.pathname.startsWith("//")) return fallback;
   return `${url.pathname}${url.search}${url.hash}`;
+}
+
+/** Pages where a visitor is placing an order, so an email alone is enough to start. */
+export function isOrderPath(next: string): boolean {
+  return next.startsWith("/file/") || next.startsWith("/dashboard/services/") || next.startsWith("/registered-agent/");
 }

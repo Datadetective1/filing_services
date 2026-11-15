@@ -16,7 +16,8 @@ import { FunnelSteps } from "@/components/funnel/funnel-steps";
 import { AnswerSummary } from "@/components/intake/answer-summary";
 import { AuthorizeForm } from "@/components/intake/authorize-form";
 import { Container, Notice } from "@/components/ui/surface";
-import { filingSummary, loadOwnFiling } from "../../_lib/filing";
+import { directPaymentTotal, filingSummary, loadOwnFiling } from "../../_lib/filing";
+import { formatCents } from "@/lib/domain/money";
 import { authorizeAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -53,6 +54,7 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
   const all = validateAll(loaded.schema, loaded.answers);
   const incomplete = new Set(all.incompleteSections);
   const paid = status !== "draft";
+  const payNow = paid ? null : await directPaymentTotal(loaded);
 
   const titleSuggestions = Array.from(
     new Set(sections.flatMap((s) => s.fields.flatMap((f) => (f.type === "people" ? f.titleSuggestions : [])))),
@@ -187,7 +189,9 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
               <p className="max-w-[56ch] text-[15px] leading-relaxed text-muted">
                 {paid
                   ? "Sign again to confirm the updated details. We'll pick your filing back up right away."
-                  : "Nothing is filed until you sign. Next is payment, where you'll see the state fee and our fee as separate lines."}
+                  : payNow !== null
+                    ? "Nothing is filed until you sign. Signing takes you to the secure payment page, with the state fee and our fee as separate lines."
+                    : "Nothing is filed until you sign. Next is payment, where you'll see the state fee and our fee as separate lines."}
               </p>
             </div>
           </div>
@@ -197,7 +201,7 @@ export default async function FilingReviewPage({ params, searchParams }: PagePro
               defaults={defaults}
               authorizationText={text}
               titleSuggestions={titleSuggestions}
-              submitLabel={paid ? "Sign and resubmit" : "Sign and continue"}
+              submitLabel={paid ? "Sign and resubmit" : payNow !== null ? `Sign and pay ${formatCents(payNow)}` : "Sign and continue"}
               certify={stateAuth ? { stateName: summary.stateName, filingAgent, certificationText: stateAuth.auth.certificationText } : undefined}
               customerSignature={
                 stateAuth?.auth.customerSignature

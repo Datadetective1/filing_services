@@ -1,3 +1,4 @@
+import { GuestStartForm } from "@/app/(auth)/auth-forms";
 import { ArrowLeft, CaretDown, Info } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -371,7 +372,6 @@ export default async function FindResultPage() {
   const reminderMode = period !== null && period.periodYear > currentYear;
 
   const startPath = reminderMode ? "/file/start?mode=track" : "/file/start";
-  const signupHref = `/signup?next=${encodeURIComponent(startPath)}`;
   const stateFeeCents = quote?.governmentFeeCents ?? (lookup.isNonprofit && rule.nonprofitStateFeeCents === 0 ? 0 : rule.stateFeeCents);
   const filingLabel = period ? `${period.periodYear} ${rule.filingName.toLowerCase()}` : rule.filingName;
   const fees = evaluateFees(rule, {
@@ -439,15 +439,24 @@ export default async function FindResultPage() {
             <p className="text-[15px] text-muted">Our service fee is shown as its own line before you pay.</p>
           )}
           <div className="mt-5 grid gap-3">
-            <TrackedLink
-              href={signedIn ? startPath : signupHref}
-              event="filing_cta_clicked"
-              stateCode={lookup.stateCode}
-              entityType={lookup.entityType}
-              className={buttonClasses("primary", "lg", "w-full")}
-            >
-              Have us file it
-            </TrackedLink>
+            {signedIn ? (
+              <TrackedLink
+                href={startPath}
+                event="filing_cta_clicked"
+                stateCode={lookup.stateCode}
+                entityType={lookup.entityType}
+                className={buttonClasses("primary", "lg", "w-full")}
+              >
+                Have us file it
+              </TrackedLink>
+            ) : (
+              <GuestStartForm
+                next={startPath}
+                buttonLabel="Have us file it"
+                bare
+                track={{ event: "filing_cta_clicked", stateCode: lookup.stateCode, entityType: lookup.entityType }}
+              />
+            )}
             {signInLine}
           </div>
           {lookup.stateCode !== "PA" ? <GovernmentFeeList evaluation={fees} stateName={stateName} notesOnly className="mt-4" /> : null}

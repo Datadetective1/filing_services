@@ -84,3 +84,14 @@ describe("safeNextPath", () => {
     expect(safeNextPath("/file/start?mode=track")).toBe("/file/start?mode=track");
   });
 });
+
+describe("isOrderPath", () => {
+  it("treats order pages as places to start with an email", async () => {
+    const { isOrderPath } = await import("@/lib/auth/session");
+    expect(isOrderPath("/file/start")).toBe(true);
+    expect(isOrderPath("/dashboard/services/annual-report?state=CA&type=llc")).toBe(true);
+    expect(isOrderPath("/registered-agent/start?state=TX")).toBe(true);
+    expect(isOrderPath("/dashboard")).toBe(false);
+    expect(isOrderPath("/dashboard/settings")).toBe(false);
+  });
+});

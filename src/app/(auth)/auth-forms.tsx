@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { track } from "@/lib/analytics/client";
+import type { AnalyticsEvent } from "@/lib/analytics/events";
 import { Field, Input } from "@/components/ui/field";
 import { Notice } from "@/components/ui/surface";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { requestPasswordReset, sendSignInLink, signIn, signUp, updatePassword, type AuthState } from "./actions";
+import { continueAsGuest, requestPasswordReset, sendSignInLink, signIn, signUp, updatePassword, type AuthState } from "./actions";
 
 function err(state: AuthState, key: string) {
   return state?.fieldErrors?.[key];
@@ -132,11 +134,46 @@ export function EmailLinkForm({ next }: { next: string }) {
   );
 }
 
-export function OrDivider() {
+/** An order starts with an email only: no password, no inbox detour. */
+export function GuestStartForm({
+  next,
+  buttonLabel = "Continue to your order",
+  bare = false,
+  track: trackClick,
+}: {
+  next: string;
+  buttonLabel?: string;
+  /** Inside another card (the price receipt): no box of its own. */
+  bare?: boolean;
+  /** Record the order click like the old "Have us file it" link did. */
+  track?: { event: AnalyticsEvent; stateCode?: string; entityType?: string };
+}) {
+  const [state, action] = useActionState(continueAsGuest, undefined);
   return (
-    <div className="flex items-center gap-3 text-sm text-muted" role="separator" aria-label="or">
+    <form
+      action={action}
+      onSubmit={trackClick ? () => track(trackClick.event, { stateCode: trackClick.stateCode, entityType: trackClick.entityType }) : undefined}
+      className={bare ? "grid gap-3" : "grid gap-3 rounded-[var(--radius-surface)] border border-accent/30 bg-accent-soft/50 p-4 sm:p-5"}
+      noValidate
+    >
+      <input type="hidden" name="next" value={next} />
+      {state?.error ? <Notice tone="danger" role="alert">{state.error}</Notice> : null}
+      <Field label="Your email" htmlFor="guest-email" hint="For your receipt and updates on your filing." error={err(state, "email")}>
+        <Input id="guest-email" name="email" type="email" autoComplete="email" required {...aria(state, "email")} />
+      </Field>
+      <SubmitButton size="lg" pendingLabel="One moment…" className="w-full">
+        {buttonLabel}
+      </SubmitButton>
+      <p className="text-[13px] leading-5 text-muted">No password needed. We&apos;ll email you a link so you can come back to your order any time.</p>
+    </form>
+  );
+}
+
+export function OrDivider({ label = "or" }: { label?: string }) {
+  return (
+    <div className="flex items-center gap-3 text-sm text-muted" role="separator" aria-label={label}>
       <span className="h-px flex-1 bg-border" aria-hidden />
-      or
+      {label}
       <span className="h-px flex-1 bg-border" aria-hidden />
     </div>
   );

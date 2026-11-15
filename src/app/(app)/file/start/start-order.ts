@@ -1,0 +1,116 @@
+import "server-only";
+import { saveBusinessAttribution } from "@/lib/analytics/attribution-server";
+import type { SessionUser } from "@/lib/auth/session";
+import { findRule, getJurisdiction } from "@/lib/compliance/registry";
+import { todayInTimeZone } from "@/lib/domain/dates";
+import { addBusiness, periodFor, startFiling } from "@/lib/filings/customer";
+import { findExistingBusiness } from "@/lib/filings/find-existing";
+import { clearPendingLookup, readPendingLookup } from "@/lib/lookup/pending";
+import { getPaRecord } from "@/lib/registry/pa-open-data";
+import { saveStateRecord } from "@/lib/registry/state-records";
+import { mailAttributionFor, markMailEvent } from "@/lib/outreach/mail-cohort";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { clearLookupHomeJurisdiction, readLookupHomeJurisdiction } from "@/app/(marketing)/find/lookup-extras";
+import { filingErrorCode, friendlyError } from "../_lib/errors";
+
+export type StartOutcome = { to: string } | { error: string; href?: string; hrefLabel?: string };
+
+async function clearLookup() {
+  await clearPendingLookup();
+  await clearLookupHomeJurisdiction();
+}
+
+/**
+ * Turn the visitor's pending lookup into a business on their account, then either
+ * start the filing draft or (reminders only / nothing due yet) go to the business.
+ * Returns where to send the customer next; never redirects itself.
+ */
+export async function startOrderFromLookup(user: SessionUser, mode: "file" | "track"): Promise<StartOutcome> {
+  const lookup = await readPendingLookup();
+  if (!lookup) return { to: "/find?missing=1" };
+
+  const rule = findRule(lookup.stateCode, lookup.entityType, "annual_report", lookup.isForeign);
+  if (!rule) {
+    return { error: "We don't support filings for this state and entity type yet.", href: "/find", hrefLabel: "Check another business" };
+  }
+
+  let businessId: string;
+  let track = mode === "track";
+  try {
+    const existing = await findExistingBusiness(user, lookup);
+    if (existing) {
+      businessId = existing;
+    } else {
+      const created = await addBusiness(user, {
+        legalName: lookup.legalName,
+        stateCode: lookup.stateCode,
+        entityType: lookup.entityType,
+        isForeign: lookup.isForeign,
+        isNonprofit: lookup.isNonprofit,
+        formationDate: lookup.formationDate ?? null,
+        entityNumber: lookup.entityNumber ?? null,
+        homeJurisdiction: lookup.isForeign ? await readLookupHomeJurisdiction() : null,
+        alreadyFiledThisYear: lookup.alreadyFiledThisYear,
+      });
+      businessId = created.businessId;
+    }
+    await saveBusinessAttribution(businessId, user.id);
+    if (lookup.registryEntityNumber && lookup.stateCode === "PA") {
+      await linkRegistryRecord(user, businessId, lookup.registryEntityNumber);
+      const attribution = await mailAttributionFor(lookup.registryEntityNumber);
+      if (attribution) await markMailEvent(attribution, "started", businessId).catch(() => undefined);
+    }
+    // A report for a future year can't be filed yet: add the business and remind instead.
+    const period = periodFor(rule, { formationDate: lookup.formationDate ?? null, alreadyFiledThisYear: lookup.alreadyFiledThisYear });
+    const currentYear = Number(todayInTimeZone(getJurisdiction(rule.stateCode)?.timezone ?? "America/New_York").slice(0, 4));
+    if (period.phase === "first_report_later" || period.periodYear > currentYear) track = true;
+  } catch (e) {
+    return { error: friendlyError(e), href: "/find", hrefLabel: "Review your details" };
+  }
+
+  if (track) {
+    await clearLookup();
+    return { to: `/dashboard/businesses/${businessId}?added=1` };
+  }
+
+  let filingId: string;
+  try {
+    filingId = await startFiling(user, businessId);
+  } catch (e) {
+    const code = filingErrorCode(e);
+    if (code === "not_allowed" || code === "not_found") {
+      await clearLookup();
+      return {
+        error: `${friendlyError(e)} Your business is saved to your account.`,
+        href: `/dashboard/businesses/${businessId}`,
+        hrefLabel: "Go to the business",
+      };
+    }
+    return { error: friendlyError(e) };
+  }
+
+  await clearLookup();
+  return { to: `/file/${filingId}/details` };
+}
+
+/**
+ * Re-read the register record the visitor picked and keep it server-side for prefill.
+ * Best effort: if the register is unavailable now, the customer simply types the details.
+ */
+async function linkRegistryRecord(user: SessionUser, businessId: string, entityNumber: string) {
+  try {
+    const detail = await getPaRecord(entityNumber);
+    if (!detail) return;
+    const stored = await saveStateRecord("PA", detail);
+    await createAdminClient()
+      .from("businesses")
+      .update({
+        state_entity_number: detail.entityNumber,
+        registry_record: { source: "state_registry", state_entity_record_id: stored.id, source_url: stored.sourceUrl, retrieved_at: stored.retrievedAt },
+      })
+      .eq("id", businessId)
+      .eq("owner_user_id", user.id);
+  } catch {
+    // Prefill is a convenience; never block starting the filing on it.
+  }
+}

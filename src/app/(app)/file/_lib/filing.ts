@@ -5,7 +5,8 @@ import { stableStringify } from "@/lib/compliance/hash";
 import { getJurisdiction } from "@/lib/compliance/registry";
 import type { IntakeSchema } from "@/lib/compliance/types";
 import { daysBetween, todayInTimeZone } from "@/lib/domain/dates";
-import { getCustomerFiling, stateAuthorizationFor } from "@/lib/filings/customer";
+import { filingEntityNumber, getCustomerFiling, governmentFeeDetails, quoteForFiling, stateAuthorizationFor } from "@/lib/filings/customer";
+import { getPaymentReadiness, requiresApprovedPrice } from "@/lib/payments";
 import { signedCurrentCertification } from "@/lib/filings/packet";
 import { type IntakeAnswers, validateAll } from "@/lib/intake/validate";
 import { createClient } from "@/lib/supabase/server";
@@ -76,4 +77,27 @@ export async function authorizationStatus(
   const stateAuth = filing?.business ? stateAuthorizationFor(filing.stateCode, filing.business) : null;
   if (stateAuth && !signedCurrentCertification(stateAuth.auth.certificationText, latest)) return "reworded";
   return "current";
+}
+
+/**
+ * The total to show on "Sign and pay" when signing can go straight to the secure payment
+ * page. Null when the payment page has something the customer must see first: a price
+ * that can't be charged yet, payments not open, or a state fee that depends on the
+ * state's own record. Then signing continues to the payment page as before.
+ */
+export async function directPaymentTotal(loaded: LoadedFiling): Promise<number | null> {
+  if (loaded.filing.status !== "draft") return null;
+  const business = { ...loaded.business, state_entity_number: filingEntityNumber(loaded.business, loaded.answers) };
+  const payments = getPaymentReadiness();
+  if (!payments.ready) return null;
+  try {
+    const quote = await quoteForFiling(loaded.filing, business);
+    if (!quote) return null;
+    if (!quote.servicePriceApproved && requiresApprovedPrice(payments.mode)) return null;
+    const fees = await governmentFeeDetails(loaded.filing, business);
+    if (fees.evaluation.possible.length > 0) return null;
+    return quote.totalCents;
+  } catch {
+    return null;
+  }
 }

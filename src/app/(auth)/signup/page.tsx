@@ -1,16 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { safeNextPath } from "@/lib/auth/session";
+import { isOrderPath, safeNextPath } from "@/lib/auth/session";
 import { textLinkClasses } from "@/components/ui/button";
-import { EmailLinkForm, OrDivider, SignUpForm } from "../auth-forms";
+import { EmailLinkForm, GuestStartForm, OrDivider, SignUpForm } from "../auth-forms";
 import { authLede, authTitle } from "../styles";
 
-export const metadata: Metadata = { title: "Create an account" };
+export async function generateMetadata({ searchParams }: PageProps<"/signup">): Promise<Metadata> {
+  const sp = await searchParams;
+  const next = safeNextPath(typeof sp.next === "string" ? sp.next : null, "/dashboard");
+  return { title: isOrderPath(next) && sp.guest !== "off" ? "Start your order" : "Create an account" };
+}
 
 export default async function SignUpPage({ searchParams }: PageProps<"/signup">) {
   const sp = await searchParams;
   const next = safeNextPath(typeof sp.next === "string" ? sp.next : null, "/dashboard");
   const forAgent = next.startsWith("/dashboard/services/");
+  const guest = isOrderPath(next) && sp.guest !== "off";
+  if (guest) {
+    return (
+      <div className="grid gap-7">
+        <div className="grid gap-2">
+          <h1 className={authTitle}>Start your order</h1>
+          <p className={authLede}>Just your email to begin. You&apos;ll check every detail before you pay.</p>
+        </div>
+        <GuestStartForm next={next} />
+        <p className="text-[15px] text-muted">
+          Already have an account?{" "}
+          <Link className={textLinkClasses} href={`/login?next=${encodeURIComponent(next)}`}>
+            Sign in
+          </Link>
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="grid gap-7">
       <div className="grid gap-2">
