@@ -9,7 +9,6 @@ import { RegistrySearch } from "@/components/funnel/registry-search";
 import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import { SearchTileMap } from "@/components/visual/search-tile-map";
-import { site } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
 import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
 import {
@@ -76,9 +75,6 @@ export default async function BusinessSearchStatePage({ params }: PageProps<"/bu
             <div className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-7">
               <RegistrySearch search={searchRegistry} select={selectRegistryEntity} stateCode={s.code} compact />
             </div>
-            <p className="max-w-[62ch] text-sm leading-6 text-subtle">
-              Source: {s.source.source}. {s.source.caveat} {site.name} is a private service, not a state agency.
-            </p>
           </div>
           <div className="relative grid gap-4 max-lg:order-first max-lg:mx-auto max-lg:w-full max-lg:max-w-md">
             <SearchTileMap links={links} active={s.code} />

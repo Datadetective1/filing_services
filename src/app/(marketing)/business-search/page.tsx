@@ -6,7 +6,6 @@ import { JsonLd } from "@/components/marketing/json-ld";
 import { RegistrySearch } from "@/components/funnel/registry-search";
 import { Container } from "@/components/ui/surface";
 import { SearchTileMap } from "@/components/visual/search-tile-map";
-import { site } from "@/config/site";
 import { businessSearchStates } from "@/lib/seo/business-search";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -57,9 +56,6 @@ export default function BusinessSearchHubPage() {
                 stateCode=""
               />
             </div>
-            <p className="max-w-[62ch] text-sm leading-6 text-subtle">
-              Each search reads the state&apos;s own published register. {site.name} is a private service, not a state agency.
-            </p>
           </div>
           <div className="grid gap-6 max-lg:order-first max-lg:mx-auto max-lg:w-full max-lg:max-w-md">
             <SearchTileMap links={links} />

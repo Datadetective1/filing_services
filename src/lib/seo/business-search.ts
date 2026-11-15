@@ -63,7 +63,7 @@ export function businessSearchFaq(s: BusinessSearchState): FaqItem[] {
   return [
     {
       q: `Is this the official ${s.name} business search?`,
-      a: `No. Filewell is a private service, not a state agency. We search the ${registerName(s.source)} as the state publishes it for public use.`,
+      a: `No. Filewell is a private service, not a state agency. We search the ${registerName(s.source)}, as published by the state for public use.`,
     },
     {
       q: "Does the search show whether a business is in good standing?",
