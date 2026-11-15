@@ -45,6 +45,7 @@ export function SiteFooter() {
             <p className="text-sm font-semibold text-fg">{site.name}</p>
             <Link className={linkClass} href="/find">Find my business</Link>
             <Link className={linkClass} href="/annual-report">Annual report filing</Link>
+            <Link className={linkClass} href="/annual-report/due-dates">Annual report due dates</Link>
             {businessServices ? (
               <>
                 <Link className={linkClass} href="/registered-agent">Registered agent</Link>
