@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { track } from "@/lib/analytics/client";
 import type { AnalyticsEvent } from "@/lib/analytics/events";
 import { Field, Input } from "@/components/ui/field";
@@ -149,6 +149,10 @@ export function GuestStartForm({
   track?: { event: AnalyticsEvent; stateCode?: string; entityType?: string };
 }) {
   const [state, action] = useActionState(continueAsGuest, undefined);
+  // A full page load, so the address bar ends on the order page the step redirects to.
+  useEffect(() => {
+    if (state?.go) window.location.assign(state.go);
+  }, [state?.go]);
   return (
     <form
       action={action}

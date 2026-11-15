@@ -41,9 +41,10 @@ export function ProviderReportLookupResult({
           <span className="text-muted"> all in, including the {formatCents(stateFeeCents, { trimZeros: true })} state fee. Nothing renews.</span>
         </p>
         {signedIn ? (
-          <Link href={START} prefetch={false} className={buttonClasses("primary", "lg", "w-full")}>
+          // A plain link: START is a route that redirects, so the browser loads it itself.
+          <a href={START} className={buttonClasses("primary", "lg", "w-full")}>
             Continue
-          </Link>
+          </a>
         ) : (
           <>
             <GuestStartForm next={START} buttonLabel="Continue" bare track={{ event: "filing_cta_clicked", stateCode, entityType }} />

@@ -65,9 +65,10 @@ export function RaLookupResult({
               : ""}
             You&apos;ll see the full total before you pay, and you can turn off renewal any time.
           </p>
-          <Link href={signedIn ? next : `/signup?next=${encodeURIComponent(next)}`} prefetch={false} className={buttonClasses("primary", "lg", "w-full")}>
+          {/* A plain link: the order start is a route that redirects, so the browser loads it itself. */}
+          <a href={signedIn ? next : `/signup?next=${encodeURIComponent(next)}`} className={buttonClasses("primary", "lg", "w-full")}>
             Continue
-          </Link>
+          </a>
           {!signedIn ? (
             <p className="text-center text-sm text-muted">
               Have an account?{" "}
