@@ -57,7 +57,7 @@ export default function BusinessSearchHubPage() {
               />
             </div>
           </div>
-          <div className="grid gap-6 max-lg:order-first max-lg:mx-auto max-lg:w-full max-lg:max-w-md">
+          <div className="grid gap-6 max-lg:mx-auto max-lg:w-full max-lg:max-w-md">
             <SearchTileMap links={links} />
           </div>
         </Container>

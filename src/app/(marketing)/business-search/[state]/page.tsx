@@ -76,7 +76,7 @@ export default async function BusinessSearchStatePage({ params }: PageProps<"/bu
               <RegistrySearch search={searchRegistry} select={selectRegistryEntity} stateCode={s.code} compact />
             </div>
           </div>
-          <div className="relative grid gap-4 max-lg:order-first max-lg:mx-auto max-lg:w-full max-lg:max-w-md">
+          <div className="relative grid gap-4 max-lg:mx-auto max-lg:w-full max-lg:max-w-md">
             <SearchTileMap links={links} active={s.code} />
           </div>
         </Container>
