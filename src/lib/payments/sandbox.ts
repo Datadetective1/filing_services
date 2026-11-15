@@ -1,6 +1,5 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { absoluteUrl } from "@/config/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signPayload, verifySignature } from "./signature";
 import {
@@ -41,7 +40,7 @@ export class SandboxPaymentProvider implements PaymentProvider {
       .eq("payment_id", input.paymentId)
       .eq("status", "open")
       .maybeSingle();
-    if (existing) return { sessionId: existing.id, url: absoluteUrl(`/sandbox/checkout/${existing.id}`) };
+    if (existing) return { sessionId: existing.id, url: `/sandbox/checkout/${existing.id}` };
 
     const sessionId = `sbx_cs_${randomBytes(16).toString("hex")}`;
     const { error } = await db.from("sandbox_checkout_sessions").insert({
@@ -56,7 +55,7 @@ export class SandboxPaymentProvider implements PaymentProvider {
       cancel_url: input.cancelUrl,
     });
     if (error) throw new Error(`sandbox session create failed: ${error.message}`);
-    return { sessionId, url: absoluteUrl(`/sandbox/checkout/${sessionId}`) };
+    return { sessionId, url: `/sandbox/checkout/${sessionId}` };
   }
 
   async retrieveSession(sessionId: string): Promise<SessionStatus | null> {

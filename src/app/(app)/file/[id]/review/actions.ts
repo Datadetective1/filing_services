@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { site } from "@/config/site";
 import { requireUser } from "@/lib/auth/session";
-import { authorizeFiling, stateAuthorizationFor } from "@/lib/filings/customer";
+import { authorizeFiling, startCheckout, stateAuthorizationFor } from "@/lib/filings/customer";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { principalSignerProblem } from "@/lib/filings/customer-signature";
 import { registeredAgentConsentRequired } from "@/lib/filings/packet";
 import { validateAll } from "@/lib/intake/validate";
 import type { AuthorizeFormState } from "@/components/intake/types";
 import { FILING_ID_RE, friendlyError } from "../../_lib/errors";
-import { loadOwnFiling } from "../../_lib/filing";
+import { directPaymentTotal, loadOwnFiling } from "../../_lib/filing";
 
 const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
 
@@ -95,5 +96,22 @@ export async function authorizeAction(filingId: string, _prev: AuthorizeFormStat
     return { errors: {}, formError: friendlyError(e), values, nonce };
   }
 
-  redirect(wasDraft ? `/file/${filingId}/checkout` : `/dashboard/filings/${filingId}`);
+  if (!wasDraft) redirect(`/dashboard/filings/${filingId}`);
+  // Signing is the last step: go straight to the secure payment page when nothing on the
+  // payment page needs a look first. Any problem falls back to the payment page.
+  if (values.agentConsentMode !== "agent_to_sign" && (await directPaymentTotal(loaded)) !== null) {
+    const allowed =
+      (await rateLimit(`checkout:user:${user.id}`, 10, 600, { failClosed: true })) &&
+      (await rateLimit(`checkout:filing:${filingId}`, 6, 600, { failClosed: true }));
+    if (allowed) {
+      let url: string | null = null;
+      try {
+        ({ url } = await startCheckout(user, filingId));
+      } catch {
+        url = null;
+      }
+      if (url) redirect(url);
+    }
+  }
+  redirect(`/file/${filingId}/checkout`);
 }

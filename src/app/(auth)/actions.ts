@@ -144,7 +144,7 @@ export async function continueAsGuest(_: AuthState, formData: FormData): Promise
   const supabase = await createClient();
 
   const { data: current } = await supabase.auth.getUser();
-  if (current.user && !current.user.is_anonymous) redirect(next);
+  if (current.user && !current.user.is_anonymous) redirect(orderStep(next));
 
   const db = createAdminClient();
   // An existing customer gets a sign-in link instead, so their orders stay in one account and
@@ -190,5 +190,10 @@ export async function continueAsGuest(_: AuthState, formData: FormData): Promise
   }
   const { error: profileError } = await db.from("profiles").update({ email: parsed.data.email }).eq("id", userId);
   if (profileError) return { error: "We couldn't save your email. Please try again." };
-  redirect(next);
+  redirect(orderStep(next));
+}
+
+/** An annual report order skips the separate confirm page: the email is the only stop. */
+function orderStep(next: string): string {
+  return next === "/file/start" ? "/file/start/go" : next;
 }
