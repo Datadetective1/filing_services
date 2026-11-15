@@ -10,7 +10,7 @@ import { clientIpHash } from "@/lib/security/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-export type AuthState = { error?: string; fieldErrors?: Record<string, string>; message?: string } | undefined;
+export type AuthState = { error?: string; fieldErrors?: Record<string, string>; message?: string; go?: string } | undefined;
 
 const email = z.string().trim().toLowerCase().pipe(z.email("Enter a valid email address")).pipe(z.string().max(254));
 const password = z
@@ -144,7 +144,7 @@ export async function continueAsGuest(_: AuthState, formData: FormData): Promise
   const supabase = await createClient();
 
   const { data: current } = await supabase.auth.getUser();
-  if (current.user && !current.user.is_anonymous) redirect(orderStep(next));
+  if (current.user && !current.user.is_anonymous) return continueTo(next);
 
   const db = createAdminClient();
   // An existing customer gets a sign-in link instead, so their orders stay in one account and
@@ -190,7 +190,21 @@ export async function continueAsGuest(_: AuthState, formData: FormData): Promise
   }
   const { error: profileError } = await db.from("profiles").update({ email: parsed.data.email }).eq("id", userId);
   if (profileError) return { error: "We couldn't save your email. Please try again." };
-  redirect(orderStep(next));
+  return continueTo(next);
+}
+
+/**
+ * The order steps that are route handlers, not pages. A server action's redirect is a
+ * soft navigation, which leaves the route's own URL in the address bar after it redirects,
+ * so the next form on the page posts to the route and fails. The browser loads these
+ * itself instead (GuestStartForm follows `go`), so the address bar ends on the real page.
+ */
+const ROUTE_STEPS = ["/file/start/go", "/dashboard/services/start", "/dashboard/services/annual-report/start"];
+
+function continueTo(next: string): AuthState {
+  const step = orderStep(next);
+  if (ROUTE_STEPS.includes(step.split("?")[0])) return { go: step };
+  redirect(step);
 }
 
 /** An annual report order skips the separate confirm page: the email is the only stop. */
