@@ -118,7 +118,7 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
             </Notice>
           ) : sp.prefill === "missing" ? (
             <Notice tone="info" role="status" title="Everything else is saved">
-              Add the details below that Pennsylvania&apos;s record doesn&apos;t include, then review and sign.
+              Add the details below that {summary.stateName}&apos;s record doesn&apos;t include, then review and sign.
             </Notice>
           ) : null}
 
@@ -130,6 +130,8 @@ export default async function FilingDetailsPage({ params, searchParams }: PagePr
               missing={missing}
               acceptAction={acceptPrefillAction.bind(null, id)}
               editHref={`/file/${id}/details?step=${encodeURIComponent(sections[0].key)}`}
+              stateCode={loaded.filing.state_code}
+              stateName={summary.stateName}
             />
           ) : (
           <section

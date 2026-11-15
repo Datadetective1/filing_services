@@ -6,11 +6,10 @@ import { FieldValue } from "./answer-summary";
 
 type Source = "state_registry" | "previous_filing" | "business_profile";
 
-const SOURCE_TEXT: Record<Source, string> = {
-  state_registry: "Pennsylvania's business register",
-  previous_filing: "your last filing with us",
-  business_profile: "your saved business details",
-};
+function sourceText(source: Source, stateName: string): string {
+  if (source === "state_registry") return `${stateName}'s business register`;
+  return source === "previous_filing" ? "your last filing with us" : "your saved business details";
+}
 
 function formatDay(iso: string): string {
   return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric" }).format(new Date(iso));
@@ -27,7 +26,11 @@ export function PrefillPanel({
   missing,
   acceptAction,
   editHref,
+  stateCode,
+  stateName,
 }: {
+  stateCode: string;
+  stateName: string;
   sections: IntakeSection[];
   answers: Record<string, unknown>;
   prefill: { field_key: string; source: Source; retrieved_at: string }[];
@@ -39,16 +42,17 @@ export function PrefillPanel({
   const fields: IntakeField[] = sections.flatMap((s) => s.fields).filter((f) => bySource.has(f.key));
   const fromRegistry = prefill.find((p) => p.source === "state_registry");
   const sources = [...new Set(prefill.map((p) => p.source))];
+  const isPa = stateCode === "PA";
 
   return (
     <section aria-labelledby="prefill-title" className="rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-9">
       <div className="grid gap-2 border-b border-border pb-6">
         <h2 id="prefill-title" className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-fg sm:text-[28px]">
-          {fromRegistry ? "Pennsylvania record found" : "We filled in what we already know"}
+          {fromRegistry ? `${stateName} record found` : "We filled in what we already know"}
         </h2>
         <p className="max-w-[62ch] text-[15px] leading-relaxed text-muted">
-          From {sources.map((s) => SOURCE_TEXT[s]).join(" and ")}
-          {fromRegistry ? ` (retrieved ${formatDay(fromRegistry.retrieved_at)}; the register is updated monthly)` : ""}. Check each
+          From {sources.map((s) => sourceText(s, stateName)).join(" and ")}
+          {fromRegistry ? ` (retrieved ${formatDay(fromRegistry.retrieved_at)}${isPa ? "; the register is updated monthly" : ""})` : ""}. Check each
           value: this is what we will file, and you confirm it&apos;s current before you sign.
         </p>
       </div>
@@ -62,7 +66,7 @@ export function PrefillPanel({
             </dt>
             <dd className="text-[15px] leading-6 text-fg">
               <FieldValue field={f} value={answers[f.key]} />
-              <span className="block text-xs text-subtle">From {SOURCE_TEXT[bySource.get(f.key)!.source]}</span>
+              <span className="block text-xs text-subtle">From {sourceText(bySource.get(f.key)!.source, stateName)}</span>
             </dd>
           </div>
         ))}
@@ -77,7 +81,7 @@ export function PrefillPanel({
         ))}
       </dl>
 
-      {fromRegistry ? (
+      {fromRegistry && isPa ? (
         <p className="mt-6 max-w-[62ch] text-sm leading-6 text-muted">
           The register shows one street address, which is usually the registered office. If you use a commercial registered
           office provider (CROP), choose that option and enter its name instead.

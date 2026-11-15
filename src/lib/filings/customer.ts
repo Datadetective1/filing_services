@@ -346,6 +346,7 @@ export async function startFiling(user: SessionUser, businessId: string): Promis
       isForeign: business.is_foreign,
       homeJurisdiction: business.home_jurisdiction ?? null,
       stateName: getJurisdiction(business.state_code)?.name ?? "",
+      stateCode: business.state_code,
     },
     profile: {
       principalOffice: principal ? { ...pickAddress(principal) } : null,

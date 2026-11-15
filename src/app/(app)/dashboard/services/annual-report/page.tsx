@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth/session";
 import { formatCents } from "@/lib/domain/money";
 import { providerReportOpenStates } from "@/lib/registered-agent/provider-report";
 import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { loadStateRecord } from "@/lib/registry/state-records";
+import { addressLine } from "@/lib/registry/state-open-data-map";
 import { loadOrderPrefill, loadOwnedBusiness } from "@/lib/services/orders";
 import { previewProviderReport } from "@/lib/services/provider-report";
 import { backLinkClass } from "@/components/dashboard/section";
@@ -46,6 +48,11 @@ export default async function ProviderReportPage(props: PageProps<"/dashboard/se
   const owned = businessParam ? await loadOwnedBusiness(user.id, businessParam) : null;
   const business = owned && chosen && owned.state_code === chosen.code && owned.entity_type === typeParam ? owned : null;
   const prefill = quote ? await loadOrderPrefill(user.id, business?.id ?? "") : null;
+  // Picked from the state's register: the record saved on the server fills in the report.
+  const record = quote && business ? await loadStateRecord(business.state_code, business.state_entity_number) : null;
+  const reg = record?.detail ?? null;
+  const principal = reg?.principalAddress && !/\bP\.?\s*O\.?\s*Box\b/i.test(reg.principalAddress.line1) ? addressLine(reg.principalAddress) : "";
+  const people = reg ? [...reg.governors, ...reg.officers].map((p) => [p.name, p.title, p.address].filter(Boolean).join(", ")).join("\n") : "";
 
   return (
     <Container className="max-w-2xl py-6 sm:py-12">
@@ -130,7 +137,11 @@ export default async function ProviderReportPage(props: PageProps<"/dashboard/se
               prefill={{
                 businessId: business?.id ?? null,
                 businessName: business?.legal_name ?? "",
-                entityNumber: "",
+                entityNumber: business?.state_entity_number ?? "",
+                formedHere: business ? !business.is_foreign : true,
+                principalAddress: principal,
+                people,
+                fromRegister: Boolean(reg && (principal || people)),
                 contactName: prefill.contactName,
                 contactPhone: prefill.contactPhone,
               }}

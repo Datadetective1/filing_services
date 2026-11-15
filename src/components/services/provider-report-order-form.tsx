@@ -24,7 +24,18 @@ export function ProviderReportOrderForm({
   stateName: string;
   entityType: "llc" | "corporation";
   totalLabel: string;
-  prefill: { businessId: string | null; businessName: string; entityNumber: string; contactName: string; contactPhone: string };
+  prefill: {
+    businessId: string | null;
+    businessName: string;
+    entityNumber: string;
+    contactName: string;
+    contactPhone: string;
+    formedHere?: boolean;
+    principalAddress?: string;
+    people?: string;
+    /** Some details came from the state's register: say so once, above them. */
+    fromRegister?: boolean;
+  };
 }) {
   const [state, onSubmit, pending] = useSubmitAction(action);
   const isLlc = entityType === "llc";
@@ -35,6 +46,9 @@ export function ProviderReportOrderForm({
       {prefill.businessId ? <input type="hidden" name="businessId" value={prefill.businessId} /> : null}
       <fieldset className="grid gap-4">
         <legend className="mb-1 text-[16px] font-semibold text-fg">Your business</legend>
+        {prefill.fromRegister ? (
+          <p className="text-sm text-muted">Filled in from {stateName}&apos;s business register. Check each detail before you pay.</p>
+        ) : null}
         <Field label="Legal name" htmlFor="businessName" hint="As the state lists it.">
           <Input id="businessName" name="businessName" required maxLength={200} defaultValue={prefill.businessName} />
         </Field>
@@ -43,7 +57,7 @@ export function ProviderReportOrderForm({
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={`Formed in ${stateName}?`} htmlFor="formedHere">
-            <Select id="formedHere" name="formedHere" defaultValue="yes">
+            <Select id="formedHere" name="formedHere" defaultValue={prefill.formedHere === false ? "no" : "yes"}>
               <option value="yes">Yes</option>
               <option value="no">No, it&apos;s registered from another state</option>
             </Select>
@@ -56,14 +70,14 @@ export function ProviderReportOrderForm({
           </Field>
         </div>
         <Field label="Principal street address" htmlFor="principalAddress" hint="Not a PO box.">
-          <Input id="principalAddress" name="principalAddress" required maxLength={500} autoComplete="street-address" />
+          <Input id="principalAddress" name="principalAddress" required maxLength={500} autoComplete="street-address" defaultValue={prefill.principalAddress ?? ""} />
         </Field>
         <Field
           label={isLlc ? "Members or managers" : "Officers and directors"}
           htmlFor="people"
           hint={isLlc ? "One per line: name and address." : "One per line: name, title and address."}
         >
-          <Textarea id="people" name="people" required rows={3} maxLength={2000} />
+          <Textarea id="people" name="people" required rows={3} maxLength={2000} defaultValue={prefill.people ?? ""} />
         </Field>
         <Field label="Anything changed since the last report?" htmlFor="changes" optional>
           <Textarea id="changes" name="changes" rows={2} maxLength={2000} />

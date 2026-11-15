@@ -55,6 +55,7 @@ export interface OwnedBusiness {
   is_nonprofit: boolean;
   lifecycle: "existing" | "forming";
   formation_date: string | null;
+  state_entity_number: string | null;
 }
 
 /** A formed business already has an agent on the state record, so ordering for it is a switch. */
@@ -66,7 +67,7 @@ export async function loadOwnedBusiness(userId: string, businessId: string): Pro
   if (!/^[0-9a-f-]{36}$/i.test(businessId)) return null;
   const { data } = await createAdminClient()
     .from("businesses")
-    .select("id, legal_name, state_code, entity_type, is_foreign, is_nonprofit, owner_user_id, archived_at, lifecycle, formation_date")
+    .select("id, legal_name, state_code, entity_type, is_foreign, is_nonprofit, owner_user_id, archived_at, lifecycle, formation_date, state_entity_number")
     .eq("id", businessId)
     .maybeSingle();
   if (!data || data.owner_user_id !== userId || data.archived_at) return null;
@@ -79,6 +80,7 @@ export async function loadOwnedBusiness(userId: string, businessId: string): Pro
     is_nonprofit: Boolean(data.is_nonprofit),
     lifecycle: data.lifecycle === "forming" ? "forming" : "existing",
     formation_date: (data.formation_date as string | null) ?? null,
+    state_entity_number: (data.state_entity_number as string | null) ?? null,
   };
 }
 

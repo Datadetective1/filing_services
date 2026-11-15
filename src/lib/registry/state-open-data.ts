@@ -2,7 +2,7 @@ import "server-only";
 import { getPaRecord, RegistryUnavailableError, searchPaRegister } from "./pa-open-data";
 import type { RegistryDetail, RegistryHit } from "./pa-open-data-map";
 import { soqlPrefix, soqlString } from "./pa-open-data-map";
-import { parseStateQuery, type Row, type StateDataset, stateDataset, toStateDetail, uniqueHits } from "./state-open-data-map";
+import { connecticutPrincipals, CT_PRINCIPALS, parseStateQuery, type Row, type StateDataset, stateDataset, toStateDetail, uniqueHits } from "./state-open-data-map";
 
 /**
  * Live search of each state's official open business dataset (Socrata). Same rules as the
@@ -29,7 +29,7 @@ function remember<T>(key: string, value: T): T {
   return value;
 }
 
-async function query(ds: StateDataset, params: Record<string, string>): Promise<Row[]> {
+async function query(ds: Pick<StateDataset, "code" | "host" | "dataset">, params: Record<string, string>): Promise<Row[]> {
   const url = new URL(`${ds.host}/resource/${ds.dataset}.json`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const headers: Record<string, string> = { Accept: "application/json", "User-Agent": "Filewell (support@getfilewell.com)" };
@@ -77,8 +77,25 @@ async function recordFromDataset(ds: StateDataset, entityNumber: string): Promis
   const key = `${ds.code}:detail:${nq.value}`;
   const hit = cached<RegistryDetail | null>(key);
   if (hit !== undefined) return hit;
-  const rows = await query(ds, { $select: ds.select.join(", "), $where: and(`${ds.numberField} = ${soqlString(nq.value)}`, ds.where), $limit: "20" });
-  return remember(key, toStateDetail(ds, rows));
+  const select = [...ds.select, ...(ds.detailSelect ?? [])].join(", ");
+  const rows = await query(ds, { $select: select, $where: and(`${ds.numberField} = ${soqlString(nq.value)}`, ds.where), $limit: "20" });
+  const detail = toStateDetail(ds, rows);
+  if (detail && ds.code === "CT") {
+    // Principals are a second, optional read: if it fails, the record still prefills the rest.
+    const id = rows.find((r) => r.id)?.id;
+    if (id) {
+      try {
+        const people = await query(
+          { code: "CT", host: CT_PRINCIPALS.host, dataset: CT_PRINCIPALS.dataset },
+          { $select: CT_PRINCIPALS.select.join(", "), $where: `business_id = ${soqlString(id)}`, $limit: "40" },
+        );
+        Object.assign(detail, connecticutPrincipals(people, detail.entityType));
+      } catch (e) {
+        if (!(e instanceof RegistryUnavailableError)) throw e;
+      }
+    }
+  }
+  return remember(key, detail);
 }
 
 /** Up to 15 businesses on the state's register by name prefix (then full text) or number. */
