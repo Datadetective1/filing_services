@@ -9,7 +9,7 @@ import { Container } from "@/components/ui/surface";
 import { site } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
 import { businessServicesIndexable } from "@/lib/registered-agent/sales";
-import { checkedLabel, comparePath, COMPETITORS, competitorBySlugPath, type CompetitorFacts } from "@/lib/seo/compare";
+import { checkedLabel, comparePath, COMPETITORS, competitorBySlugPath, fiveYearCents, type CompetitorFacts } from "@/lib/seo/compare";
 import { filewellFacts } from "@/lib/seo/compare-filewell";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -93,6 +93,11 @@ export default async function ComparePage({ params }: PageProps<"/compare/[slug]
   const rows: { label: string; ours: string; theirs: string }[] = [
     { label: "Registered agent, first year", ours, theirs: c.raFirstYear },
     { label: "Registered agent, each renewal", ours: `${ours}, same as the first year`, theirs: c.raRenewal },
+    {
+      label: "Registered agent, five years",
+      ours: money(f.raCents * 5),
+      theirs: `${money(fiveYearCents(c))}${c.raTwoYearNote ? ` ${c.raTwoYearNote}` : ""}, at the renewal price listed today`,
+    },
     { label: "Switching from another agent", ours: "State fee only, our filing included", theirs: c.switching },
     { label: "Annual report filing", ours: f.report, theirs: c.report },
   ];
