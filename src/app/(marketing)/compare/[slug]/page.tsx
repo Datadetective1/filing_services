@@ -184,7 +184,7 @@ export default async function ComparePage({ params }: PageProps<"/compare/[slug]
                 `One price, ${ours} a year, that doesn't jump at renewal.`,
                 "Find your business on the state's register and we fill in the order for you.",
                 "Legal documents and state notices scanned to your dashboard and your inbox.",
-                `Annual reports from ${money(f.reportFromCents)} plus the state fee, in ${f.reportStates} states.`,
+                `Annual reports from ${money(f.reportFromCents)} plus the state fee, in ${f.reportStates} ${f.reportStates === 1 ? "state" : "states"}.`,
               ].map((t) => (
                 <li key={t} className="flex gap-3 text-[15px] leading-6 text-fg">
                   <Check size={18} weight="bold" aria-hidden className="mt-1 shrink-0 text-accent" />
