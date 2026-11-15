@@ -9,6 +9,7 @@ import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { RegistrySearch } from "@/components/funnel/registry-search";
 import { hasRegistrySearch } from "@/lib/registry/sources";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
+import { DeadlineReminder } from "@/components/marketing/deadline-reminder";
 import { FaqList } from "@/components/marketing/faq";
 import { GuideSection, GuideText } from "@/components/marketing/guide-section";
 import { JsonLd } from "@/components/marketing/json-ld";
@@ -22,6 +23,7 @@ import { verifiedText } from "@/lib/compliance/view";
 import { daysBetween, formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
 import { dueDateForYear } from "@/lib/domain/deadlines";
 import { articleJsonLd, breadcrumbJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
+import { reminderSignupOptions } from "@/lib/reminders/signup-options";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { GuideBlock } from "@/lib/seo/pa-guides";
 import { guideSet } from "@/lib/seo/state-guides";
@@ -159,6 +161,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
   const sellable = Boolean(rule && isRuleSellable(rule));
   const quote = rule && sellable ? await publicQuote(rule) : null;
   const lookupOn = stateLookupEnabled(stateCode);
+  const hasReminderBox = reminderSignupOptions(stateCode) !== null;
   // Pennsylvania pages put the free reminder search right under the answer, so it isn't
   // pushed below the article on a phone.
   const searchFirst = isPa && !g.embedSearch;
@@ -242,7 +245,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
 
             <GuideSection id="options" title="Your options">
               <GuideText>
-                {isPa || lookupOn ? (
+                {(isPa || lookupOn) && !hasReminderBox ? (
                   <p>
                     <strong className="text-fg">Get free reminders.</strong> Find your business and we&apos;ll email you before its
                     next due date. Nothing to buy.
@@ -265,6 +268,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
                   <PriceBreakdown quote={quote} stateName={stateName} totalLabel="Total if we file it" />
                 </div>
               ) : null}
+              <DeadlineReminder stateCode={stateCode} page={path} className="max-w-md" />
             </GuideSection>
 
             <GuideSection id="faq" title="Questions">

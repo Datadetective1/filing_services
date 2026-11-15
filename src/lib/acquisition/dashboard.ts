@@ -35,6 +35,8 @@ export interface AcquisitionSummary {
   paid: { total: number; bySource: Record<string, number>; zeroPaidMedia: number; serviceRevenueCents: number; stripeFeeCents: number };
   sources: string[];
   reminders: { optIns: number; confirmed: number; unsubscribed: number; sent: number; clicks: number; startsFromReminder: number; paidFromReminder: number; activeSubscribers: number };
+  /** Reminder sign-ups by the page they were made on, most sign-ups first. */
+  reminderPages: ReminderPageRow[];
   byState: StateRow[];
   truncated: boolean;
 }
@@ -57,6 +59,26 @@ export interface StateRow {
   checkouts: number;
   paid: number;
   revenueCents: number;
+}
+
+export interface ReminderPageRow {
+  page: string;
+  optIns: number;
+  confirmed: number;
+}
+
+/** Count reminder opt-ins and confirmations by the page recorded with each event. */
+export function countReminderPages(rows: Pick<EventRow, "event_name" | "properties">[]): ReminderPageRow[] {
+  const byPage = new Map<string, ReminderPageRow>();
+  for (const r of rows) {
+    if (r.event_name !== "reminder_opt_in" && r.event_name !== "reminder_confirmed") continue;
+    const page = typeof r.properties?.page === "string" && r.properties.page ? (r.properties.page as string) : "unknown";
+    const row = byPage.get(page) ?? { page, optIns: 0, confirmed: 0 };
+    if (r.event_name === "reminder_opt_in") row.optIns++;
+    else row.confirmed++;
+    byPage.set(page, row);
+  }
+  return [...byPage.values()].sort((a, b) => b.optIns - a.optIns || b.confirmed - a.confirmed || a.page.localeCompare(b.page));
 }
 
 const sourceOf = (p: Record<string, unknown> | null | undefined, key: "lt_source" | "ft_source" = "lt_source") =>
@@ -170,5 +192,5 @@ export async function acquisitionSummary(sinceIso: string, model: "lt_source" | 
   for (const k of Object.keys(paid.bySource)) sourceTotals.set(k, (sourceTotals.get(k) ?? 0) + 1000);
   const sources = [...sourceTotals.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
 
-  return { since: sinceIso, steps, paid, sources, reminders, byState: [...byState.values()], truncated };
+  return { since: sinceIso, steps, paid, sources, reminders, reminderPages: countReminderPages(rows), byState: [...byState.values()], truncated };
 }

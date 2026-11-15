@@ -1,6 +1,6 @@
 import "server-only";
 import { absoluteUrl, site } from "@/config/site";
-import { parseAttribution } from "@/lib/analytics/attribution";
+import { type Attribution, parseAttribution } from "@/lib/analytics/attribution";
 import { readAttribution } from "@/lib/analytics/attribution-server";
 import { trackServer } from "@/lib/analytics/server";
 import { publicQuote } from "@/lib/compliance/public-quote";
@@ -49,6 +49,19 @@ export interface SubscriberRow {
   consent_at: string;
   confirmation_sent_at: string | null;
   attribution: unknown;
+}
+
+const parseStored = (raw: unknown) => parseAttribution(raw ? JSON.stringify(raw) : null);
+
+function withSignupPage(attribution: Attribution | null, page: string | null): Record<string, unknown> | null {
+  if (!attribution && !page) return null;
+  return { ...(attribution ?? {}), ...(page ? { signup_page: page } : {}) };
+}
+
+/** The page a subscription was made on, if it was recorded. */
+export function signupPageOf(raw: unknown): string | null {
+  const p = raw && typeof raw === "object" ? (raw as Record<string, unknown>).signup_page : null;
+  return typeof p === "string" ? p : null;
 }
 
 export function normalizeEmail(raw: string): string | null {
@@ -118,7 +131,12 @@ export async function isReminderSuppressed(email: string): Promise<boolean> {
 export type SubscribeResult = { status: "sent" | "already_confirmed" | "throttled" | "unsupported" | "error" };
 
 /** Record a pending subscription for the visitor's looked-up business and email a confirmation link. */
-export async function subscribeToReminders(rawEmail: string, lookup: PendingLookup, consent: boolean): Promise<SubscribeResult> {
+export async function subscribeToReminders(
+  rawEmail: string,
+  lookup: PendingLookup,
+  consent: boolean,
+  opts: { page?: string | null } = {},
+): Promise<SubscribeResult> {
   const email = normalizeEmail(rawEmail);
   if (!email || !consent) return { status: "error" };
   const rule = findRule(lookup.stateCode, lookup.entityType, "annual_report", lookup.isForeign);
@@ -148,7 +166,9 @@ export async function subscribeToReminders(rawEmail: string, lookup: PendingLook
     status: "pending" as const,
     consent_text: reminderConsentText(getJurisdiction(lookup.stateCode)?.name ?? lookup.stateCode, rule.filingName),
     consent_at: new Date().toISOString(),
-    attribution: attribution ?? row?.attribution ?? null,
+    // The page the sign-up came from rides along with the attribution, so the confirmation
+    // can be counted by page too (no personal data).
+    attribution: withSignupPage(attribution ?? parseStored(row?.attribution), opts.page ?? signupPageOf(row?.attribution)),
   };
   const saved = row
     ? await db().from("reminder_subscribers").update(fields).eq("id", row.id).select("*").single()
@@ -177,7 +197,13 @@ export async function subscribeToReminders(rawEmail: string, lookup: PendingLook
   } catch {
     return { status: "error" };
   }
-  await trackServer("reminder_opt_in", { stateCode: sub.state_code, entityType: sub.entity_type, attribution, properties: { resubscribe: suppressed } });
+  await trackServer("reminder_opt_in", {
+    stateCode: sub.state_code,
+    entityType: sub.entity_type,
+    attribution,
+    path: opts.page ?? null,
+    properties: { resubscribe: suppressed, page: opts.page ?? "unknown" },
+  });
   return { status: "sent" };
 }
 
@@ -192,10 +218,13 @@ export async function confirmSubscription(token: string | null | undefined): Pro
   await db().from("reminder_suppressions").delete().eq("email", row.email).eq("reason", "unsubscribe");
   await db().from("reminder_subscribers").update({ status: "confirmed", confirmed_at: new Date().toISOString(), unsubscribed_at: null }).eq("id", row.id);
   await planSubscriber({ ...row, status: "confirmed" }, todayInTimeZone(TZ));
+  const page = signupPageOf(row.attribution);
   await trackServer("reminder_confirmed", {
     stateCode: row.state_code,
     entityType: row.entity_type,
     attribution: parseAttribution(row.attribution ? JSON.stringify(row.attribution) : null),
+    path: page,
+    properties: { page: page ?? "unknown" },
   });
   return "confirmed";
 }
