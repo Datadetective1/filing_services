@@ -53,6 +53,7 @@ export function SiteFooter() {
             ) : null}
             <Link className={linkClass} href="/states">Filing requirements by state</Link>
             <Link className={linkClass} href="/pricing">Pricing</Link>
+            <Link className={linkClass} href="/business-search">Business search</Link>
             <Link className={linkClass} href="/help">Help</Link>
           </nav>
           <nav aria-label="Annual reports by state" className="grid content-start gap-3">

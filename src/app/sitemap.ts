@@ -8,6 +8,7 @@ import { businessServicesIndexable } from "@/lib/registered-agent/sales";
 import { pickableStates } from "@/lib/services/state-services";
 import { LEGAL_LAST_UPDATED, LEGAL_PAGES } from "@/lib/seo/legal";
 import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
+import { businessSearchPageStates } from "@/lib/seo/business-search";
 
 /**
  * Only indexable pages. Unverified state pages are noindex and deliberately left out,
@@ -25,6 +26,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: absoluteUrl("/states"), lastModified: rulesUpdated, changeFrequency: "monthly", priority: 0.6 },
     { url: absoluteUrl("/pricing"), changeFrequency: "monthly", priority: 0.7 },
     { url: absoluteUrl("/help"), changeFrequency: "monthly", priority: 0.4 },
+    { url: absoluteUrl("/business-search"), changeFrequency: "monthly", priority: 0.8 },
+    ...businessSearchPageStates().map((s) => ({ url: absoluteUrl(s.path), changeFrequency: "monthly" as const, priority: 0.8 })),
   ];
 
   for (const j of verifiedStates) {
