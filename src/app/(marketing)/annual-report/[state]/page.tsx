@@ -14,7 +14,7 @@ import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
-import { DeadlineReminder } from "@/components/marketing/deadline-reminder";
+import { DeadlineReminder, DeadlineReminderBand } from "@/components/marketing/deadline-reminder";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
 import { GuideSection, GuideText } from "@/components/marketing/guide-section";
@@ -634,6 +634,8 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
         focusWide="30% 40%"
         panel={offer ? <ProviderReportPanel offer={offer} /> : <UnverifiedStatePanel j={j} />}
       />
+
+      <DeadlineReminderBand stateCode={j.code} page={path} />
 
       <UnverifiedStateSections
         j={j}
