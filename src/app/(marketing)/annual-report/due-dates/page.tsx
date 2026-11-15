@@ -75,7 +75,7 @@ function YearStrip({ rows }: { rows: DueDateRow[] }) {
             {b.codes.map((c) => (
               <a
                 key={c}
-                href={`#${c.toLowerCase()}`}
+                href={`#state-${c.toLowerCase()}`}
                 aria-label={`${c}, due in ${MONTHS[b.month - 1]}`}
                 className="grid place-items-center rounded-[6px] bg-accent py-1 font-display text-[11px] font-bold leading-none text-accent-fg shadow-[0_10px_18px_-10px_rgb(31_90_67/0.9)] transition-transform duration-200 [transform:translateZ(10px)] hover:bg-accent-hover hover:[transform:translateZ(22px)] sm:text-[12px]"
               >
@@ -130,7 +130,7 @@ export default async function DueDatesPage() {
               {anniversary.map((r) => (
                 <a
                   key={r.code}
-                  href={`#${r.code.toLowerCase()}`}
+                  href={`#state-${r.code.toLowerCase()}`}
                   className="rounded-[6px] border border-white/15 px-1.5 py-0.5 font-display text-[12px] font-bold text-ink-fg transition-colors hover:border-highlight/70"
                 >
                   {r.code}
@@ -164,7 +164,7 @@ export default async function DueDatesPage() {
               return (
                 <li
                   key={r.code}
-                  id={r.code.toLowerCase()}
+                  id={`state-${r.code.toLowerCase()}`}
                   className="grid scroll-mt-24 gap-2 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5 lg:grid-cols-[1.1fr_1.6fr_1fr_1fr] lg:items-center lg:gap-4"
                 >
                   <span className="grid">
