@@ -30,7 +30,7 @@ export function DeadlineReminder({
 export function DeadlineReminderBand({ stateCode, page }: { stateCode: string; page: string }) {
   if (!reminderSignupOptions(stateCode)) return null;
   return (
-    <section aria-label="Free deadline reminder" className="pb-10 pt-2 sm:pb-14">
+    <section id="reminder" aria-label="Free deadline reminder" className="scroll-mt-24 pb-10 pt-2 sm:pb-14">
       <Container>
         <DeadlineReminder stateCode={stateCode} page={page} className="max-w-xl" />
       </Container>
