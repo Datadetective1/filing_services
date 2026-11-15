@@ -84,7 +84,7 @@ export function dueDateRows(): DueDateRow[] {
         code: j.code,
         name: j.name,
         slug: j.slug,
-        reportName: rules[0].filingName,
+        reportName: cap(rules[0].filingName.toLowerCase()),
         when,
         months: groups.flatMap((g) => (g.month ? [g.month] : [])),
         anniversary: groups.some((g) => g.month === null),

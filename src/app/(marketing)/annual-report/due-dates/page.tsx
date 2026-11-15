@@ -73,12 +73,14 @@ function YearStrip({ rows }: { rows: DueDateRow[] }) {
               {MONTHS[b.month - 1]}
             </span>
             {b.codes.map((c) => (
-              <span
+              <a
                 key={c}
-                className="grid place-items-center rounded-[6px] bg-accent py-1 font-display text-[11px] font-bold leading-none text-accent-fg shadow-[0_10px_18px_-10px_rgb(31_90_67/0.9)] [transform:translateZ(10px)] sm:text-[12px]"
+                href={`#${c.toLowerCase()}`}
+                aria-label={`${c}, due in ${MONTHS[b.month - 1]}`}
+                className="grid place-items-center rounded-[6px] bg-accent py-1 font-display text-[11px] font-bold leading-none text-accent-fg shadow-[0_10px_18px_-10px_rgb(31_90_67/0.9)] transition-transform duration-200 [transform:translateZ(10px)] hover:bg-accent-hover hover:[transform:translateZ(22px)] sm:text-[12px]"
               >
                 {c}
-              </span>
+              </a>
             ))}
           </li>
         ))}
@@ -112,7 +114,7 @@ export default async function DueDatesPage() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_30rem_at_85%_0%,rgb(242_178_58/0.14),transparent_60%),radial-gradient(50rem_30rem_at_0%_100%,rgb(31_90_67/0.55),transparent_60%)]"
         />
         <Container className="relative grid gap-8 pb-14 pt-8 sm:pt-12 lg:pb-20">
-          <div className="grid max-w-3xl gap-4 [&_a]:text-ink-fg">
+          <div className="grid max-w-3xl gap-4 [&_a]:text-ink-fg [&_[aria-current]]:text-highlight">
             <Breadcrumbs items={CRUMBS} />
             <h1 id="due-title" className="text-[36px] font-semibold leading-[1.04] tracking-[-0.03em] sm:text-[52px]">
               Annual report <span className="text-highlight">due dates</span>, by state
@@ -126,9 +128,13 @@ export default async function DueDatesPage() {
             <p className="flex flex-wrap items-center gap-1.5 text-[14px] text-ink-muted">
               <span className="mr-1">Due on your formation anniversary:</span>
               {anniversary.map((r) => (
-                <span key={r.code} className="rounded-[6px] border border-white/15 px-1.5 py-0.5 font-display text-[12px] font-bold text-ink-fg">
+                <a
+                  key={r.code}
+                  href={`#${r.code.toLowerCase()}`}
+                  className="rounded-[6px] border border-white/15 px-1.5 py-0.5 font-display text-[12px] font-bold text-ink-fg transition-colors hover:border-highlight/70"
+                >
                   {r.code}
-                </span>
+                </a>
               ))}
             </p>
           ) : null}
@@ -158,7 +164,8 @@ export default async function DueDatesPage() {
               return (
                 <li
                   key={r.code}
-                  className="grid gap-2 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5 lg:grid-cols-[1.1fr_1.6fr_1fr_1fr] lg:items-center lg:gap-4"
+                  id={r.code.toLowerCase()}
+                  className="grid scroll-mt-24 gap-2 rounded-[var(--radius-surface)] border border-border bg-surface p-4 shadow-card sm:p-5 lg:grid-cols-[1.1fr_1.6fr_1fr_1fr] lg:items-center lg:gap-4"
                 >
                   <span className="grid">
                     <span className="text-[17px] font-semibold text-fg">{r.name}</span>
