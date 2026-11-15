@@ -14,6 +14,7 @@ import { TrackView } from "@/components/analytics/track-view";
 import { PriceBreakdown } from "@/components/compliance/price-breakdown";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
+import { DeadlineReminder } from "@/components/marketing/deadline-reminder";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
 import { GuideSection, GuideText } from "@/components/marketing/guide-section";
@@ -325,6 +326,8 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 </span>
               </p>
             ) : null}
+
+            <DeadlineReminder stateCode={j.code} page={path} className="max-w-xl" />
           </GuideSection>
 
           {/* Who must file */}

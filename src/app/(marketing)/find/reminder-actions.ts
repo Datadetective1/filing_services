@@ -46,7 +46,7 @@ export async function optInToReminders(_: ReminderOptInState, formData: FormData
     return { ok: false, error: "Too many attempts. Please wait a few minutes and try again." };
   }
 
-  const r = await subscribeToReminders(parsed.data.email, lookup, true).catch(() => ({ status: "error" as const }));
+  const r = await subscribeToReminders(parsed.data.email, lookup, true, { page: "/find/result" }).catch(() => ({ status: "error" as const }));
   switch (r.status) {
     case "sent":
     case "throttled":

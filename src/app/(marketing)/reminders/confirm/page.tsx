@@ -29,7 +29,7 @@ export default async function ConfirmRemindersPage(props: PageProps<"/reminders/
                 We&apos;ll email you about 60, 30 and 7 days before the next due date. Every email has a one-click unsubscribe.
               </p>
               <Link href="/find" className={`${textLinkClasses} mt-5 inline-block`}>
-                Look up another business
+                Look up a business
               </Link>
             </>
           ) : done === "0" || !t ? (
@@ -47,7 +47,7 @@ export default async function ConfirmRemindersPage(props: PageProps<"/reminders/
             <form action={confirmReminders} className="grid gap-4">
               <h1 className="text-2xl font-semibold text-fg">Confirm your filing reminders</h1>
               <p className="text-muted">
-                You&apos;ll get up to three reminders a year for this business&apos;s Pennsylvania annual report, and nothing else.
+                You&apos;ll get up to three reminders a year for this business&apos;s annual report, and nothing else.
               </p>
               <input type="hidden" name="t" value={t} />
               <button type="submit" className={buttonClasses("primary", "md", "justify-self-start")}>

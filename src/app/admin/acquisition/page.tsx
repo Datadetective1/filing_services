@@ -232,6 +232,41 @@ export default async function AcquisitionPage(props: PageProps<"/admin/acquisiti
         </TableScroll>
       </Panel>
 
+      <Panel
+        title="Reminder sign-ups by page"
+        description="Where each free reminder sign-up was made, in the range above. Unknown means it came in before pages were recorded."
+        bodyClassName="p-0"
+      >
+        <TableScroll>
+          <Table>
+            <THead>
+              <tr>
+                <TH>Page</TH>
+                <TH className="text-right">Sign-ups</TH>
+                <TH className="text-right">Confirmed</TH>
+              </tr>
+            </THead>
+            <tbody>
+              {summary.reminderPages.length ? (
+                summary.reminderPages.map((r) => (
+                  <TR key={r.page}>
+                    <TD className="font-medium">{r.page}</TD>
+                    <TD className="tnum text-right font-semibold">{r.optIns}</TD>
+                    <TD className="tnum text-right">{r.confirmed}</TD>
+                  </TR>
+                ))
+              ) : (
+                <TR>
+                  <TD colSpan={3} className="text-muted">
+                    No reminder sign-ups in this range yet.
+                  </TD>
+                </TR>
+              )}
+            </tbody>
+          </Table>
+        </TableScroll>
+      </Panel>
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Panel title="Free reminders">
           <KeyValues

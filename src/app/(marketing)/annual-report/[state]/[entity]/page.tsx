@@ -8,6 +8,7 @@ import { TrackView } from "@/components/analytics/track-view";
 import { RequirementCard } from "@/components/compliance/requirement-card";
 import { Photo } from "@/components/media/photo";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
+import { DeadlineReminder } from "@/components/marketing/deadline-reminder";
 import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { DisclaimerNote } from "@/components/marketing/disclaimer";
 import { FaqList } from "@/components/marketing/faq";
@@ -221,6 +222,7 @@ export default async function EntityAnnualReportPage({ params }: PageProps<"/ann
                 </span>
               </p>
             ) : null}
+            <DeadlineReminder stateCode={j.code} entityType={rule.entityType} page={path} className="mt-3" />
           </div>
 
           <Photo
