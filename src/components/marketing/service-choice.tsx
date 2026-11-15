@@ -23,7 +23,7 @@ export function ServiceChoice({
         href={href}
         className={`group grid h-full content-start gap-1.5 rounded-[var(--radius-surface)] border bg-surface p-4 shadow-card transition-[border-color,box-shadow] hover:border-accent/40 sm:p-5 ${featured ? "border-accent ring-1 ring-accent/30" : "border-border"}`}
       >
-        {featured ? <span className="text-xs font-bold uppercase tracking-wider text-accent">Best value</span> : null}
+        {featured ? <span className="text-xs font-bold uppercase tracking-wider text-accent">All in one</span> : null}
         <span className="text-[17px] font-semibold text-fg">{title}</span>
         <span className="text-[15px] font-medium text-fg">{price}</span>
         <span className="text-sm leading-6 text-muted">{body}</span>

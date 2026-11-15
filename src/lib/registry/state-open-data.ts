@@ -11,6 +11,7 @@ import { connecticutPrincipals, CT_PRINCIPALS, parseStateQuery, type Row, type S
  */
 
 const TTL_MS = 10 * 60 * 1000;
+const FALLBACK_TIMEOUT_MS = 15_000;
 const cache = new Map<string, { at: number; value: unknown }>();
 
 function cached<T>(key: string): T | undefined {
@@ -29,7 +30,7 @@ function remember<T>(key: string, value: T): T {
   return value;
 }
 
-async function query(ds: Pick<StateDataset, "code" | "host" | "dataset">, params: Record<string, string>): Promise<Row[]> {
+async function query(ds: Pick<StateDataset, "code" | "host" | "dataset">, params: Record<string, string>, timeoutMs = 8000): Promise<Row[]> {
   const url = new URL(`${ds.host}/resource/${ds.dataset}.json`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const headers: Record<string, string> = { Accept: "application/json", "User-Agent": "Filewell (support@getfilewell.com)" };
@@ -37,7 +38,7 @@ async function query(ds: Pick<StateDataset, "code" | "host" | "dataset">, params
   if (token) headers["X-App-Token"] = token;
   let res: Response;
   try {
-    res = await fetch(url, { headers, signal: AbortSignal.timeout(8000), cache: "no-store" });
+    res = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
   } catch {
     throw new RegistryUnavailableError(`The ${ds.code} business register didn't respond.`);
   }
@@ -66,7 +67,17 @@ async function searchDataset(ds: StateDataset, q: string): Promise<RegistryHit[]
   } else {
     const field = ds.upperCaseNames ? ds.nameField : `upper(${ds.nameField})`;
     rows = await query(ds, { $select, $where: and(`${field} like ${soqlPrefix(nq.value)}`, ds.where), $order: ds.nameField, $limit });
-    if (rows.length === 0) rows = await query(ds, { $select, $q: nq.value, ...(ds.where ? { $where: ds.where } : {}), $limit });
+    if (rows.length === 0) {
+      // Full-text fallback. It can be slow (11 to 14 s on Colorado and Connecticut in tests
+      // on Nov 15, 2026). The register already answered the prefix query, so a slow or failed
+      // fallback means "no match" (with a hint to try the number), not "isn't responding".
+      try {
+        rows = await query(ds, { $select, $q: nq.value, ...(ds.where ? { $where: ds.where } : {}), $limit }, FALLBACK_TIMEOUT_MS);
+      } catch (e) {
+        if (!(e instanceof RegistryUnavailableError)) throw e;
+        return [];
+      }
+    }
   }
   return remember(key, uniqueHits(ds, rows));
 }

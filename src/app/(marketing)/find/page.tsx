@@ -114,7 +114,7 @@ export default async function FindPage({ searchParams }: PageProps<"/find">) {
             {forAgent ? (
               <p className="text-sm text-muted">
                 Here for the annual report instead?{" "}
-                <Link href="/annual-report/start" prefetch={false} className={textLinkClasses}>
+                <Link href={defaults.stateCode ? `/annual-report/start?state=${defaults.stateCode}` : "/annual-report/start"} prefetch={false} className={textLinkClasses}>
                   Check your deadline
                 </Link>
               </p>

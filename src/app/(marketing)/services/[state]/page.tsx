@@ -195,7 +195,7 @@ function ServiceCard({ offer }: { offer: StateServiceOffer }) {
       >
         {featured ? (
           <span className="absolute right-5 top-5 rounded-full bg-highlight px-3 py-1 text-xs font-bold uppercase tracking-wider text-highlight-fg">
-            Best value
+            All in one
           </span>
         ) : null}
         <div className="flex items-center gap-3">

@@ -95,7 +95,7 @@ export function PlanCards({ offers, className = "" }: { offers: PlanOffers; clas
           >
             {p.featured ? (
               <span className="absolute -top-3 left-6 rounded-full bg-highlight px-3 py-1 text-xs font-bold uppercase tracking-wider text-highlight-fg">
-                Best value
+                All in one
               </span>
             ) : null}
             <h3 className="text-[17px] font-semibold">{p.title}</h3>
