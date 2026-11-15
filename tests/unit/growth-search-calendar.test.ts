@@ -69,3 +69,24 @@ describe("add to calendar", () => {
     expect(folded.split("\r\n ").join("")).toBe("X".repeat(160));
   });
 });
+
+describe("comparison pages", async () => {
+  const { COMPETITORS, comparePath, competitorBySlugPath } = await import("@/lib/seo/compare");
+  it("has one page per competitor and resolves its slug", () => {
+    expect(COMPETITORS.map((c) => comparePath(c))).toEqual([
+      "/compare/filewell-vs-legalzoom",
+      "/compare/filewell-vs-zenbusiness",
+      "/compare/filewell-vs-northwest",
+    ]);
+    expect(competitorBySlugPath("filewell-vs-zenbusiness")?.name).toBe("ZenBusiness");
+    expect(competitorBySlugPath("zenbusiness")).toBeNull();
+  });
+  it("keeps the copy plain: no links, no dashes, says where each competitor does more", () => {
+    for (const c of COMPETITORS) {
+      const text = JSON.stringify(c);
+      expect(text).not.toMatch(/https?:\/\/|--|—/);
+      expect(c.theyInclude.length).toBeGreaterThan(0);
+      expect(c.sources.length).toBeGreaterThan(0);
+    }
+  });
+});

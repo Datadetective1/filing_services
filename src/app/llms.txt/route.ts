@@ -33,7 +33,7 @@ export async function GET() {
     "## Services and prices",
     "",
     ...(reportFrom !== null
-      ? [`- [Annual report filing](${absoluteUrl("/annual-report")}): ${money(reportFrom)} plus the state fee, in ${places.length} states. Orders are prefilled from the state's public register where available.`]
+      ? [`- [Annual report filing](${absoluteUrl("/annual-report")}): from ${money(reportFrom)} plus the state fee, in ${places.length} states. Orders are prefilled from the state's public register where available.`]
       : [`- [Annual report filing](${absoluteUrl("/annual-report")}): deadlines, state fees and filing for each supported state.`]),
     ...(services && ra !== undefined
       ? [`- [Registered agent](${absoluteUrl("/registered-agent")}): ${money(ra)} a year, the same at renewal, in ${pickableStates().length} states and territories. Switching from another agent: state fee only.`]

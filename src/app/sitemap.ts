@@ -9,6 +9,7 @@ import { pickableStates } from "@/lib/services/state-services";
 import { LEGAL_LAST_UPDATED, LEGAL_PAGES } from "@/lib/seo/legal";
 import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
 import { businessSearchPageStates } from "@/lib/seo/business-search";
+import { comparePath, COMPETITORS } from "@/lib/seo/compare";
 
 /**
  * Only indexable pages. Unverified state pages are noindex and deliberately left out,
@@ -60,6 +61,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
       { url: absoluteUrl("/registered-agent"), changeFrequency: "monthly", priority: 0.9 },
       { url: absoluteUrl("/business-formation"), changeFrequency: "monthly", priority: 0.4 },
       { url: absoluteUrl("/services"), changeFrequency: "monthly", priority: 0.8 },
+      { url: absoluteUrl("/compare"), changeFrequency: "monthly", priority: 0.6 },
+      ...COMPETITORS.map((c) => ({ url: absoluteUrl(comparePath(c)), changeFrequency: "monthly" as const, priority: 0.6 })),
       ...pickableStates().map((s) => ({ url: absoluteUrl(`/services/${s.slug}`), changeFrequency: "weekly" as const, priority: 0.7 })),
       ...raJurisdictionsWithPublicFacts().flatMap((j) => {
         const checked = changeCheckedAt(j);
