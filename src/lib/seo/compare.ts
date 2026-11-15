@@ -74,6 +74,52 @@ export const COMPETITORS: CompetitorFacts[] = [
     ],
     sources: ["Northwest Registered Agent, Registered Agent page", "Northwest Registered Agent, Annual Report Service page"],
   },
+  {
+    slug: "bizee",
+    name: "Bizee",
+    raFirstYear: "$149 on its own (free the first year when you form with Bizee)",
+    raRenewal: "$149",
+    raTwoYearCents: 29800,
+    raTwoYearNote: "on its own, without forming there",
+    report: "A flat fee, but no price shown on the pages we read",
+    switching: "Not stated on the pages we read",
+    theyInclude: [
+      "A free first year of registered agent when you form your business with Bizee.",
+      "Formation packages starting at $0 plus the state fee.",
+    ],
+    sources: ["Bizee, Registered Agent page", "Bizee, Texas Registered Agent page", "Bizee, Annual Report page"],
+  },
+  {
+    slug: "registered-agents-inc",
+    name: "Registered Agents Inc",
+    raFirstYear: "$200",
+    raRenewal: "$200",
+    raTwoYearCents: 40000,
+    report: "Included with registered agent, you pay only the state fee",
+    switching: "Not stated on the pages we read",
+    theyInclude: [
+      "Annual report filing included in the $200 a year, so you pay only the state fee.",
+    ],
+    sources: [
+      "Registered Agents Inc, State Filings page",
+      "Registered Agents Inc, Florida, Wisconsin, Delaware and Michigan pages",
+    ],
+  },
+  {
+    slug: "harbor-compliance",
+    name: "Harbor Compliance",
+    raFirstYear: "$99 for new customers",
+    raRenewal: "$159",
+    raTwoYearCents: 25800,
+    report: "$199 per state plus filing fees",
+    switching: "Help with switching offered, fee not stated",
+    theyInclude: [
+      "A lower first year for registered agent: $99 for new customers. It renews at $159.",
+      "Two or three years prepaid at $99 a year, then $159.",
+      "Volume discounts on annual reports when you order online.",
+    ],
+    sources: ["Harbor Compliance, Registered Agent Service page", "Harbor Compliance, Annual Report page"],
+  },
 ];
 
 export function competitorBySlug(slug: string): CompetitorFacts | null {

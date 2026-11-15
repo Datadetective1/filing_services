@@ -77,6 +77,9 @@ describe("comparison pages", async () => {
       "/compare/filewell-vs-legalzoom",
       "/compare/filewell-vs-zenbusiness",
       "/compare/filewell-vs-northwest",
+      "/compare/filewell-vs-bizee",
+      "/compare/filewell-vs-registered-agents-inc",
+      "/compare/filewell-vs-harbor-compliance",
     ]);
     expect(competitorBySlugPath("filewell-vs-zenbusiness")?.name).toBe("ZenBusiness");
     expect(competitorBySlugPath("zenbusiness")).toBeNull();

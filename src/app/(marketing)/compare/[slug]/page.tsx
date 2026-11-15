@@ -37,6 +37,12 @@ export async function generateMetadata({ params }: PageProps<"/compare/[slug]">)
   });
 }
 
+/** "LegalZoom, ZenBusiness and Northwest Registered Agent". */
+function trademarkLine(): string {
+  const names = COMPETITORS.map((x) => x.name);
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names.join("");
+}
+
 function money(cents: number) {
   return formatCents(cents, { trimZeros: true });
 }
@@ -209,7 +215,7 @@ export default async function ComparePage({ params }: PageProps<"/compare/[slug]
             ))}
           </ul>
           <p className="max-w-[70ch] text-[13px] leading-6 text-subtle">
-            LegalZoom, ZenBusiness and Northwest Registered Agent are trademarks of their owners. {site.name} isn&apos;t affiliated with or
+            {trademarkLine()} are trademarks of their owners. {site.name} isn&apos;t affiliated with or
             endorsed by them.
           </p>
           <Link href="/registered-agent" className="inline-flex w-fit items-center gap-2 text-[15px] font-semibold text-accent">

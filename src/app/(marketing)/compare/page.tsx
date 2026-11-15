@@ -23,7 +23,7 @@ const CRUMBS = [
 export async function generateMetadata(): Promise<Metadata> {
   const f = await filewellFacts();
   return pageMetadata({
-    title: "Filewell vs LegalZoom, ZenBusiness and Northwest: Price Comparison",
+    title: "Filewell vs LegalZoom, ZenBusiness, Northwest and More: Price Comparison",
     description: "Registered agent and annual report prices side by side, read from each company's own website.",
     path: "/compare",
     absoluteTitle: true,
@@ -36,8 +36,8 @@ export default async function CompareHubPage() {
   if (!f) notFound();
   const max = Math.max(f.raCents * 2, ...COMPETITORS.map((c) => c.raTwoYearCents));
   const bars = [
-    { name: site.name, cents: f.raCents * 2, path: null as string | null, ours: true },
-    ...COMPETITORS.map((c) => ({ name: c.name, cents: c.raTwoYearCents, path: comparePath(c), ours: false })),
+    { name: site.name, cents: f.raCents * 2, path: null as string | null, ours: true, note: undefined as string | undefined },
+    ...COMPETITORS.map((c) => ({ name: c.name, cents: c.raTwoYearCents, path: comparePath(c), ours: false, note: c.raTwoYearNote })),
   ].sort((a, b) => a.cents - b.cents);
 
   return (
@@ -67,7 +67,10 @@ export default async function CompareHubPage() {
                   ) : (
                     <span className="text-[15px] font-semibold text-fg">{b.name}</span>
                   )}
-                  <span className="tnum font-display text-xl font-semibold text-fg">{formatCents(b.cents, { trimZeros: true })}</span>
+                  <span className="tnum font-display text-xl font-semibold text-fg">
+                    {formatCents(b.cents, { trimZeros: true })}
+                    {b.note ? <span className="ml-1.5 font-sans text-[13px] font-normal text-muted">{b.note}</span> : null}
+                  </span>
                 </div>
                 <div className="h-3 overflow-hidden rounded-full bg-surface-2">
                   <div
@@ -78,8 +81,7 @@ export default async function CompareHubPage() {
               </div>
             ))}
             <p className="text-[13px] leading-5 text-subtle">
-              Their prices as listed on their own websites on {checkedLabel()}. They may have changed. ZenBusiness adds state fees in the
-              first year.
+              Their prices as listed on their own websites on {checkedLabel()}. They may have changed.
             </p>
           </figure>
         </Container>
