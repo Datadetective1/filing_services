@@ -56,6 +56,8 @@ export interface RegistryAddress {
 export interface RegistryPerson {
   name: string;
   title: string;
+  /** One-line business address, where the state's dataset gives one (Connecticut). */
+  address?: string;
 }
 
 export interface RegistryHit {
@@ -78,6 +80,13 @@ export interface RegistryDetail extends RegistryHit {
   addressOnRecord: RegistryAddress | null;
   governors: RegistryPerson[];
   officers: RegistryPerson[];
+  /**
+   * Addresses a state's dataset labels for what they are (Colorado, Connecticut, New York,
+   * Oregon, Texas). Absent for Pennsylvania, whose one address isn't labeled.
+   */
+  principalAddress?: RegistryAddress | null;
+  mailingAddress?: RegistryAddress | null;
+  agent?: { name: string; address: RegistryAddress | null } | null;
 }
 
 const TYPE_MAP: Record<string, { entityType: EntityType | null; isNonprofit?: boolean }> = {

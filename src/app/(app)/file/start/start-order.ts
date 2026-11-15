@@ -6,10 +6,9 @@ import { todayInTimeZone } from "@/lib/domain/dates";
 import { addBusiness, periodFor, startFiling } from "@/lib/filings/customer";
 import { findExistingBusiness } from "@/lib/filings/find-existing";
 import { clearPendingLookup, readPendingLookup } from "@/lib/lookup/pending";
-import { getPaRecord } from "@/lib/registry/pa-open-data";
-import { saveStateRecord } from "@/lib/registry/state-records";
+import { hasRegistrySearch } from "@/lib/registry/sources";
+import { linkRegistryRecord } from "@/lib/registry/state-records";
 import { mailAttributionFor, markMailEvent } from "@/lib/outreach/mail-cohort";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { clearLookupHomeJurisdiction, readLookupHomeJurisdiction } from "@/app/(marketing)/find/lookup-extras";
 import { filingErrorCode, friendlyError } from "../_lib/errors";
 
@@ -55,10 +54,12 @@ export async function startOrderFromLookup(user: SessionUser, mode: "file" | "tr
       businessId = created.businessId;
     }
     await saveBusinessAttribution(businessId, user.id);
-    if (lookup.registryEntityNumber && lookup.stateCode === "PA") {
-      await linkRegistryRecord(user, businessId, lookup.registryEntityNumber);
-      const attribution = await mailAttributionFor(lookup.registryEntityNumber);
-      if (attribution) await markMailEvent(attribution, "started", businessId).catch(() => undefined);
+    if (lookup.registryEntityNumber && hasRegistrySearch(lookup.stateCode)) {
+      await linkRegistryRecord(user.id, businessId, lookup.stateCode, lookup.registryEntityNumber);
+      if (lookup.stateCode === "PA") {
+        const attribution = await mailAttributionFor(lookup.registryEntityNumber);
+        if (attribution) await markMailEvent(attribution, "started", businessId).catch(() => undefined);
+      }
     }
     // A report for a future year can't be filed yet: add the business and remind instead.
     const period = periodFor(rule, { formationDate: lookup.formationDate ?? null, alreadyFiledThisYear: lookup.alreadyFiledThisYear });
@@ -91,26 +92,4 @@ export async function startOrderFromLookup(user: SessionUser, mode: "file" | "tr
 
   await clearLookup();
   return { to: `/file/${filingId}/details` };
-}
-
-/**
- * Re-read the register record the visitor picked and keep it server-side for prefill.
- * Best effort: if the register is unavailable now, the customer simply types the details.
- */
-async function linkRegistryRecord(user: SessionUser, businessId: string, entityNumber: string) {
-  try {
-    const detail = await getPaRecord(entityNumber);
-    if (!detail) return;
-    const stored = await saveStateRecord("PA", detail);
-    await createAdminClient()
-      .from("businesses")
-      .update({
-        state_entity_number: detail.entityNumber,
-        registry_record: { source: "state_registry", state_entity_record_id: stored.id, source_url: stored.sourceUrl, retrieved_at: stored.retrievedAt },
-      })
-      .eq("id", businessId)
-      .eq("owner_user_id", user.id);
-  } catch {
-    // Prefill is a convenience; never block starting the filing on it.
-  }
 }

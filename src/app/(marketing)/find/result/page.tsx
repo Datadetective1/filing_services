@@ -42,6 +42,8 @@ import { businessServicesPagesEnabled, raSaleCheck } from "@/lib/registered-agen
 import { readServiceIntent } from "@/lib/services/intent";
 import { publicServicePrices } from "@/lib/services/public-prices";
 import { RaLookupResult } from "@/components/services/ra-lookup-result";
+import { ProviderReportLookupResult } from "@/components/services/provider-report-lookup-result";
+import { providerReportOffer } from "@/components/marketing/provider-report-band";
 
 export const metadata: Metadata = {
   title: "Your filing requirement",
@@ -300,6 +302,28 @@ export default async function FindResultPage() {
           </div>
         </div>
       ) : null;
+
+    // Our partner files this state's report: offer it, with the order filled in from the lookup.
+    const reportOffer = await providerReportOffer(lookup.stateCode).catch(() => null);
+    const reportType = lookup.entityType === "llc" || lookup.entityType === "corporation" ? lookup.entityType : null;
+    if (reportOffer && reportType && reportOffer.types.includes(reportType)) {
+      const stateFeeCents = reportOffer.open.feeCents[reportType] ?? 0;
+      return (
+        <>
+          <TrackView event="lookup_completed" stateCode={lookup.stateCode} entityType={lookup.entityType} />
+          <ProviderReportLookupResult
+            stateName={stateName}
+            reportName={reportOffer.open.reportName}
+            totalCents={reportOffer.serviceCents + stateFeeCents}
+            stateFeeCents={stateFeeCents}
+            entered={entered}
+            signedIn={signedIn}
+            stateCode={lookup.stateCode}
+            entityType={lookup.entityType}
+          />
+        </>
+      );
+    }
 
     // We don't file this one, but the registered agent is sold in every state: offer it
     // rather than end the visit at a dead end.

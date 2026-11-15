@@ -1,4 +1,4 @@
-import type { RegistryDetail } from "@/lib/registry/pa-open-data-map";
+import type { RegistryAddress, RegistryDetail } from "@/lib/registry/pa-open-data-map";
 import type { IntakeAnswers } from "./validate";
 
 /**
@@ -10,6 +10,9 @@ import type { IntakeAnswers } from "./validate";
  * last filed), then their saved business profile, then the state's register. A value is
  * only ever a starting point: the customer reviews every field and signs before filing.
  */
+
+/** Same test the intake form applies to a street line. */
+const PO_BOX = /\b(p\.?\s*o\.?\s*box|post\s*office\s*box|p\.?\s*o\.?\s*b\.?)\b/i;
 
 export type PrefillSource = "state_registry" | "previous_filing" | "business_profile";
 
@@ -29,6 +32,8 @@ export interface PrefillInputs {
     isForeign: boolean;
     homeJurisdiction: string | null;
     stateName: string;
+    /** Two-letter code; lets a register's agent address be checked against the state. */
+    stateCode?: string;
   };
   profile: {
     principalOffice?: Record<string, string> | null;
@@ -106,7 +111,14 @@ export function buildPrefill(input: PrefillInputs): { answers: IntakeAnswers; pr
     else set("jurisdiction_of_formation", business.stateName, reg?.jurisdictionOfFormation ? "state_registry" : null);
   }
 
-  if (!filled.has("principal_office") && profile.principalOffice) set("principal_office", profile.principalOffice, "business_profile");
+  // A register that labels its addresses (Colorado and the other open-data states, never
+  // Pennsylvania) can fill the principal and mailing address. A P.O. box is never a street address.
+  const street = (a: RegistryAddress) => ({ line1: a.line1, line2: a.line2, city: a.city, region: a.region, postal_code: a.postal_code });
+  if (!filled.has("principal_office")) {
+    if (profile.principalOffice) set("principal_office", profile.principalOffice, "business_profile");
+    else if (reg?.principalAddress && !PO_BOX.test(reg.principalAddress.line1)) set("principal_office", street(reg.principalAddress), "state_registry");
+  }
+  if (reg?.mailingAddress) set("mailing_address", street(reg.mailingAddress), "state_registry");
 
   if (!filled.has("registered_office")) {
     if (profile.registeredOffice) set("registered_office", profile.registeredOffice, "business_profile");
@@ -115,6 +127,16 @@ export function buildPrefill(input: PrefillInputs): { answers: IntakeAnswers; pr
     else if (reg?.addressOnRecord && reg.addressOnRecord.region === "PA") {
       const a = reg.addressOnRecord;
       set("registered_office", { mode: "address", line1: a.line1, line2: a.line2, city: a.city, region: a.region, postal_code: a.postal_code, county: a.county }, "state_registry");
+    }
+  }
+
+  // The registered agent on the register, only when its street address is in the state (an
+  // agent must have one there). The customer confirms it or says they're changing agent.
+  if (!filled.has("registered_office") && !filled.has("registered_agent_name") && !profile.registeredOffice && !reg?.addressOnRecord) {
+    const agent = reg?.agent;
+    if (agent?.name && agent.address && business.stateCode && agent.address.region === business.stateCode && !PO_BOX.test(agent.address.line1)) {
+      set("registered_agent_name", agent.name, "state_registry");
+      set("registered_office", street(agent.address), "state_registry");
     }
   }
 
