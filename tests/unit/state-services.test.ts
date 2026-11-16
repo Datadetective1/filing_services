@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/services/public-prices", () => ({
   publicServicePrices: vi.fn(async () => ({
     registered_agent: 11900,
-    ra_annual_report_bundle: 16900,
+    ra_annual_report_bundle: 15900,
     formation: 9900,
     change_registered_agent: 0,
     provider_annual_report: 9900,

@@ -192,14 +192,14 @@ export function proposedPriceEstimates(): ContributionEstimate[] {
     }),
     estimateContribution({
       serviceCode: "ra_annual_report_bundle",
-      label: "Bundle, self-filed annual report ($169; state fee charged at filing)",
-      serviceFeeCents: 16900,
+      label: "Bundle, self-filed annual report ($159; state fee charged at filing)",
+      serviceFeeCents: 15900,
       wholesaleCents: 4500,
     }),
     estimateContribution({
       serviceCode: "ra_annual_report_bundle",
       label: "Bundle, annual report sent to the provider",
-      serviceFeeCents: 16900,
+      serviceFeeCents: 15900,
       wholesaleCents: 4500 + 7500,
     }),
     estimateContribution({ serviceCode: "formation", label: "Formation alone ($99, provider files it)", serviceFeeCents: 9900 }),
