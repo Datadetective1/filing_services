@@ -60,6 +60,9 @@ import { ENTITY_COPY, joinList } from "@/lib/seo/entities";
 import { breadcrumbJsonLd, faqJsonLd, graph, serviceJsonLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { guideSet } from "@/lib/seo/state-guides";
+import { stateGuideSnippet, type SnippetOffer } from "@/lib/seo/state-snippets";
+import { businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
+import { publicServicePrices } from "@/lib/services/public-prices";
 
 export const dynamicParams = false;
 // The status panel counts days to the next deadline: render per request so a cached
@@ -95,6 +98,8 @@ export async function generateMetadata({ params }: PageProps<"/annual-report/[st
   }
   // Where we can file it, the search snippet says so: that's the reason to click.
   const weFile = rules.some((r) => isRuleSellable(r)) || providerReportOpenState(j.code) !== null;
+  const snippet = stateGuideSnippet(j, rules, await snippetOffer(j.code, rules));
+  if (snippet) return pageMetadata({ ...snippet, path });
   return pageMetadata({
     title: `${j.name} Annual Report: Due Dates, Fees & How to File`,
     description: weFile
@@ -102,6 +107,23 @@ export async function generateMetadata({ params }: PageProps<"/annual-report/[st
       : `${j.name} annual report due dates by entity type (${dueSummary(rules)}), the state fee (${feeSummary(rules)}), late-filing rules and how to file, from official sources.`,
     path,
   });
+}
+
+/** Filewell's prices for the search snippet, read from the same sources the page shows. */
+async function snippetOffer(code: string, rules: ComplianceRuleDef[]): Promise<SnippetOffer> {
+  const offer: SnippetOffer = {};
+  const sellable = rules.find((r) => isRuleSellable(r));
+  const quote = sellable ? await publicQuote(sellable) : null;
+  if (quote) offer.filingServiceCents = quote.serviceFeeCents;
+  else {
+    const provider = await providerReportOffer(code);
+    if (provider) offer.filingServiceCents = provider.serviceCents;
+  }
+  if (businessServicesPagesEnabled()) {
+    const ra = (await publicServicePrices()).registered_agent;
+    if (ra !== undefined) offer.registeredAgentCents = ra;
+  }
+  return offer;
 }
 
 export default async function StateAnnualReportPage({ params }: PageProps<"/annual-report/[state]">) {
