@@ -271,7 +271,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
             <ShieldCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
             <span>
               {sellable
-                ? `State fee: ${feeText}, passed through at cost. Our service fee is its own line.`
+                ? `State fee: ${feeText}, passed through at cost. Our service fee is its own line, and it's the same every year.`
                 : `State fee: ${feeText}. Check your business for its due date and a free reminder.`}
             </span>
           </p>
@@ -464,7 +464,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
               </h2>
               <p className="max-w-[44ch] text-[16px] leading-7 text-accent-fg/85">
                 {sellable
-                  ? `Answer a short form, review everything, and authorize the filing. We prepare it, submit it to the ${agency}, and send you the state's confirmation.`
+                  ? `Answer a short form, review everything, and authorize the filing. We prepare it, submit it to the ${agency}, and send you the state's confirmation. Same price every year, no cheap first year.`
                   : `${site.name} filing for ${j.name} isn't open yet. Look up your business to see its due date and the state fees, and get a free email reminder before it's due.`}
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

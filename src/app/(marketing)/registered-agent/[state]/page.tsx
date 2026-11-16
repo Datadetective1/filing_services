@@ -19,6 +19,8 @@ import { stateRegisteredAgentFaq } from "@/lib/services/public-faq";
 import { publicServicePrices } from "@/lib/services/public-prices";
 import { breadcrumbJsonLd, businessServiceJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { businessSearchStateBySlug } from "@/lib/seo/business-search";
+import { stateLookupEnabled } from "@/lib/compliance/launch";
 
 export const revalidate = 3600;
 
@@ -70,10 +72,20 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
   const formationFee = formationLlcFeeText(j);
   const faq = stateRegisteredAgentFaq({ stateName: j.name, priceText, changeFormName: change.formName, appointmentProcess: j.appointmentProcess, changeFee });
   const costs = [
-    ...(priceText ? [{ term: `${site.name} registered agent`, value: `${priceText} a year` }] : []),
+    ...(priceText ? [{ term: `${site.name} registered agent`, value: `${priceText} a year, every year` }] : []),
     ...(changeFee ? [{ term: "State fee to switch agents", value: changeFee }] : []),
     ...(formationFee ? [{ term: "State fee to form a new LLC", value: formationFee }] : []),
   ];
+  // A free check visitors can run right now: the state's register search where we have one,
+  // else the due date lookup. Nothing to buy, so it costs us nothing and earns the visit.
+  const freeCheckHref =
+    j.code === "PA"
+      ? "/pennsylvania/business-search"
+      : businessSearchStateBySlug(j.slug)
+        ? `/business-search/${j.slug}`
+        : stateLookupEnabled(j.code)
+          ? `/find?state=${j.code}`
+          : null;
   // Filewell files this state's annual reports itself: link the guide, and the bundle only while it can be bought.
   const filesAnnualReports = (BUNDLE_STATES as readonly string[]).includes(j.code);
   const bundle = filesAnnualReports && bundleSalesOpen() ? prices.ra_annual_report_bundle : undefined;
@@ -122,6 +134,14 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
                     </div>
                   ))}
                 </dl>
+                {freeCheckHref ? (
+                  <p className="text-[15px] leading-7 text-muted">
+                    Free check: see when your {j.name} business&apos;s next report is due and get a reminder.{" "}
+                    <Link href={freeCheckHref} className={textLinkClasses}>
+                      Check my business
+                    </Link>
+                  </p>
+                ) : null}
               </div>
             ) : null}
             <SectionHeading title={`Changing your registered agent in ${j.name}`} />
