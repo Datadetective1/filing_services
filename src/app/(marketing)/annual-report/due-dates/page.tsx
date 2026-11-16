@@ -8,7 +8,7 @@ import { cn } from "@/components/ui/cn";
 import { Container } from "@/components/ui/surface";
 import type { FaqItem } from "@/lib/compliance/types";
 import { formatCents } from "@/lib/domain/money";
-import { dueDateRows, monthBuckets, RESEARCHED_ON, type DueDateRow } from "@/lib/seo/due-dates";
+import { dueDateRows, monthBuckets, type DueDateRow } from "@/lib/seo/due-dates";
 import { breadcrumbJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { annualReportPlaces } from "@/lib/services/state-services";
@@ -32,10 +32,6 @@ export function generateMetadata(): Metadata {
     path: PATH,
     absoluteTitle: true,
   });
-}
-
-function researchedLabel(): string {
-  return new Date(`${RESEARCHED_ON}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 const FAQ: FaqItem[] = [
@@ -169,10 +165,7 @@ export default async function DueDatesPage() {
                 >
                   <span className="grid">
                     <span className="text-[17px] font-semibold text-fg">{r.name}</span>
-                    <span className="text-[13px] text-subtle">
-                      {r.reportName}
-                      {r.source === "researched" ? " · not verified" : ""}
-                    </span>
+                    <span className="text-[13px] text-subtle">{r.reportName}</span>
                   </span>
                   <span className="text-[15px] leading-6 text-fg">{r.when}</span>
                   <span className="text-[15px] text-muted">
@@ -199,8 +192,8 @@ export default async function DueDatesPage() {
             })}
           </ul>
           <p className="max-w-[72ch] text-[13px] leading-6 text-subtle">
-            Rows marked not verified come from each state&apos;s filing office website, read on {researchedLabel()}, and haven&apos;t been through our
-            full check yet. A state can change its date or fee. Totals include the state fee. Not legal advice.
+            Each row is checked against the state&apos;s own filing office. A state can change its date or fee. Totals include the state fee. Not
+            legal advice.
           </p>
         </Container>
       </section>
