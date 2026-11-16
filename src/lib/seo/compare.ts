@@ -96,23 +96,6 @@ export const COMPETITORS: CompetitorFacts[] = [
     sources: ["Bizee, Registered Agent page", "Bizee, Texas Registered Agent page", "Bizee, Annual Report page"],
   },
   {
-    slug: "registered-agents-inc",
-    name: "Registered Agents Inc",
-    raFirstYear: "$200",
-    raRenewal: "$200",
-    raTwoYearCents: 40000,
-    raRenewalCents: 20000,
-    report: "Included with registered agent, you pay only the state fee",
-    switching: "Not stated on the pages we read",
-    theyInclude: [
-      "Annual report filing included in the $200 a year, so you pay only the state fee.",
-    ],
-    sources: [
-      "Registered Agents Inc, State Filings page",
-      "Registered Agents Inc, Florida, Wisconsin, Delaware and Michigan pages",
-    ],
-  },
-  {
     slug: "harbor-compliance",
     name: "Harbor Compliance",
     raFirstYear: "$99 for new customers",
