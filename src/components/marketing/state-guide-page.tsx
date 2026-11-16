@@ -27,6 +27,8 @@ import { reminderSignupOptions } from "@/lib/reminders/signup-options";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { GuideBlock } from "@/lib/seo/pa-guides";
 import { guideSet } from "@/lib/seo/state-guides";
+import { snippetOffer } from "@/lib/seo/snippet-offer";
+import { guideArticleSnippet, hasGuideArticleSnippet } from "@/lib/seo/state-snippets";
 
 /**
  * Shared template for the supporting guide pages of every supported state
@@ -37,11 +39,19 @@ export function guideParams(stateCode: string) {
   return (guideSet(stateCode)?.guides ?? []).map((g) => ({ topic: g.slug }));
 }
 
-export function guideMetadata(stateCode: string, topic: string): Metadata {
+export async function guideMetadata(stateCode: string, topic: string): Promise<Metadata> {
   const set = guideSet(stateCode);
   const g = set?.guides.find((x) => x.slug === topic);
   if (!set || !g) return {};
-  return pageMetadata({ title: g.title, description: g.description, path: `/${set.slug}/${g.slug}` });
+  const path = `/${set.slug}/${g.slug}`;
+  // A few articles rank near page one with almost no clicks: they get a shorter snippet that
+  // leads with the answer and, where we file the report, our price.
+  if (hasGuideArticleSnippet(stateCode, g.slug)) {
+    const rules = rulesForState(stateCode).filter((r) => r.verificationStatus === "verified");
+    const snippet = guideArticleSnippet(stateCode, g.slug, rules, await snippetOffer(stateCode, rules));
+    if (snippet) return pageMetadata({ ...snippet, path });
+  }
+  return pageMetadata({ title: g.title, description: g.description, path });
 }
 
 const shortTitle = (h1: string, stateName: string) => h1.replace(new RegExp(`^${stateName} `), "").replace(/^\w/, (c) => c.toUpperCase());
