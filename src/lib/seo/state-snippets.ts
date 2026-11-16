@@ -74,13 +74,100 @@ function nevada(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet |
   };
 }
 
+function utah(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
+  const fee = singleFee(rules);
+  if (fee === null) return null;
+  // Utah calls it the annual renewal: due by the end of the month the business was formed.
+  const due = `Utah annual renewals are due by the end of your anniversary month. The state fee is ${money(fee)}.`;
+  const candidates =
+    offer.filingServiceCents !== undefined
+      ? [`${due} Filewell files it for ${money(offer.filingServiceCents)} + the state fee.`]
+      : [
+          ...(offer.registeredAgentCents !== undefined ? [`${due} Free reminders, registered agent ${money(offer.registeredAgentCents)}/yr.`] : []),
+          `${due} Get free reminders before it's due.`,
+        ];
+  return {
+    title: `Utah Annual Report: ${money(fee)} Renewal Fee & Due Date`,
+    description: candidates.find((d) => d.length <= MAX_DESCRIPTION) ?? due,
+  };
+}
+
 const SNIPPETS: Record<string, (rules: ComplianceRuleDef[], offer: SnippetOffer) => StateSnippet | null> = {
   WA: washington,
   NV: nevada,
+  UT: utah,
 };
 
 /** A hand-written snippet for this state's annual report guide, or null to use the generic one. */
 export function stateGuideSnippet(j: Pick<JurisdictionDef, "code">, rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
   if (!rules.length) return null;
   return SNIPPETS[j.code]?.(rules, offer) ?? null;
+}
+
+/**
+ * Hand-written snippets for the state guide articles (/pennsylvania/annual-report-deadline
+ * and the like) that sit near page one with almost no clicks. Same rules as above: the
+ * state fee comes from the rules, Filewell's price from the price rows, and a filing pitch
+ * shows only where we file the report right now.
+ */
+const filePitch = (offer: SnippetOffer, fee: number) =>
+  offer.filingServiceCents !== undefined
+    ? `Filewell files yours for ${money(offer.filingServiceCents)} + the ${money(fee)} state fee.`
+    : "Get a free email reminder before yours is due.";
+
+function paDeadline(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
+  const fee = feeFor(rules, "llc");
+  if (fee === null) return null;
+  return {
+    title: "PA Annual Report Due Dates: June 30, Sept 30, Dec 31",
+    description: `Corporations file by June 30, LLCs by Sept 30 and all others by Dec 31. ${filePitch(offer, fee)}`,
+  };
+}
+
+function paAfterDeadline(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
+  const fee = feeFor(rules, "llc");
+  if (fee === null) return null;
+  return {
+    title: "Missed the PA Annual Report Deadline? What Happens",
+    description: `No state late fee: a late report costs the same ${money(fee)}. From 2027, non-filers can be dissolved. ${filePitch(offer, fee)}`,
+  };
+}
+
+function paFee(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
+  const fee = feeFor(rules, "llc");
+  if (fee === null) return null;
+  return {
+    title: `PA Annual Report Fee: ${money(fee)} ($0 for Nonprofits)`,
+    description: `Pennsylvania charges ${money(fee)} to file an annual report, $0 for nonprofits, and no state late fee. ${filePitch(offer, fee)}`,
+  };
+}
+
+function nvDeadline(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
+  const llc = feeFor(rules, "llc");
+  if (llc === null) return null;
+  const facts = `Nevada's Annual List and Business License are due by the last day of the month your business was formed. LLCs pay ${money(llc)}.`;
+  const pitch = offer.filingServiceCents !== undefined ? ` We file it for ${money(offer.filingServiceCents)} + state fees.` : " Free reminders.";
+  const description = `${facts}${pitch}`;
+  return {
+    title: "Nevada Annual List Due Date: End of Your Anniversary Month",
+    description: description.length <= MAX_DESCRIPTION ? description : facts,
+  };
+}
+
+const GUIDE_SNIPPETS: Record<string, (rules: ComplianceRuleDef[], offer: SnippetOffer) => StateSnippet | null> = {
+  "PA/annual-report-deadline": paDeadline,
+  "PA/annual-report-after-deadline": paAfterDeadline,
+  "PA/annual-report-fee": paFee,
+  "NV/annual-list-deadline": nvDeadline,
+};
+
+/** A hand-written snippet for one state guide article, or null to keep the guide's own. */
+export function guideArticleSnippet(stateCode: string, slug: string, rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
+  if (!rules.length) return null;
+  return GUIDE_SNIPPETS[`${stateCode}/${slug}`]?.(rules, offer) ?? null;
+}
+
+/** Whether a guide article has a hand-written snippet (so its page fetches prices). */
+export function hasGuideArticleSnippet(stateCode: string, slug: string): boolean {
+  return `${stateCode}/${slug}` in GUIDE_SNIPPETS;
 }
