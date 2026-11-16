@@ -57,7 +57,7 @@ export async function ProviderReportBand({ stateCode }: { stateCode: string }) {
               ))}
             </ul>
             <p className="text-sm text-muted">
-              {formatCents(serviceCents, { trimZeros: true })} service plus the state fee. Nothing renews.
+              {formatCents(serviceCents, { trimZeros: true })} service plus the state fee, the same every year. Nothing renews on its own.
             </p>
           </div>
           <Link href={orderHref} className={buttonClasses("primary", "md", "gap-1.5")}>

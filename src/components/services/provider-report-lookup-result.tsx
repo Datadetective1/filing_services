@@ -38,7 +38,7 @@ export function ProviderReportLookupResult({
       <div className="mt-5 grid gap-4 rounded-[var(--radius-surface)] border border-border bg-surface p-5 shadow-card sm:p-6">
         <p className="text-[17px] text-fg">
           <span className="tnum font-display text-[28px] font-semibold">{formatCents(totalCents, { trimZeros: true })}</span>
-          <span className="text-muted"> all in, including the {formatCents(stateFeeCents, { trimZeros: true })} state fee. Nothing renews.</span>
+          <span className="text-muted"> all in, including the {formatCents(stateFeeCents, { trimZeros: true })} state fee. Same price every year, and nothing renews on its own.</span>
         </p>
         {signedIn ? (
           // A plain link: START is a route that redirects, so the browser loads it itself.
