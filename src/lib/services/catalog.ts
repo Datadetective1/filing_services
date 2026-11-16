@@ -114,7 +114,7 @@ export const SERVICES: Record<ServiceCode, ServiceDef> = {
     name: "Registered agent + annual report",
     filingTypeCode: "ra_annual_report_bundle",
     billing: "annual",
-    proposedServiceFeeCents: 16900,
+    proposedServiceFeeCents: 15900,
     wholesaleCents: WHOLESALE.registeredAgentPerYear,
     governmentFee: "pass_through",
     launchStatus: "built_not_launched",

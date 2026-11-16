@@ -95,7 +95,7 @@ describe("seed-sql SERVICES", () => {
       { filing_type_code: "change_registered_agent", service_fee_cents: 0, approved: false },
       { filing_type_code: "formation", service_fee_cents: 9900, approved: false },
       { filing_type_code: "provider_annual_report", service_fee_cents: 9900, approved: false },
-      { filing_type_code: "ra_annual_report_bundle", service_fee_cents: 16900, approved: false },
+      { filing_type_code: "ra_annual_report_bundle", service_fee_cents: 15900, approved: false },
       { filing_type_code: "registered_agent", service_fee_cents: 11900, approved: false },
     ]);
   });

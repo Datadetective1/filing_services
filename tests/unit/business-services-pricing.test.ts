@@ -33,7 +33,7 @@ const price = (id: string, cents: number, approved = false) => ({ id, serviceFee
 describe("catalog", () => {
   it("carries the approved proposal without changing the live annual report price", () => {
     expect(SERVICES.registered_agent.proposedServiceFeeCents).toBe(11900);
-    expect(SERVICES.ra_annual_report_bundle.proposedServiceFeeCents).toBe(16900);
+    expect(SERVICES.ra_annual_report_bundle.proposedServiceFeeCents).toBe(15900);
     expect(SERVICES.formation.proposedServiceFeeCents).toBe(9900);
     expect(SERVICES.change_registered_agent.proposedServiceFeeCents).toBe(0);
     expect(SERVICES.annual_report.proposedServiceFeeCents).toBe(4900);
@@ -58,7 +58,7 @@ describe("catalog", () => {
   });
 
   it("shows the bundle saving against both services at proposed prices", () => {
-    expect(bundleSavingsCents()).toBe(11900 + 7900 - 16900);
+    expect(bundleSavingsCents()).toBe(11900 + 7900 - 15900);
   });
 
   it("cross-sells only related services", () => {
@@ -121,9 +121,9 @@ describe("registered agent quote", () => {
 });
 
 describe("bundle quote", () => {
-  it("charges $169 today and never the annual report state fee", () => {
-    const q = bundleQuote({ stateName: "Florida", situation: "new_entity", bundlePrice: price("b", 16900), includedReportingYear: 2027, annualReportStateFeeCents: 13875 });
-    expect(q.dueTodayCents).toBe(16900);
+  it("charges $159 today and never the annual report state fee", () => {
+    const q = bundleQuote({ stateName: "Florida", situation: "new_entity", bundlePrice: price("b", 15900), includedReportingYear: 2027, annualReportStateFeeCents: 13875 });
+    expect(q.dueTodayCents).toBe(15900);
     expect(q.governmentFeeCents).toBe(0);
     expect(q.lines[0].serviceCode).toBe("ra_annual_report_bundle");
     expect(q.disclosures.join(" ")).toMatch(/not charged today/);
@@ -131,14 +131,14 @@ describe("bundle quote", () => {
   });
 
   it("names a past due report it doesn't cover", () => {
-    const base = { stateName: "Florida", situation: "new_entity" as const, bundlePrice: price("b", 16900), includedReportingYear: 2027, annualReportStateFeeCents: 13875 };
+    const base = { stateName: "Florida", situation: "new_entity" as const, bundlePrice: price("b", 15900), includedReportingYear: 2027, annualReportStateFeeCents: 13875 };
     expect(bundleQuote(base).disclosures.join(" ")).not.toMatch(/past due/);
     expect(bundleQuote({ ...base, notCoveredReportingYears: [2026] }).disclosures.join(" ")).toContain("The 2026 annual report is past due and not part of this plan.");
     expect(bundleQuote({ ...base, notCoveredReportingYears: [2025, 2026] }).disclosures.join(" ")).toContain("The 2025 and 2026 annual reports are past due");
   });
 
   it("can't be sold when no report falls due in the first year", () => {
-    expect(() => bundleQuote({ stateName: "Florida", situation: "new_entity", bundlePrice: price("b", 16900), includedReportingYear: null, annualReportStateFeeCents: 13875 })).toThrow(
+    expect(() => bundleQuote({ stateName: "Florida", situation: "new_entity", bundlePrice: price("b", 15900), includedReportingYear: null, annualReportStateFeeCents: 13875 })).toThrow(
       /can't be sold/,
     );
   });

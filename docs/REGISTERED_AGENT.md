@@ -19,7 +19,7 @@ explicit approval.
 |---|---|---|
 | Registered agent | $119 per business, per state, per year | Same price at renewal |
 | Switching agents | State fee only | Filewell absorbs the provider's $25 change charge, tracked as acquisition cost (`CHANGE_OF_AGENT_ABSORBED_CENTS`) |
-| Registered agent + annual report bundle | $169 per year, plus the state's report fee | Only in PA, CO, FL, SD, MT, MI; not advertised until `RA_BUNDLE_SALES=true` |
+| Registered agent + annual report bundle | $159 per year, plus the state's report fee | Only in PA, CO, FL, SD, MT, MI; not advertised until `RA_BUNDLE_SALES=true` |
 | Formation | $99 plus the state fee | Registered agent is an optional add-on ($119), never included automatically |
 | Annual report in a state we don't file (Registered Agents Inc. files it) | $99 plus the state's report fee | Filing type `provider_annual_report`, seeded unapproved; RAI charges $75 plus the state fee, so about $24 before card fees |
 | Annual report | $49 in production; $79 configured as variant `proposed_79` | Charged only when `ANNUAL_REPORT_PRICE_VARIANT=proposed_79` and the $79 rows are approved |

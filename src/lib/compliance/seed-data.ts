@@ -155,7 +155,7 @@ function businessServicePriceRows() {
   });
   return [
     row("registered_agent", 11900, "Proposed launch price: $119 per entity, per state, per year. Same price at renewal. Not approved."),
-    row("ra_annual_report_bundle", 16900, "Proposed launch price: $169 per year plus the annual report's state fee (charged at filing). Not approved."),
+    row("ra_annual_report_bundle", 15900, "Proposed launch price: $159 per year plus the annual report's state fee (charged at filing). Not approved."),
     row("formation", 9900, "Proposed launch price: $99 plus the state formation fee. Registered agent is a separate add-on. Not approved."),
     row(
       "change_registered_agent",
