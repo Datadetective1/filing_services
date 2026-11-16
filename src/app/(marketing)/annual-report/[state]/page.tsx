@@ -42,6 +42,7 @@ import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef, FaqItem, JurisdictionDef } from "@/lib/compliance/types";
 import { lateFeeText, stateFeeText, verifiedText } from "@/lib/compliance/view";
 import { todayInTimeZone } from "@/lib/domain/dates";
+import { formatCents } from "@/lib/domain/money";
 import { ENTITY_TYPE_LABELS, ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import {
   agencyShortName,
@@ -178,6 +179,9 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
   const feeNote = /\((.+)\)$/.exec(feeText)?.[1] ?? null;
   const groups = dueGroups(rules);
   const sellable = rules.some((r) => isRuleSellable(r));
+  // Where we don't file it ourselves but our partner does, the box below says so instead of
+  // "isn't open yet", which contradicted the "We file your report" band further down.
+  const partner = sellable ? null : await providerReportOffer(j.code);
   const today = todayInTimeZone(j.timezone);
   const chartRows = groups.every((g) => g.month && g.dayOfMonth)
     ? groups.map((g) => ({
@@ -460,16 +464,18 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
           >
             <div className="grid content-start gap-5">
               <h2 id="cta-title" className="text-[30px] font-semibold leading-[1.08] text-accent-fg sm:text-[38px]">
-                {sellable ? "Have us file it" : "Get a free reminder"}
+                {sellable || partner ? "Have us file it" : "Get a free reminder"}
               </h2>
               <p className="max-w-[44ch] text-[16px] leading-7 text-accent-fg/85">
                 {sellable
                   ? `Answer a short form, review everything, and authorize the filing. We prepare it, submit it to the ${agency}, and send you the state's confirmation. Same price every year, no cheap first year.`
-                  : `${site.name} filing for ${j.name} isn't open yet. Look up your business to see its due date and the state fees, and get a free email reminder before it's due.`}
+                  : partner
+                    ? `We file your ${j.name} ${partner.open.reportName.toLowerCase()} for ${formatCents(partner.serviceCents, { trimZeros: true })} plus the state fee, and send you the state's confirmation. Same price every year, no cheap first year.`
+                    : `${site.name} filing for ${j.name} isn't open yet. Look up your business to see its due date and the state fees, and get a free email reminder before it's due.`}
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <FilingCtaLink href={`/find?state=${j.code}`} stateCode={j.code} variant="inverse">
-                  {sellable ? "Have us file it" : "Check my business"}
+                <FilingCtaLink href={partner ? partner.orderHref : `/find?state=${j.code}`} stateCode={j.code} variant="inverse">
+                  {sellable || partner ? "Have us file it" : "Check my business"}
                 </FilingCtaLink>
                 <Link
                   href="/pricing"
@@ -496,6 +502,11 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
               ) : sellable ? (
                 <p className="text-sm leading-6 text-muted">
                   The state fee is {feeSummary(rules)}. Our service fee is shown as a separate line before you pay.
+                </p>
+              ) : partner ? (
+                <p className="text-sm leading-6 text-muted">
+                  The state fee is {feeSummary(rules)}, paid to the {agency} at cost. Our service fee is{" "}
+                  {formatCents(partner.serviceCents, { trimZeros: true })}, shown as its own line before you pay.
                 </p>
               ) : (
                 <p className="text-sm leading-6 text-muted">
