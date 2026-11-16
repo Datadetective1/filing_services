@@ -71,12 +71,20 @@ describe("add to calendar", () => {
 });
 
 describe("comparison pages", async () => {
-  const { COMPETITORS, comparePath, competitorBySlugPath } = await import("@/lib/seo/compare");
+  const { COMPETITORS, comparePath, competitorBySlugPath, fiveYearCents } = await import("@/lib/seo/compare");
+  it("adds up five years as the first two plus three renewals", () => {
+    const harbor = COMPETITORS.find((c) => c.slug === "harbor-compliance")!;
+    expect(fiveYearCents(harbor)).toBe(9900 + 4 * 15900);
+    const lz = COMPETITORS.find((c) => c.slug === "legalzoom")!;
+    expect(fiveYearCents(lz)).toBe(5 * 24900);
+  });
   it("has one page per competitor and resolves its slug", () => {
     expect(COMPETITORS.map((c) => comparePath(c))).toEqual([
       "/compare/filewell-vs-legalzoom",
       "/compare/filewell-vs-zenbusiness",
       "/compare/filewell-vs-northwest",
+      "/compare/filewell-vs-bizee",
+      "/compare/filewell-vs-harbor-compliance",
     ]);
     expect(competitorBySlugPath("filewell-vs-zenbusiness")?.name).toBe("ZenBusiness");
     expect(competitorBySlugPath("zenbusiness")).toBeNull();

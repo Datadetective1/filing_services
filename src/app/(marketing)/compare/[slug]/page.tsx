@@ -9,7 +9,7 @@ import { Container } from "@/components/ui/surface";
 import { site } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
 import { businessServicesIndexable } from "@/lib/registered-agent/sales";
-import { checkedLabel, comparePath, COMPETITORS, competitorBySlugPath, type CompetitorFacts } from "@/lib/seo/compare";
+import { checkedLabel, comparePath, COMPETITORS, competitorBySlugPath, fiveYearCents, type CompetitorFacts } from "@/lib/seo/compare";
 import { filewellFacts } from "@/lib/seo/compare-filewell";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -35,6 +35,12 @@ export async function generateMetadata({ params }: PageProps<"/compare/[slug]">)
     absoluteTitle: true,
     noindex: !f || !businessServicesIndexable(),
   });
+}
+
+/** "LegalZoom, ZenBusiness and Northwest Registered Agent". */
+function trademarkLine(): string {
+  const names = COMPETITORS.map((x) => x.name);
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names.join("");
 }
 
 function money(cents: number) {
@@ -87,6 +93,11 @@ export default async function ComparePage({ params }: PageProps<"/compare/[slug]
   const rows: { label: string; ours: string; theirs: string }[] = [
     { label: "Registered agent, first year", ours, theirs: c.raFirstYear },
     { label: "Registered agent, each renewal", ours: `${ours}, same as the first year`, theirs: c.raRenewal },
+    {
+      label: "Registered agent, five years",
+      ours: money(f.raCents * 5),
+      theirs: `${money(fiveYearCents(c))}${c.raTwoYearNote ? ` ${c.raTwoYearNote}` : ""}, at the renewal price listed today`,
+    },
     { label: "Switching from another agent", ours: "State fee only, our filing included", theirs: c.switching },
     { label: "Annual report filing", ours: f.report, theirs: c.report },
   ];
@@ -209,7 +220,7 @@ export default async function ComparePage({ params }: PageProps<"/compare/[slug]
             ))}
           </ul>
           <p className="max-w-[70ch] text-[13px] leading-6 text-subtle">
-            LegalZoom, ZenBusiness and Northwest Registered Agent are trademarks of their owners. {site.name} isn&apos;t affiliated with or
+            {trademarkLine()} are trademarks of their owners. {site.name} isn&apos;t affiliated with or
             endorsed by them.
           </p>
           <Link href="/registered-agent" className="inline-flex w-fit items-center gap-2 text-[15px] font-semibold text-accent">

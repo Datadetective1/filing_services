@@ -20,6 +20,8 @@ export interface CompetitorFacts {
   raTwoYearCents: number;
   /** Whether the two-year figure leaves out a fee their page mentions. */
   raTwoYearNote?: string;
+  /** Each later year, in cents, as listed (for the five-year figure). */
+  raRenewalCents: number;
   /** Annual report filing, their fee. */
   report: string;
   /** Switching agents, when their page says. */
@@ -37,6 +39,7 @@ export const COMPETITORS: CompetitorFacts[] = [
     raFirstYear: "$249",
     raRenewal: "$249, auto-renews at the purchase rate (LegalZoom says the renewal rate is subject to change)",
     raTwoYearCents: 49800,
+    raRenewalCents: 24900,
     report: "$99 plus state filing fees",
     switching: "Paperwork and state fees covered",
     theyInclude: [
@@ -51,6 +54,7 @@ export const COMPETITORS: CompetitorFacts[] = [
     raFirstYear: "$99 plus state fees",
     raRenewal: "$199",
     raTwoYearCents: 29800,
+    raRenewalCents: 19900,
     raTwoYearNote: "plus the first year's state fees",
     report: "$100 plus state fees",
     switching: "Not stated on the pages we read",
@@ -66,6 +70,7 @@ export const COMPETITORS: CompetitorFacts[] = [
     raFirstYear: "$125",
     raRenewal: "$125 ($100 a year per state for five or more states)",
     raTwoYearCents: 25000,
+    raRenewalCents: 12500,
     report: "$100 plus state fees",
     switching: "Not stated on the pages we read",
     theyInclude: [
@@ -74,7 +79,44 @@ export const COMPETITORS: CompetitorFacts[] = [
     ],
     sources: ["Northwest Registered Agent, Registered Agent page", "Northwest Registered Agent, Annual Report Service page"],
   },
+  {
+    slug: "bizee",
+    name: "Bizee",
+    raFirstYear: "$149 on its own (free the first year when you form with Bizee)",
+    raRenewal: "$149",
+    raTwoYearCents: 29800,
+    raRenewalCents: 14900,
+    raTwoYearNote: "on its own, without forming there",
+    report: "A flat fee, but no price shown on the pages we read",
+    switching: "Not stated on the pages we read",
+    theyInclude: [
+      "A free first year of registered agent when you form your business with Bizee.",
+      "Formation packages starting at $0 plus the state fee.",
+    ],
+    sources: ["Bizee, Registered Agent page", "Bizee, Texas Registered Agent page", "Bizee, Annual Report page"],
+  },
+  {
+    slug: "harbor-compliance",
+    name: "Harbor Compliance",
+    raFirstYear: "$99 for new customers",
+    raRenewal: "$159",
+    raTwoYearCents: 25800,
+    raRenewalCents: 15900,
+    report: "$199 per state plus filing fees",
+    switching: "Help with switching offered, fee not stated",
+    theyInclude: [
+      "A lower first year for registered agent: $99 for new customers. It renews at $159.",
+      "Two or three years prepaid at $99 a year, then $159.",
+      "Volume discounts on annual reports when you order online.",
+    ],
+    sources: ["Harbor Compliance, Registered Agent Service page", "Harbor Compliance, Annual Report page"],
+  },
 ];
+
+/** First year plus four renewals at the listed renewal price, in cents, before state fees. */
+export function fiveYearCents(c: CompetitorFacts): number {
+  return c.raTwoYearCents + 3 * c.raRenewalCents;
+}
 
 export function competitorBySlug(slug: string): CompetitorFacts | null {
   return COMPETITORS.find((c) => c.slug === slug) ?? null;
