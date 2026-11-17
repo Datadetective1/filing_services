@@ -230,3 +230,21 @@ describe("no cold outreach is possible from the acquisition tools", () => {
     expect(lib).not.toMatch(/state_entity_records|prospects|contact_points/);
   });
 });
+
+describe("Pennsylvania after-the-deadline guide", () => {
+  const g = PA_GUIDES.find((x) => x.slug === "annual-report-after-deadline")!;
+
+  it("answers first: still fileable until December 31, no late fee, and a past year can't be filed", () => {
+    expect(g.answer[0]).toMatch(/^You can still file this year's Pennsylvania annual report until December 31/);
+    expect(g.answer[0]).toContain("no late fee");
+    expect(g.answer[0]).toContain("can no longer be filed");
+    expect(g.leadWithPrice).toBe(true);
+    expect(g.checked).toBe("2026-11-17");
+  });
+
+  it("gives the reinstatement fees and says Filewell doesn't file reinstatements", () => {
+    const text = JSON.stringify(g);
+    expect(text).toContain("$35 online or $40 on paper, plus $15 for each missing annual report");
+    expect(text).toContain("Filewell doesn't file reinstatements");
+  });
+});

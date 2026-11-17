@@ -6,7 +6,7 @@ const GUIDES = [
   ["annual-report-deadline", "Pennsylvania annual report deadline"],
   ["annual-report-fee", "Pennsylvania annual report fee"],
   ["how-to-file-annual-report", "How to file a Pennsylvania annual report"],
-  ["annual-report-after-deadline", "Filing a Pennsylvania annual report after the deadline"],
+  ["annual-report-after-deadline", "Missed your Pennsylvania annual report deadline?"],
   ["business-search", "Pennsylvania business search"],
 ] as const;
 
