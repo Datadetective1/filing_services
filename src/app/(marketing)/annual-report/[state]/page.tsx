@@ -57,7 +57,7 @@ import {
   stateFaq,
   stateWindowSentence,
 } from "@/lib/seo/content";
-import { ENTITY_COPY, joinList } from "@/lib/seo/entities";
+import { ENTITY_COPY, article, joinList } from "@/lib/seo/entities";
 import { breadcrumbJsonLd, faqJsonLd, graph, serviceJsonLd } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { guideSet } from "@/lib/seo/state-guides";
@@ -133,12 +133,14 @@ export default async function StateAnnualReportPage({ params }: PageProps<"/annu
   );
 }
 
+const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
+
 /** "A New Jersey LLC annual report is $174 total with Filewell, including New Jersey's $75 state fee." */
 function offerLlcTotal(name: string, offer: ProviderReportOffer | null): string | null {
   const fee = offer?.open.feeCents.llc;
   if (!offer || fee === undefined) return null;
   const money = (c: number) => formatCents(c, { trimZeros: true });
-  return `A ${name} LLC annual report is ${money(offer.serviceCents + fee)} total with ${site.name}, including ${name}'s ${money(fee)} state fee.`;
+  return `${cap(article(name))} ${name} LLC annual report is ${money(offer.serviceCents + fee)} total with ${site.name}, including ${name}'s ${money(fee)} state fee.`;
 }
 
 /** "$75", or "$75 for LLCs and $100 for corporations". */
@@ -299,7 +301,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
           sellable && exampleQuote && exampleRule ? (
             <p>
               <strong className="font-semibold text-fg">
-                A {j.name} {ENTITY_COPY[exampleRule.entityType].singular} annual report is {formatCents(exampleQuote.totalCents, { trimZeros: true })} total
+                {cap(article(j.name))} {j.name} {ENTITY_COPY[exampleRule.entityType].singular} annual report is {formatCents(exampleQuote.totalCents, { trimZeros: true })} total
                 with {site.name}, including {j.name}&apos;s {formatCents(exampleRule.stateFeeCents, { trimZeros: true })} state fee.
               </strong>{" "}
               Reports are due {dueSummary(rules)}. A person on our team checks yours before it goes in, and the state&apos;s confirmation goes in
@@ -308,7 +310,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
           ) : partner && partner.open.feeCents.llc !== undefined ? (
             <p>
               <strong className="font-semibold text-fg">
-                A {j.name} LLC annual report is {formatCents(partner.serviceCents + partner.open.feeCents.llc, { trimZeros: true })} total with{" "}
+                {cap(article(j.name))} {j.name} LLC annual report is {formatCents(partner.serviceCents + partner.open.feeCents.llc, { trimZeros: true })} total with{" "}
                 {site.name}, including {j.name}&apos;s {formatCents(partner.open.feeCents.llc, { trimZeros: true })} state fee.
               </strong>{" "}
               Reports are due {dueSummary(rules)}. A person on our team reviews yours before it goes in, and you get the state&apos;s confirmation.
