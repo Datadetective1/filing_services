@@ -133,6 +133,14 @@ export default async function StateAnnualReportPage({ params }: PageProps<"/annu
   );
 }
 
+/** "A New Jersey LLC annual report is $174 total with Filewell, including New Jersey's $75 state fee." */
+function offerLlcTotal(name: string, offer: ProviderReportOffer | null): string | null {
+  const fee = offer?.open.feeCents.llc;
+  if (!offer || fee === undefined) return null;
+  const money = (c: number) => formatCents(c, { trimZeros: true });
+  return `A ${name} LLC annual report is ${money(offer.serviceCents + fee)} total with ${site.name}, including ${name}'s ${money(fee)} state fee.`;
+}
+
 /** "$75", or "$75 for LLCs and $100 for corporations". */
 function providerFeeText(offer: ProviderReportOffer): string {
   const fees = offer.types.map((t) => ({ t, cents: offer.open.feeCents[t] ?? 0 }));
@@ -149,7 +157,12 @@ function providerDueText(code: string): string | null {
 
 /** The search snippet for a state with a checked answer: the answer, plus our price where we file it. */
 function answerSnippet(a: StateAnswer, offer: ProviderReportOffer | null): { title: string; description: string } {
-  const price = offer ? ` Filewell files it for ${formatCents(offer.serviceCents, { trimZeros: true })} + the state fee.` : "";
+  const llc = offer?.open.feeCents.llc;
+  const price = offer
+    ? llc !== undefined
+      ? ` Filewell files an LLC's for ${formatCents(offer.serviceCents + llc, { trimZeros: true })} total.`
+      : ` Filewell files it for ${formatCents(offer.serviceCents, { trimZeros: true })} + the state fee.`
+    : "";
   const description = `${a.description}${price}`;
   return { title: a.title, description: description.length <= 160 ? description : a.description };
 }
@@ -291,6 +304,14 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
               </strong>{" "}
               Reports are due {dueSummary(rules)}. A person on our team checks yours before it goes in, and the state&apos;s confirmation goes in
               your dashboard.
+            </p>
+          ) : partner && partner.open.feeCents.llc !== undefined ? (
+            <p>
+              <strong className="font-semibold text-fg">
+                A {j.name} LLC annual report is {formatCents(partner.serviceCents + partner.open.feeCents.llc, { trimZeros: true })} total with{" "}
+                {site.name}, including {j.name}&apos;s {formatCents(partner.open.feeCents.llc, { trimZeros: true })} state fee.
+              </strong>{" "}
+              Reports are due {dueSummary(rules)}. A person on our team reviews yours before it goes in, and you get the state&apos;s confirmation.
             </p>
           ) : (
           <p>
@@ -726,6 +747,7 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
   const answer = stateAnswer(j.code);
   // Where we can compute the due date, the free reminder replaces the "tell me when it's ready" list.
   const reminders = reminderSignupOptions(j.code) !== null;
+  const llcTotal = offerLlcTotal(j.name, offer);
   const crumbs = [
     { name: "Home", path: "/" },
     { name: "Annual reports", path: "/annual-report" },
@@ -738,7 +760,12 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
         breadcrumbs={<Breadcrumbs items={crumbs} />}
         title={`${j.name} annual report`}
         lede={
-          answer ? (
+          answer && llcTotal ? (
+            <p>
+              <strong className="font-semibold text-fg">{llcTotal}</strong> {answer.answer} A person on our team reviews yours before it goes in,
+              and you get the state&apos;s confirmation.
+            </p>
+          ) : answer ? (
             <p>
               <strong className="font-semibold text-fg">{answer.answer}</strong>{" "}
               {offer
@@ -746,6 +773,12 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
                 : reminders
                   ? `We don't file ${j.name} reports yet, but we can email you before yours is due. Free, no account.`
                   : `We don't file ${j.name} reports yet.`}
+            </p>
+          ) : offer && llcTotal ? (
+            <p>
+              <strong className="font-semibold text-fg">{llcTotal}</strong>{" "}
+              {providerDueText(j.code) ? `${j.name} annual reports are due ${providerDueText(j.code)}. ` : ""}A person on our team reviews yours
+              before it goes in, and you get the state&apos;s confirmation when it&apos;s done.
             </p>
           ) : offer ? (
             <p>
@@ -824,6 +857,21 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
               {formatCents(offer.serviceCents + (offer.open.feeCents.llc ?? 0), { trimZeros: true })} in total, shown as two lines before you pay.
               You check the details, a person on our team reviews them, and we send you the state&apos;s confirmation.
             </p>
+          </Container>
+        </section>
+      ) : null}
+
+      {answer?.late?.length ? (
+        <section aria-labelledby="late-title" className="pb-10 sm:pb-14">
+          <Container className="grid max-w-3xl gap-3">
+            <h2 id="late-title" className="text-[26px] font-semibold leading-[1.1] text-fg sm:text-[34px]">
+              Missed the {j.name} deadline?
+            </h2>
+            {answer.late.map((p) => (
+              <p key={p.slice(0, 40)} className="text-[17px] leading-relaxed text-muted">
+                {p}
+              </p>
+            ))}
           </Container>
         </section>
       ) : null}

@@ -44,6 +44,14 @@ function washington(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnipp
   const fee = singleFee(rules);
   if (fee === null) return null;
   const due = `Due by the end of the month your business was formed, with a ${money(fee)} state fee.`;
+  if (offer.filingServiceCents !== undefined) {
+    const late = rules.every((r) => r.lateFeeCents === rules[0].lateFeeCents) && rules[0].lateFeeCents ? ` A ${money(rules[0].lateFeeCents)} late fee applies after that.` : "";
+    const lead = `${money(offer.filingServiceCents + fee)} total with Filewell, including Washington's ${money(fee)} state fee. Due by the end of the month your business was formed.`;
+    return {
+      title: `Washington Annual Report: ${money(fee)} Fee, Due Date & Filing`,
+      description: (lead + late).length <= MAX_DESCRIPTION ? lead + late : lead,
+    };
+  }
   const pitch =
     offer.filingServiceCents !== undefined
       ? `Filewell files your Washington annual report for ${money(offer.filingServiceCents)} + the state fee.`
@@ -114,6 +122,10 @@ function florida(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet 
   const late = llc.lateFeeCents ? ` A ${money(llc.lateFeeCents)} late fee applies after that.` : "";
   const pitch =
     offer.filingServiceCents !== undefined ? ` Filewell files yours for ${money(offer.filingServiceCents)} + the state fee.` : "";
+  if (offer.filingServiceCents !== undefined) {
+    const lead = `${money(offer.filingServiceCents + llc.stateFeeCents)} total with Filewell, including Florida's ${money(llc.stateFeeCents)} LLC fee. Due ${due}.${late}`;
+    if (lead.length <= MAX_DESCRIPTION) return { title: `Florida Annual Report: Due ${due}, ${money(llc.stateFeeCents)} LLC Fee & Filing`, description: lead };
+  }
   const description = `Florida LLC annual reports are due ${due}, with a ${money(llc.stateFeeCents)} state fee.${late}${pitch}`;
   return {
     title: `Florida Annual Report: Due ${due}, ${money(llc.stateFeeCents)} LLC Fee & Filing`,

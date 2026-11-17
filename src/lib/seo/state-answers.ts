@@ -21,6 +21,8 @@ export interface StateAnswer {
   more: string[];
   /** The status panel: term and value, short. */
   facts: { term: string; value: string }[];
+  /** What happens after a missed due date, a short paragraph or two. Only facts quoted in `sources`. */
+  late?: string[];
   /** ISO date the official pages were read. */
   checked: string;
   /** Where each fact was read, with the sentence quoted. Not linked from sales pages. */
@@ -28,6 +30,61 @@ export interface StateAnswer {
 }
 
 export const STATE_ANSWERS: Record<string, StateAnswer> = {
+  IL: {
+    title: "Illinois Annual Report: $75 LLC Fee, Due Before Your Anniversary Month",
+    description:
+      "Illinois LLC annual reports are due before your anniversary month each year. $75 fee, and a $100 penalty after 60 days.",
+    answer:
+      "An Illinois LLC's annual report is due before the first day of its anniversary month each year, the month it was organized. The state fee is $75.",
+    llc: "The anniversary month is the month the LLC was organized in Illinois, and the report is due before that month starts.",
+    more: [],
+    facts: [
+      { term: "Due", value: "Before your anniversary month" },
+      { term: "LLC fee", value: "$75" },
+      { term: "Late", value: "$100 penalty after 60 days" },
+    ],
+    late: [
+      "A report not filed within 60 days of the due date puts the LLC in penalty status with a $100 late penalty, which Illinois says can't be waived. After 120 days the LLC is administratively dissolved.",
+      "Reinstating costs $200, plus $100 for each year of delinquency from the second year, and every missed annual report must be filed with it.",
+    ],
+    checked: "2026-11-17",
+    sources: [
+      { url: "https://www.ilsos.gov/content/dam/publications/pdf_publications/c334.pdf", quote: "The annual report is due before the first day of the LLC's anniversary month each year. The anniversary month is the month in which the LLC was organized." },
+      { url: "https://www.ilsos.gov/content/dam/publications/pdf_publications/llc501.pdf", quote: "Filing Fee: $75" },
+      { url: "https://www.ilsos.gov/content/dam/publications/pdf_publications/c334.pdf", quote: "Failure to file an annual report within 60 days of the due date will result in the company being placed in penalty status and assessed a late-filing penalty of $100." },
+      { url: "https://apps.ilsos.gov/llcarpt/instructions.jsp", quote: "Note that the Act contains no provision for the waiver or abatement of this penalty." },
+      { url: "https://www.ilsos.gov/content/dam/publications/pdf_publications/c334.pdf", quote: "Failure to file an annual report within 120 days from date of delinquency will result in the company being administratively dissolved." },
+      { url: "https://www.ilsos.gov/content/dam/publications/pdf_publications/c334.pdf", quote: "Plus $100 for each year or fraction thereof beginning with the second year of delinquency until the company is returned to good standing." },
+      { url: "https://www.ilsos.gov/departments/business-services/reinstatement/llcreinstatement.html", quote: "All annual reports (maximum of six years) and all fees due must be included when filing for reinstatement." },
+    ],
+  },
+  NJ: {
+    title: "New Jersey Annual Report: $75 Fee, Due in Your Formation Month",
+    description:
+      "New Jersey annual reports are due by the end of the month your business was formed, every year. The state fee is $75.",
+    answer:
+      "New Jersey annual reports are due every year by the last day of the month the business was originally formed. The state fee is $75 for LLCs and corporations.",
+    llc: "A New Jersey LLC files by the end of its formation month each year and pays $75. The state says the duty to file is the business's own, even without a reminder.",
+    more: [],
+    facts: [
+      { term: "Due", value: "Last day of your formation month" },
+      { term: "State fee", value: "$75 for LLCs and corporations" },
+      { term: "Missed 2 years", value: "Can be revoked" },
+    ],
+    late: [
+      "After two missed annual reports in a row, New Jersey can revoke the business's charter or its authority to do business in the state.",
+      "To be reinstated, a business files and pays for every missed report, plus a reinstatement fee.",
+    ],
+    checked: "2026-11-17",
+    sources: [
+      { url: "https://business.nj.gov/pages/filings-and-accounting", quote: "Firms have until the last day of the month during which they originally filed for the start of their business" },
+      { url: "https://business.nj.gov/pages/filings-and-accounting", quote: "The responsibility to file falls on the business, even if you fail to receive any notification from the State." },
+      { url: "https://www.nj.gov/treasury/revenue/fees.shtml", quote: "Annual Report $75.00" },
+      { url: "https://www.nj.gov/treasury/revenue/reinstatefees.shtml", quote: "All Delinquent Annual Reports (variable); Current Annual Report-- $75.00" },
+      { url: "https://nj.gov/treasury/revenue/reinstate.shtml", quote: "Businesses that fail to file annual reports for two consecutive years may have their charter voided" },
+      { url: "https://account.business.nj.gov/filings/annual-report", quote: "To be reinstated, businesses will need to file and pay for past reports as well as pay a reinstatement fee." },
+    ],
+  },
   DE: {
     title: "Delaware Annual Report: $400 LLC Tax by June 1, Corporations by March 1",
     description:
@@ -41,6 +98,10 @@ export const STATE_ANSWERS: Record<string, StateAnswer> = {
       { term: "Corporations", value: "$50 report plus franchise tax, due March 1" },
       { term: "Late", value: "$200 penalty plus 1.5% a month" },
     ],
+    late: [
+      "Paying an LLC's annual tax after June 1 adds a $200 penalty plus 1.5% interest a month on the tax and penalty. An LLC that doesn't pay stops being in good standing.",
+      "A corporation that files its annual report after March 1 pays a $200 penalty, plus 1.5% interest a month on unpaid tax.",
+    ],
     checked: "2026-11-17",
     sources: [
       { url: "https://corp.delaware.gov/alt-entitytaxinstructions/", quote: "There is no requirement to file an Annual Report." },
@@ -51,6 +112,9 @@ export const STATE_ANSWERS: Record<string, StateAnswer> = {
       { url: "https://corp.delaware.gov/paytaxes/", quote: "Non-Exempt Domestic Corporations – $50.00." },
       { url: "https://corp.delaware.gov/paytaxes/", quote: "All active Domestic Corporation Annual Reports and Franchise Taxes for the prior year are due annually on or before March 1st" },
       { url: "https://corp.delaware.gov/paytaxes/", quote: "The minimum tax is currently $175.00, using the Authorized Shares Method" },
+      { url: "https://delcode.delaware.gov/title6/c018/sc11/index.html", quote: "shall cease to be in good standing as a domestic limited liability company." },
+      { url: "https://corp.delaware.gov/frtax/", quote: "The penalty for not filing a completed Annual Report on or before March 1st is $200.00" },
+      { url: "https://corp.delaware.gov/frtax/", quote: "Interest at 1.5% per month is applied to any unpaid tax balance." },
     ],
   },
   MD: {
@@ -64,11 +128,21 @@ export const STATE_ANSWERS: Record<string, StateAnswer> = {
       { term: "Due", value: "April 15 each year" },
       { term: "State fee", value: "$300 for LLCs and stock corporations" },
     ],
+    late: [
+      "A report filed after April 15 gets a penalty of 1/10 of 1% of the county assessment, plus 2% of that penalty for every 30 days late.",
+      "Not filing leads to forfeiture of the business. Maryland sends a final notice in early October and forfeits the business in December. Bringing it back means filing every missed report, paying the late penalties and a $100 fee (Articles of Revival for a corporation, Articles of Reinstatement for an LLC formed in Maryland).",
+    ],
     checked: "2026-11-17",
     sources: [
       { url: "https://dat.maryland.gov/SDAT%20Forms/PPR_Forms/2026_Form1.pdf", quote: "Due April 15th" },
       { url: "https://dat.maryland.gov/SDAT%20Forms/PPR_Forms/2026_Form1.pdf", quote: "Domestic or Foreign Limited Liability Company (W) or (Z) $300" },
       { url: "https://dat.maryland.gov/SDAT%20Forms/PPR_Forms/2026_Form1.pdf", quote: "Domestic or Foreign Stock Corporation (D) or (F) $300" },
+      { url: "https://dat.maryland.gov/SDAT%20Forms/PPR_Forms/2026_Form1.pdf", quote: "will receive an initial penalty of 1/10 of one percent of the county assessment, plus interest at the rate of two percent of the initial penalty amount for each 30 days or part thereof that the return is late." },
+      { url: "https://dat.maryland.gov/SDAT%20Forms/PPR_Forms/2026_Form1.pdf", quote: "failure to file this report will result in forfeiture of the Maryland charter or the right to do business in Maryland." },
+      { url: "https://dat.maryland.gov/businesses/pages/frequently-asked-forfeiture-questions.aspx", quote: "Final Forfeiture Notice in early October and eventual forfeiture in December." },
+      { url: "https://dat.maryland.gov/SDAT%20Forms/Articles_of_Revival.pdf", quote: "The fee to file Articles of Revival for all corporations is $ 100." },
+      { url: "https://dat.maryland.gov/businesses/documents/fees.pdf", quote: "Articles of Reinstatement $100 (domestic)" },
+      { url: "https://dat.maryland.gov/SDAT%20Forms/Articles_of_Revival.pdf", quote: "All penalties for the late filing of the reports must be paid." },
     ],
   },
   MA: {
@@ -110,11 +184,20 @@ export const STATE_ANSWERS: Record<string, StateAnswer> = {
       { term: "LLCs", value: "$200 on paper, $203 online" },
       { term: "Corporations", value: "$25 on paper, $21 online" },
     ],
+    late: [
+      "An LLC that hasn't filed 60 days after April 15 can be administratively dissolved. The state mails a notice first, and filing within 60 days of that notice avoids dissolution.",
+      "Reinstating a dissolved business costs a $100 application fee plus the fee for each missing annual report ($200 a year for an LLC).",
+    ],
     checked: "2026-11-17",
     sources: [
       { url: "https://sosnc.gov/frequently_asked_questions/by_title/_BRD_FAQ_Annual_Reports", quote: "Your report is due on April 15th of each year after the year of creation." },
       { url: "https://sosnc.gov/frequently_asked_questions/by_title/_BRD_FAQ_Annual_Reports", quote: "Fee includes a $3.00 electronic filing fee for credit cards." },
       { url: "https://www.ncleg.gov/EnactedLegislation/Statutes/PDF/BySection/Chapter_57D/GS_57D-2-24.pdf", quote: "by April 15 of each subsequent year until" },
+      { url: "https://www.ncleg.gov/EnactedLegislation/Statutes/PDF/BySection/Chapter_57D/GS_57D-6-06.pdf", quote: "The LLC does not deliver its annual report to the Secretary of State on or before the 60th day after it is due." },
+      { url: "https://www.ncleg.gov/EnactedLegislation/Statutes/PDF/BySection/Chapter_57D/GS_57D-6-06.pdf", quote: "If, within 60 days after the notice is mailed, the LLC does not correct each ground for dissolution" },
+      { url: "https://www.sosnc.gov/manual/assets/sos/pdf/Administrative_Dissolution.pdf", quote: "To avoid administrative dissolution, submit the required reports within 60 days." },
+      { url: "https://www.sosnc.gov/manual/Administrative_Dissolution/page6", quote: "including a $100 application fee and additional fees for any overdue annual reports." },
+      { url: "https://www.sosnc.gov/divisions/business_registration/Reinstatement_and_Requalification_Paper_Domestic", quote: "You must file an annual report and pay the applicable filing fee for each year that is missing." },
     ],
   },
   NH: {
@@ -130,6 +213,10 @@ export const STATE_ANSWERS: Record<string, StateAnswer> = {
       { term: "State fee", value: "$100 for LLCs and corporations" },
       { term: "Late", value: "$50 after April 1" },
     ],
+    late: [
+      "A report filed after April 1 adds a $50 late fee. A business that misses two years in a row is administratively dissolved.",
+      "Reinstating a dissolved LLC costs $135.",
+    ],
     checked: "2026-11-17",
     sources: [
       { url: "https://www.sos.nh.gov/corporations-0/business-faqs", quote: "is due by April 1st of each year following the year of registration." },
@@ -139,6 +226,9 @@ export const STATE_ANSWERS: Record<string, StateAnswer> = {
         url: "https://www.sos.nh.gov/corporations-0/forms-and-fees/limited-liability-companies",
         quote: "all fees received electronically by the State of New Hampshire will be charged an additional $2.00 handling charge",
       },
+      { url: "https://www.sos.nh.gov/corporations-0/business-faqs", quote: "After failing to file for two consecutive years, the business will be 'Administratively Dissolved' by our office." },
+      { url: "https://gc.nh.gov/rsa/html/XXVIII/304-C/304-C-191.htm", quote: "for failure or refusal to file an annual report or pay the filing fee on or before April 1 of any year, an additional late filing fee in the amount of $50;" },
+      { url: "https://gc.nh.gov/rsa/html/XXVIII/304-C/304-C-191.htm", quote: "upon receipt for filing of an application for reinstatement under RSA 304-C:138, I, a fee of $135;" },
     ],
   },
   TX: {
