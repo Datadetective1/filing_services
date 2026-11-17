@@ -33,3 +33,24 @@ describe("state formation pages", () => {
     expect(formationStatePath("texas")).toBe("/business-formation/texas");
   });
 });
+
+describe("which states get a formation page", () => {
+  it("skips states with a formation blocker wherever real money can be taken", async () => {
+    const { vi } = await import("vitest");
+    for (const [k, v] of Object.entries({
+      FORMATION_SALES_ALL: "true",
+      RA_PROVIDER_AGREEMENT_SIGNED: "true",
+      RA_FULFILLMENT_TESTED: "true",
+      BUSINESS_SERVICES_PAGES: "true",
+      NEXT_PUBLIC_LEGAL_ENTITY: "Harborlune LLC",
+      RA_ALERTS_MAILBOX: "alerts@example.org",
+      PAYMENTS_LIVE_ENABLED: "true",
+    }))
+      vi.stubEnv(k, v);
+    const { formationOpenStates } = await import("@/lib/registered-agent/sales");
+    const codes = formationOpenStates().map((s) => s.code);
+    for (const held of ["AL", "AZ", "CA", "NE", "NV", "NJ", "NY", "WV"]) expect(codes).not.toContain(held);
+    expect(codes).toContain("TX");
+    vi.unstubAllEnvs();
+  });
+});
