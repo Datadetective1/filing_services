@@ -74,6 +74,12 @@ describe("GET /annual-report/start", () => {
     expect(h.cleared).toEqual(["intent", "intent"]);
   });
 
+  it("keeps the state and entity type a 'Have us file it' button was for, and drops unknown ones", async () => {
+    const { GET } = await import("@/app/(marketing)/annual-report/start/route");
+    expect((await GET(req("/annual-report/start?state=pa&entity=llc"))).headers.get("location")).toBe("http://localhost/find?state=PA&entity=llc");
+    expect((await GET(req("/annual-report/start?state=PA&entity=spaceship"))).headers.get("location")).toBe("http://localhost/find?state=PA");
+  });
+
   it("does nothing on a prefetch", async () => {
     const { GET } = await import("@/app/(marketing)/annual-report/start/route");
     const res = await GET(req("/annual-report/start", { "next-router-prefetch": "1" }));

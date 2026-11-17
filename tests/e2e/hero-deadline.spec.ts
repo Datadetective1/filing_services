@@ -23,6 +23,6 @@ test("homepage hero shows the next Pennsylvania deadline, and its CTA carries th
   await expect(hero).toContainText(`Due ${formatLongDate(dueDate)}`);
 
   const cta = page.getByRole("link", { name: "Have us file it" });
-  await expect(cta).toHaveAttribute("href", `/find?state=PA&entity=${rule.entityType}`);
+  await expect(cta).toHaveAttribute("href", `/annual-report/start?state=PA&entity=${rule.entityType}`);
   await expect(page.locator("main")).toContainText(`Pennsylvania ${ENTITY_COPY[rule.entityType].singular} annual report`);
 });

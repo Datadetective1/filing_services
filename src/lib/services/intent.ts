@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { SERVICE_INTENT_COOKIE } from "./intent-cookie";
 
 /**
  * Which service a visitor came for, so the business lookup (built for annual reports) can
@@ -7,7 +8,7 @@ import { cookies } from "next/headers";
  * one day, and only ever "registered_agent": it changes which offer is shown first, nothing else.
  */
 
-const COOKIE = "fw_service_intent";
+const COOKIE = SERVICE_INTENT_COOKIE;
 export type ServiceIntent = "registered_agent";
 
 export async function setServiceIntent(intent: ServiceIntent): Promise<void> {

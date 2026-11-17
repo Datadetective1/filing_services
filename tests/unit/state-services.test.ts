@@ -102,7 +102,7 @@ describe("state services in production", () => {
       ["LLC", 5600],
       ["Corporation", 5600],
     ]);
-    expect(report.options[0].href).toBe("/find?state=PA&entity=llc");
+    expect(report.options[0].href).toBe("/annual-report/start?state=PA&entity=llc");
     expect(v.notOffered).toEqual([]);
   });
 
