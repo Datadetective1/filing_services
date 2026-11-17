@@ -30,6 +30,8 @@ export const site = {
   description:
     "Know what your business needs to file, when it's due, and get it handled. A private filing service for U.S. annual reports.",
   supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || "support@getfilewell.com",
+  /** Public Trustpilot profile: linked from the About page, Organization markup and finished-work emails. Empty disables all three. */
+  trustpilotUrl: process.env.NEXT_PUBLIC_TRUSTPILOT_URL?.trim() ?? "https://www.trustpilot.com/review/getfilewell.com",
   disclaimer: "Private filing service. Not affiliated with or endorsed by any government agency.",
 };
 

@@ -1,4 +1,4 @@
-import { Buildings, EnvelopeSimple, IdentificationCard, MapPin, ShieldCheck, UserCircle } from "@phosphor-icons/react/dist/ssr";
+import { Buildings, EnvelopeSimple, IdentificationCard, MapPin, ShieldCheck, Star, UserCircle } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -97,6 +97,13 @@ export default function AboutPage() {
                   {site.supportEmail}
                 </a>
               </Fact>
+              {site.trustpilotUrl ? (
+                <Fact icon={<Star size={20} weight="duotone" />} term="Reviews">
+                  <a href={site.trustpilotUrl} className={textLinkClasses} target="_blank" rel="noopener">
+                    Read or leave a review on Trustpilot
+                  </a>
+                </Fact>
+              ) : null}
             </dl>
           </div>
 

@@ -43,6 +43,7 @@ export function organizationJsonLd(): Json {
     email: site.supportEmail,
     areaServed: { "@type": "Country", name: "United States" },
     contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: site.supportEmail, availableLanguage: "en" },
+    ...(site.trustpilotUrl ? { sameAs: [site.trustpilotUrl] } : {}),
   };
 }
 

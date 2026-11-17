@@ -1,5 +1,5 @@
 import "server-only";
-import { absoluteUrl } from "@/config/site";
+import { absoluteUrl, site } from "@/config/site";
 import { getEmailProvider } from "@/lib/email/provider";
 import { isReservedTestAddress, RESERVED_ADDRESS_REASON } from "@/lib/email/recipients";
 import { renderEmail } from "@/lib/email/render";
@@ -20,6 +20,12 @@ export interface SendNotificationInput {
   /** When set, the email is recorded as "suppressed" with this reason and not delivered. */
   suppressReason?: string | null;
 }
+
+/**
+ * Emails that tell a customer their work is finished. Each carries the Trustpilot
+ * review link, sent to every customer alike, never filtered by how it went.
+ */
+export const REVIEW_TEMPLATE_KEYS: ReadonlySet<string> = new Set(["filing_accepted", "service_filing_completed", "service_active"]);
 
 export type SendResult =
   | { status: "sent" | "failed" | "suppressed"; notificationId: string }
@@ -119,6 +125,7 @@ export async function sendNotification(input: SendNotificationInput): Promise<Se
     ctaUrl,
     vars: input.vars,
     unsubscribeUrl,
+    reviewUrl: REVIEW_TEMPLATE_KEYS.has(input.templateKey) && site.trustpilotUrl ? site.trustpilotUrl : null,
     footerNote:
       template.category === "reminder"
         ? "You're receiving this because you track this business's filings with us."

@@ -96,3 +96,14 @@ describe("escapeHtml", () => {
     expect(escapeHtml(`&<>"'`)).toBe("&amp;&lt;&gt;&quot;&#39;");
   });
 });
+
+describe("renderEmail review link", () => {
+  it("shows a neutral review ask with the link only when given one", () => {
+    const withLink = render({ reviewUrl: "https://www.trustpilot.com/review/getfilewell.com" });
+    expect(withLink.text).toContain("How did we do?");
+    expect(withLink.text).toContain("Review us on Trustpilot: https://www.trustpilot.com/review/getfilewell.com");
+    expect(withLink.html).toContain('href="https://www.trustpilot.com/review/getfilewell.com"');
+    expect(withLink.text.indexOf("Trustpilot")).toBeLessThan(withLink.text.indexOf("----"));
+    expect(render().text).not.toContain("Trustpilot");
+  });
+});
