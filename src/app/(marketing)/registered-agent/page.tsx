@@ -7,6 +7,7 @@ import { JsonLd } from "@/components/marketing/json-ld";
 import { PageIntro, Section, SectionHeading } from "@/components/marketing/section";
 import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/surface";
+import { absoluteUrl } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
 import { raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
 import { bundleSalesOpen, businessServicesIndexable, businessServicesPagesEnabled } from "@/lib/registered-agent/sales";
@@ -72,16 +73,45 @@ export default async function RegisteredAgentPage() {
                 ? { name: "Registered agent service, one year", priceCents: ra, description: "Yearly price, the same at renewal. Any state fee for changing your agent is shown separately before you pay." }
                 : undefined,
           }),
+          ...(bundle !== undefined
+            ? [
+                {
+                  ...businessServiceJsonLd({
+                  name: "Registered agent plus annual report filing",
+                  serviceType: "Registered agent service with annual report filing",
+                  description: "One year of registered agent service plus filing the business's annual report, where Filewell files annual reports. The state's report fee is charged at cost when the report is filed.",
+                  path: "/registered-agent",
+                  offer: {
+                    name: "Registered agent plus annual report, one year",
+                    priceCents: bundle,
+                    description: "Yearly price plus the state's annual report fee, passed through at cost and shown before you pay.",
+                  },
+                  }),
+                  "@id": absoluteUrl("/registered-agent#bundle"),
+                },
+              ]
+            : []),
           faqJsonLd(REGISTERED_AGENT_FAQ),
         )}
       />
       <PageIntro
         breadcrumbs={<Breadcrumbs items={CRUMBS} />}
-        title={nationwide ? "Registered agent service in every state, one clear yearly price" : "Registered agent service, one clear yearly price"}
+        title={
+          <>
+            Registered agent <span className="mark-highlight">service</span>
+          </>
+        }
         lede={
           <p>
-            {ra !== undefined ? `${formatCents(ra, { trimZeros: true })} a year, and the same price when it renews. ` : ""}
-            We receive lawsuits and official notices for your business and put them in front of you. The registered agent on the state&apos;s record is our provider, {PROVIDER_LEGAL_NAME}
+            {ra !== undefined ? (
+              <strong className="font-semibold text-fg">
+                {formatCents(ra, { trimZeros: true })} a year{nationwide ? ` ${nationwide}` : ""}, and the same price every year it renews.{" "}
+              </strong>
+            ) : null}
+            We receive lawsuits and state notices for your LLC or corporation, scan them to your dashboard and email you. Switching from another
+            agent costs only the state&apos;s fee.
+            {bundle !== undefined ? ` With annual report filing included, it's ${formatCents(bundle, { trimZeros: true })} a year plus the state report fee.` : ""}{" "}
+            The registered agent on the state&apos;s record is our provider, {PROVIDER_LEGAL_NAME}
           </p>
         }
       />

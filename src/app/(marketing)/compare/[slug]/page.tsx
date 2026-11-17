@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
+import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { buttonClasses, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
@@ -11,7 +12,9 @@ import { formatCents } from "@/lib/domain/money";
 import { businessServicesIndexable } from "@/lib/registered-agent/sales";
 import { checkedLabel, comparePath, COMPETITORS, competitorBySlugPath, fiveYearCents, type CompetitorFacts } from "@/lib/seo/compare";
 import { filewellFacts } from "@/lib/seo/compare-filewell";
-import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
+import type { FaqItem } from "@/lib/compliance/types";
+import { BEST_OF_PATHS } from "@/lib/seo/best-of";
+import { breadcrumbJsonLd, businessServiceJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const dynamicParams = false;
@@ -45,6 +48,37 @@ function trademarkLine(): string {
 
 function money(cents: number) {
   return formatCents(cents, { trimZeros: true });
+}
+
+/** Questions people ask when choosing between the two, answered from the same facts as the table. */
+function compareFaq(c: CompetitorFacts, f: { raCents: number; report: string }): FaqItem[] {
+  const twoOurs = f.raCents * 2;
+  const firstTheirs = c.raTwoYearCents - c.raRenewalCents;
+  const cheaper = twoOurs < c.raTwoYearCents;
+  return [
+    {
+      q: `Is ${site.name} cheaper than ${c.name}?`,
+      a: cheaper
+        ? `For registered agent service, yes over two years: ${money(twoOurs)} at ${site.name} against ${money(c.raTwoYearCents)} at ${c.name}${c.raTwoYearNote ? ` ${c.raTwoYearNote}` : ""}, from the prices each lists. ${firstTheirs < f.raCents ? `${c.name}'s first year is lower, at ${money(firstTheirs)}.` : ""}`.trim()
+        : `Not over two years of registered agent service: ${money(twoOurs)} at ${site.name} against ${money(c.raTwoYearCents)} at ${c.name}${c.raTwoYearNote ? ` ${c.raTwoYearNote}` : ""}.`,
+    },
+    {
+      q: `Does ${c.name}'s registered agent price go up at renewal?`,
+      a: `${c.name} lists ${c.raFirstYear} for the first year and ${c.raRenewal} for each renewal. ${site.name} is ${money(f.raCents)} every year, the first year included.`,
+    },
+    {
+      q: `What does ${c.name} charge to file an annual report?`,
+      a: `${c.name}: ${c.report}. ${site.name}: ${f.report}. The state's own fee is added on top at both.`,
+    },
+    {
+      q: `What does ${c.name} offer that ${site.name} doesn't?`,
+      a: c.theyInclude.join(" "),
+    },
+    {
+      q: `How much does it cost to switch from ${c.name} to ${site.name}?`,
+      a: `Only the state's fee for changing your registered agent. ${site.name} files the change for you, and our filing is included.`,
+    },
+  ];
 }
 
 /** Two horizontal bars: two years of registered agent service, before any state fee. */
@@ -102,10 +136,23 @@ export default async function ComparePage({ params }: PageProps<"/compare/[slug]
     { label: "Annual report filing", ours: f.report, theirs: c.report },
   ];
   const others = COMPETITORS.filter((x) => x.slug !== c.slug);
+  const faq = compareFaq(c, f);
 
   return (
     <>
-      <JsonLd data={graph(breadcrumbJsonLd(crumbs))} />
+      <JsonLd
+        data={graph(
+          breadcrumbJsonLd(crumbs),
+          businessServiceJsonLd({
+            name: `${site.name} registered agent service`,
+            serviceType: "Registered agent service",
+            description: `Registered agent service for LLCs and corporations at ${ours} a year, the same at renewal.`,
+            path: comparePath(c),
+            offer: { name: "Registered agent service, one year", priceCents: f.raCents, description: "Yearly price, the same at renewal. State fees are passed through at cost." },
+          }),
+          faqJsonLd(faq),
+        )}
+      />
 
       <section aria-labelledby="compare-title" className="border-b border-border">
         <Container className="grid gap-10 pb-14 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-center lg:gap-14 lg:pb-20">
@@ -207,7 +254,19 @@ export default async function ComparePage({ params }: PageProps<"/compare/[slug]
         </Container>
       </section>
 
-      <section className="py-14 sm:py-20">
+      <section aria-labelledby="faq-title" className="py-14 sm:py-20">
+        <Container className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
+          <div className="grid content-start gap-3">
+            <h2 id="faq-title" className="text-[30px] font-semibold leading-[1.08] text-fg sm:text-[40px]">
+              {site.name} or {c.name}?
+            </h2>
+            <p className="text-[17px] leading-relaxed text-muted">The questions people ask before they choose, answered from the prices above.</p>
+          </div>
+          <FaqList items={faq} />
+        </Container>
+      </section>
+
+      <section className="border-t border-border py-14 sm:py-20">
         <Container className="grid gap-6">
           <p className="text-sm font-semibold text-fg">More comparisons</p>
           <ul className="flex flex-wrap gap-x-6 gap-y-2">
@@ -218,6 +277,16 @@ export default async function ComparePage({ params }: PageProps<"/compare/[slug]
                 </Link>
               </li>
             ))}
+            <li>
+              <Link href={BEST_OF_PATHS["registered-agent"]} className={textLinkClasses}>
+                Best registered agent services
+              </Link>
+            </li>
+            <li>
+              <Link href={BEST_OF_PATHS["annual-report"]} className={textLinkClasses}>
+                Best annual report filing services
+              </Link>
+            </li>
           </ul>
           <p className="max-w-[70ch] text-[13px] leading-6 text-subtle">
             {trademarkLine()} are trademarks of their owners. {site.name} isn&apos;t affiliated with or

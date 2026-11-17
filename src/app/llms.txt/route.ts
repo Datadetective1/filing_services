@@ -1,7 +1,9 @@
 import { absoluteUrl, site } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
 import { businessServicesIndexable } from "@/lib/registered-agent/sales";
+import { BEST_OF_PATHS } from "@/lib/seo/best-of";
 import { businessSearchStates } from "@/lib/seo/business-search";
+import { assumedNameNoticeText } from "@/lib/seo/legal";
 import { annualReportPlaces, pickableStates } from "@/lib/services/state-services";
 import { publicServicePrices } from "@/lib/services/public-prices";
 
@@ -45,6 +47,20 @@ export async function GET() {
     "",
     `- [Business search](${absoluteUrl("/business-search")}): live search of official business registers in ${searchStates.map((s) => s.name).join(", ")}.`,
     `- [Find what's due](${absoluteUrl("/find")}): a business's next annual report due date, state fee and source, with free email reminders.`,
+    "",
+    ...(services
+      ? [
+          "## Comparisons",
+          "",
+          `- [Best annual report filing services](${absoluteUrl(BEST_OF_PATHS["annual-report"])}): ${site.name}, LegalZoom, ZenBusiness, Northwest, Bizee and Harbor Compliance, prices read on each company's own site.`,
+          `- [Best registered agent services](${absoluteUrl(BEST_OF_PATHS["registered-agent"])}): first year, renewal and two-year total for the same six.`,
+          `- [Pennsylvania: file it yourself or use a service?](${absoluteUrl("/pennsylvania/file-yourself-or-use-a-service")}): $7 state fee on your own, or $56 total with ${site.name}.`,
+          "",
+        ]
+      : []),
+    "## Company",
+    "",
+    `- [About ${site.name}](${absoluteUrl("/about")}): ${assumedNameNoticeText() ?? `${site.name} is a private filing service.`}${site.postalAddress ? ` Mailing address: ${site.postalAddress}.` : ""} A person checks every filing before it goes to the state.`,
     "",
     "## More",
     "",

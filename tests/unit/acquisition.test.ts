@@ -159,6 +159,7 @@ describe("Pennsylvania guide pages", () => {
       "how-to-file-annual-report",
       "annual-report-after-deadline",
       "business-search",
+      "file-yourself-or-use-a-service",
     ]);
   });
 

@@ -24,6 +24,8 @@ export interface CompetitorFacts {
   raRenewalCents: number;
   /** Annual report filing, their fee. */
   report: string;
+  /** Their annual report fee in cents, before state fees, when their page states one. */
+  reportCents?: number;
   /** Switching agents, when their page says. */
   switching: string;
   /** Where they do more than Filewell, said plainly. */
@@ -41,6 +43,7 @@ export const COMPETITORS: CompetitorFacts[] = [
     raTwoYearCents: 49800,
     raRenewalCents: 24900,
     report: "$99 plus state filing fees",
+    reportCents: 9900,
     switching: "Paperwork and state fees covered",
     theyInclude: [
       "When you switch agents, LegalZoom says it covers the state fee. Filewell passes the state's fee through at cost.",
@@ -57,6 +60,7 @@ export const COMPETITORS: CompetitorFacts[] = [
     raRenewalCents: 19900,
     raTwoYearNote: "plus the first year's state fees",
     report: "$100 plus state fees",
+    reportCents: 10000,
     switching: "Not stated on the pages we read",
     theyInclude: [
       "A lower first year for registered agent: $99 plus state fees. From the second year it's $199.",
@@ -72,6 +76,7 @@ export const COMPETITORS: CompetitorFacts[] = [
     raTwoYearCents: 25000,
     raRenewalCents: 12500,
     report: "$100 plus state fees",
+    reportCents: 10000,
     switching: "Not stated on the pages we read",
     theyInclude: [
       "A volume price: $100 a year per state when you use them in five or more states.",
@@ -103,6 +108,7 @@ export const COMPETITORS: CompetitorFacts[] = [
     raTwoYearCents: 25800,
     raRenewalCents: 15900,
     report: "$199 per state plus filing fees",
+    reportCents: 19900,
     switching: "Help with switching offered, fee not stated",
     theyInclude: [
       "A lower first year for registered agent: $99 for new customers. It renews at $159.",

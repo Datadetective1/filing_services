@@ -1,5 +1,6 @@
 import type { ComplianceRuleDef, JurisdictionDef } from "@/lib/compliance/types";
 import { formatCents } from "@/lib/domain/money";
+import { dueDayText } from "@/lib/seo/content";
 
 /**
  * Hand-written Google titles and descriptions for state annual report guides that rank near
@@ -92,7 +93,36 @@ function utah(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | n
   };
 }
 
+function pennsylvania(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
+  const fee = feeFor(rules, "llc");
+  if (fee === null) return null;
+  const pitch =
+    offer.filingServiceCents !== undefined
+      ? `Filewell files your annual report in Pennsylvania for ${money(offer.filingServiceCents)} + ${money(fee)}, ${money(offer.filingServiceCents + fee)} total.`
+      : "Get a free email reminder before yours is due.";
+  return {
+    title: `Pennsylvania Annual Report: ${money(fee)} Fee, Due Dates & Filing`,
+    description: `Due June 30 (corporations), Sept 30 (LLCs) or Dec 31 (others), with a ${money(fee)} state fee. ${pitch}`,
+  };
+}
+
+function florida(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
+  const llc = rules.find((r) => r.entityType === "llc");
+  if (!llc || llc.stateFeeCents <= 0) return null;
+  const due = dueDayText(llc);
+  const late = llc.lateFeeCents ? ` A ${money(llc.lateFeeCents)} late fee applies after that.` : "";
+  const pitch =
+    offer.filingServiceCents !== undefined ? ` Filewell files yours for ${money(offer.filingServiceCents)} + the state fee.` : "";
+  const description = `Florida LLC annual reports are due ${due}, with a ${money(llc.stateFeeCents)} state fee.${late}${pitch}`;
+  return {
+    title: `Florida Annual Report: Due ${due}, ${money(llc.stateFeeCents)} LLC Fee & Filing`,
+    description: description.length <= MAX_DESCRIPTION ? description : `Florida LLC annual reports are due ${due}, with a ${money(llc.stateFeeCents)} state fee.${pitch || late}`,
+  };
+}
+
 const SNIPPETS: Record<string, (rules: ComplianceRuleDef[], offer: SnippetOffer) => StateSnippet | null> = {
+  PA: pennsylvania,
+  FL: florida,
   WA: washington,
   NV: nevada,
   UT: utah,
