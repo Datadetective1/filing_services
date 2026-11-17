@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  CaretDown,
   Info,
   ProhibitInset,
   SealCheck,
@@ -64,6 +63,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 import { guideSet } from "@/lib/seo/state-guides";
 import { snippetOffer } from "@/lib/seo/snippet-offer";
 import { stateGuideSnippet } from "@/lib/seo/state-snippets";
+import { checkedLabel, reportPriceComparison } from "@/lib/seo/report-comparisons";
 import { stateAnswer, stateAnswerCheckedLabel, type StateAnswer } from "@/lib/seo/state-answers";
 
 export const dynamicParams = false;
@@ -236,6 +236,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
   if (facts) allSources.push(facts.exemptSource);
   const sourceGroups = groupSources(allSources);
 
+  const comparison = reportPriceComparison(j.code);
   const carNotes = [
     ...new Set(
       rules.flatMap((r) =>
@@ -282,6 +283,16 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
           </>
         }
         lede={
+          sellable && exampleQuote && exampleRule ? (
+            <p>
+              <strong className="font-semibold text-fg">
+                A {j.name} {ENTITY_COPY[exampleRule.entityType].singular} annual report is {formatCents(exampleQuote.totalCents, { trimZeros: true })} total
+                with {site.name}, including {j.name}&apos;s {formatCents(exampleRule.stateFeeCents, { trimZeros: true })} state fee.
+              </strong>{" "}
+              Reports are due {dueSummary(rules)}. A person on our team checks yours before it goes in, and the state&apos;s confirmation goes in
+              your dashboard.
+            </p>
+          ) : (
           <p>
             <strong className="font-semibold text-fg">
               {j.name} annual reports are due: {dueSummary(rules)}. The state fee is {feeText}.
@@ -292,6 +303,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 ? `We file yours for ${formatCents(partner.serviceCents, { trimZeros: true })} plus the state fee.`
                 : `${facts ? `Since ${facts.firstRequiredYear}, most` : "Most"} businesses registered in ${j.name} file one every year.`}
           </p>
+          )
         }
         actions={
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -332,6 +344,49 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 {llcQuote && isRuleSellable(llcRule)
                   ? ` With us it's ${formatCents(llcQuote.totalCents, { trimZeros: true })} in total: the state fee plus our ${formatCents(llcQuote.serviceFeeCents, { trimZeros: true })}, shown as two lines before you pay.`
                   : ""}
+              </p>
+            </section>
+          ) : null}
+
+          {sellable && exampleQuote && exampleRule && comparison.length ? (
+            <section aria-labelledby="price-compare-title" className="grid gap-4">
+              <h2 id="price-compare-title" className="text-[26px] font-semibold leading-[1.1] text-fg sm:text-[34px]">
+                What a {j.name} annual report costs
+              </h2>
+              <div className="overflow-x-auto rounded-[var(--radius-surface)] border border-border bg-surface shadow-card">
+                <table className="w-full min-w-[24rem] text-left text-[15px]">
+                  <caption className="sr-only">Total cost to file a {j.name} annual report</caption>
+                  <thead className="border-b border-border text-sm text-muted">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 font-medium">Who files it</th>
+                      <th scope="col" className="px-4 py-3 font-medium">Service fee</th>
+                      <th scope="col" className="px-4 py-3 font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-border bg-accent/5">
+                      <th scope="row" className="px-4 py-3 font-semibold text-fg">{site.name}</th>
+                      <td className="tnum px-4 py-3">{formatCents(exampleQuote.serviceFeeCents, { trimZeros: true })}</td>
+                      <td className="tnum px-4 py-3 font-semibold text-fg">{formatCents(exampleQuote.totalCents, { trimZeros: true })}</td>
+                    </tr>
+                    {comparison.map((c) => (
+                      <tr key={c.name} className="border-b border-border">
+                        <th scope="row" className="px-4 py-3 font-medium text-fg">{c.name}</th>
+                        <td className="tnum px-4 py-3">{formatCents(c.serviceCents, { trimZeros: true })}</td>
+                        <td className="tnum px-4 py-3">{formatCents(c.serviceCents + exampleRule.stateFeeCents, { trimZeros: true })}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <th scope="row" className="px-4 py-3 font-medium text-fg">You, on the state&apos;s own site</th>
+                      <td className="tnum px-4 py-3">$0</td>
+                      <td className="tnum px-4 py-3">{formatCents(exampleRule.stateFeeCents, { trimZeros: true })}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-sm leading-6 text-subtle">
+                Totals include the {formatCents(exampleRule.stateFeeCents, { trimZeros: true })} state fee for {ENTITY_COPY[exampleRule.entityType].plural}.{" "}
+                {comparison.map((c) => `${c.name}'s price is from ${c.source}, checked ${checkedLabel(c.checked)}.`).join(" ")}
               </p>
             </section>
           ) : null}
@@ -414,20 +469,19 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                   {facts ? ` The requirement began in ${facts.firstRequiredYear}.` : null}
                 </p>
                 {carNotes.length ? (
-                  <details className="group rounded-[var(--radius-control)] border border-border bg-surface">
-                    <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[15px] font-semibold text-fg [&::-webkit-details-marker]:hidden">
-                      A separate filing some entities also make
-                      <CaretDown size={16} weight="bold" aria-hidden className="shrink-0 text-muted transition-transform group-open:rotate-180" />
-                    </summary>
-                    <div className="border-t border-border px-4 pb-4 pt-3 text-[15px] leading-7">
-                      <ul className="grid list-disc gap-1.5 pl-5">
-                        {carNotes.map((note) => (
-                          <li key={note}>{note}</li>
-                        ))}
-                      </ul>
-                      <p className="mt-2 text-sm">The annual report does not replace it.</p>
-                    </div>
-                  </details>
+                  <div className="grid gap-2 rounded-[var(--radius-control)] border border-border bg-surface p-4 text-[15px] leading-7">
+                    <h3 className="font-semibold text-fg">Annual Report or Certificate of Annual Registration?</h3>
+                    <p>Most {j.name} businesses file only the Annual Report. A few also file a separate Certificate of Annual Registration:</p>
+                    <ul className="grid list-disc gap-1.5 pl-5">
+                      {carNotes.map((note) => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ul>
+                    <p>
+                      The Annual Report doesn&apos;t replace it. {site.name} files the Annual Report. We don&apos;t file the Certificate of Annual
+                      Registration.
+                    </p>
+                  </div>
                 ) : null}
               </GuideText>
               {facts ? (

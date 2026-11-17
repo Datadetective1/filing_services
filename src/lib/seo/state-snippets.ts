@@ -96,13 +96,14 @@ function utah(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | n
 function pennsylvania(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
   const fee = feeFor(rules, "llc");
   if (fee === null) return null;
-  const pitch =
-    offer.filingServiceCents !== undefined
-      ? `Filewell files your annual report in Pennsylvania for ${money(offer.filingServiceCents)} + ${money(fee)}, ${money(offer.filingServiceCents + fee)} total.`
-      : "Get a free email reminder before yours is due.";
+  const due = "Due June 30 (corporations), Sept 30 (LLCs) or Dec 31 (others).";
   return {
     title: `Pennsylvania Annual Report: ${money(fee)} Fee, Due Dates & Filing`,
-    description: `Due June 30 (corporations), Sept 30 (LLCs) or Dec 31 (others), with a ${money(fee)} state fee. ${pitch}`,
+    // The all-in price leads: it is the phrase AI answers quote when someone asks who to use.
+    description:
+      offer.filingServiceCents !== undefined
+        ? `${money(offer.filingServiceCents + fee)} total with Filewell, including Pennsylvania's ${money(fee)} state fee. ${due} A person checks every filing.`
+        : `${due} The state fee is ${money(fee)}. Get a free email reminder before yours is due.`,
   };
 }
 
