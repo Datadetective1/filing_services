@@ -10,6 +10,7 @@ import { formatCents } from "@/lib/domain/money";
 import { businessServicesIndexable, businessServicesPagesEnabled, formationOpenStates } from "@/lib/registered-agent/sales";
 import { placesText } from "@/lib/registered-agent/public-copy";
 import { publicServicePrices } from "@/lib/services/public-prices";
+import { formationStatePath } from "@/lib/seo/formation-pages";
 import { breadcrumbJsonLd, businessServiceJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
@@ -97,7 +98,11 @@ export default async function BusinessFormationPage() {
                   <tbody>
                     {open.map((s) => (
                       <tr key={s.code} className="border-b border-border last:border-0">
-                        <th scope="row" className="px-4 py-3 font-semibold text-fg">{s.name}</th>
+                        <th scope="row" className="px-4 py-3 font-semibold text-fg">
+                          <Link href={formationStatePath(s.slug)} className={textLinkClasses}>
+                            {s.name}
+                          </Link>
+                        </th>
                         {(["llc", "corporation"] as const).map((t) => {
                           const stateFee = s.feeCents[t];
                           return (

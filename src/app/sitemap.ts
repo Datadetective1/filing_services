@@ -4,7 +4,8 @@ import { isStateVerified, listJurisdictions, RULES } from "@/lib/compliance/regi
 import { ENTITY_TYPE_SLUGS } from "@/lib/domain/types";
 import { raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
 import { changeCheckedAt } from "@/lib/registered-agent/public-copy";
-import { businessServicesIndexable } from "@/lib/registered-agent/sales";
+import { businessServicesIndexable, formationOpenStates } from "@/lib/registered-agent/sales";
+import { formationStatePath } from "@/lib/seo/formation-pages";
 import { pickableStates } from "@/lib/services/state-services";
 import { LEGAL_LAST_UPDATED, LEGAL_PAGES } from "@/lib/seo/legal";
 import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
@@ -85,6 +86,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       { url: absoluteUrl(BEST_OF_PATHS["registered-agent"]), changeFrequency: "monthly", priority: 0.8 },
       ...COMPETITORS.map((c) => ({ url: absoluteUrl(comparePath(c)), changeFrequency: "monthly" as const, priority: 0.6 })),
       ...pickableStates().map((s) => ({ url: absoluteUrl(`/services/${s.slug}`), changeFrequency: "weekly" as const, priority: 0.7 })),
+      ...formationOpenStates().map((s) => ({ url: absoluteUrl(formationStatePath(s.slug)), changeFrequency: "monthly" as const, priority: 0.7 })),
       ...raJurisdictionsWithPublicFacts().flatMap((j) => {
         const checked = changeCheckedAt(j);
         const lastModified = checked ? new Date(`${checked}T00:00:00Z`) : undefined;
