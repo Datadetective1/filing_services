@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isEntityType } from "@/lib/domain/types";
 import { clearServiceIntent } from "@/lib/services/intent";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,9 @@ export async function GET(request: NextRequest) {
   // Keep the state the visitor already picked (two letters only; /find ignores unknown codes).
   const state = request.nextUrl.searchParams.get("state")?.toUpperCase();
   if (!toResult && state && /^[A-Z]{2}$/.test(state)) url.searchParams.set("state", state);
+  // And the entity type a state page's button was for (known types only).
+  const entity = request.nextUrl.searchParams.get("entity");
+  if (!toResult && isEntityType(entity)) url.searchParams.set("entity", entity);
   // A router prefetch must not change the cookie: only a real visit does.
   if (request.headers.get("next-router-prefetch") || request.headers.get("purpose") === "prefetch") return new NextResponse(null, { status: 204 });
   await clearServiceIntent();

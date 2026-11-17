@@ -10,6 +10,7 @@ import {
   parseAttribution,
   serializeAttribution,
 } from "@/lib/analytics/attribution";
+import { isAnnualReportPath, SERVICE_INTENT_COOKIE } from "@/lib/services/intent-cookie";
 
 const PRIVATE_PREFIXES = ["/admin", "/dashboard", "/file/", "/api/", "/sandbox", "/auth/"];
 
@@ -49,6 +50,18 @@ function withAttribution(request: NextRequest, response: NextResponse): NextResp
 }
 
 /**
+ * A visitor who opens an annual report page has switched to the annual report: forget a
+ * registered agent choice from earlier, so "Have us file it" leads to the annual report order
+ * and not the agent order. Real visits only: a router prefetch never changes the cookie.
+ */
+export function withoutStaleAgentIntent(request: NextRequest, response: NextResponse): NextResponse {
+  if (request.method !== "GET" || request.headers.has("next-router-prefetch")) return response;
+  if (!request.cookies.has(SERVICE_INTENT_COOKIE) || !isAnnualReportPath(request.nextUrl.pathname)) return response;
+  response.cookies.delete(SERVICE_INTENT_COOKIE);
+  return response;
+}
+
+/**
  * Proxy: sends production traffic on *.vercel.app aliases to the canonical domain,
  * refreshes the Supabase session cookie and does OPTIMISTIC redirects for signed-out
  * visitors. It is not the authorization layer — every protected page, server action
@@ -67,7 +80,7 @@ export async function proxy(request: NextRequest) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return withAttribution(request, response);
+  if (!url || !key) return withoutStaleAgentIntent(request, withAttribution(request, response));
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -96,7 +109,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  return withAttribution(request, response);
+  return withoutStaleAgentIntent(request, withAttribution(request, response));
 }
 
 export const config = {

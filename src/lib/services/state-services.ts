@@ -187,7 +187,8 @@ async function annualReportOffer(code: string, name: string, prices: Prices): Pr
         totalCents: q.totalCents,
         serviceCents: q.serviceFeeCents,
         stateCents: q.governmentFeeCents,
-        href: `/find?state=${code}&entity=${r.entityType}`,
+        // Through the start route, so an earlier registered agent choice doesn't turn it into the agent order.
+        href: `/annual-report/start?state=${code}&entity=${r.entityType}`,
       });
     }
     if (options.length > 0) {
