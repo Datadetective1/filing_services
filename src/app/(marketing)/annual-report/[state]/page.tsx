@@ -27,6 +27,7 @@ import { ProviderReportPanel } from "@/components/marketing/provider-report-pane
 import { RaStateBand } from "@/components/marketing/ra-state-band";
 import { RequiredInfoSheet } from "@/components/marketing/required-info-sheet";
 import { SourceList } from "@/components/marketing/source-list";
+import { StateAnswerPanel } from "@/components/marketing/state-answer-panel";
 import { StateStatusPanel } from "@/components/marketing/state-status-panel";
 import { UnverifiedStatePanel } from "@/components/marketing/unverified-state-panel";
 import { UnverifiedStateSections } from "@/components/marketing/unverified-state-sections";
@@ -63,6 +64,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 import { guideSet } from "@/lib/seo/state-guides";
 import { snippetOffer } from "@/lib/seo/snippet-offer";
 import { stateGuideSnippet } from "@/lib/seo/state-snippets";
+import { stateAnswer, stateAnswerCheckedLabel, type StateAnswer } from "@/lib/seo/state-answers";
 
 export const dynamicParams = false;
 // The status panel counts days to the next deadline: render per request so a cached
@@ -91,6 +93,9 @@ export async function generateMetadata({ params }: PageProps<"/annual-report/[st
   if (!rules.length) {
     // Where our provider files it, the page answers the search: due date, state fee, our price.
     const offer = await providerReportOffer(j.code);
+    // A state with a checked answer is worth indexing even where we don't file it yet.
+    const answer = stateAnswer(j.code);
+    if (answer) return pageMetadata({ ...answerSnippet(answer, offer), path });
     if (offer) return pageMetadata({ ...providerReportSnippet(j.name, offer), path });
     return pageMetadata({
       title: `${j.name} Annual Report`,
@@ -140,6 +145,13 @@ function providerDueText(code: string): string | null {
   const due = providerReportFacts(code)?.due ?? null;
   if (!due || /not verified/i.test(due)) return null;
   return due.replace(/^(\w)/, (c) => c.toLowerCase());
+}
+
+/** The search snippet for a state with a checked answer: the answer, plus our price where we file it. */
+function answerSnippet(a: StateAnswer, offer: ProviderReportOffer | null): { title: string; description: string } {
+  const price = offer ? ` Filewell files it for ${formatCents(offer.serviceCents, { trimZeros: true })} + the state fee.` : "";
+  const description = `${a.description}${price}`;
+  return { title: a.title, description: description.length <= 160 ? description : a.description };
 }
 
 function providerReportSnippet(name: string, offer: ProviderReportOffer): { title: string; description: string } {
@@ -657,6 +669,7 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
 
 function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderReportOffer | null }) {
   const path = `/annual-report/${j.slug}`;
+  const answer = stateAnswer(j.code);
   // Where we can compute the due date, the free reminder replaces the "tell me when it's ready" list.
   const reminders = reminderSignupOptions(j.code) !== null;
   const crumbs = [
@@ -671,7 +684,16 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
         breadcrumbs={<Breadcrumbs items={crumbs} />}
         title={`${j.name} annual report`}
         lede={
-          offer ? (
+          answer ? (
+            <p>
+              <strong className="font-semibold text-fg">{answer.answer}</strong>{" "}
+              {offer
+                ? `We file your ${j.name} ${offer.open.reportName.toLowerCase()} for ${formatCents(offer.serviceCents, { trimZeros: true })} plus the state fee, and you get the state's confirmation.`
+                : reminders
+                  ? `We don't file ${j.name} reports yet, but we can email you before yours is due. Free, no account.`
+                  : `We don't file ${j.name} reports yet.`}
+            </p>
+          ) : offer ? (
             <p>
               <strong className="font-semibold text-fg">
                 {providerDueText(j.code) ? `${j.name} annual reports are due ${providerDueText(j.code)}. ` : ""}The state fee is {providerFeeText(offer)}.
@@ -709,10 +731,35 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
         photo="potterWorkshop"
         focus="55% 35%"
         focusWide="30% 40%"
-        panel={offer ? <ProviderReportPanel offer={offer} /> : <UnverifiedStatePanel j={j} />}
+        panel={offer ? <ProviderReportPanel offer={offer} /> : answer ? <StateAnswerPanel j={j} answer={answer} /> : <UnverifiedStatePanel j={j} />}
       />
 
-      {offer && offer.types.includes("llc") ? (
+      {answer ? (
+        <section aria-labelledby="llc-report-title" className="py-10 sm:py-14">
+          <Container className="grid max-w-3xl gap-3">
+            <h2 id="llc-report-title" className="text-[26px] font-semibold leading-[1.1] text-fg sm:text-[34px]">
+              {j.name} LLC annual report
+            </h2>
+            <p className="text-[17px] leading-relaxed text-muted">
+              {answer.llc}
+              {offer?.open.feeCents.llc !== undefined
+                ? ` With us it's ${formatCents(offer.serviceCents + offer.open.feeCents.llc, { trimZeros: true })} in total, shown as two lines before you pay.`
+                : ""}
+            </p>
+            {answer.more.length ? (
+              <ul className="grid gap-2 text-[15px] leading-6 text-muted">
+                {answer.more.map((m) => (
+                  <li key={m} className="flex gap-2">
+                    <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-accent" />
+                    {m}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <p className="text-[13px] leading-6 text-subtle">Checked against official {j.name} sources on {stateAnswerCheckedLabel(answer)}.</p>
+          </Container>
+        </section>
+      ) : offer && offer.types.includes("llc") ? (
         <section aria-labelledby="llc-report-title" className="py-10 sm:py-14">
           <Container className="grid max-w-3xl gap-3">
             <h2 id="llc-report-title" className="text-[26px] font-semibold leading-[1.1] text-fg sm:text-[34px]">

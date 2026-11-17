@@ -11,6 +11,8 @@ import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
 import { businessSearchPageStates } from "@/lib/seo/business-search";
 import { BEST_OF_PATHS } from "@/lib/seo/best-of";
 import { comparePath, COMPETITORS } from "@/lib/seo/compare";
+import { STATE_ANSWERS } from "@/lib/seo/state-answers";
+import { providerReportOpenStates } from "@/lib/registered-agent/provider-report";
 
 /**
  * Only indexable pages. Unverified state pages are noindex and deliberately left out,
@@ -48,6 +50,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: 0.8,
       })),
     );
+  }
+
+  // States without a full guide whose page still answers the search: a checked answer, or a
+  // report our provider files there right now.
+  const answered = new Set([...Object.keys(STATE_ANSWERS), ...providerReportOpenStates().map((s) => s.code)]);
+  for (const j of listJurisdictions()) {
+    if (isStateVerified(j.code) || !answered.has(j.code)) continue;
+    const answer = STATE_ANSWERS[j.code];
+    entries.push({
+      url: absoluteUrl(`/annual-report/${j.slug}`),
+      lastModified: answer ? new Date(`${answer.checked}T00:00:00Z`) : undefined,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
   }
 
   for (const set of STATE_GUIDE_SETS) {
