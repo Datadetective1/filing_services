@@ -158,3 +158,18 @@ describe("sendNotification failures", () => {
     expect(provider.send).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("sendNotification review link", () => {
+  it("adds the Trustpilot link to emails about finished work", async () => {
+    await sendNotification({ ...input, templateKey: "filing_accepted", dedupeKey: "filing_accepted:f1" });
+    const sent = provider.send.mock.calls[0][0] as { text: string; html: string };
+    expect(sent.text).toContain("Review us on Trustpilot: https://www.trustpilot.com/review/getfilewell.com");
+    expect(sent.html).toContain('href="https://www.trustpilot.com/review/getfilewell.com"');
+  });
+
+  it("leaves it off emails sent before the work is done", async () => {
+    await sendNotification(input);
+    const sent = provider.send.mock.calls[0][0] as { text: string };
+    expect(sent.text).not.toContain("Trustpilot");
+  });
+});

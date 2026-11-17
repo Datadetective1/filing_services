@@ -76,7 +76,7 @@ describe("structured data", () => {
   it("includes a logo and no ratings", () => {
     const org = organizationJsonLd();
     expect(org.logo).toMatchObject({ "@type": "ImageObject", width: 180, height: 180 });
-    expect(JSON.stringify(org)).not.toMatch(/aggregateRating|review/i);
+    expect(JSON.stringify(org)).not.toMatch(/"(aggregateRating|reviews?)"\s*:/i);
   });
 
   it("describes a business service with a price only when one is set", () => {

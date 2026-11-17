@@ -35,7 +35,13 @@ export interface RenderInput {
   vars: Record<string, string | number | null | undefined>;
   footerNote?: string | null;
   unsubscribeUrl?: string | null;
+  /** Where to leave a review, shown under the button on emails about finished work. */
+  reviewUrl?: string | null;
 }
+
+/** Asked of every customer whose work is finished, never only the happy ones. */
+export const REVIEW_PROMPT = "How did we do? A short review on Trustpilot helps other business owners decide.";
+export const REVIEW_LINK_LABEL = "Review us on Trustpilot";
 
 export interface RenderedEmail {
   subject: string;
@@ -68,6 +74,7 @@ export function renderEmail(input: RenderInput): RenderedEmail {
   const text = [
     body,
     input.ctaLabel && input.ctaUrl ? `${input.ctaLabel}: ${input.ctaUrl}` : null,
+    input.reviewUrl ? `${REVIEW_PROMPT}\n${REVIEW_LINK_LABEL}: ${input.reviewUrl}` : null,
     "----",
     ...footerLines,
   ]
@@ -84,6 +91,10 @@ export function renderEmail(input: RenderInput): RenderedEmail {
       ? `<p style="margin:24px 0"><a href="${escapeHtml(input.ctaUrl)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600">${escapeHtml(input.ctaLabel)}</a></p>`
       : "";
 
+  const review = input.reviewUrl
+    ? `<p style="margin:8px 0 0;padding-top:16px;border-top:1px solid #e5e7eb;line-height:1.55;color:#374151">${escapeHtml(REVIEW_PROMPT)} <a href="${escapeHtml(input.reviewUrl)}" style="color:#047857;font-weight:600">${escapeHtml(REVIEW_LINK_LABEL)}</a></p>`
+    : "";
+
   const footer = footerLines
     .map((l) =>
       l.startsWith("Stop deadline reminders:") && input.unsubscribeUrl
@@ -95,7 +106,7 @@ export function renderEmail(input: RenderInput): RenderedEmail {
   const html = `<!doctype html><html><body style="margin:0;background:#f6f7f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827">
 <div style="max-width:560px;margin:0 auto;padding:32px 20px">
 <div style="font-weight:700;font-size:16px;margin-bottom:24px">${escapeHtml(site.name)}</div>
-<div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:28px 24px;font-size:15px">${paragraphs}${cta}</div>
+<div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:28px 24px;font-size:15px">${paragraphs}${cta}${review}</div>
 <div style="font-size:12px;color:#6b7280;line-height:1.5;margin-top:20px">${footer}</div>
 </div></body></html>`;
 

@@ -61,6 +61,7 @@ export async function GET() {
     "## Company",
     "",
     `- [About ${site.name}](${absoluteUrl("/about")}): ${assumedNameNoticeText() ?? `${site.name} is a private filing service.`}${site.postalAddress ? ` Mailing address: ${site.postalAddress}.` : ""} A person checks every filing before it goes to the state.`,
+    ...(site.trustpilotUrl ? [`- [${site.name} on Trustpilot](${site.trustpilotUrl}): customer reviews.`] : []),
     "",
     "## More",
     "",

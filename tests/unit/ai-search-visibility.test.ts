@@ -69,3 +69,10 @@ describe("Pennsylvania: file it yourself or use a service", () => {
     expect(g!.sources.every((s) => s.url.includes("palegis.us"))).toBe(true);
   });
 });
+
+describe("Trustpilot profile", () => {
+  it("is linked from the Organization markup", async () => {
+    const { organizationJsonLd } = await import("@/lib/seo/json-ld");
+    expect(organizationJsonLd().sameAs).toEqual(["https://www.trustpilot.com/review/getfilewell.com"]);
+  });
+});
