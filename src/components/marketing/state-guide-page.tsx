@@ -21,6 +21,7 @@ import { publicQuote } from "@/lib/compliance/public-quote";
 import { findRule, getJurisdiction, isRuleSellable, rulesForState } from "@/lib/compliance/registry";
 import { verifiedText } from "@/lib/compliance/view";
 import { daysBetween, formatLongDate, todayInTimeZone } from "@/lib/domain/dates";
+import { formatCents } from "@/lib/domain/money";
 import { dueDateForYear } from "@/lib/domain/deadlines";
 import { articleJsonLd, breadcrumbJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
 import { reminderSignupOptions } from "@/lib/reminders/signup-options";
@@ -167,6 +168,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
   const stateName = set.stateName;
   const path = `/${set.slug}/${g.slug}`;
   const isPa = stateCode === "PA";
+  const checked = g.checked ?? set.checked;
   const rule = isPa ? findRule("PA", "llc") : rulesForState(stateCode).find((r) => r.entityType === "llc");
   const sellable = Boolean(rule && isRuleSellable(rule));
   const quote = rule && sellable ? await publicQuote(rule) : null;
@@ -215,7 +217,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
       <TrackView event="state_page_viewed" stateCode={stateCode} />
       <JsonLd
         data={graph(
-          articleJsonLd({ headline: g.h1, description: g.description, path, dateModified: set.checked }),
+          articleJsonLd({ headline: g.h1, description: g.description, path, dateModified: checked }),
           breadcrumbJsonLd(crumbs),
           faqJsonLd(g.faq),
         )}
@@ -228,11 +230,20 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
             {g.answer.map((p) => (
               <p key={p.slice(0, 40)}>{p}</p>
             ))}
+            {g.leadWithPrice && quote && rule ? (
+              <p>
+                <strong className="font-semibold">
+                  With {site.name}, a {stateName} LLC annual report is {formatCents(quote.totalCents, { trimZeros: true })} total, including the{" "}
+                  {formatCents(rule.stateFeeCents, { trimZeros: true })} state fee.
+                </strong>{" "}
+                A person on our team checks it before it goes in.
+              </p>
+            ) : null}
           </div>
           <p className="flex items-start gap-2 text-sm leading-6 text-muted">
             <SealCheck size={18} weight="fill" aria-hidden className="mt-0.5 shrink-0 text-accent" />
             <span>
-              Checked against official {stateName} sources on {verifiedText(set.checked)}. {site.name} is a private filing service, not
+              Checked against official {stateName} sources on {verifiedText(checked)}. {site.name} is a private filing service, not
               {isPa ? " the Department of State" : ` the ${j?.agency.name.split(" - ")[0] ?? "state"}`}.
             </span>
           </p>
@@ -293,7 +304,7 @@ export async function StateGuidePage({ stateCode, topic }: { stateCode: string; 
                   </li>
                 ))}
               </ul>
-              <p className="text-sm text-muted">Last checked {verifiedText(set.checked)}.</p>
+              <p className="text-sm text-muted">Last checked {verifiedText(checked)}.</p>
             </GuideSection>
 
             <nav aria-label={`More ${stateName} guides`} className="grid gap-3 border-t border-border pt-8">

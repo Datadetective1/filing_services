@@ -104,7 +104,7 @@ const COMMON_SOURCES: RuleSource[] = [
     URL.dosScamAlerts,
     "Business and Charities Scam Alerts",
     DOS,
-    "There is no state late fee for filing past the deadline",
+    "There is no “$250 state penalty.” The penalty for failure to file the Annual Report is administrative dissolution by the Department.",
   ),
   src(
     "enforcement_start",

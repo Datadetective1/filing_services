@@ -158,9 +158,13 @@ function paDeadline(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnipp
 function paAfterDeadline(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSnippet | null {
   const fee = feeFor(rules, "llc");
   if (fee === null) return null;
+  const pitch =
+    offer.filingServiceCents !== undefined
+      ? ` Filewell files it for ${money(offer.filingServiceCents + fee)} total, state fee included.`
+      : " Get a free email reminder before next year's.";
   return {
-    title: "Missed the PA Annual Report Deadline? What Happens",
-    description: `No state late fee: a late report costs the same ${money(fee)}. From 2027, non-filers can be dissolved. ${filePitch(offer, fee)}`,
+    title: "Missed the PA Annual Report Deadline? File by Dec 31",
+    description: `No state late fee, and this year's report can still be filed until December 31.${pitch}`,
   };
 }
 

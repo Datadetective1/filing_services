@@ -42,6 +42,10 @@ export interface PaGuide {
   sources: GuideSource[];
   /** Embed the register search on the page itself (business search intent). */
   embedSearch?: boolean;
+  /** When this guide's own sources were last re-read, if later than the set's date. */
+  checked?: string;
+  /** Lead with Filewell's all-in price for an LLC report, right under the answer. */
+  leadWithPrice?: boolean;
 }
 
 const DOS = "Pennsylvania Department of State";
@@ -143,8 +147,8 @@ export const PA_GUIDES: PaGuide[] = [
       },
       {
         heading: "Late filing",
-        quote: { text: "There is no state late fee for filing past the deadline", source: SRC.scamAlerts },
         paragraphs: [
+          "The Department of State's fee list has no late fee. Filing after the due date costs the same state fee.",
           "Separately, the Department says that, beginning with annual reports due in 2027, an association that doesn't file can be administratively dissolved (or its registration terminated or cancelled) six months after the due date. Reinstating a dissolved business involves a reinstatement fee plus the fee for each annual report that wasn't paid.",
         ],
       },
@@ -229,19 +233,28 @@ export const PA_GUIDES: PaGuide[] = [
   },
   {
     slug: "annual-report-after-deadline",
-    title: "Missed the PA Annual Report Deadline? No Late Fee, but 2027 Changes That",
+    checked: "2026-11-17",
+    leadWithPrice: true,
+    title: "Missed the PA Annual Report Deadline? File by Dec 31",
     description:
-      "A late Pennsylvania annual report is filed online for the same $7 ($0 for nonprofits), with no state late fee. From 2027, a business that doesn't file can be dissolved six months later.",
-    h1: "Filing a Pennsylvania annual report after the deadline",
+      "Pennsylvania charges no late fee, and this year's annual report can still be filed until December 31. A past year's report can't be filed. Reinstatement costs and 2027 rules.",
+    h1: "Missed your Pennsylvania annual report deadline?",
     answer: [
-      "If a Pennsylvania annual report deadline has passed, the report can still be filed online in the usual way. The Department of State says there is no state late fee for filing past the deadline.",
-      "The Department says administrative dissolution applies beginning with annual reports due in 2027, six months after the due date. Its published guidance doesn't describe dissolution for reports due in 2025 or 2026.",
+      "You can still file this year's Pennsylvania annual report until December 31, and the state charges no late fee. Once the calendar year ends, that year's report can no longer be filed.",
+      "Dissolution for not filing starts with reports due in 2027: a business that hasn't filed six months after its due date becomes subject to administrative dissolution.",
     ],
     blocks: [
       {
         heading: "No state late fee",
-        quote: { text: "There is no state late fee for filing past the deadline", source: SRC.scamAlerts },
-        paragraphs: ["Filing late costs the same $7 state fee ($0 for nonprofits) as filing on time."],
+        quote: { text: "The fee is $7 for business corporations, limited liability companies (LLCs), limited partnerships (LPs) and limited liability general partnerships (LLPs). There is no fee for nonprofit corporations and any LPs or LLCs with a not-for-profit purpose.", source: SRC.annualReports },
+        paragraphs: ["That's the whole state charge. The Department of State lists no late fee, so filing after the due date costs the same $7 ($0 for nonprofits)."],
+      },
+      {
+        heading: "File it before December 31",
+        quote: { text: "Once an Annual Report calendar year passes (e.g. 2025), the 2025 report may no longer be filed. Filers must file the current year report during the same calendar year.", source: SRC.scamAlerts },
+        paragraphs: [
+          "So a report missed this year can be filed until December 31. A report for a year that has already ended can't be filed. File the current year's report instead.",
+        ],
       },
       {
         heading: "What changes with reports due in 2027",
@@ -250,8 +263,20 @@ export const PA_GUIDES: PaGuide[] = [
           source: SRC.annualReports,
         },
         paragraphs: [
-          "Depending on the entity, that means administrative dissolution (domestic filing entities), cancellation (domestic LLPs) or termination of registration (foreign associations), and loss of protection of the business's name. A dissolved business can apply for reinstatement, which the Department says involves a reinstatement fee plus the fee for each annual report that wasn't paid.",
+          "Depending on the entity, that means administrative dissolution (domestic filing entities), cancellation (domestic LLPs) or termination of registration (foreign associations). While a business is dissolved, another business can take its name.",
         ],
+      },
+      {
+        heading: "If your business was dissolved",
+        list: [
+          "Formed in Pennsylvania: it can be reinstated at any time, for $35 online or $40 on paper, plus $15 for each missing annual report. It keeps its entity number.",
+          "Registered from another state: it can't be reinstated and must register again, with a new entity number.",
+          "Filewell doesn't file reinstatements. We file the annual report.",
+        ],
+        quote: {
+          text: "Application for Reinstatement filed online - $35. Application for Reinstatement filed on paper - $40. Additional fee for each missing annual report - $15.",
+          source: SRC.annualReports,
+        },
       },
       {
         heading: "Check before you file",
@@ -260,24 +285,36 @@ export const PA_GUIDES: PaGuide[] = [
         ],
       },
       {
-        heading: "Watch out for official-looking mail",
+        heading: "Watch out for official-looking texts",
         paragraphs: [
-          "The Department of State has warned about companies that send solicitations about the annual report, sometimes with wrong information about fees or consequences. Anything not from the Department of State is from a private company, including Filewell.",
+          "The Department of State has warned about texts that claim a state charge for filing late and send business owners to a private filing site, including businesses that have already filed. Pennsylvania has no such charge. Anything not from the Department of State is from a private company, including Filewell.",
         ],
       },
     ],
     faq: [
       {
-        q: "Can I still file my 2026 Pennsylvania annual report after the deadline?",
-        a: "Yes. Late reports are filed online the same way, and the Department of State says there is no state late fee.",
+        q: "Can I still file my Pennsylvania annual report after the deadline?",
+        a: "Yes, until December 31 of the same year. The Department of State says each year's report must be filed during that calendar year, and there's no state late fee.",
+      },
+      {
+        q: "Can I file last year's missed report?",
+        a: "No. The Department of State says that once a report's calendar year passes, that year's report can no longer be filed. File the current year's report instead.",
       },
       {
         q: "Will my business be dissolved for a late 2026 report?",
-        a: "The Department of State's guidance ties administrative dissolution to annual reports due in 2027 and later, six months after the due date. For your specific situation, check with the Department of State or a lawyer.",
+        a: "The Department of State ties administrative dissolution to annual reports due in 2027 and later, six months after the due date.",
       },
       {
         q: "Does filing late cost more?",
         a: "Not in state fees. It's the same $7 ($0 for nonprofits).",
+      },
+      {
+        q: "What does reinstatement cost in Pennsylvania?",
+        a: "For a business formed in Pennsylvania: $35 online or $40 on paper, plus $15 for each missing annual report, with no time limit. A business registered from another state can't reinstate and must register again.",
+      },
+      {
+        q: "I got a text saying I owe the state $250 for filing late. Is it real?",
+        a: "No. The Department of State has warned about these texts and says Pennsylvania has no such charge.",
       },
     ],
     sources: [SRC.annualReports, SRC.scamAlerts, SRC.statute381],
