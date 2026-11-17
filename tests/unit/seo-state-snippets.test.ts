@@ -11,7 +11,7 @@ describe("state guide search snippets", () => {
     const s = stateGuideSnippet(wa, verified("WA"), { filingServiceCents: 9900, registeredAgentCents: 11900 })!;
     expect(s.title).toBe("Washington Annual Report: $70 Fee, Due Date & Filing");
     expect(s.description).toBe(
-      "Due by the end of the month your business was formed, with a $70 state fee. Filewell files your Washington annual report for $99 + the state fee.",
+      "$169 total with Filewell, including Washington's $70 state fee. Due by the end of the month your business was formed. A $25 late fee applies after that.",
     );
   });
 
@@ -59,6 +59,7 @@ describe("state guide search snippets", () => {
     const s = stateGuideSnippet({ code: "FL" }, verified("FL"), { filingServiceCents: 4900 })!;
     expect(s.title).toMatch(/^Florida Annual Report: Due May 1, \$138\.75 LLC Fee/);
     expect(s.description.length).toBeLessThanOrEqual(160);
+    expect(s.description.startsWith("$187.75 total with Filewell, including Florida's $138.75 LLC fee.")).toBe(true);
   });
 });
 
