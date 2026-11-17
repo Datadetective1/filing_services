@@ -1,6 +1,7 @@
 import { absoluteUrl, site } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
-import { businessServicesIndexable } from "@/lib/registered-agent/sales";
+import { businessServicesIndexable, formationOpenStates } from "@/lib/registered-agent/sales";
+import { formationStatePath, leadType } from "@/lib/seo/formation-pages";
 import { BEST_OF_PATHS } from "@/lib/seo/best-of";
 import { businessSearchStates } from "@/lib/seo/business-search";
 import { assumedNameNoticeText } from "@/lib/seo/legal";
@@ -41,8 +42,20 @@ export async function GET() {
       ? [`- [Registered agent](${absoluteUrl("/registered-agent")}): ${money(ra)} a year, the same at renewal, in ${pickableStates().length} states and territories. Switching from another agent: state fee only.`]
       : []),
     ...(services && bundle !== undefined ? [`- Registered agent plus annual report filing: ${money(bundle)} a year plus the state report fee.`] : []),
-    ...(services && formation !== undefined ? [`- [Business formation](${absoluteUrl("/business-formation")}): ${money(formation)} plus the state fee.`] : []),
+    ...(services && formation !== undefined ? [`- [Business formation](${absoluteUrl("/business-formation")}): ${money(formation)} plus the state fee, in ${formationOpenStates().length} states and territories. Registered agent service is an optional add-on.`] : []),
     "",
+    ...(services && formation !== undefined && formationOpenStates().length
+      ? [
+          "## Start a business by state",
+          "",
+          ...formationOpenStates().map((s) => {
+            const t = leadType(s);
+            const fee = s.feeCents[t] as number;
+            return `- [Start ${t === "llc" ? "an LLC" : "a corporation"} in ${s.name}](${absoluteUrl(formationStatePath(s.slug))}): ${money(fee)} state fee, ${money(formation + fee)} total with ${site.name}.`;
+          }),
+          "",
+        ]
+      : []),
     "## Free tools",
     "",
     `- [Business search](${absoluteUrl("/business-search")}): live search of official business registers in ${searchStates.map((s) => s.name).join(", ")}.`,

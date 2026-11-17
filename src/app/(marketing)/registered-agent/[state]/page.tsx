@@ -13,7 +13,8 @@ import { formatCents } from "@/lib/domain/money";
 import { ENTITY_TYPE_LABELS } from "@/lib/domain/types";
 import { getRaJurisdictionBySlug, raJurisdictionsWithPublicFacts } from "@/lib/registered-agent/jurisdictions";
 import { changeFeeText, formationLlcFeeText } from "@/lib/registered-agent/public-copy";
-import { BUNDLE_STATES, bundleSalesOpen, businessServicesIndexable, businessServicesPagesEnabled, RA_ENTITY_TYPES } from "@/lib/registered-agent/sales";
+import { BUNDLE_STATES, bundleSalesOpen, businessServicesIndexable, businessServicesPagesEnabled, formationOpenStates, RA_ENTITY_TYPES } from "@/lib/registered-agent/sales";
+import { formationStatePath } from "@/lib/seo/formation-pages";
 import { PROVIDER_LEGAL_NAME } from "@/lib/services/catalog";
 import { stateRegisteredAgentFaq } from "@/lib/services/public-faq";
 import { publicServicePrices } from "@/lib/services/public-prices";
@@ -89,6 +90,7 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
   // Filewell files this state's annual reports itself: link the guide, and the bundle only while it can be bought.
   const filesAnnualReports = (BUNDLE_STATES as readonly string[]).includes(j.code);
   const bundle = filesAnnualReports && bundleSalesOpen() ? prices.ra_annual_report_bundle : undefined;
+  const formsHere = formationOpenStates().some((s) => s.code === j.code);
 
   return (
     <>
@@ -207,6 +209,11 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
               <Link href="/registered-agent/start?for=new" prefetch={false} className={buttonClasses("secondary", "md")}>
                 Get an agent for a new business
               </Link>
+              {formsHere ? (
+                <Link href={formationStatePath(j.slug)} className={textLinkClasses}>
+                  We can form your {j.name} business too
+                </Link>
+              ) : null}
             </Card>
             {filesAnnualReports ? (
               <Card className="grid content-start gap-3 p-5">

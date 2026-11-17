@@ -1,6 +1,7 @@
 import { absoluteUrl, site, siteUrl } from "@/config/site";
 import type { FaqItem } from "@/lib/compliance/types";
 import type { Quote } from "@/lib/domain/pricing";
+import { businessServicesIndexable } from "@/lib/registered-agent/sales";
 
 /**
  * schema.org structured data. The brand is described as a private Organization that
@@ -27,6 +28,19 @@ export function postalAddressJsonLd(address: string | null): Json | null {
   return { "@type": "PostalAddress", streetAddress: m[1].trim(), addressLocality: m[2].trim(), addressRegion: m[3], postalCode: m[4], addressCountry: "US" };
 }
 
+/** What Filewell sells, for the Organization's offer catalog: business services only once they are public. */
+function offeredServices(): { name: string; path: string }[] {
+  const out = [{ name: "Annual report filing", path: "/annual-report" }];
+  if (businessServicesIndexable()) {
+    out.push(
+      { name: "Registered agent service", path: "/registered-agent" },
+      { name: "Change of registered agent", path: "/registered-agent" },
+      { name: "LLC and corporation formation", path: "/business-formation" },
+    );
+  }
+  return out;
+}
+
 export function organizationJsonLd(): Json {
   const address = postalAddressJsonLd(site.postalAddress);
   return {
@@ -44,6 +58,14 @@ export function organizationJsonLd(): Json {
     areaServed: { "@type": "Country", name: "United States" },
     contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: site.supportEmail, availableLanguage: "en" },
     ...(site.trustpilotUrl ? { sameAs: [site.trustpilotUrl] } : {}),
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: `${site.name} services`,
+      itemListElement: offeredServices().map((s) => ({
+        "@type": "Offer",
+        itemOffered: { "@type": "Service", name: s.name, url: absoluteUrl(s.path), areaServed: { "@type": "Country", name: "United States" } },
+      })),
+    },
   };
 }
 
