@@ -36,7 +36,7 @@ import { CalendarDate } from "@/components/visual/calendar-date";
 import { FilingYearChart } from "@/components/visual/filing-year-chart";
 import { Receipt } from "@/components/visual/receipt";
 import { publicQuote } from "@/lib/compliance/public-quote";
-import { providerReportOpenState } from "@/lib/registered-agent/provider-report";
+import { providerReportFacts, providerReportOpenState } from "@/lib/registered-agent/provider-report";
 import { getJurisdictionBySlug, isRuleSellable, listJurisdictions, rulesForState } from "@/lib/compliance/registry";
 import { PENNSYLVANIA_FACTS } from "@/lib/compliance/states/pennsylvania";
 import type { ComplianceRuleDef, FaqItem, JurisdictionDef } from "@/lib/compliance/types";
@@ -89,6 +89,9 @@ export async function generateMetadata({ params }: PageProps<"/annual-report/[st
   const rules = verifiedRules(j);
   const path = `/annual-report/${j.slug}`;
   if (!rules.length) {
+    // Where our provider files it, the page answers the search: due date, state fee, our price.
+    const offer = await providerReportOffer(j.code);
+    if (offer) return pageMetadata({ ...providerReportSnippet(j.name, offer), path });
     return pageMetadata({
       title: `${j.name} Annual Report`,
       description: `We haven't verified ${j.name}'s annual report requirements yet, so we don't show due dates or fees. Find the official ${j.name} business filing agency.`,
@@ -123,6 +126,32 @@ export default async function StateAnnualReportPage({ params }: PageProps<"/annu
       <RaStateBand stateCode={j.code} />
     </>
   );
+}
+
+/** "$75", or "$75 for LLCs and $100 for corporations". */
+function providerFeeText(offer: ProviderReportOffer): string {
+  const fees = offer.types.map((t) => ({ t, cents: offer.open.feeCents[t] ?? 0 }));
+  if (new Set(fees.map((f) => f.cents)).size === 1) return formatCents(fees[0].cents, { trimZeros: true });
+  return fees.map((f) => `${formatCents(f.cents, { trimZeros: true })} for ${f.t === "llc" ? "LLCs" : "corporations"}`).join(" and ");
+}
+
+/** The state's due date in plain words, or null where it isn't verified. */
+function providerDueText(code: string): string | null {
+  const due = providerReportFacts(code)?.due ?? null;
+  if (!due || /not verified/i.test(due)) return null;
+  return due.replace(/^(\w)/, (c) => c.toLowerCase());
+}
+
+function providerReportSnippet(name: string, offer: ProviderReportOffer): { title: string; description: string } {
+  const fee = providerFeeText(offer);
+  const lowestState = Math.min(...offer.types.map((t) => offer.open.feeCents[t] ?? 0));
+  const due = providerDueText(offer.open.code);
+  const money = (c: number) => formatCents(c, { trimZeros: true });
+  const single = !fee.includes(" for ");
+  return {
+    title: single ? `${name} Annual Report: ${fee} State Fee, Due Date & Filing` : `${name} Annual Report: State Fee, Due Date & Filing`,
+    description: `${due ? `Due ${due}. ` : ""}${name} charges ${fee}. Filewell files your ${name} LLC or corporation annual report for ${money(offer.serviceCents)} + the state fee${single ? `, ${money(offer.serviceCents + lowestState)} total` : ""}.`,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +190,8 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
   const feeNote = /\((.+)\)$/.exec(feeText)?.[1] ?? null;
   const groups = dueGroups(rules);
   const sellable = rules.some((r) => isRuleSellable(r));
+  const llcRule = rules.find((r) => r.entityType === "llc") ?? null;
+  const llcQuote = llcRule ? quotes[rules.indexOf(llcRule)] : null;
   // Where we don't file it ourselves but our partner does, the box below says so instead of
   // "isn't open yet", which contradicted the "We file your report" band further down.
   const partner = sellable ? null : await providerReportOffer(j.code);
@@ -240,8 +271,14 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
         }
         lede={
           <p>
-            {facts ? `Since ${facts.firstRequiredYear}, most` : "Most"} businesses registered in {j.name} file one every
-            year. The due date depends on the type of entity.
+            <strong className="font-semibold text-fg">
+              {j.name} annual reports are due: {dueSummary(rules)}. The state fee is {feeText}.
+            </strong>{" "}
+            {sellable && exampleQuote
+              ? `We file yours for ${formatCents(exampleQuote.serviceFeeCents, { trimZeros: true })} plus the state fee, and a person checks it before it goes in.`
+              : partner
+                ? `We file yours for ${formatCents(partner.serviceCents, { trimZeros: true })} plus the state fee.`
+                : `${facts ? `Since ${facts.firstRequiredYear}, most` : "Most"} businesses registered in ${j.name} file one every year.`}
           </p>
         }
         actions={
@@ -271,6 +308,21 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
       <Container className="grid grid-cols-1 gap-12 pb-20 lg:grid-cols-[minmax(0,1fr)_13.5rem] lg:gap-16">
         <div className="grid min-w-0 content-start gap-20 pt-4 sm:gap-24">
           <OnThisPageDisclosure items={TOC} className="-mb-8" />
+
+          {llcRule ? (
+            <section aria-labelledby="llc-report-title" className="grid gap-3">
+              <h2 id="llc-report-title" className="text-[26px] font-semibold leading-[1.1] text-fg sm:text-[34px]">
+                {j.name} LLC annual report
+              </h2>
+              <p className="text-[17px] leading-relaxed text-muted">
+                LLCs file by {dueDayText(llcRule)}
+                {llcRule.stateFeeCents > 0 ? `, and the state fee is ${formatCents(llcRule.stateFeeCents, { trimZeros: true })}` : ", with no state fee"}.
+                {llcQuote && isRuleSellable(llcRule)
+                  ? ` With us it's ${formatCents(llcQuote.totalCents, { trimZeros: true })} in total: the state fee plus our ${formatCents(llcQuote.serviceFeeCents, { trimZeros: true })}, shown as two lines before you pay.`
+                  : ""}
+              </p>
+            </section>
+          ) : null}
 
           {/* Due dates */}
           <GuideSection
@@ -621,8 +673,11 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
         lede={
           offer ? (
             <p>
-              We file your {j.name} {offer.open.reportName.toLowerCase()} for you. One price, paid once, and you get the
-              state&apos;s confirmation when it&apos;s done.
+              <strong className="font-semibold text-fg">
+                {providerDueText(j.code) ? `${j.name} annual reports are due ${providerDueText(j.code)}. ` : ""}The state fee is {providerFeeText(offer)}.
+              </strong>{" "}
+              We file your {j.name} {offer.open.reportName.toLowerCase()} for {formatCents(offer.serviceCents, { trimZeros: true })} plus the state
+              fee. One price, paid once, and you get the state&apos;s confirmation when it&apos;s done.
             </p>
           ) : reminders ? (
             <p>
@@ -656,6 +711,21 @@ function UnverifiedState({ j, offer }: { j: JurisdictionDef; offer: ProviderRepo
         focusWide="30% 40%"
         panel={offer ? <ProviderReportPanel offer={offer} /> : <UnverifiedStatePanel j={j} />}
       />
+
+      {offer && offer.types.includes("llc") ? (
+        <section aria-labelledby="llc-report-title" className="py-10 sm:py-14">
+          <Container className="grid max-w-3xl gap-3">
+            <h2 id="llc-report-title" className="text-[26px] font-semibold leading-[1.1] text-fg sm:text-[34px]">
+              {j.name} LLC annual report
+            </h2>
+            <p className="text-[17px] leading-relaxed text-muted">
+              An LLC pays the state {formatCents(offer.open.feeCents.llc ?? 0, { trimZeros: true })}. With us it&apos;s{" "}
+              {formatCents(offer.serviceCents + (offer.open.feeCents.llc ?? 0), { trimZeros: true })} in total, shown as two lines before you pay.
+              You check the details, a person on our team reviews them, and we send you the state&apos;s confirmation.
+            </p>
+          </Container>
+        </section>
+      ) : null}
 
       <DeadlineReminderBand stateCode={j.code} page={path} />
 

@@ -44,7 +44,20 @@ describe("state guide search snippets", () => {
   });
 
   it("other states keep the generic snippet", () => {
-    expect(stateGuideSnippet({ code: "PA" }, verified("PA"), {})).toBeNull();
+    expect(stateGuideSnippet({ code: "MI" }, verified("MI"), {})).toBeNull();
+  });
+
+  it("Pennsylvania leads with the exact search phrase and the $56 total", () => {
+    const s = stateGuideSnippet({ code: "PA" }, verified("PA"), { filingServiceCents: 4900 })!;
+    expect(s.title).toBe("Pennsylvania Annual Report: $7 Fee, Due Dates & Filing");
+    expect(s.description).toContain("$56 total");
+    expect(s.description.length).toBeLessThanOrEqual(160);
+  });
+
+  it("Florida leads with the May 1 due date and the LLC fee", () => {
+    const s = stateGuideSnippet({ code: "FL" }, verified("FL"), { filingServiceCents: 4900 })!;
+    expect(s.title).toMatch(/^Florida Annual Report: Due May 1, \$138\.75 LLC Fee/);
+    expect(s.description.length).toBeLessThanOrEqual(160);
   });
 });
 

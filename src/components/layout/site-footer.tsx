@@ -56,6 +56,7 @@ export function SiteFooter() {
             <Link className={linkClass} href="/pricing">Pricing</Link>
             <Link className={linkClass} href="/business-search">Business search</Link>
             <Link className={linkClass} href="/compare">Compare</Link>
+            <Link className={linkClass} href="/about">About us</Link>
             <Link className={linkClass} href="/help">Help</Link>
           </nav>
           <nav aria-label="Annual reports by state" className="grid content-start gap-3">
@@ -72,6 +73,7 @@ export function SiteFooter() {
             <Link className={linkClass} href="/pennsylvania/annual-report-fee">Annual report fee</Link>
             <Link className={linkClass} href="/pennsylvania/how-to-file-annual-report">How to file</Link>
             <Link className={linkClass} href="/pennsylvania/annual-report-after-deadline">Filing after the deadline</Link>
+            <Link className={linkClass} href="/pennsylvania/file-yourself-or-use-a-service">File it yourself or use a service?</Link>
             <Link className={linkClass} href="/pennsylvania/business-search">Business search</Link>
           </nav>
           <nav aria-label="Florida guides" className="grid content-start gap-3">

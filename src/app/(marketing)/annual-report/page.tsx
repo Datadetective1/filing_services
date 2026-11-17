@@ -12,17 +12,36 @@ import { ButtonLink, textLinkClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/surface";
 import type { FaqItem } from "@/lib/compliance/types";
 import { formatCents } from "@/lib/domain/money";
-import { breadcrumbJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
+import { annualReportServiceJsonLd, breadcrumbJsonLd, faqJsonLd, graph } from "@/lib/seo/json-ld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { serviceFeeText } from "@/lib/services/fee-text";
 import { annualReportPlaces } from "@/lib/services/state-services";
 
-export const metadata: Metadata = pageMetadata({
-  title: "Annual Reports by State: What They Are and When They're Due",
-  description:
-    "What a business annual report is, the states where we file it for you, and each state's due dates and fees, checked against official sources.",
-  path: "/annual-report",
-});
+/** Our fee tiers, lowest first: [{ serviceCents: 4900, states: 6 }, { serviceCents: 9900, states: 27 }]. */
+function feeTiers(places: { serviceCents: number }[]): { serviceCents: number; states: number }[] {
+  const by = new Map<number, number>();
+  for (const p of places) by.set(p.serviceCents, (by.get(p.serviceCents) ?? 0) + 1);
+  return [...by.entries()].sort((a, b) => a[0] - b[0]).map(([serviceCents, states]) => ({ serviceCents, states }));
+}
+
+/** "$49 plus the state fee in 6 states and $99 plus the state fee in 27 more". */
+function tiersSentence(tiers: { serviceCents: number; states: number }[]): string {
+  return tiers
+    .map((t, i) => `${money(t.serviceCents)} plus the state fee in ${t.states}${i > 0 ? " more" : ""} ${t.states === 1 ? "state" : "states"}`)
+    .join(tiers.length === 2 ? " and " : ", ");
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const places = await annualReportPlaces().catch(() => []);
+  const fee = serviceFeeText(places);
+  return pageMetadata({
+    title: fee ? `Annual Report Filing Service: ${fee.lowest} Plus the State Fee` : "Annual Report Filing Service",
+    description: fee
+      ? `We file your LLC or corporation's annual report for ${tiersSentence(feeTiers(places))}. A person checks every filing, and the state fee is passed through at cost.`
+      : "We file your LLC or corporation's annual report with the state. A person checks every filing, and the state fee is passed through at cost.",
+    path: "/annual-report",
+  });
+}
 
 // Prices and state switches can change: rebuild at most hourly, like the state pages.
 export const revalidate = 3600;
@@ -111,28 +130,43 @@ export default async function AnnualReportHubPage() {
   const fee = serviceFeeText(places);
   const faq = buildFaq(fee?.all ?? null);
   const filedCodes = new Set(places.map((p) => p.code));
+  const tiers = feeTiers(places);
 
   return (
     <>
-      <JsonLd data={graph(breadcrumbJsonLd(CRUMBS), faqJsonLd(faq))} />
+      <JsonLd
+        data={graph(
+          breadcrumbJsonLd(CRUMBS),
+          ...(tiers.length
+            ? [
+                annualReportServiceJsonLd({
+                  path: "/annual-report",
+                  tiers,
+                  description:
+                    "We prepare and file a business's state annual report, pay the state's fee at cost and keep the state's confirmation in the customer's dashboard. A person checks every filing before it is submitted.",
+                }),
+              ]
+            : []),
+          faqJsonLd(faq),
+        )}
+      />
 
       <PhotoHero
         id="hub-title"
         breadcrumbs={<Breadcrumbs items={CRUMBS} />}
         title={
           <>
-            Your annual report, <span className="mark-highlight">filed</span>.
+            Annual report filing <span className="mark-highlight">service</span>
           </>
         }
         lede={
           <p>
-            Pick your state, find your business and sign. We file it with the state and send you the confirmation.
-            {fee ? (
+            {tiers.length ? (
               <>
-                {" "}
-                <strong className="font-semibold text-fg">From {fee.lowest} plus the state fee.</strong>
+                <strong className="font-semibold text-fg">We file your LLC or corporation&apos;s annual report for {tiersSentence(tiers)}.</strong>{" "}
               </>
             ) : null}
+            A person checks it, we pay the state&apos;s fee at cost, and you get the state&apos;s confirmation. Your part takes a few minutes.
           </p>
         }
         actions={

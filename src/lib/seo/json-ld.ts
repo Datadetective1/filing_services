@@ -16,13 +16,27 @@ function organizationRef(): Json {
   return { "@type": "Organization", "@id": organizationId(), name: site.name, url: siteUrl() };
 }
 
+/**
+ * "817 S MacArthur Blvd, Ste 115 #1040, Coppell, TX 75019" as a PostalAddress. An address in
+ * any other shape is kept whole as the street line rather than guessed apart.
+ */
+export function postalAddressJsonLd(address: string | null): Json | null {
+  if (!address) return null;
+  const m = /^(.+),\s*([^,]+),\s*([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/.exec(address.trim());
+  if (!m) return { "@type": "PostalAddress", streetAddress: address.trim(), addressCountry: "US" };
+  return { "@type": "PostalAddress", streetAddress: m[1].trim(), addressLocality: m[2].trim(), addressRegion: m[3], postalCode: m[4], addressCountry: "US" };
+}
+
 export function organizationJsonLd(): Json {
+  const address = postalAddressJsonLd(site.postalAddress);
   return {
     "@type": "Organization",
     "@id": organizationId(),
     name: site.name,
     // The operating company, only once it is configured (never the placeholder text).
     ...(site.legalEntityConfigured ? { legalName: site.legalEntity } : {}),
+    ...(address ? { address } : {}),
+    ...(site.founder ? { founder: { "@type": "Person", name: site.founder } } : {}),
     url: siteUrl(),
     logo: { "@type": "ImageObject", url: absoluteUrl("/apple-icon"), width: 180, height: 180 },
     description: `${site.description} ${site.disclaimer}`,
@@ -164,6 +178,45 @@ export function businessServiceJsonLd(input: {
           },
         }
       : {}),
+  };
+}
+
+/**
+ * Annual report filing as one nationwide Service with an offer per price tier: the service fee
+ * only, since each state's fee is passed through at cost and differs by state.
+ */
+export function annualReportServiceJsonLd(input: { path: string; tiers: { serviceCents: number; states: number }[]; description: string }): Json {
+  return {
+    "@type": "Service",
+    "@id": absoluteUrl(`${input.path}#service`),
+    name: "Annual report filing service",
+    serviceType: "Annual report filing",
+    description: `${input.description} ${site.disclaimer}`,
+    url: absoluteUrl(input.path),
+    provider: organizationRef(),
+    areaServed: { "@type": "Country", name: "United States" },
+    offers: input.tiers.map((t) => ({
+      "@type": "Offer",
+      name: `Annual report filing, ${t.states} ${t.states === 1 ? "state" : "states"}`,
+      url: absoluteUrl(input.path),
+      price: usd(t.serviceCents),
+      priceCurrency: "USD",
+      description: `$${usd(t.serviceCents)} service fee plus the state's own filing fee, passed through at cost and shown as its own line before you pay.`,
+      seller: organizationRef(),
+    })),
+  };
+}
+
+/** The About page, about the Organization. */
+export function aboutPageJsonLd(path: string): Json {
+  return {
+    "@type": "AboutPage",
+    "@id": absoluteUrl(`${path}#page`),
+    url: absoluteUrl(path),
+    name: `About ${site.name}`,
+    inLanguage: "en-US",
+    about: { "@id": organizationId() },
+    isPartOf: { "@id": websiteId() },
   };
 }
 

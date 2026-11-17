@@ -36,6 +36,9 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
+/** Points agents and AI search tools at the plain-text summary of the service (RFC 8288). */
+const SERVICE_DOC_LINK = '</llms.txt>; rel="service-doc"; type="text/plain"';
+
 /**
  * Mirrors isIndexable() in src/config/site.ts. Evaluated at build time, like the
  * NEXT_PUBLIC_* values it reads. Until indexing is explicitly allowed on production,
@@ -54,6 +57,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      { source: "/", headers: [{ key: "Link", value: SERVICE_DOC_LINK }] },
+      { source: "/(about|pricing|annual-report|registered-agent|compare|best-annual-report-filing-services|best-registered-agent-services)", headers: [{ key: "Link", value: SERVICE_DOC_LINK }] },
       ...(indexable ? [] : [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }]),
       {
         // Signed, per-person or utility URLs: never indexed, whatever robots.txt says.

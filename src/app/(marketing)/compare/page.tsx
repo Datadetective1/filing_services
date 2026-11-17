@@ -8,6 +8,7 @@ import { Container } from "@/components/ui/surface";
 import { site } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
 import { businessServicesIndexable } from "@/lib/registered-agent/sales";
+import { BEST_OF_PATHS } from "@/lib/seo/best-of";
 import { checkedLabel, comparePath, COMPETITORS } from "@/lib/seo/compare";
 import { filewellFacts } from "@/lib/seo/compare-filewell";
 import { breadcrumbJsonLd, graph } from "@/lib/seo/json-ld";
@@ -87,7 +88,26 @@ export default async function CompareHubPage() {
         </Container>
       </section>
       <section className="grain bg-surface-2 py-14 sm:py-20">
-        <Container>
+        <Container className="grid gap-8">
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {[
+              { path: BEST_OF_PATHS["annual-report"], title: "Best annual report filing services", sub: "Six services, service fee and what you get" },
+              { path: BEST_OF_PATHS["registered-agent"], title: "Best registered agent services", sub: "First year, renewal and two-year total" },
+            ].map((b) => (
+              <li key={b.path}>
+                <Link
+                  href={b.path}
+                  className="group flex h-full items-center justify-between gap-4 rounded-[var(--radius-surface)] border border-accent/40 bg-surface p-6 shadow-card transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-lift"
+                >
+                  <span className="grid gap-1">
+                    <span className="text-xl font-semibold text-fg">{b.title}</span>
+                    <span className="text-[14px] text-muted">{b.sub}</span>
+                  </span>
+                  <ArrowRight size={20} weight="bold" aria-hidden className="shrink-0 text-accent transition-transform group-hover:translate-x-1" />
+                </Link>
+              </li>
+            ))}
+          </ul>
           <ul className="grid gap-3 sm:grid-cols-3">
             {COMPETITORS.map((c) => (
               <li key={c.slug}>

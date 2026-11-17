@@ -9,6 +9,7 @@ import { pickableStates } from "@/lib/services/state-services";
 import { LEGAL_LAST_UPDATED, LEGAL_PAGES } from "@/lib/seo/legal";
 import { STATE_GUIDE_SETS } from "@/lib/seo/state-guides";
 import { businessSearchPageStates } from "@/lib/seo/business-search";
+import { BEST_OF_PATHS } from "@/lib/seo/best-of";
 import { comparePath, COMPETITORS } from "@/lib/seo/compare";
 
 /**
@@ -28,6 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: absoluteUrl("/states"), lastModified: rulesUpdated, changeFrequency: "monthly", priority: 0.6 },
     { url: absoluteUrl("/pricing"), changeFrequency: "monthly", priority: 0.7 },
     { url: absoluteUrl("/help"), changeFrequency: "monthly", priority: 0.4 },
+    { url: absoluteUrl("/about"), changeFrequency: "monthly", priority: 0.5 },
     { url: absoluteUrl("/business-search"), changeFrequency: "monthly", priority: 0.8 },
     ...businessSearchPageStates().map((s) => ({ url: absoluteUrl(s.path), changeFrequency: "monthly" as const, priority: 0.8 })),
   ];
@@ -63,6 +65,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
       { url: absoluteUrl("/business-formation"), changeFrequency: "monthly", priority: 0.4 },
       { url: absoluteUrl("/services"), changeFrequency: "monthly", priority: 0.8 },
       { url: absoluteUrl("/compare"), changeFrequency: "monthly", priority: 0.6 },
+      { url: absoluteUrl(BEST_OF_PATHS["annual-report"]), changeFrequency: "monthly", priority: 0.8 },
+      { url: absoluteUrl(BEST_OF_PATHS["registered-agent"]), changeFrequency: "monthly", priority: 0.8 },
       ...COMPETITORS.map((c) => ({ url: absoluteUrl(comparePath(c)), changeFrequency: "monthly" as const, priority: 0.6 })),
       ...pickableStates().map((s) => ({ url: absoluteUrl(`/services/${s.slug}`), changeFrequency: "weekly" as const, priority: 0.7 })),
       ...raJurisdictionsWithPublicFacts().flatMap((j) => {

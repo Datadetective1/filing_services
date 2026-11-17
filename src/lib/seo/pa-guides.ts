@@ -330,6 +330,74 @@ export const PA_GUIDES: PaGuide[] = [
     ],
     sources: [SRC.openData, SRC.annualReports],
   },
+  {
+    slug: "file-yourself-or-use-a-service",
+    title: "PA Annual Report: File It Yourself for $7 or Use a Service?",
+    description:
+      "You can file a Pennsylvania annual report yourself for the $7 state fee. A service adds reminders, a checked filing and help if it's sent back. Filewell: $56 total.",
+    h1: "Pennsylvania annual report: file it yourself or use a service?",
+    answer: [
+      "You can file a Pennsylvania annual report yourself. It costs the $7 state fee ($0 for nonprofits), and most owners finish it online in a few minutes.",
+      "A filing service makes sense if you'd rather not track the date or fill in the form. Filewell charges $49 plus the $7 state fee, $56 in total, shown as two separate lines before you pay. Many services charge $100 or more on top of the state fee.",
+    ],
+    blocks: [
+      {
+        heading: "When filing it yourself is enough",
+        list: [
+          "You have one business and know its deadline: June 30 for corporations, September 30 for LLCs, December 31 for other associations.",
+          "You have its Pennsylvania entity number and the names of its officers or members at hand.",
+          "You're happy to check the details yourself and keep the state's acknowledgement.",
+          "You'll remember to do it again next year.",
+        ],
+      },
+      {
+        heading: "What a service adds for the extra $49",
+        list: [
+          "A reminder before the report is due, every year.",
+          "Your details filled in from Pennsylvania's public register, so you check them instead of typing them.",
+          "A person on our team reads the report before it's filed.",
+          "The state's acknowledgement sent to you and kept in your dashboard.",
+          "If the state sends it back, we help you correct it and file it again.",
+        ],
+      },
+      {
+        heading: "Why the date matters more from 2027",
+        paragraphs: [
+          "Beginning with reports due in 2027, a business that doesn't file can be administratively dissolved six months after its due date. Getting it reinstated costs more than the report itself, which is the main reason owners with several businesses use a service.",
+        ],
+      },
+      {
+        heading: "What it costs, side by side",
+        list: [
+          "Filing it yourself: the $7 state fee ($0 for nonprofits).",
+          "Filewell: $49 service fee plus the $7 state fee, $56 in total.",
+          "Many other services: $99 to $199 plus the state fee.",
+        ],
+        paragraphs: [
+          "Filewell is a private company, not the Department of State. Our fee is shown before you pay, and the state's fee is passed through at cost.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "How much does it cost to file a Pennsylvania annual report yourself?",
+        a: "$7 for business corporations, LLCs, LPs and LLPs. Nonprofit corporations, and LPs or LLCs with a not-for-profit purpose, pay $0.",
+      },
+      {
+        q: "How much does Filewell charge for a Pennsylvania annual report?",
+        a: "$49 plus the $7 state fee, $56 in total. Both are shown as separate lines before you pay.",
+      },
+      {
+        q: "Is it worth paying a service for a $7 filing?",
+        a: "If you have one business and remember the date, filing it yourself is fine. A service is worth it if you want a yearly reminder, someone to check the report, and help if the state sends it back.",
+      },
+      {
+        q: "Is Filewell the state?",
+        a: "No. Filewell is a private filing service. We are not affiliated with or endorsed by the Department of State.",
+      },
+    ],
+    sources: [SRC.statute146, SRC.statute153, SRC.statute381],
+  },
 ];
 
 export function getPaGuide(slug: string): PaGuide | undefined {

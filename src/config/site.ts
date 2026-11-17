@@ -22,6 +22,8 @@ export const site = {
   legalEntityConfigured: legalEntity !== null,
   /** Physical postal address for email footers and legal pages; null until configured. */
   postalAddress: process.env.NEXT_PUBLIC_POSTAL_ADDRESS?.trim() || null,
+  /** The person behind the business, named on the About page and in Organization markup. Empty disables both. */
+  founder: process.env.NEXT_PUBLIC_FOUNDER_NAME?.trim() ?? "Amary Coulibaly",
   /** Jurisdiction whose law governs the terms (e.g. "the Commonwealth of Pennsylvania"); null until the owner chooses. */
   governingLaw: process.env.NEXT_PUBLIC_GOVERNING_LAW?.trim() || null,
   tagline: "Never miss a business filing.",
