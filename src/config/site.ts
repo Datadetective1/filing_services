@@ -32,6 +32,11 @@ export const site = {
   supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || "support@getfilewell.com",
   /** Public Trustpilot profile: linked from the About page, Organization markup and finished-work emails. Empty disables all three. */
   trustpilotUrl: process.env.NEXT_PUBLIC_TRUSTPILOT_URL?.trim() ?? "https://www.trustpilot.com/review/getfilewell.com",
+  /**
+   * What a referral partner earns, shown on /partners, e.g. "$20 for every paid order". Empty
+   * (the default) shows no reward: partners then refer for their clients' sake only.
+   */
+  referralReward: process.env.NEXT_PUBLIC_REFERRAL_REWARD?.trim() || null,
   disclaimer: "Private filing service. Not affiliated with or endorsed by any government agency.",
 };
 

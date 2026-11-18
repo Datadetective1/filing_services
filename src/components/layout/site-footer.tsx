@@ -56,6 +56,9 @@ export function SiteFooter() {
             <Link className={linkClass} href="/pricing">Pricing</Link>
             <Link className={linkClass} href="/business-search">Business search</Link>
             <Link className={linkClass} href="/compare">Compare</Link>
+            <Link className={linkClass} href="/tools">Free tools</Link>
+            <Link className={linkClass} href="/glossary">Glossary</Link>
+            <Link className={linkClass} href="/partners">For accountants</Link>
             <Link className={linkClass} href="/about">About us</Link>
             <Link className={linkClass} href="/help">Help</Link>
           </nav>
