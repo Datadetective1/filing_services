@@ -60,6 +60,10 @@ export async function GET() {
     "",
     `- [Business search](${absoluteUrl("/business-search")}): live search of official business registers in ${searchStates.map((s) => s.name).join(", ")}.`,
     `- [Find what's due](${absoluteUrl("/find")}): a business's next annual report due date, state fee and source, with free email reminders.`,
+    `- [Annual report due dates by state](${absoluteUrl("/annual-report/due-dates")}): every checked state's due date and state fee on one page.`,
+    `- [Deadline badge](${absoluteUrl("/tools/deadline-badge")}): a free image link that shows a state's annual report due date on any website.`,
+    `- [Filing glossary](${absoluteUrl("/glossary")}): annual report, registered agent, good standing, administrative dissolution and other terms in plain English.`,
+    `- [For accountants and bookkeepers](${absoluteUrl("/partners")}): a free partner link for referring clients.`,
     "",
     ...(services
       ? [

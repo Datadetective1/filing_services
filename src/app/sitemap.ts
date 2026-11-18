@@ -34,6 +34,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: absoluteUrl("/help"), changeFrequency: "monthly", priority: 0.4 },
     { url: absoluteUrl("/about"), changeFrequency: "monthly", priority: 0.5 },
     { url: absoluteUrl("/business-search"), changeFrequency: "monthly", priority: 0.8 },
+    { url: absoluteUrl("/tools"), changeFrequency: "monthly", priority: 0.6 },
+    { url: absoluteUrl("/tools/deadline-badge"), lastModified: rulesUpdated, changeFrequency: "monthly", priority: 0.5 },
+    { url: absoluteUrl("/glossary"), changeFrequency: "monthly", priority: 0.6 },
+    { url: absoluteUrl("/partners"), changeFrequency: "monthly", priority: 0.5 },
     ...businessSearchPageStates().map((s) => ({ url: absoluteUrl(s.path), changeFrequency: "monthly" as const, priority: 0.8 })),
   ];
 
