@@ -117,7 +117,7 @@ Vercel project `filewell`. "Secret" = sensitive type, never shared between targe
 `NEXT_PUBLIC_*` values are inlined at build time. Any env change needs a new deployment to
 take effect.
 
-| Variable | Production | Preview (staging) | Development (local) | Secret |
+| Variable | Production | Preview | Development (local) | Secret |
 | --- | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | `https://www.getfilewell.com` | unset (deployment URL) | `http://localhost:3000` | no |
 | `NEXT_PUBLIC_BRAND_NAME` | unset (`Filewell`) | unset | unset | no |
@@ -125,9 +125,9 @@ take effect.
 | `NEXT_PUBLIC_LEGAL_ENTITY` | company legal name, once known | unset | unset | no |
 | `NEXT_PUBLIC_POSTAL_ADDRESS` | mailing address, once known | unset | unset | no |
 | `NEXT_PUBLIC_ALLOW_INDEXING` | `false` until owner approval | `false` | `false` | no |
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://tnwpcprvetxtgyjuncrl.supabase.co` | `https://iskphxoowsiuvvojswty.supabase.co` | local stack or staging | no |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | production key (`sb_publishable_ogSK5...`) | staging key | local or staging key | no (public) |
-| `SUPABASE_SECRET_KEY` | **not set** (production uses `SUPABASE_SERVICE_ROLE_KEY`) | staging key | local or staging key | yes |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://tnwpcprvetxtgyjuncrl.supabase.co` | **not set** (staging retired, see below) | local stack | no |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | production key (`sb_publishable_ogSK5...`) | **not set** | local key | no (public) |
+| `SUPABASE_SECRET_KEY` | **not set** (production uses `SUPABASE_SERVICE_ROLE_KEY`) | **not set** | local key | yes |
 | `SUPABASE_SERVICE_ROLE_KEY` | production key | not set | not set | yes |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | production key (currently unused: the publishable key wins) | not set | not set | no (public) |
 | `APP_SIGNING_SECRET` | own value (32+ chars) | own value | own value | yes |
@@ -148,6 +148,14 @@ take effect.
 | `EMAIL_DELIVERY_OUTSIDE_PRODUCTION` | unset | only for a deliberate deliverability check, then remove | never | no |
 | `FILEWELL_CLOCK_OVERRIDE` | never (ignored) | only for date QA | optional | no |
 | `CONFIRM_PRODUCTION` | never | never | command line only | no |
+
+**Staging database retired (2026-11-19):** the `filewell-staging` Supabase project
+(`iskphxoowsiuvvojswty`) was removed to cut cost. Preview deployments now have no
+Supabase variables, so marketing pages work on previews but sign-in, checkout, the
+dashboard and admin do not. The old Preview variables were renamed with a
+`RETIRED_STAGING_` prefix on Vercel. Never point Preview at the production project; to
+test database flows, use a local stack (`npx supabase start`) or create a new staging
+project and rename the variables back.
 
 **Which Supabase variables the app reads (and which wins):** the URL comes only from
 `NEXT_PUBLIC_SUPABASE_URL`. The public key is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
