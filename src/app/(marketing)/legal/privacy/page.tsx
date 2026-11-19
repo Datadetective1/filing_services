@@ -83,6 +83,13 @@ export default function PrivacyPage() {
         landed on and the date. This is kept with analytics events and, if you add a business, with that business.
       </p>
       <p>
+        If you arrive by clicking one of our ads on Google, the link carries a click ID that Google adds. We keep that click ID
+        in the same first-party cookie and with your business, and never in analytics events. If you then buy from us, we may
+        upload the click ID with the time and amount of our service fee to Google Ads, so we can tell whether our ads work. We
+        don&apos;t send your name, email address or business details with it. We still don&apos;t put any Google script or
+        tracking cookie on our site.
+      </p>
+      <p>
         We also count page views with Vercel Web Analytics, run by our hosting provider. It does not set cookies, records the
         page path without its query string (campaign tags excepted), and does not store IP addresses. It is not used on staff
         or sign-in pages, and we turn it off if your browser sends a Global Privacy Control or Do Not Track signal.

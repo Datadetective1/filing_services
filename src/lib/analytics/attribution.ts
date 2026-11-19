@@ -14,6 +14,7 @@ export const ATTRIBUTION_MAX_AGE = 60 * 60 * 24 * 180;
 /** Sources the dashboard groups by. Anything else from a utm_source is kept as "other:<value>" -> "other". */
 export const KNOWN_SOURCES = [
   "google",
+  "google_ads",
   "bing",
   "duckduckgo",
   "yahoo",
@@ -43,6 +44,11 @@ export interface Touch {
   lp: string;
   /** ISO date (YYYY-MM-DD). */
   t: string;
+  /**
+   * Google Ads click ID (gclid), kept only on a paid Google Ads click so a purchase can be
+   * reported back to Google Ads as an offline conversion. Never copied into analytics events.
+   */
+  g?: string;
 }
 
 export interface Attribution {
@@ -77,10 +83,13 @@ const SOURCE_ALIASES: Record<string, string> = {
   outreach: "manual_outreach",
   postcard: "future_postcard",
   mail: "future_postcard",
+  adwords: "google_ads",
+  googleads: "google_ads",
 };
 
 const DEFAULT_MEDIUM: Record<string, string> = {
   google: "organic",
+  google_ads: "cpc",
   bing: "organic",
   duckduckgo: "organic",
   yahoo: "organic",
@@ -94,6 +103,15 @@ const DEFAULT_MEDIUM: Record<string, string> = {
   referral: "referral",
   direct: "none",
 };
+
+/** Mediums that mean a paid click when the source is Google. */
+const PAID_MEDIUMS = new Set(["cpc", "ppc", "paid", "paidsearch", "paid_search", "sem"]);
+
+/** A Google click ID as Google sends it: URL-safe characters only, bounded length. */
+function cleanClickId(v: string | null): string | undefined {
+  const s = (v ?? "").trim();
+  return /^[A-Za-z0-9_-]{10,200}$/.test(s) ? s : undefined;
+}
 
 export function normalizeSource(raw: string | undefined): string {
   if (!raw) return "direct";
@@ -129,6 +147,22 @@ export function classifyTouch({ url, referrer, selfHosts, today }: TouchInput): 
   const utmMedium = clean(q.get("utm_medium"));
   const utmCampaign = clean(q.get("utm_campaign"), 80);
   const partner = clean(q.get("ref"), 40);
+
+  // A Google Ads click: auto-tagged (gclid, or gbraid/wbraid from iOS) or tagged by hand
+  // with utm_source=google and a paid medium. Checked first so the Google referrer doesn't
+  // file a paid click as organic.
+  const gclid = cleanClickId(q.get("gclid"));
+  const braid = cleanClickId(q.get("gbraid")) ?? cleanClickId(q.get("wbraid"));
+  const sourceForPaid = utmSource ? (SOURCE_ALIASES[utmSource] ?? utmSource) : undefined;
+  const paidGoogle =
+    Boolean(gclid || braid) || sourceForPaid === "google_ads" || (sourceForPaid === "google" && Boolean(utmMedium && PAID_MEDIUMS.has(utmMedium)));
+  if (paidGoogle) {
+    const t: Touch = { s: "google_ads", m: "cpc", lp, t: today };
+    if (utmCampaign) t.c = utmCampaign;
+    if (refHost && !internal) t.r = refHost;
+    if (gclid) t.g = gclid;
+    return t;
+  }
 
   if (utmSource) {
     const s = normalizeSource(utmSource);
@@ -175,12 +209,13 @@ function validTouch(t: unknown): t is Touch {
     typeof o.t === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(o.t) &&
     (o.c === undefined || str(o.c, 80)) &&
-    (o.r === undefined || str(o.r, 100))
+    (o.r === undefined || str(o.r, 100)) &&
+    (o.g === undefined || (typeof o.g === "string" && /^[A-Za-z0-9_-]{10,200}$/.test(o.g)))
   );
 }
 
 export function parseAttribution(raw: string | null | undefined): Attribution | null {
-  if (!raw || raw.length > 2000) return null;
+  if (!raw || raw.length > 2500) return null;
   try {
     const v = JSON.parse(raw) as Record<string, unknown>;
     if (v.v !== 1 || !validTouch(v.ft) || !validTouch(v.lt)) return null;
@@ -210,5 +245,16 @@ export function attributionProperties(a: Attribution | null): Record<string, str
   return out;
 }
 
-/** Paid media we might run later. Everything else is $0-paid-media acquisition. */
-export const PAID_SOURCES = new Set(["future_postcard"]);
+/** Paid media. Everything else is $0-paid-media acquisition. */
+export const PAID_SOURCES = new Set(["future_postcard", "google_ads"]);
+
+/**
+ * The Google Ads click ID that led to this visitor's purchase, if the last paid touch was a
+ * Google Ads click (last touch first, then first touch).
+ */
+export function googleAdsClickId(a: Attribution | null): string | undefined {
+  if (!a) return undefined;
+  if (a.lt.s === "google_ads" && a.lt.g) return a.lt.g;
+  if (a.ft.s === "google_ads" && a.ft.g) return a.ft.g;
+  return undefined;
+}

@@ -1,4 +1,5 @@
 import "server-only";
+import { saveBusinessAttribution } from "@/lib/analytics/attribution-server";
 import { audit } from "@/lib/audit";
 import type { SessionUser } from "@/lib/auth/session";
 import { findRule } from "@/lib/compliance/registry";
@@ -15,7 +16,11 @@ import { createClient } from "@/lib/supabase/server";
 export async function addBusinessForService(user: SessionUser, input: AddBusinessInput): Promise<string> {
   const rule = findRule(input.stateCode, input.entityType, "annual_report", input.isForeign);
   const canDate = !formationDateRequired(input.stateCode) || Boolean(input.formationDate);
-  if (rule && rule.verificationStatus === "verified" && canDate) return (await addBusiness(user, input)).businessId;
+  if (rule && rule.verificationStatus === "verified" && canDate) {
+    const { businessId } = await addBusiness(user, input);
+    await saveBusinessAttribution(businessId, user.id);
+    return businessId;
+  }
 
   const db = await createClient();
   const { data, error } = await db
@@ -44,6 +49,7 @@ export async function addBusinessForService(user: SessionUser, input: AddBusines
     entityId: String(data.id),
     after: { state_code: input.stateCode, entity_type: input.entityType, source: "registered_agent_order" },
   });
+  await saveBusinessAttribution(String(data.id), user.id);
   return String(data.id);
 }
 
@@ -75,5 +81,6 @@ export async function addFormingBusiness(user: SessionUser, input: { legalName: 
     entityId: String(data.id),
     after: { state_code: input.stateCode, entity_type: input.entityType, lifecycle: "forming", source: "registered_agent_order" },
   });
+  await saveBusinessAttribution(String(data.id), user.id);
   return String(data.id);
 }
