@@ -1,4 +1,5 @@
 import "server-only";
+import { saveBusinessAttribution } from "@/lib/analytics/attribution-server";
 import { absoluteUrl } from "@/config/site";
 import { audit } from "@/lib/audit";
 import { trackServer } from "@/lib/analytics/server";
@@ -303,6 +304,7 @@ export async function startFormationCheckout(
     throw new ServiceOrderError(
       `Could not save the business: ${bizError?.message ?? "unknown"}`,
     );
+  await saveBusinessAttribution(String(biz.id), u.id);
   const businessId = String(biz.id);
 
   const db = createAdminClient();

@@ -31,6 +31,7 @@ function pct(n: number, d: number): string {
 }
 
 const SOURCE_LABEL: Record<string, string> = {
+  google_ads: "Google Ads",
   accountant_referral: "Accountant referral",
   manual_outreach: "Manual outreach",
   future_postcard: "Postcard",
@@ -73,6 +74,9 @@ export default async function AcquisitionPage(props: PageProps<"/admin/acquisiti
             <Link className="text-sm font-medium text-fg underline underline-offset-4" href="/admin/acquisition/october">
               Deadline cohorts (WA, NV, UT)
             </Link>
+            <a className="text-sm font-medium text-fg underline underline-offset-4" href="/admin/acquisition/google-ads-conversions">
+              Google Ads conversions (CSV)
+            </a>
           </>
         }
       />

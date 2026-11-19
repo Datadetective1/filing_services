@@ -1,4 +1,5 @@
 import "server-only";
+import { saveBusinessAttribution } from "@/lib/analytics/attribution-server";
 import { absoluteUrl, site } from "@/config/site";
 import { audit } from "@/lib/audit";
 import { trackServer } from "@/lib/analytics/server";
@@ -173,6 +174,7 @@ async function businessFor(u: SessionUser, input: ProviderReportInput, j: RaJuri
     entityId: String(data.id),
     after: { state_code: j.code, entity_type: input.entityType, source: "provider_annual_report_order" },
   });
+  await saveBusinessAttribution(String(data.id), u.id);
   return String(data.id);
 }
 
