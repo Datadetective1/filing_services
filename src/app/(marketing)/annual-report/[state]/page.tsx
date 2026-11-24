@@ -294,11 +294,25 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
         breadcrumbs={<Breadcrumbs items={crumbs} />}
         title={
           <>
-            {j.name} <span className="mark-highlight">annual report</span>
+            {j.name} <span className="mark-highlight">{j.code === "PA" ? "annual report filing" : "annual report"}</span>
           </>
         }
         lede={
-          sellable && exampleQuote && exampleRule ? (
+          j.code === "PA" && sellable && exampleQuote && exampleRule ? (
+            // Pennsylvania keeps the top screen short: price, what's included, and a line for late filers.
+            <>
+              <p>
+                <strong className="font-semibold text-fg">
+                  {formatCents(exampleQuote.totalCents, { trimZeros: true })} total: our {formatCents(exampleQuote.serviceFeeCents, { trimZeros: true })} plus
+                  the {formatCents(exampleRule.stateFeeCents, { trimZeros: true })} state fee.
+                </strong>{" "}
+                A person on our team checks your report before it goes in, and the state&apos;s confirmation goes in your dashboard.
+              </p>
+              {noLateFee ? (
+                <p className="mt-3">Missed the September 30 LLC due date? You can still file, and Pennsylvania charges no state late fee.</p>
+              ) : null}
+            </>
+          ) : sellable && exampleQuote && exampleRule ? (
             <p>
               <strong className="font-semibold text-fg">
                 {cap(article(j.name))} {j.name} {ENTITY_COPY[exampleRule.entityType].singular} annual report is {formatCents(exampleQuote.totalCents, { trimZeros: true })} total
@@ -399,17 +413,13 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                         <td className="tnum px-4 py-3">{formatCents(c.serviceCents + exampleRule.stateFeeCents, { trimZeros: true })}</td>
                       </tr>
                     ))}
-                    <tr>
-                      <th scope="row" className="px-4 py-3 font-medium text-fg">You, on the state&apos;s own site</th>
-                      <td className="tnum px-4 py-3">$0</td>
-                      <td className="tnum px-4 py-3">{formatCents(exampleRule.stateFeeCents, { trimZeros: true })}</td>
-                    </tr>
                   </tbody>
                 </table>
               </div>
               <p className="text-sm leading-6 text-subtle">
                 Totals include the {formatCents(exampleRule.stateFeeCents, { trimZeros: true })} state fee for {ENTITY_COPY[exampleRule.entityType].plural}.{" "}
-                {comparison.map((c) => `${c.name}'s price is from ${c.source}, checked ${checkedLabel(c.checked)}.`).join(" ")}
+                {comparison.map((c) => `${c.name}'s service price is from ${c.source}, checked ${checkedLabel(c.checked)}.`).join(" ")}{" "}
+                {reviewed ? `The state fee is from the ${agency}, last verified ${verifiedText(reviewed)}.` : null}
               </p>
             </section>
           ) : null}
@@ -467,6 +477,15 @@ async function VerifiedState({ j, rules }: { j: JurisdictionDef; rules: Complian
                 );
               })}
             </div>
+
+            {j.code === "PA" ? (
+              <p className="flex max-w-[68ch] items-start gap-2.5 text-[15px] leading-7 text-muted">
+                <Info size={18} aria-hidden className="mt-1 shrink-0 text-accent" />
+                <span>
+                  Pennsylvania law says corporations file &ldquo;before July 1,&rdquo; so June 30 is the last day.
+                </span>
+              </p>
+            ) : null}
 
             {firstReportYearAfter ? (
               <p className="flex max-w-[68ch] items-start gap-2.5 text-[15px] leading-7 text-muted">

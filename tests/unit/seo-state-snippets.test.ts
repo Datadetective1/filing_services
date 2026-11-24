@@ -49,7 +49,7 @@ describe("state guide search snippets", () => {
 
   it("Pennsylvania leads with the exact search phrase and the $56 total", () => {
     const s = stateGuideSnippet({ code: "PA" }, verified("PA"), { filingServiceCents: 4900 })!;
-    expect(s.title).toBe("Pennsylvania Annual Report: $7 Fee, Due Dates & Filing");
+    expect(s.title).toBe("Pennsylvania Annual Report Filing: $7 State Fee & Due Dates");
     expect(s.description).toContain("$56 total");
     expect(s.description.startsWith("$56 total with Filewell, including Pennsylvania's $7 state fee.")).toBe(true);
     expect(s.description.length).toBeLessThanOrEqual(160);

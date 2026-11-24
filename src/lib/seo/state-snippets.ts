@@ -106,7 +106,7 @@ function pennsylvania(rules: ComplianceRuleDef[], offer: SnippetOffer): StateSni
   if (fee === null) return null;
   const due = "Due June 30 (corporations), Sept 30 (LLCs) or Dec 31 (others).";
   return {
-    title: `Pennsylvania Annual Report: ${money(fee)} Fee, Due Dates & Filing`,
+    title: `Pennsylvania Annual Report Filing: ${money(fee)} State Fee & Due Dates`,
     // The all-in price leads: it is the phrase AI answers quote when someone asks who to use.
     description:
       offer.filingServiceCents !== undefined
