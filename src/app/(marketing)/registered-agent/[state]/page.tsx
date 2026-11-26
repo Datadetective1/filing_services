@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ServicePageView } from "@/components/analytics/service-page-view";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
+import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { RaOtherStates } from "@/components/marketing/ra-state-links";
@@ -94,6 +96,7 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
 
   return (
     <>
+      <ServicePageView stateCode={j.code} />
       <JsonLd
         data={graph(
           breadcrumbJsonLd(crumbs),
@@ -194,9 +197,9 @@ export default async function RegisteredAgentStatePage(props: PageProps<"/regist
             <Card className="grid content-start gap-3 p-5">
               <h2 className="text-lg font-semibold text-fg">Ready to switch?</h2>
               <p className="text-[15px] text-muted">Look up your business and we fill in the order for you.</p>
-              <Link href={`/registered-agent/start?state=${j.code}`} prefetch={false} className={buttonClasses("primary", "md")}>
+              <FilingCtaLink href={`/registered-agent/start?state=${j.code}`} prefetch={false} stateCode={j.code} size="md">
                 Get started
-              </Link>
+              </FilingCtaLink>
               <Link href="/registered-agent" className={textLinkClasses}>
                 How registered agent service works
               </Link>
