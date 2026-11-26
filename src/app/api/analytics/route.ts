@@ -17,6 +17,7 @@ const CLIENT_EVENTS = [
   "lookup_completed",
   "filing_cta_clicked",
   "checkout_cancelled",
+  "service_page_viewed",
 ] as const satisfies readonly AnalyticsEvent[];
 
 const body = z.object({

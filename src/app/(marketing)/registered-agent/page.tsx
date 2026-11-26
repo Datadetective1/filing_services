@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ServicePageView } from "@/components/analytics/service-page-view";
+import { AgentStateStart } from "@/components/marketing/agent-state-start";
 import { Breadcrumbs } from "@/components/marketing/breadcrumbs";
+import { FilingCtaLink } from "@/components/marketing/cta-link";
 import { FaqList } from "@/components/marketing/faq";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { PageIntro, Section, SectionHeading } from "@/components/marketing/section";
-import { buttonClasses, textLinkClasses } from "@/components/ui/button";
+import { textLinkClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/surface";
 import { absoluteUrl } from "@/config/site";
 import { formatCents } from "@/lib/domain/money";
@@ -110,42 +113,32 @@ export default async function RegisteredAgentPage() {
             ) : null}
             We receive lawsuits and state notices for your LLC or corporation, scan them to your dashboard and email you. Switching from another
             agent costs only the state&apos;s fee.
-            {bundle !== undefined ? ` With annual report filing included, it's ${formatCents(bundle, { trimZeros: true })} a year plus the state report fee.` : ""}{" "}
-            The registered agent on the state&apos;s record is our provider, {PROVIDER_LEGAL_NAME}
+            {bundle !== undefined ? ` With annual report filing included, it's ${formatCents(bundle, { trimZeros: true })} a year plus the state report fee.` : ""}
           </p>
         }
-      />
+      >
+        <div className="grid gap-3">
+          {states.length > 0 ? (
+            <AgentStateStart states={states.map((j) => ({ code: j.code, name: j.name }))} />
+          ) : (
+            <FilingCtaLink href="/registered-agent/start" prefetch={false} className="w-fit">
+              Get started
+            </FilingCtaLink>
+          )}
+          <p className="text-[15px] text-muted">
+            Starting a new business?{" "}
+            <Link href="/registered-agent/start?for=new" prefetch={false} className={textLinkClasses}>
+              Get an agent for a new business
+            </Link>
+            .
+          </p>
+          <p className="text-sm text-subtle">The registered agent on the state&apos;s record is our provider, {PROVIDER_LEGAL_NAME}.</p>
+        </div>
+      </PageIntro>
+      <ServicePageView />
 
       <Section>
-        <div className="grid gap-10 lg:grid-cols-2">
-          <div className="grid content-start gap-6">
-            <SectionHeading title="Which describes you?" />
-            <div className="grid gap-4">
-              <Card className="grid gap-2 p-5">
-                <h3 className="text-lg font-semibold text-fg">I already have a business</h3>
-                <p className="text-[15px] text-muted">
-                  Look up your business and we fill in the order for you. We file the change of agent with the state: you pay only the state&apos;s fee.
-                </p>
-                <Link href="/registered-agent/start" prefetch={false} className={buttonClasses("primary", "md", "mt-2 w-fit")}>
-                  Get started
-                </Link>
-              </Card>
-              <Card className="grid gap-2 p-5">
-                <h3 className="text-lg font-semibold text-fg">I&apos;m starting a business</h3>
-                <p className="text-[15px] text-muted">
-                  You name your registered agent when you form the business, so there&apos;s nothing to switch. Forming it yourself? We give you our agent&apos;s
-                  details for your filing. Or{" "}
-                  <Link href="/business-formation" className={textLinkClasses}>
-                    let us form it
-                  </Link>
-                  .
-                </p>
-                <Link href="/registered-agent/start?for=new" prefetch={false} className={buttonClasses("secondary", "md", "mt-2 w-fit")}>
-                  Get an agent for a new business
-                </Link>
-              </Card>
-            </div>
-          </div>
+        <div className="grid max-w-2xl gap-10">
           <div className="grid content-start gap-4">
             <SectionHeading title="What it costs" />
             <dl className="grid gap-3 text-[15px]">
