@@ -132,7 +132,7 @@ export default async function RegisteredAgentPage() {
             </Link>
             .
           </p>
-          <p className="text-sm text-subtle">The registered agent on the state&apos;s record is our provider, {PROVIDER_LEGAL_NAME}.</p>
+          <p className="text-sm text-subtle">The registered agent on the state&apos;s record is our provider, {PROVIDER_LEGAL_NAME}</p>
         </div>
       </PageIntro>
       <ServicePageView />
