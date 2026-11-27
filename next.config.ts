@@ -11,15 +11,24 @@ const supabaseOrigin = (() => {
 /**
  * Content Security Policy. Next.js inlines bootstrap scripts, so script-src needs
  * 'unsafe-inline' without nonces (nonces would force every SEO page to render
- * dynamically). Everything else is locked to self + Supabase + Stripe Checkout.
+ * dynamically). Everything else is locked to self + Supabase + Stripe Checkout,
+ * plus Google Analytics (gtag.js and its collection endpoints) when a GA4
+ * Measurement ID is configured.
  */
+const gaEnabled = /^G-[A-Z0-9]{4,20}$/.test(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim().toUpperCase() ?? "");
+const gaScript = gaEnabled ? " https://www.googletagmanager.com" : "";
+const gaConnect = gaEnabled
+  ? " https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com"
+  : "";
+const gaImg = gaEnabled ? " https://*.google-analytics.com https://*.googletagmanager.com" : "";
+
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}${gaScript}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
+  `img-src 'self' data: blob: ${supabaseOrigin}${gaImg}`.trim(),
   "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigin}`.trim(),
+  `connect-src 'self' ${supabaseOrigin}${gaConnect}`.trim(),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "object-src 'none'",
