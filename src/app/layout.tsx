@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Figtree, Geist_Mono } from "next/font/google";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { VercelAnalytics } from "@/components/analytics/vercel-analytics";
 import { isIndexable, site, siteUrl } from "@/config/site";
+import { gaMeasurementId } from "@/lib/analytics/google";
 import "./globals.css";
 
 const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"], display: "swap" });
@@ -35,12 +37,15 @@ export const viewport: Viewport = {
   themeColor: "#fafaf7",
 };
 
+const gaId = gaMeasurementId(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID);
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${figtree.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         {children}
         <VercelAnalytics />
+        {gaId ? <GoogleAnalytics measurementId={gaId} /> : null}
       </body>
     </html>
   );

@@ -16,10 +16,11 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy policy"
       path="/legal/privacy"
+      lastUpdated="2026-11-27"
       summary={
         <p>
           We collect what we need to track your business&apos;s filing deadlines and file on its behalf. We do not sell your
-          personal information, we do not store card numbers, and our analytics do not store IP addresses.
+          personal information, we do not store card numbers, and our own analytics do not store IP addresses.
         </p>
       }
     >
@@ -86,8 +87,17 @@ export default function PrivacyPage() {
         If you arrive by clicking one of our ads on Google, the link carries a click ID that Google adds. We keep that click ID
         in the same first-party cookie and with your business, and never in analytics events. If you then buy from us, we may
         upload the click ID with the time and amount of our service fee to Google Ads, so we can tell whether our ads work. We
-        don&apos;t send your name, email address or business details with it. We still don&apos;t put any Google script or
-        tracking cookie on our site.
+        don&apos;t send your name, email address or business details with it.
+      </p>
+      <p>
+        We also use Google Analytics, run by Google, to measure visits and see which pages and sources bring visitors. It
+        loads Google&apos;s script and sets Google Analytics cookies (named <code>_ga</code>) in your browser, and Google
+        receives the page you view, its title, the referring site, any campaign tag or Google ad click ID in the link, and
+        basic device and browser details. Google Analytics does not log or store IP addresses. We turn off Google signals and
+        ad personalization, we replace account and order IDs in addresses and page titles in your account area, and we never
+        send your name, email address or business details. It is not used on staff or sign-in pages, and it does not load if
+        your browser sends a Global Privacy Control or Do Not Track signal. You can also block it with Google&apos;s{" "}
+        <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener noreferrer">opt-out browser add-on</a>.
       </p>
       <p>
         We also count page views with Vercel Web Analytics, run by our hosting provider. It does not set cookies, records the
@@ -100,7 +110,8 @@ export default function PrivacyPage() {
         before creating an account, cookies that hold what you typed for up to 24 hours so we can carry it into your account. Our
         analytics store a random ID in your browser&apos;s local storage (not a cookie), and a first-party cookie holds how you
         arrived (described under Analytics) for up to 180 days. We don&apos;t set that cookie if your browser sends a Global
-        Privacy Control signal. We do not use advertising or third-party tracking cookies.
+        Privacy Control signal. Google Analytics sets its own cookies, described under Analytics. We do not use advertising
+        cookies.
       </p>
       <h3>Security and logs</h3>
       <p>
@@ -134,7 +145,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Service providers</strong> that run parts of the service for us under contract. Today these are Vercel
-          (website hosting and page view counts), Supabase (database, sign-in, account emails such as sign-up confirmation and password reset, and
+          (website hosting and page view counts), Google (site analytics), Supabase (database, sign-in, account emails such as sign-up confirmation and password reset, and
           file storage), Resend (email delivery) and Stripe (payment processing, once card payments are enabled). They may use the
           information only to provide their services to us.
         </li>
